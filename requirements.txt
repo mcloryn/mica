@@ -1,0 +1,30 @@
+# Versi di bawah sudah diuji bersama pada 2026-10-14 (Python 3.13).
+# Setelah install, tetap jalankan: pip freeze --exclude-editable > requirements-lock.txt
+
+# Persiapan dan data
+python-dotenv
+pymupdf
+beautifulsoup4
+requests
+
+# Computer Vision
+ultralytics==8.4.177   # YOLO pose + ByteTrack, ikut memasang torch dan opencv-python
+lap==0.5.13            # dibutuhkan ByteTrack untuk pencocokan
+opencv-python          # cv2, dipakai langsung oleh kode (versi persis di requirements-lock.txt)
+numpy
+pyyaml                 # membaca config/mica.yaml
+
+# Evaluasi dan pengujian
+scikit-learn==1.9.1
+matplotlib
+pytest
+
+# Aplikasi web
+flask==3.1.3
+
+# Suara (TTS)
+edge-tts==7.3.1        # teks ke suara, butuh internet
+pygame==2.6.1          # memutar file suara
+faster-whisper==1.2.1  # ucapan ke teks (STT), berjalan di laptop tanpa internet
+
+# Paket untuk chatbot ditambahkan di tahap berikutnya.

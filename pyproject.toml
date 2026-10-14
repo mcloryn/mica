@@ -1,0 +1,24 @@
+# Membuat folder src/mica bisa diimpor dari mana saja (scripts/ dan tests/)
+# tanpa sys.path.insert. Pasang sekali di dalam .venv:
+#     pip install -e .
+# Daftar paket dan versinya tetap di requirements.txt dan requirements-lock.txt.
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mica"
+version = "0.1.0"
+description = "MICA: Mikroskil Intelligent Campus Assistant"
+requires-python = ">=3.11"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# File non-Python milik aplikasi web ikut dalam paket.
+[tool.setuptools.package-data]
+"mica.web" = ["templates/*.html", "static/*.css", "static/*.js", "static/fonts/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

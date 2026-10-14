@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MICA, asisten kampus Mikroskil</title>
+  <link rel="preload" href="{{ url_for('static', filename='fonts/bricolage-grotesque.woff2') }}" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{{ url_for('static', filename='mica.css') }}">
+</head>
+<body>
+  <div class="kiosk">
+
+    <!-- Atas: identitas dan keadaan MICA -->
+    <header class="top-bar">
+      <p class="brand">MICA</p>
+      <p class="tagline">Asisten kampus Mikroskil</p>
+      <p id="status" class="status" data-status="idle" aria-live="polite">
+        <span class="status-light" aria-hidden="true"></span><span id="status-text">Menunggu pengunjung</span>
+      </p>
+    </header>
+
+    <!-- Kiri: apa yang dilihat MICA, dan siapa yang terakhir disapa -->
+    <section class="left" aria-label="Kamera MICA">
+      <div class="lens">
+        <img id="video" src="{{ url_for('video') }}" alt="Video kamera MICA. Pengunjung ditandai sudut, lalu diberi nama warna bajunya.">
+        <p id="camera-empty" class="camera-empty" hidden>Kamera belum tersambung. MICA mencoba lagi…</p>
+      </div>
+
+      <!-- Kartu warna: diisi warna baju pengunjung yang terakhir disapa -->
+      <div id="target" class="target empty">
+        <div class="target-swatch" aria-hidden="true"></div>
+        <div class="target-info">
+          <p class="target-title">Sedang dilayani</p>
+          <p id="target-name" class="target-name">belum ada</p>
+          <p id="target-note" class="target-note">Berdiri di depan kamera supaya MICA menyapamu.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Kanan: percakapan dan topik -->
+    <section class="right" aria-label="Percakapan dengan MICA">
+      <div id="conversation" class="conversation" aria-live="polite"></div>
+
+      <div class="topics">
+        <p class="topics-title">Pilih topik</p>
+        <button type="button" data-question="Program studi apa saja yang ada di Mikroskil?">Program studi</button>
+        <button type="button" data-question="Berapa biaya kuliah di Mikroskil?">Biaya</button>
+        <button type="button" data-question="Beasiswa apa saja yang tersedia di Mikroskil?">Beasiswa</button>
+        <button type="button" data-question="Bagaimana cara mendaftar ke Mikroskil?">Pendaftaran</button>
+        <button type="button" data-question="Fasilitas apa saja yang ada di kampus Mikroskil?">Fasilitas</button>
+        <button type="button" data-question="Di mana lokasi kampus Mikroskil?">Lokasi</button>
+      </div>
+    </section>
+
+    <!-- Bawah: bertanya lewat suara atau ketikan -->
+    <footer class="bottom-bar">
+      <button type="button" id="talk-button" class="talk-button">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+          <rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="2"/>
+          <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span id="talk-button-text">Tekan untuk bicara</span>
+      </button>
+
+      <form id="ask-form" class="ask-form" autocomplete="off">
+        <label for="ask-input" class="visually-hidden">Pertanyaan untuk MICA</label>
+        <input id="ask-input" type="text" placeholder="Ketik pertanyaan" maxlength="300">
+        <button type="submit" id="send-button">Kirim</button>
+      </form>
+    </footer>
+
+    <!-- Layar pembuka: satu klik dari petugas supaya browser mengizinkan MICA bersuara -->
+    <div id="start-screen" class="start-screen">
+      <button type="button" id="start-button">Mulai MICA</button>
+      <p>Browser baru mengizinkan suara setelah layar disentuh sekali.</p>
+    </div>
+
+    <p id="disconnected" class="disconnected" hidden>MICA terputus dari server. Mencoba menyambung lagi…</p>
+  </div>
+  <script src="{{ url_for('static', filename='mica.js') }}"></script>
+</body>
+</html>

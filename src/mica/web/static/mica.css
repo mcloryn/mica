@@ -1,0 +1,410 @@
+/* Tampilan kios MICA.
+   Susunan: atas (identitas, keadaan), kiri (kamera dan kartu warna), kanan (percakapan), bawah (tombol bicara, kotak tanya).
+   Warna halaman tenang: kertas abu kehijauan dan tinta hijau tua. Satu-satunya warna mencolok adalah
+   warna baju pengunjung yang sedang dilayani, di kartu target dan di garis sapaan. */
+
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("fonts/bricolage-grotesque.woff2") format("woff2");
+  font-weight: 200 800;
+  font-display: swap;
+}
+
+:root {
+  --paper: #eef0ec;     /* latar halaman */
+  --white: #ffffff;      /* latar panel */
+  --ink: #1d2a26;      /* teks utama, hijau sangat tua */
+  --graphite: #56625d;     /* teks keterangan */
+  --line: #c9d0c9;
+  --red: #d6452f;      /* pesan gangguan, tombol bicara, dan lampu "mendengarkan" */
+  --green: #2e7d4f;      /* lampu "menunggu pertanyaan" */
+  --yellow: #e5a323;     /* lampu "mencari jawaban" */
+  --blue: #2d5bb9;       /* lampu "sedang berbicara" */
+  --shirt-color: #c9d0c9; /* diganti oleh mica.js */
+  --font: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+[hidden] { display: none !important; }
+
+p { margin: 0; }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 18px;
+  line-height: 1.5;
+  overflow: hidden; /* kios: tidak ada scroll halaman */
+}
+
+button { font: inherit; cursor: pointer; }
+button:disabled { cursor: default; opacity: 0.4; }
+
+.kiosk {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 18px 24px;
+  height: 100dvh;
+  padding: 18px 24px 20px;
+}
+
+/* ---------- Atas ---------- */
+
+.top-bar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.tagline {
+  flex: 1;
+  color: var(--graphite);
+  font-size: 16px;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 16px 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--white);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.status-light {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--graphite);
+}
+
+[data-status="ready"] .status-light { background: var(--green); }
+[data-status="thinking"] .status-light { background: var(--yellow); animation: blink 1s ease-in-out infinite; }
+[data-status="listening"] .status-light { background: var(--red); }
+[data-status="transcribing"] .status-light { background: var(--yellow); animation: blink 1s ease-in-out infinite; }
+[data-status="speaking"] .status-light { background: var(--blue); animation: blink 0.6s ease-in-out infinite; }
+
+/* ---------- Kiri: kamera dan target ---------- */
+
+.left {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
+
+.lens {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--ink);
+}
+
+.lens img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.camera-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 0 32px;
+  color: var(--paper);
+  text-align: center;
+}
+
+.target {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px 12px 12px;
+  border-radius: 8px;
+  background: var(--white);
+}
+
+.target-swatch {
+  height: 84px;
+  border-radius: 4px;
+  background: var(--shirt-color);
+  box-shadow: inset 0 0 0 1px rgba(29, 42, 38, 0.15);
+  transform-origin: top;
+}
+
+.target.empty .target-swatch {
+  background: repeating-linear-gradient(135deg, var(--paper) 0 8px, var(--white) 8px 16px);
+}
+
+/* Satu-satunya gerak otomatis: warna "dituang" ke kartu saat pengunjung disapa */
+.target.fresh .target-swatch { animation: pour 600ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+.target-title { color: var(--graphite); font-size: 14px; }
+
+.target-name {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  text-transform: lowercase;
+}
+
+.target-note { color: var(--graphite); font-size: 14px; line-height: 1.35; }
+
+/* ---------- Kanan: percakapan ---------- */
+
+.right {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 28px 28px 20px;
+  border-radius: 8px;
+  background: var(--white);
+}
+
+.conversation {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-right: 6px;
+  scroll-behavior: smooth;
+}
+
+/* Sebelum ada percakapan: perkenalan besar di bagian bawah, dekat tombol topik */
+.intro {
+  margin-top: auto;
+  font-size: clamp(44px, 4.4vw, 72px);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.intro-note {
+  max-width: 36ch;
+  color: var(--graphite);
+  font-size: 20px;
+  line-height: 1.4;
+}
+
+.message { max-width: 62ch; }
+
+/* MICA bicara sebagai teks biasa dengan garis di kiri, tanpa gelembung */
+.message.from-mica {
+  align-self: flex-start;
+  padding-left: 16px;
+  border-left: 3px solid var(--line);
+  font-size: 19px;
+}
+
+/* Sapaan: lebih besar, garisnya berwarna baju pengunjung */
+.message.from-mica.greeting {
+  border-left: 6px solid var(--shirt-color);
+  font-size: clamp(24px, 2.1vw, 32px);
+  font-weight: 600;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.message.from-visitor {
+  align-self: flex-end;
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: 4px;
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.message.pending { color: var(--graphite); }
+
+/* ---------- Topik ---------- */
+
+.topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.topics-title {
+  flex-basis: 100%;
+  color: var(--graphite);
+  font-size: 15px;
+}
+
+.topics button {
+  min-height: 48px; /* cukup besar untuk disentuh jari */
+  padding: 0 18px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.topics button:hover { border-color: var(--ink); }
+.topics button:active { background: var(--line); }
+
+/* ---------- Bawah ---------- */
+
+.bottom-bar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.talk-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 56px;
+  padding: 0 22px 0 18px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--red);
+  color: #fff;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Sedang merekam: tombol berubah menjadi tombol berhenti */
+.talk-button.recording {
+  background: var(--ink);
+  box-shadow: 0 0 0 4px var(--red);
+}
+
+.ask-form {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+}
+
+.ask-form input {
+  flex: 1;
+  min-width: 0;
+  height: 56px;
+  padding: 0 16px;
+  border: 2px solid var(--ink);
+  border-right: 0;
+  border-radius: 4px 0 0 4px;
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+}
+
+.ask-form input::placeholder { color: var(--graphite); }
+
+.ask-form button {
+  height: 56px;
+  padding: 0 24px;
+  border: 2px solid var(--ink);
+  border-radius: 0 4px 4px 0;
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 600;
+}
+
+.ask-form input:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--ink); }
+
+button:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
+}
+
+/* Layar pembuka, menutupi seluruh halaman sampai tombol Mulai ditekan */
+.start-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: var(--paper);
+  color: var(--graphite);
+}
+
+.start-screen button {
+  height: 72px;
+  padding: 0 40px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.disconnected {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  border-radius: 4px;
+  background: var(--red);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* ---------- Gerak ---------- */
+
+@keyframes pour {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+@keyframes blink { 50% { opacity: 0.3; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; scroll-behavior: auto !important; }
+}
+
+/* Layar sempit atau tegak: semua bagian bertumpuk. */
+@media (max-width: 900px) {
+  body { overflow: auto; }
+  .kiosk { grid-template-columns: 1fr; grid-template-rows: none; height: auto; padding: 14px; gap: 14px; }
+  .top-bar { flex-wrap: wrap; }
+  .tagline { flex-basis: 50%; }
+  .lens { flex: none; aspect-ratio: 4 / 3; }
+  .target { grid-template-columns: 64px minmax(0, 1fr); }
+  .target-swatch { height: 64px; }
+  .right { min-height: 60dvh; padding: 20px; }
+}

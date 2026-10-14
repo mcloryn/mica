@@ -1,0 +1,34 @@
+# Pengaturan MICA yang bisa dikalibrasi.
+# Ubah hanya berdasarkan kesalahan pada data dev, satu perubahan per percobaan,
+# dan catat setiap perubahan di docs/experiment-log.md beserta alasannya.
+# Parameter ByteTrack ada di file terpisah: bytetrack_mica.yaml.
+
+model: yolo11n-pose.pt
+
+detection:
+  track_conf: 0.1     # deteksi serendah ini tetap dikirim ke ByteTrack supaya jejak tidak putus
+  greet_conf: 0.5     # hanya kotak dengan keyakinan minimal ini yang boleh memberi suara warna
+
+session:
+  min_frames: 10      # banyak frame berwarna yang dikumpulkan sebelum warna diputuskan
+  forget_after: 30.0  # detik tidak terlihat sebelum data seseorang dihapus
+
+shirt_region:
+  min_keypoint_conf: 0.5  # titik tubuh dengan keyakinan di bawah ini dianggap tidak terlihat
+  shrink: 0.15            # area dikecilkan 15% dari tiap sisi supaya lengan dan latar tidak ikut
+  min_size: 4             # piksel; area yang lebih sempit dianggap terlalu kecil untuk dibaca warnanya
+
+# Warna referensi dalam RGB, dari daftar warna bernama CSS Color Module Level 4.
+# Nama warnanya tetap bahasa Indonesia karena dipakai langsung di sapaan untuk pengunjung.
+reference_colors:
+  hitam: [0, 0, 0]             # black
+  putih: [255, 255, 255]       # white
+  abu-abu: [128, 128, 128]     # gray
+  merah: [255, 0, 0]           # red
+  oranye: [255, 165, 0]        # orange
+  kuning: [255, 255, 0]        # yellow
+  hijau: [0, 128, 0]           # green
+  biru: [0, 0, 255]            # blue
+  ungu: [128, 0, 128]          # purple
+  merah muda: [255, 192, 203]  # pink
+  coklat: [139, 69, 19]        # saddlebrown

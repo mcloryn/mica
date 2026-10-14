@@ -1,0 +1,6 @@
+id,split,source,category,question,answer,source_document
+1,dev,penulis,biaya,Berapa biaya kuliah per semester untuk Teknik Informatika?,,
+2,dev,penulis,pendaftaran,Kapan pendaftaran mahasiswa baru dibuka?,,
+3,dev,penulis,prodi,Program studi apa saja yang ada di Mikroskil?,,
+4,uji,penulis,beasiswa,Beasiswa apa saja yang tersedia untuk mahasiswa baru?,,
+5,uji,penulis,fasilitas,Fasilitas apa saja yang ada di kampus?,,

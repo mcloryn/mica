@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+build/
+.pytest_cache/
+venv/
+
+# Rahasia: jangan pernah di-commit
+.env
+
+# Hasil yang bisa dibuat ulang
+data/chroma/
+*.wav
+*.mp3
+yolo*.pt
+logs/
+
+# Video uji berisi wajah relawan
+data/video/
