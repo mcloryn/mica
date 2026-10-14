@@ -1,179 +1,171 @@
 # MICA: Mikroskil Intelligent Campus Assistant
 
-Asisten kampus untuk calon mahasiswa Mikroskil. Kamera mendeteksi dan menyapa pengunjung berdasarkan warna bajunya, lalu pengunjung bisa bertanya lewat suara atau teks. Jawaban diambil dari dokumen resmi Mikroskil (RAG) agar tidak mengarang.
+MICA adalah asisten kampus berbasis kios untuk calon mahasiswa Mikroskil. Sistem mendeteksi pengunjung melalui kamera, mengenali warna pakaian pengunjung, lalu menyapanya dengan suara. Pengunjung kemudian dapat mengajukan pertanyaan melalui ketikan atau ucapan. Jawaban direncanakan bersumber dari dokumen resmi Mikroskil dengan pendekatan *Retrieval-Augmented Generation* (RAG) agar informasi yang diberikan dapat dipertanggungjawabkan.
 
-## Struktur folder
+## Komponen Sistem
+
+| Komponen | Teknologi | Status |
+| --- | --- | --- |
+| Deteksi dan pelacakan orang | YOLO11 Pose dan ByteTrack (Ultralytics) | Berjalan |
+| Pengenalan warna pakaian | Ruang warna CIELAB, jarak CIE76, pemungutan suara antar-frame | Berjalan |
+| Sintesis suara (TTS) | edge-tts | Berjalan |
+| Pengenalan ucapan (STT) | faster-whisper | Berjalan |
+| Antarmuka kios | Flask, HTML, CSS, JavaScript | Berjalan |
+| Penjawab pertanyaan | RAG dengan LLM | Dalam pengembangan |
+
+## Struktur Direktori
 
 ```
 mica/
-  config/                nilai yang bisa dikalibrasi (mica.yaml) dan pengaturan ByteTrack
+  config/                parameter yang dapat dikalibrasi (mica.yaml) dan konfigurasi ByteTrack
   data/
-    raw/                 dokumen asli (PDF, halaman web)
-    documents/           dokumen bersih, satu file per topik
-    video/               video uji (tidak ikut ke GitHub) dan video_list.csv
-    qa_dataset.csv       pertanyaan uji dan jawaban benar
+    raw/                 dokumen sumber (PDF, halaman web)
+    documents/           dokumen yang telah dibersihkan, satu berkas per topik
+    video/               video uji (tidak disimpan di repositori) dan video_list.csv
+    qa_dataset.csv       dataset pertanyaan dan jawaban acuan
   docs/                  log eksperimen dan protokol pengujian
-  results/               hasil evaluasi akhir untuk BAB IV
-  scripts/               script untuk menjalankan dan mengevaluasi
-    check_setup.py       cek kesiapan laptop
-    run_cv.py            jalankan CV di terminal, dengan log (untuk pengujian)
-    record_video.py      rekam video uji
-    evaluate_color.py    hitung akurasi warna baju
-    try_tts.py           coba suara MICA
-  src/mica/              kode utama MICA
-    config.py            membaca config/mica.yaml
-    greeting.py          kalimat sapaan
-    chatbot.py           menjawab pertanyaan (nanti RAG)
-    vision/              Computer Vision: kamera, deteksi, tracking, warna baju
-    speech/              suara: tts.py (teks ke suara), stt.py (ucapan ke teks)
-    web/                 aplikasi web kios (Flask): app.py, templates/, static/
-  tests/                 uji unit
+  results/               hasil evaluasi akhir
+  scripts/               skrip untuk menjalankan dan mengevaluasi sistem
+    check_setup.py       pemeriksaan kesiapan lingkungan kerja
+    run_cv.py            menjalankan modul Computer Vision dengan pencatatan log
+    record_video.py      merekam video uji
+    evaluate_color.py    menghitung akurasi pengenalan warna pakaian
+    try_tts.py           mencoba sintesis suara
+  src/mica/              kode sumber utama
+    config.py            pembaca berkas konfigurasi
+    greeting.py          penyusun kalimat sapaan
+    chatbot.py           penjawab pertanyaan
+    vision/              deteksi, pelacakan, dan pengenalan warna pakaian
+    speech/              tts.py (teks ke suara) dan stt.py (ucapan ke teks)
+    web/                 aplikasi web kios: app.py, templates/, static/
+  tests/                 pengujian unit
   .env.example           contoh pengaturan kunci API
-  pyproject.toml         menjadikan src/mica paket yang bisa diimpor, plus pengaturan pytest
-  requirements.txt       daftar paket Python
+  pyproject.toml         definisi paket dan konfigurasi pytest
+  requirements.txt       daftar dependensi
+  requirements-lock.txt  versi pasti seluruh dependensi
 ```
 
-Nama file, fungsi, dan variabel di kode memakai bahasa Inggris; komentar dan teks untuk pengunjung memakai bahasa Indonesia.
+## Persyaratan
 
-## Hari 1: siapkan laptop
+- Python 3.13 (minimal 3.11)
+- Git
+- Webcam, mikrofon, dan pengeras suara untuk penggunaan kios
+- Koneksi internet untuk sintesis suara dan untuk mengunduh model pada penggunaan pertama
 
-Ikuti urutannya. Kalau ada error, salin pesan error lengkapnya ke thread Claude.
+## Instalasi
 
-### 1. Install program dasar (sekali saja)
+1. Unduh repositori:
 
-- **Python 3.13** (minimal 3.11): https://www.python.org/downloads/
-  Di Windows, centang **"Add python.exe to PATH"** saat instalasi.
-- **Git**: https://git-scm.com/downloads (pilih pengaturan default).
-- **VS Code**: https://code.visualstudio.com/
-  Setelah terbuka, install ekstensi **Python** (dari Microsoft).
+   ```
+   git clone https://github.com/mcloryn/mica.git
+   cd mica
+   ```
 
-Cek di terminal (Windows: buka "Command Prompt" atau terminal di VS Code):
+2. Buat dan aktifkan *virtual environment*:
 
-```
-python --version
-git --version
-```
+   ```
+   python -m venv .venv
+   ```
 
-Keduanya harus menampilkan nomor versi.
+   - Windows: `.venv\Scripts\activate`
+   - macOS atau Linux: `source .venv/bin/activate`
 
-### 2. Taruh folder `mica` di laptop
+3. Pasang dependensi dan paket `mica`:
 
-Unduh folder ini, lalu buka di VS Code lewat **File > Open Folder**.
-Buka terminal di VS Code lewat **Terminal > New Terminal**.
+   ```
+   pip install -r requirements.txt
+   pip install -e .
+   ```
 
-### 3. Buat virtual environment
+   Perintah kedua memasang `src/mica` sebagai paket dalam mode *editable*, sehingga skrip dan pengujian dapat mengimpor `mica` secara langsung, dan perubahan kode langsung berlaku tanpa pemasangan ulang. Pemasangan pertama memerlukan waktu cukup lama karena turut memasang PyTorch.
 
-Virtual environment adalah "ruang khusus" untuk paket Python project ini, supaya tidak bercampur dengan project lain.
+4. Salin `.env.example` menjadi `.env`. Kunci API dapat dikosongkan hingga modul penjawab pertanyaan digunakan.
 
-```
-python -m venv .venv
-```
+5. Periksa kesiapan lingkungan kerja:
 
-Aktifkan:
+   ```
+   python scripts/check_setup.py
+   ```
 
-- Windows: `.venv\Scripts\activate`
-- macOS atau Linux: `source .venv/bin/activate`
+   Lingkungan siap digunakan apabila seluruh baris menampilkan `[OK]`.
 
-Kalau berhasil, di awal baris terminal muncul `(.venv)`. Aktifkan lagi setiap kali membuka terminal baru.
+## Penggunaan
 
-### 4. Install paket
+Seluruh perintah dijalankan dari direktori utama proyek dengan *virtual environment* dalam keadaan aktif.
 
-```
-pip install -r requirements.txt
-pip install -e .
-```
-
-Perintah kedua memasang folder `src/mica` sebagai paket, supaya `scripts/`, `web/`, dan `tests/` bisa memakai `import mica` tanpa trik apa pun. Cukup sekali; perubahan kode di `src/mica` langsung terpakai tanpa perlu dipasang ulang.
-
-Setelah berhasil, catat versi persis semua paket supaya hasil skripsi bisa diulang (reproducible):
+### Aplikasi kios
 
 ```
-pip freeze --exclude-editable > requirements-lock.txt
+python -m mica.web.app                                   # menggunakan webcam
+python -m mica.web.app --source data/video/<nama>.mp4    # menggunakan video rekaman
+python -m mica.web.app --debug                           # menampilkan kotak deteksi, kerangka tubuh, dan skor keyakinan
 ```
 
-Ulangi perintah ini setiap kali menambah paket, lalu commit file `requirements-lock.txt`.
+Buka http://127.0.0.1:5000 pada peramban, kemudian tekan tombol **Mulai MICA** satu kali. Langkah ini diperlukan karena peramban hanya mengizinkan pemutaran suara setelah terdapat interaksi pengguna. Model pengenalan ucapan berjalan secara lokal dan hanya memerlukan internet saat diunduh pertama kali.
 
-### 5. Buat file pengaturan
-
-Salin `.env.example` menjadi `.env` (di folder yang sama). Kunci API boleh dikosongkan dulu, nanti diisi di hari 6.
-
-### 6. Cek semuanya
+### Modul Computer Vision
 
 ```
-python scripts/check_setup.py
+python scripts/run_cv.py                                        # menggunakan webcam
+python scripts/run_cv.py --source data/video/<nama>.mp4         # menggunakan video rekaman
+python scripts/run_cv.py --source data/video/<nama>.mp4 --no-display
 ```
 
-Kalau semua baris `[OK]`, hari 1 selesai.
+Model `yolo11n-pose.pt` diunduh secara otomatis pada penggunaan pertama. Setiap orang yang terdeteksi ditandai dengan kotak dan ID; kotak biru muda menunjukkan area pakaian yang dibaca warnanya. Tekan `q` untuk berhenti. Setiap eksekusi menghasilkan direktori `logs/<waktu>/` yang berisi:
 
-### 7. Simpan ke GitHub
+- `events.csv`: waktu setiap orang terlihat (`seen`), disapa (`greeted`), dan meninggalkan area (`left`)
+- `info.txt`: sumber video, jumlah frame, dan rata-rata FPS
+- salinan `mica.yaml` dan `bytetrack_mica.yaml` yang digunakan pada eksekusi tersebut
 
-1. Buat akun di https://github.com (gratis).
-2. Buat repository baru bernama `mica` (pilih **Private**, jangan centang "Add a README").
-3. Di terminal, dari folder `mica`:
+Logika Computer Vision terpusat pada `src/mica/vision/pipeline.py` dan digunakan bersama oleh `scripts/run_cv.py` serta aplikasi kios.
 
-```
-git init
-git add .
-git commit -m "Kerangka awal MICA"
-git branch -M main
-git remote add origin https://github.com/USERNAME-KAMU/mica.git
-git push -u origin main
-```
-
-Ganti `USERNAME-KAMU` dengan username GitHub-mu.
-
-4. Hubungkan GitHub ke Claude lewat https://claude.ai/connect-github supaya Claude bisa langsung menulis kode ke repo ini.
-
-## Computer Vision: menjalankan dan menguji
-
-Install paket (sekali, cukup lama karena ikut memasang PyTorch):
+### Perekaman video uji
 
 ```
-pip install -r requirements.txt
-pip freeze --exclude-editable > requirements-lock.txt
+python scripts/record_video.py --shirt putih --light terang --split dev
 ```
 
-Jalankan dengan webcam (model `yolo11n-pose.pt` terunduh otomatis saat pertama kali):
+Video disimpan di `data/video/` dan keterangannya dicatat di `data/video/video_list.csv`. Video tidak disimpan di repositori karena memuat wajah relawan.
 
-```
-python scripts/run_cv.py
-```
+## Pengujian
 
-Setiap orang diberi kotak beserta ID-nya; kotak biru muda adalah area baju yang dibaca. Sapaan muncul di terminal. Tekan `q` untuk berhenti.
-
-Untuk video uji, rekam dulu dengan `scripts/record_video.py`, lalu jalankan `python scripts/run_cv.py --source data/video/<nama>.mp4`.
-
-Logika CV ada di satu tempat, `src/mica/vision/pipeline.py`, dan dipakai bersama oleh `scripts/run_cv.py` (untuk pengujian, dengan log) dan aplikasi web (untuk pengunjung). Nilai kalibrasinya dibaca dari `config/mica.yaml`.
-
-## Aplikasi web (kios)
-
-```
-python -m mica.web.app                                   # webcam
-python -m mica.web.app --source data/video/<nama>.mp4    # video rekaman
-python -m mica.web.app --debug                           # video dengan kotak, kerangka badan, dan conf
-```
-
-Buka http://127.0.0.1:5000 lalu tekan "Mulai MICA" sekali (browser baru mengizinkan suara setelah layar disentuh). Suara MICA (edge-tts) butuh internet; pengenal ucapan (faster-whisper) berjalan di laptop dan hanya butuh internet saat model diunduh pertama kali.
-
-Uji unit (tidak butuh kamera, internet, atau GPU; uji yang butuh `yolo11n-pose.pt` dilewati jika file itu belum ada):
+Pengujian unit tidak memerlukan kamera, internet, maupun GPU. Pengujian yang memerlukan `yolo11n-pose.pt` akan dilewati apabila berkas tersebut belum tersedia.
 
 ```
 python -m pytest
 ```
 
-Untuk pengujian skripsi, ikuti `docs/cv-test-protocol.md`.
+Prosedur pengujian Computer Vision dijelaskan pada `docs/cv-test-protocol.md`.
 
-## Tugas paralel: kumpulkan dokumen (hari 1 sampai 8)
+## Dataset
 
-- Taruh PDF dan halaman web Mikroskil di `data/raw/`.
-- Lengkapi `data/qa_dataset.csv` sampai minimal 50 pertanyaan:
-  - `question`: utamakan pertanyaan asli dari calon mahasiswa atau bagian admisi.
-  - `answer` dan `source_document`: diisi dari dokumen resmi, bukan tebakan, lalu minta bagian admisi memeriksanya.
-  - `split`: `dev` untuk memperbaiki prompt, `uji` untuk pengujian akhir. Data `uji` tidak boleh dilihat saat memperbaiki sistem.
-  - `source`: siapa yang mengajukan pertanyaan (misalnya `calon-mahasiswa`, `admisi`, `penulis`).
-  - `category`: topik pertanyaan (misalnya `biaya`, `pendaftaran`, `prodi`).
-  Lima baris yang sudah ada hanya contoh buatan penulis; ganti atau tandai asalnya.
+Dokumen sumber Mikroskil (PDF dan halaman web) disimpan di `data/raw/`, sedangkan versi yang telah dibersihkan disimpan di `data/documents/`.
 
-## Catatan eksperimen
+`data/qa_dataset.csv` ditargetkan berisi minimal 50 pertanyaan dengan kolom berikut:
 
-Setiap kali mencoba sesuatu, tambahkan satu entri di `docs/experiment-log.md`. Log ini menjadi bahan BAB III dan IV.
+| Kolom | Keterangan |
+| --- | --- |
+| `id` | Nomor urut pertanyaan |
+| `split` | `dev` untuk penyempurnaan sistem, `uji` untuk pengujian akhir. Data `uji` tidak boleh digunakan selama penyempurnaan sistem. |
+| `source` | Pihak yang mengajukan pertanyaan, misalnya `calon-mahasiswa`, `admisi`, atau `penulis` (pengembang) |
+| `category` | Topik pertanyaan, misalnya `biaya`, `pendaftaran`, atau `prodi` |
+| `question` | Pertanyaan; diutamakan pertanyaan asli dari calon mahasiswa atau bagian admisi |
+| `answer` | Jawaban acuan yang bersumber dari dokumen resmi dan telah diverifikasi oleh bagian admisi |
+| `source_document` | Dokumen sumber jawaban |
+
+Lima baris yang tersedia saat ini merupakan contoh awal dan perlu diganti dengan pertanyaan asli atau ditandai asalnya.
+
+## Reproduksibilitas
+
+- Versi pasti seluruh dependensi dicatat di `requirements-lock.txt`. Setiap kali dependensi ditambahkan, perbarui berkas tersebut dengan perintah berikut, lalu lakukan *commit*:
+
+  ```
+  pip freeze --exclude-editable > requirements-lock.txt
+  ```
+
+- Seluruh parameter yang dapat dikalibrasi berada di `config/mica.yaml` dan `config/bytetrack_mica.yaml`, dan salinannya disimpan pada setiap eksekusi `run_cv.py`.
+- Setiap percobaan, termasuk percobaan yang gagal, dicatat di `docs/experiment-log.md`.
+
+## Konvensi Kode
+
+Nama berkas, fungsi, variabel, dan kunci konfigurasi menggunakan bahasa Inggris. Komentar, dokumentasi, dan teks yang ditampilkan kepada pengunjung menggunakan bahasa Indonesia.

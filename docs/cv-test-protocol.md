@@ -1,6 +1,6 @@
 # Protokol uji Computer Vision MICA
 
-Dokumen ini menjelaskan cara menguji bagian CV agar hasilnya sah dan bisa diulang. Bahas dan setujui dulu dengan dosen pembimbing sebelum mulai merekam.
+Dokumen ini menjelaskan cara menguji bagian CV agar hasilnya sah dan bisa diulang. Rencana pengujian perlu disepakati terlebih dahulu sebelum perekaman dimulai.
 
 ## 1. Prinsip
 

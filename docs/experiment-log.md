@@ -1,8 +1,8 @@
 # Log eksperimen MICA
 
-Satu entri per percobaan, terbaru di atas. Catat juga percobaan yang gagal, karena itu bahan BAB IV.
+Satu entri per percobaan, terbaru di atas. Catat juga percobaan yang gagal.
 
-## 2026-10-14: uji jalan pertama suara TTS (oleh Claude)
+## 2026-10-14: uji jalan pertama suara TTS
 
 - **Tujuan:** memastikan MICA bisa mengucapkan sapaan.
 - **Pengaturan:** edge-tts 7.3.1, suara `id-ID-GadisNeural`, pygame 2.6.1, `scripts/coba_suara.py` (sekarang `scripts/try_tts.py`).
@@ -10,7 +10,7 @@ Satu entri per percobaan, terbaru di atas. Catat juga percobaan yang gagal, kare
 - **Hasil:** suara terdengar. Waktu membuat suara 1,14 detik, lama suara 9,73 detik.
 - **Catatan:** butuh internet; edge-tts bukan API resmi Microsoft. `ucapkan()` masih memblokir sampai suara selesai, jadi belum bisa dipanggil langsung dari loop kamera. Integrasi ke `mica_cv.py` (sekarang `scripts/run_cv.py`) dikerjakan di tahap berikutnya.
 
-## 2026-10-14: uji jalan pertama pipeline CV (oleh Claude)
+## 2026-10-14: uji jalan pertama pipeline CV
 
 - **Tujuan:** memastikan deteksi, tracking, warna baju, dan sapaan berjalan dari awal sampai akhir.
 - **Pengaturan:** ultralytics 8.4.177, `yolo11n-pose.pt`, ByteTrack bawaan, conf 0.5, frame_minimum 5, CPU server tanpa GPU.
