@@ -107,6 +107,9 @@ def test_contract_k_sorted_types(factory, k):
     assert len({h.chunk.chunk_id for h in hits}) == k
     assert all(h.ranks and all(isinstance(r, int) and r >= 1 for r in h.ranks.values())
                for h in hits)
+    # skor asli tersedia untuk setiap retriever yang menemukan chunk
+    assert all(set(h.raw_scores) == set(h.ranks) for h in hits)
+    assert all(isinstance(v, float) for h in hits for v in h.raw_scores.values())
 
 
 @pytest.mark.parametrize("factory", IMPLEMENTATIONS, ids=IDS)
@@ -164,21 +167,26 @@ def test_dense_exact_cosine():
     expected = kb.dense @ FakeEmbedder().embed([query])[0]
     assert [h.score for h in hits] == pytest.approx(sorted(expected, reverse=True)[:3], abs=1e-6)
     assert [h.ranks["dense"] for h in hits] == [1, 2, 3]
+    assert [h.raw_scores for h in hits] == [{"dense": h.score} for h in hits]
 
 
 class StubSource:
-    def __init__(self, name, order):
+    def __init__(self, name, order, raw=None):
         self.name = name
         self.order = order
+        self.raw = raw or [1.0] * len(order)
 
     def rank(self, query, n):
-        return [(i, 1.0) for i in self.order[:n]]
+        return list(zip(self.order, self.raw, strict=True))[:n]
 
 
 def test_rrf_matches_manual_calculation():
     chunks = tuple(_chunk(i, f"c{i}") for i in range(5))
     hybrid = HybridRrfRetriever(
-        chunks, [StubSource("bm25", [2, 0, 1]), StubSource("dense", [0, 3])], 60, 10
+        chunks,
+        [StubSource("bm25", [2, 0, 1], [9.5, 7.0, 3.25]), StubSource("dense", [0, 3], [0.71, 0.4])],
+        60,
+        10,
     )
     hits = hybrid.search("x", 5)
     # c0: 1/(60+2) + 1/(60+1); c2: 1/61; c3: 1/62; c1: 1/63; c4 tidak ditemukan
@@ -190,6 +198,13 @@ def test_rrf_matches_manual_calculation():
     ]
     assert [(h.chunk.chunk_id, h.ranks) for h in hits] == [(c, r) for c, _, r in expected]
     assert [h.score for h in hits] == pytest.approx([s for _, s, _ in expected], abs=1e-12)
+    # skor asli per retriever ikut dibawa; chunk yang tidak ditemukan dense tidak punya kuncinya
+    assert [h.raw_scores for h in hits] == [
+        {"bm25": 7.0, "dense": 0.71},
+        {"bm25": 9.5},
+        {"dense": 0.4},
+        {"bm25": 3.25},
+    ]
 
 
 def test_rrf_uses_candidates_per_retriever():

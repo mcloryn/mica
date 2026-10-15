@@ -307,12 +307,20 @@ def test_dev_yaml_pins_embedder_revision():
     assert revision is not None and len(revision) == 40
 
 
-def test_reranker_revision_required_in_kiosk(tmp_path):
+def test_reranker_revision_required_in_kiosk_when_enabled(tmp_path):
     raw = _complete_kiosk_raw()
+    raw["rag"]["reranker"]["enabled"] = True
     raw["rag"]["reranker"]["revision"] = None
     with pytest.raises(ConfigError) as exc:
         load_settings(_write(tmp_path, raw))
     assert "rag.reranker.revision" in str(exc.value)
+
+
+def test_reranker_revision_optional_in_kiosk_when_disabled(tmp_path):
+    raw = _complete_kiosk_raw()
+    raw["rag"]["reranker"]["enabled"] = False
+    raw["rag"]["reranker"]["revision"] = None
+    assert load_settings(_write(tmp_path, raw)).rag.reranker.revision is None
 
 
 def test_reranker_revision_must_be_full_hash(tmp_path):

@@ -262,6 +262,8 @@ def _optional_in_kiosk(settings: Settings) -> set[str]:
         optional |= {"rag.rrf_k", "rag.candidates_per_retriever"}
     if settings.audio.stt.backend != "faster_whisper":
         optional.add("audio.stt.threads")
+    if not settings.rag.reranker.enabled:
+        optional.add("rag.reranker.revision")
     return optional
 
 

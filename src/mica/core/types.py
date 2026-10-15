@@ -5,7 +5,7 @@ Modul ini hanya boleh mengimpor library standar supaya bisa diimpor modul mana p
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from enum import StrEnum
 from typing import Literal
@@ -56,6 +56,9 @@ class ScoredChunk:
     chunk: Chunk
     score: float  # skor akhir dari retriever terpilih
     ranks: dict[str, int]  # peringkat per retriever, untuk analisis E-01
+    # skor asli per retriever, misalnya {"bm25": 9.48, "dense": 0.71}; skor RRF hanya berbasis
+    # peringkat, jadi gate (M-04) memakai skor asli ini (cosine dense)
+    raw_scores: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

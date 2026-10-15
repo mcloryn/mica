@@ -69,6 +69,7 @@ class RerankedRetriever:
                 chunk=hits[i].chunk,
                 score=float(scores[i]),
                 ranks={**hits[i].ranks, "rerank": pos},
+                raw_scores={**hits[i].raw_scores, "rerank": float(scores[i])},
             )
             for pos, i in enumerate(order, start=1)
         ]

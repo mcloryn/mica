@@ -60,7 +60,12 @@ class _SingleRetriever:
     def search(self, query: str, k: int) -> list[ScoredChunk]:
         _check_k(k)
         return [
-            ScoredChunk(chunk=self.chunks[i], score=score, ranks={self.name: pos})
+            ScoredChunk(
+                chunk=self.chunks[i],
+                score=score,
+                ranks={self.name: pos},
+                raw_scores={self.name: score},
+            )
             for pos, (i, score) in enumerate(self.rank(query, k), start=1)
         ]
 
@@ -130,12 +135,17 @@ class HybridRrfRetriever:
         # SDD 7.3: score[c] = sum(1 / (rrf_k + rank_r(c))) atas retriever yang memuat c
         scores: dict[int, float] = {}
         ranks: dict[int, dict[str, int]] = {}
+        raw: dict[int, dict[str, float]] = {}
         for source in self.sources:
-            for rank, (i, _) in enumerate(source.rank(query, self.candidates), start=1):
+            for rank, (i, raw_score) in enumerate(source.rank(query, self.candidates), start=1):
                 scores[i] = scores.get(i, 0.0) + 1.0 / (self.rrf_k + rank)
                 ranks.setdefault(i, {})[source.name] = rank
+                raw.setdefault(i, {})[source.name] = raw_score
         order = sorted(scores, key=lambda i: (-scores[i], i))[:k]
-        return [ScoredChunk(chunk=self.chunks[i], score=scores[i], ranks=ranks[i]) for i in order]
+        return [
+            ScoredChunk(chunk=self.chunks[i], score=scores[i], ranks=ranks[i], raw_scores=raw[i])
+            for i in order
+        ]
 
 
 class _LoggedRetriever:
