@@ -1,0 +1,26 @@
+﻿qid,type,n_relevant,first_relevant_rank,hit@5,rr,ndcg10,latency_ms,top5_chunk_ids,unjudged
+d001,answerable,3,1,1,1.000000,1.000000,0.579,14_faq_calon_mahasiswa#5 03_biaya_kuliah_dan_syarat_masuk#2 04_prodi_fakultas_informatika#13 03_biaya_kuliah_dan_syarat_masuk#4 14_faq_calon_mahasiswa#13,0
+d002,answerable,3,1,1,1.000000,0.921787,0.603,14_faq_calon_mahasiswa#5 03_biaya_kuliah_dan_syarat_masuk#2 14_faq_calon_mahasiswa#1 14_faq_calon_mahasiswa#13 14_faq_calon_mahasiswa#6,0
+d003,answerable,2,1,1,1.000000,0.877215,0.541,14_faq_calon_mahasiswa#3 02_pendaftaran_dan_jadwal#5 02_pendaftaran_dan_jadwal#0 02_pendaftaran_dan_jadwal#3 14_faq_calon_mahasiswa#6,0
+d004,answerable,5,2,1,0.500000,0.473108,0.594,14_faq_calon_mahasiswa#4 14_faq_calon_mahasiswa#3 14_faq_calon_mahasiswa#6 02_pendaftaran_dan_jadwal#10 14_faq_calon_mahasiswa#2,0
+d005,answerable,2,9,0,0.111111,0.184576,0.616,14_faq_calon_mahasiswa#11 14_faq_calon_mahasiswa#12 14_faq_calon_mahasiswa#7 14_faq_calon_mahasiswa#14 14_faq_calon_mahasiswa#8,0
+d006,answerable,5,1,1,1.000000,0.339160,0.527,14_faq_calon_mahasiswa#4 14_faq_calon_mahasiswa#13 14_faq_calon_mahasiswa#5 13_kontak_lengkap#0 13_kontak_lengkap#10,0
+d007,answerable,4,2,1,0.500000,0.760640,0.507,05_prodi_fakultas_bisnis_dan_hukum#10 13_kontak_lengkap#17 13_kontak_lengkap#4 02_pendaftaran_dan_jadwal#8 14_faq_calon_mahasiswa#10,0
+d008,answerable,5,1,1,1.000000,0.508740,0.528,14_faq_calon_mahasiswa#7 14_faq_calon_mahasiswa#14 14_faq_calon_mahasiswa#11 14_faq_calon_mahasiswa#2 14_faq_calon_mahasiswa#8,0
+d009,answerable,4,1,1,1.000000,0.541400,0.495,14_faq_calon_mahasiswa#2 14_faq_calon_mahasiswa#7 14_faq_calon_mahasiswa#8 14_faq_calon_mahasiswa#6 13_kontak_lengkap#7,0
+d010,answerable,3,1,1,1.000000,0.703918,0.424,14_faq_calon_mahasiswa#8 14_faq_calon_mahasiswa#6 14_faq_calon_mahasiswa#7 14_faq_calon_mahasiswa#2 14_faq_calon_mahasiswa#11,0
+d011,answerable,2,1,1,1.000000,0.919721,0.517,14_faq_calon_mahasiswa#6 14_faq_calon_mahasiswa#4 03_biaya_kuliah_dan_syarat_masuk#6 14_faq_calon_mahasiswa#11 14_faq_calon_mahasiswa#8,0
+d012,answerable,2,1,1,1.000000,1.000000,0.547,03_biaya_kuliah_dan_syarat_masuk#6 14_faq_calon_mahasiswa#6 14_faq_calon_mahasiswa#5 04_prodi_fakultas_informatika#0 14_faq_calon_mahasiswa#13,0
+d013,answerable,4,1,1,1.000000,0.766809,0.575,14_faq_calon_mahasiswa#6 14_faq_calon_mahasiswa#1 14_faq_calon_mahasiswa#2 14_faq_calon_mahasiswa#8 14_faq_calon_mahasiswa#5,0
+d014,answerable,4,1,1,1.000000,0.943866,0.491,08_kemahasiswaan_organisasi_beasiswa#3 03_biaya_kuliah_dan_syarat_masuk#8 14_faq_calon_mahasiswa#2 14_faq_calon_mahasiswa#5 14_faq_calon_mahasiswa#4,0
+d015,answerable,3,1,1,1.000000,0.671386,0.397,01_profil_universitas#1 14_faq_calon_mahasiswa#13 14_faq_calon_mahasiswa#5 14_faq_calon_mahasiswa#2 14_faq_calon_mahasiswa#9,0
+d016,answerable,1,,0,0.000000,0.000000,0.436,14_faq_calon_mahasiswa#6,0
+d017,answerable,3,1,1,1.000000,1.000000,0.577,08_kemahasiswaan_organisasi_beasiswa#4 08_kemahasiswaan_organisasi_beasiswa#10 08_kemahasiswaan_organisasi_beasiswa#5 08_kemahasiswaan_organisasi_beasiswa#0 05_prodi_fakultas_bisnis_dan_hukum#23,0
+d018,answerable,4,1,1,1.000000,0.949389,0.535,14_faq_calon_mahasiswa#12 13_kontak_lengkap#10 14_faq_calon_mahasiswa#10 14_faq_calon_mahasiswa#11 13_kontak_lengkap#15,0
+d019,answerable,2,2,1,0.500000,0.605260,0.429,13_kontak_lengkap#11 07_fasilitas_dan_layanan_kampus#1 14_faq_calon_mahasiswa#2 07_fasilitas_dan_layanan_kampus#5 07_fasilitas_dan_layanan_kampus#2,0
+d020,answerable,4,1,1,1.000000,0.636682,0.406,14_faq_calon_mahasiswa#7 14_faq_calon_mahasiswa#11 14_faq_calon_mahasiswa#6 14_faq_calon_mahasiswa#8 14_faq_calon_mahasiswa#2,0
+d021,answerable,5,1,1,1.000000,0.452214,0.486,14_faq_calon_mahasiswa#7 14_faq_calon_mahasiswa#11 09_alumni_karier_dan_kerja_sama#3 14_faq_calon_mahasiswa#6 14_faq_calon_mahasiswa#14,0
+d022,answerable,2,1,1,1.000000,0.790386,0.462,14_faq_calon_mahasiswa#9 09_alumni_karier_dan_kerja_sama#5 04_prodi_fakultas_informatika#21 03_biaya_kuliah_dan_syarat_masuk#6 14_faq_calon_mahasiswa#5,0
+d023,answerable,2,1,1,1.000000,1.000000,0.425,14_faq_calon_mahasiswa#3 02_pendaftaran_dan_jadwal#5 02_pendaftaran_dan_jadwal#4 14_faq_calon_mahasiswa#5 14_faq_calon_mahasiswa#13,0
+d032,followup,3,1,1,1.000000,0.703918,0.509,14_faq_calon_mahasiswa#5 14_faq_calon_mahasiswa#1 03_biaya_kuliah_dan_syarat_masuk#2 03_biaya_kuliah_dan_syarat_masuk#4 14_faq_calon_mahasiswa#6,4
+d033,followup,2,1,1,1.000000,0.850345,0.419,14_faq_calon_mahasiswa#6 14_faq_calon_mahasiswa#11 14_faq_calon_mahasiswa#8 14_faq_calon_mahasiswa#14 03_biaya_kuliah_dan_syarat_masuk#6,1

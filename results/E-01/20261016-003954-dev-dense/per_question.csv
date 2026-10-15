@@ -1,0 +1,26 @@
+﻿qid,type,n_relevant,first_relevant_rank,hit@5,rr,ndcg10,latency_ms,top5_chunk_ids,unjudged
+d001,answerable,3,1,1,1.000000,1.000000,72.285,03_biaya_kuliah_dan_syarat_masuk#2 14_faq_calon_mahasiswa#5 04_prodi_fakultas_informatika#13 04_prodi_fakultas_informatika#7 03_biaya_kuliah_dan_syarat_masuk#4,0
+d002,answerable,3,1,1,1.000000,0.946902,74.968,05_prodi_fakultas_bisnis_dan_hukum#14 03_biaya_kuliah_dan_syarat_masuk#2 06_kurikulum_manajemen_dan_akuntansi#33 04_prodi_fakultas_informatika#7 14_faq_calon_mahasiswa#5,0
+d003,answerable,2,3,1,0.333333,0.543771,58.683,02_pendaftaran_dan_jadwal#5 02_pendaftaran_dan_jadwal#4 14_faq_calon_mahasiswa#3 02_pendaftaran_dan_jadwal#0 02_pendaftaran_dan_jadwal#3,0
+d004,answerable,5,1,1,1.000000,0.699215,64.711,03_biaya_kuliah_dan_syarat_masuk#7 02_pendaftaran_dan_jadwal#10 14_faq_calon_mahasiswa#4 14_faq_calon_mahasiswa#3 02_pendaftaran_dan_jadwal#5,0
+d005,answerable,2,1,1,1.000000,0.919721,68.074,02_pendaftaran_dan_jadwal#2 02_pendaftaran_dan_jadwal#0 14_faq_calon_mahasiswa#3 02_pendaftaran_dan_jadwal#10 13_kontak_lengkap#9,0
+d006,answerable,5,1,1,1.000000,0.853932,64.330,14_faq_calon_mahasiswa#10 13_kontak_lengkap#17 02_pendaftaran_dan_jadwal#8 06_kurikulum_manajemen_dan_akuntansi#25 13_kontak_lengkap#2,0
+d007,answerable,4,1,1,1.000000,1.000000,60.416,13_kontak_lengkap#4 13_kontak_lengkap#17 02_pendaftaran_dan_jadwal#8 14_faq_calon_mahasiswa#10 03_biaya_kuliah_dan_syarat_masuk#5,0
+d008,answerable,5,1,1,1.000000,0.615733,72.823,14_faq_calon_mahasiswa#7 02_pendaftaran_dan_jadwal#6 04_prodi_fakultas_informatika#19 14_faq_calon_mahasiswa#1 06_kurikulum_manajemen_dan_akuntansi#35,0
+d009,answerable,4,1,1,1.000000,0.585570,65.994,05_prodi_fakultas_bisnis_dan_hukum#0 05_prodi_fakultas_bisnis_dan_hukum#19 13_kontak_lengkap#7 05_prodi_fakultas_bisnis_dan_hukum#2 14_faq_calon_mahasiswa#1,0
+d010,answerable,3,1,1,1.000000,0.817981,65.236,14_faq_calon_mahasiswa#7 03_biaya_kuliah_dan_syarat_masuk#6 14_faq_calon_mahasiswa#6 04_prodi_fakultas_informatika#21 04_prodi_fakultas_informatika#20,0
+d011,answerable,2,1,1,1.000000,1.000000,62.251,03_biaya_kuliah_dan_syarat_masuk#6 14_faq_calon_mahasiswa#6 05_prodi_fakultas_bisnis_dan_hukum#9 05_prodi_fakultas_bisnis_dan_hukum#8 04_prodi_fakultas_informatika#3,0
+d012,answerable,2,1,1,1.000000,1.000000,61.859,03_biaya_kuliah_dan_syarat_masuk#6 14_faq_calon_mahasiswa#6 03_biaya_kuliah_dan_syarat_masuk#4 04_prodi_fakultas_informatika#5 04_prodi_fakultas_informatika#4,0
+d013,answerable,4,1,1,1.000000,0.529436,70.736,03_biaya_kuliah_dan_syarat_masuk#5 02_pendaftaran_dan_jadwal#5 06_kurikulum_manajemen_dan_akuntansi#10 06_kurikulum_manajemen_dan_akuntansi#31 02_pendaftaran_dan_jadwal#4,0
+d014,answerable,4,1,1,1.000000,0.804810,67.848,08_kemahasiswaan_organisasi_beasiswa#3 03_biaya_kuliah_dan_syarat_masuk#8 09_alumni_karier_dan_kerja_sama#10 08_kemahasiswaan_organisasi_beasiswa#1 09_alumni_karier_dan_kerja_sama#9,0
+d015,answerable,3,1,1,1.000000,1.000000,58.654,01_profil_universitas#3 14_faq_calon_mahasiswa#2 01_profil_universitas#1 07_fasilitas_dan_layanan_kampus#8 07_fasilitas_dan_layanan_kampus#1,0
+d016,answerable,1,1,1,1.000000,1.000000,53.551,01_profil_universitas#4 05_prodi_fakultas_bisnis_dan_hukum#5 13_kontak_lengkap#7 05_prodi_fakultas_bisnis_dan_hukum#2 04_prodi_fakultas_informatika#2,0
+d017,answerable,3,1,1,1.000000,1.000000,61.740,08_kemahasiswaan_organisasi_beasiswa#4 08_kemahasiswaan_organisasi_beasiswa#10 08_kemahasiswaan_organisasi_beasiswa#5 09_alumni_karier_dan_kerja_sama#5 08_kemahasiswaan_organisasi_beasiswa#1,0
+d018,answerable,4,1,1,1.000000,0.759834,56.201,14_faq_calon_mahasiswa#12 13_kontak_lengkap#10 13_kontak_lengkap#14 13_kontak_lengkap#0 13_kontak_lengkap#19,0
+d019,answerable,2,2,1,0.500000,0.693426,58.655,07_fasilitas_dan_layanan_kampus#2 07_fasilitas_dan_layanan_kampus#1 01_profil_universitas#8 07_fasilitas_dan_layanan_kampus#3 13_kontak_lengkap#11,0
+d020,answerable,4,3,1,0.333333,0.486469,80.957,14_faq_calon_mahasiswa#6 06_kurikulum_manajemen_dan_akuntansi#23 14_faq_calon_mahasiswa#11 05_prodi_fakultas_bisnis_dan_hukum#11 05_prodi_fakultas_bisnis_dan_hukum#0,0
+d021,answerable,5,1,1,1.000000,0.843538,63.676,14_faq_calon_mahasiswa#7 04_prodi_fakultas_informatika#14 04_prodi_fakultas_informatika#13 04_prodi_fakultas_informatika#21 04_prodi_fakultas_informatika#7,0
+d022,answerable,2,1,1,1.000000,1.000000,59.233,14_faq_calon_mahasiswa#9 01_profil_universitas#7 05_prodi_fakultas_bisnis_dan_hukum#16 09_alumni_karier_dan_kerja_sama#3 04_prodi_fakultas_informatika#9,0
+d023,answerable,2,1,1,1.000000,0.919721,59.085,02_pendaftaran_dan_jadwal#5 02_pendaftaran_dan_jadwal#4 14_faq_calon_mahasiswa#3 03_biaya_kuliah_dan_syarat_masuk#0 02_pendaftaran_dan_jadwal#10,0
+d032,followup,3,,0,0.000000,0.000000,55.553,03_biaya_kuliah_dan_syarat_masuk#5 13_kontak_lengkap#4 08_kemahasiswaan_organisasi_beasiswa#2 02_pendaftaran_dan_jadwal#8 13_kontak_lengkap#17,9
+d033,followup,2,1,1,1.000000,1.000000,64.498,03_biaya_kuliah_dan_syarat_masuk#6 14_faq_calon_mahasiswa#6 04_prodi_fakultas_informatika#3 02_pendaftaran_dan_jadwal#6 04_prodi_fakultas_informatika#4,1

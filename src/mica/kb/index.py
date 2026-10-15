@@ -62,14 +62,14 @@ class KnowledgeBase:
     bm25: BM25Okapi
 
 
-def _package_version(name: str) -> str | None:
+def package_version(name: str) -> str | None:
     try:
         return metadata.version(name)
     except metadata.PackageNotFoundError:
         return None
 
 
-def _torch_version() -> str | None:
+def torch_version() -> str | None:
     # torch.__version__ memuat akhiran build (misalnya 2.14.1+cpu), tidak seperti metadata paket
     try:
         import torch
@@ -187,8 +187,8 @@ def build_kb(
                 "model": embedder.model_id,
                 "revision": embedder.revision,
                 "weights_file": embedder.weights_file,
-                "sentence_transformers": _package_version("sentence-transformers"),
-                "torch": _torch_version(),
+                "sentence_transformers": package_version("sentence-transformers"),
+                "torch": torch_version(),
                 "dim": int(dense.shape[1]),
             },
             "n_chunks": len(chunks),
