@@ -1,0 +1,217 @@
+from pathlib import Path
+
+import pytest
+import yaml
+from pydantic import ValidationError
+
+from mica.config import (
+    CFG_GEMINI_IN_KIOSK,
+    CFG_INVALID,
+    ConfigError,
+    Settings,
+    load_settings,
+)
+
+ROOT = Path(__file__).resolve().parents[2]
+DEV_YAML = ROOT / "config" / "dev.yaml"
+KIOSK_YAML = ROOT / "config" / "kiosk.yaml"
+
+
+@pytest.fixture(autouse=True)
+def _no_env_keys(monkeypatch):
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+
+
+def _dev_raw() -> dict:
+    return yaml.safe_load(DEV_YAML.read_text(encoding="utf-8"))
+
+
+def _write(tmp_path: Path, raw: dict, name: str = "cfg.yaml") -> Path:
+    path = tmp_path / name
+    path.write_text(yaml.safe_dump(raw, sort_keys=False, allow_unicode=True), encoding="utf-8")
+    return path
+
+
+def _fill_nulls(node):
+    # Isi semua null dengan angka dummy supaya bisa diuji di mode kiosk.
+    if isinstance(node, dict):
+        return {k: (1 if v is None else _fill_nulls(v)) for k, v in node.items()}
+    return node
+
+
+def _complete_kiosk_raw() -> dict:
+    raw = _fill_nulls(_dev_raw())
+    raw["app"]["mode"] = "kiosk"
+    raw["llm"]["chain"] = ["groq:model-a", "groq:model-b"]
+    return raw
+
+
+def test_dev_yaml_loads():
+    settings = load_settings(DEV_YAML)
+    assert settings.app.mode == "dev"
+    assert settings.rag.top_k == 5
+
+
+def test_complete_kiosk_config_loads(tmp_path):
+    settings = load_settings(_write(tmp_path, _complete_kiosk_raw()))
+    assert settings.app.mode == "kiosk"
+
+
+def test_unknown_field_rejected(tmp_path):
+    raw = _dev_raw()
+    raw["rag"]["topk"] = 5
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert exc.value.code == CFG_INVALID
+    assert "rag.topk" in str(exc.value)
+
+
+@pytest.mark.parametrize(
+    ("section", "field", "value"),
+    [
+        ("rag", "top_k", "lima"),
+        ("rag", "top_k", "5"),
+        ("rag", "retriever", "vector"),
+        ("ui", "fullscreen", "ya"),
+    ],
+)
+def test_wrong_type_rejected(tmp_path, section, field, value):
+    raw = _dev_raw()
+    raw[section][field] = value
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert exc.value.code == CFG_INVALID
+    assert f"{section}.{field}" in str(exc.value)
+
+
+def test_unknown_llm_provider_rejected(tmp_path):
+    raw = _dev_raw()
+    raw["llm"]["chain"] = ["openai:gpt-x"]
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert exc.value.code == CFG_INVALID
+    assert "llm.chain" in str(exc.value)
+
+
+def test_gemini_rejected_in_kiosk(tmp_path):
+    raw = _complete_kiosk_raw()
+    raw["llm"]["chain"].append("gemini:gemini-flash")
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert exc.value.code == CFG_GEMINI_IN_KIOSK
+
+
+def test_gemini_check_runs_before_other_validation(tmp_path):
+    raw = _dev_raw()  # masih berisi null dan placeholder
+    raw["app"]["mode"] = "kiosk"
+    raw["rag"]["top_k"] = "lima"
+    raw["llm"]["chain"] = ["gemini:gemini-flash"]
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert exc.value.code == CFG_GEMINI_IN_KIOSK
+
+
+def test_gemini_accepted_in_dev(tmp_path):
+    raw = _dev_raw()
+    raw["llm"]["chain"] = ["gemini:gemini-flash"]
+    settings = load_settings(_write(tmp_path, raw))
+    assert settings.llm.chain == ("gemini:gemini-flash",)
+
+
+def test_null_rejected_in_kiosk(tmp_path):
+    raw = _complete_kiosk_raw()
+    raw["rag"]["gate"]["threshold"] = None
+    raw["vision"]["dwell_s"] = None
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert exc.value.code == CFG_INVALID
+    assert "rag.gate.threshold" in str(exc.value)
+    assert "vision.dwell_s" in str(exc.value)
+
+
+def test_placeholder_model_id_rejected_in_kiosk(tmp_path):
+    raw = _complete_kiosk_raw()
+    raw["llm"]["chain"] = ["groq:<id gpt-oss-120b>"]
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert exc.value.code == CFG_INVALID
+    assert "llm.chain[0]" in str(exc.value)
+
+
+def test_current_kiosk_yaml_rejected():
+    with pytest.raises(ConfigError) as exc:
+        load_settings(KIOSK_YAML)
+    assert exc.value.code == CFG_INVALID
+    message = str(exc.value)
+    for field in ("kb.chunk_tokens", "rag.gate.threshold", "llm.timeout_s", "llm.chain[0]"):
+        assert field in message
+
+
+def _reorder(node):
+    if isinstance(node, dict):
+        return {k: _reorder(node[k]) for k in reversed(list(node))}
+    return node
+
+
+def test_hash_ignores_key_order(tmp_path):
+    raw = _dev_raw()
+    a = load_settings(_write(tmp_path, raw, "a.yaml"))
+    b = load_settings(_write(tmp_path, _reorder(raw), "b.yaml"))
+    assert a.config_hash() == b.config_hash()
+
+
+def test_hash_changes_with_top_k(tmp_path):
+    raw = _dev_raw()
+    a = load_settings(_write(tmp_path, raw, "a.yaml"))
+    raw["rag"]["top_k"] = 7
+    b = load_settings(_write(tmp_path, raw, "b.yaml"))
+    assert a.config_hash() != b.config_hash()
+
+
+def test_hash_ignores_api_keys(tmp_path):
+    env_a = tmp_path / "a.env"
+    env_a.write_text("GROQ_API_KEY=key-satu\n", encoding="utf-8")
+    env_b = tmp_path / "b.env"
+    env_b.write_text("GROQ_API_KEY=key-dua\nGEMINI_API_KEY=lain\n", encoding="utf-8")
+    a = load_settings(DEV_YAML, env_a)
+    b = load_settings(DEV_YAML, env_b)
+    assert a.api_keys.groq.get_secret_value() == "key-satu"
+    assert a.config_hash() == b.config_hash() == load_settings(DEV_YAML).config_hash()
+
+
+def test_api_keys_from_environment(monkeypatch):
+    monkeypatch.setenv("GROQ_API_KEY", "dari-env")
+    settings = load_settings(DEV_YAML)
+    assert settings.api_keys.groq.get_secret_value() == "dari-env"
+    assert settings.api_keys.gemini is None
+
+
+def test_api_keys_in_yaml_rejected(tmp_path):
+    raw = _dev_raw()
+    raw["api_keys"] = {"groq": "bocor"}
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert exc.value.code == CFG_INVALID
+    assert "bocor" not in str(exc.value)
+
+
+def test_settings_frozen():
+    settings = load_settings(DEV_YAML)
+    with pytest.raises(ValidationError):
+        settings.rag.top_k = 10
+    with pytest.raises(ValidationError):
+        settings.app = settings.app
+    with pytest.raises(AttributeError):
+        settings.ui.topics.append("Lain")  # tuple, bukan list
+    assert isinstance(settings, Settings)
+
+
+def test_api_key_hidden_in_repr_and_str(tmp_path):
+    env = tmp_path / ".env"
+    env.write_text('GROQ_API_KEY="rahasia-groq"\nGEMINI_API_KEY=rahasia-gemini\n', encoding="utf-8")
+    settings = load_settings(DEV_YAML, env)
+    for text in (repr(settings), str(settings), repr(settings.api_keys), str(settings.api_keys)):
+        assert "rahasia-groq" not in text
+        assert "rahasia-gemini" not in text
+    assert settings.api_keys.groq.get_secret_value() == "rahasia-groq"
