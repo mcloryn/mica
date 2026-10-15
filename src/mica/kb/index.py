@@ -69,6 +69,15 @@ def _package_version(name: str) -> str | None:
         return None
 
 
+def _torch_version() -> str | None:
+    # torch.__version__ memuat akhiran build (misalnya 2.14.1+cpu), tidak seperti metadata paket
+    try:
+        import torch
+    except ImportError:
+        return None
+    return str(torch.__version__)
+
+
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as f:
@@ -179,7 +188,7 @@ def build_kb(
                 "revision": embedder.revision,
                 "weights_file": embedder.weights_file,
                 "sentence_transformers": _package_version("sentence-transformers"),
-                "torch": _package_version("torch"),
+                "torch": _torch_version(),
                 "dim": int(dense.shape[1]),
             },
             "n_chunks": len(chunks),

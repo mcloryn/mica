@@ -96,6 +96,7 @@ Bagian ini mencatat keputusan desain yang diambil selama implementasi MS0 dan MS
 | M-02 | Nilai awal dev `kb.chunk_tokens = 400` (hipotesis awal PRD) dan `kb.overlap_tokens = 50`; konfigurasi kiosk tetap `null` | Titik awal untuk E-01, bukan nilai akhir |
 | M-11 | Ekspor CSV memakai UTF-8 dengan BOM | Tabel dibuka di Excel untuk Bab 4 |
 | 8.1 | Kode baru `KB_MISSING_DATE`; `CFG_INVALID` dan `CFG_GEMINI_IN_KIOSK` masuk enum kode error yang sama | Kode error seragam di log |
+| M-02 | Field baru kb.embedder.revision (hash commit 40 karakter, wajib di kiosk). Dev memakai BAAI/bge-m3 revisi 9a0624b896d81da7492a910ffa53731274b6cf3d: PR #130 "Adding safetensors variant" oleh bot resmi Hugging Face (SFconvertbot), berisi bobot main 5617a9f dalam format safetensors; PR belum digabung oleh BAAI. Manifest mencatat model, revisi, nama file bobot, serta versi sentence-transformers dan torch. | Tanpa revisi terkunci, library sempat mengunduh bobot dari dua revisi dan manifest tidak mencerminkan bobot yang dimuat (N-14). Safetensors tidak memakai pickle. |
 
 ## 3. Arsitektur
 

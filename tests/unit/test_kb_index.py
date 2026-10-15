@@ -74,7 +74,10 @@ def test_manifest_content(src, kb_root):
     assert embedder["weights_file"] == "fake.safetensors"
     assert embedder["dim"] == 8
     assert embedder["sentence_transformers"] == metadata.version("sentence-transformers")
-    assert embedder["torch"] == metadata.version("torch")
+    import torch
+
+    assert embedder["torch"] == str(torch.__version__)
+    assert embedder["torch"].startswith(metadata.version("torch"))
     assert manifest["chunker"]["chunk_tokens"] == 8
     assert len(manifest["config_hash"]) == 64
     docs = {d["doc_id"]: d for d in manifest["documents"]}
