@@ -215,3 +215,58 @@ def test_api_key_hidden_in_repr_and_str(tmp_path):
         assert "rahasia-groq" not in text
         assert "rahasia-gemini" not in text
     assert settings.api_keys.groq.get_secret_value() == "rahasia-groq"
+
+
+def test_current_kiosk_yaml_reports_active_id_placeholder():
+    with pytest.raises(ConfigError) as exc:
+        load_settings(KIOSK_YAML)
+    assert "kb.active_id" in str(exc.value)
+
+
+@pytest.mark.parametrize("field", ["rrf_k", "candidates_per_retriever"])
+def test_hybrid_params_required_for_hybrid_in_kiosk(tmp_path, field):
+    raw = _complete_kiosk_raw()
+    raw["rag"]["retriever"] = "hybrid"
+    raw["rag"][field] = None
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert exc.value.code == CFG_INVALID
+    assert f"rag.{field}" in str(exc.value)
+
+
+@pytest.mark.parametrize("retriever", ["bm25", "dense"])
+def test_hybrid_params_optional_for_other_retrievers_in_kiosk(tmp_path, retriever):
+    raw = _complete_kiosk_raw()
+    raw["rag"]["retriever"] = retriever
+    raw["rag"]["rrf_k"] = None
+    raw["rag"]["candidates_per_retriever"] = None
+    settings = load_settings(_write(tmp_path, raw))
+    assert settings.rag.rrf_k is None
+
+
+def test_stt_threads_required_for_faster_whisper_in_kiosk(tmp_path):
+    raw = _complete_kiosk_raw()
+    raw["audio"]["stt"]["backend"] = "faster_whisper"
+    raw["audio"]["stt"]["threads"] = None
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert exc.value.code == CFG_INVALID
+    assert "audio.stt.threads" in str(exc.value)
+
+
+def test_stt_threads_optional_for_groq_whisper_in_kiosk(tmp_path):
+    raw = _complete_kiosk_raw()
+    raw["audio"]["stt"]["backend"] = "groq_whisper"
+    raw["audio"]["stt"]["threads"] = None
+    settings = load_settings(_write(tmp_path, raw))
+    assert settings.audio.stt.threads is None
+
+
+def test_environment_variable_wins_over_env_file(tmp_path, monkeypatch):
+    env = tmp_path / ".env"
+    env.write_text("GROQ_API_KEY=dari-file\nGEMINI_API_KEY=gemini-file\n", encoding="utf-8")
+    monkeypatch.setenv("GROQ_API_KEY", "dari-env")
+    settings = load_settings(DEV_YAML, env)
+    assert settings.api_keys.groq.get_secret_value() == "dari-env"
+    # env_file tetap dipakai sebagai cadangan
+    assert settings.api_keys.gemini.get_secret_value() == "gemini-file"

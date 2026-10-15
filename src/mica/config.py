@@ -219,7 +219,8 @@ def _load_api_keys(env_file: Path | None) -> ApiKeys:
     file_values = _read_env_file(env_file) if env_file is not None and env_file.exists() else {}
     keys: dict[str, SecretStr | None] = {}
     for name, var in API_KEY_VARS.items():
-        value = file_values.get(var) or os.environ.get(var) or ""
+        # environment variable diutamakan; env_file hanya cadangan
+        value = os.environ.get(var) or file_values.get(var) or ""
         keys[name] = SecretStr(value) if value else None
     return ApiKeys(**keys)
 
@@ -248,20 +249,35 @@ def _format_validation_error(err: ValidationError) -> str:
     return "konfigurasi tidak valid\n  " + "\n  ".join(lines)
 
 
+def _optional_in_kiosk(settings: Settings) -> set[str]:
+    # Field null yang hanya wajib bila komponennya dipakai.
+    optional: set[str] = set()
+    if settings.rag.retriever != "hybrid":
+        optional |= {"rag.rrf_k", "rag.candidates_per_retriever"}
+    if settings.audio.stt.backend != "faster_whisper":
+        optional.add("audio.stt.threads")
+    return optional
+
+
 def _missing_kiosk_fields(settings: Settings) -> list[str]:
+    # null yang wajib, dan nilai placeholder (mengandung "<"), misalnya ID model Groq.
     missing: list[str] = []
+    optional = _optional_in_kiosk(settings)
 
     def walk(node: Any, path: str) -> None:
         if isinstance(node, dict):
             for key, value in node.items():
                 walk(value, f"{path}.{key}" if path else key)
+        elif isinstance(node, list):
+            for i, value in enumerate(node):
+                walk(value, f"{path}[{i}]")
         elif node is None:
+            if path not in optional:
+                missing.append(path)
+        elif isinstance(node, str) and "<" in node:
             missing.append(path)
 
     walk(settings._config_dict(), "")
-    for i, entry in enumerate(settings.llm.chain):
-        if "<" in entry:
-            missing.append(f"llm.chain[{i}]")
     return missing
 
 

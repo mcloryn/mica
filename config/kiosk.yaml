@@ -2,7 +2,7 @@ app:
   mode: kiosk                 # kiosk | dev; Gemini hanya boleh di dev
   version: 0.1.0
 kb:
-  active_id: official-YYYY-MM-DD   # F-17
+  active_id: official-<YYYY-MM-DD> # F-17
   chunker: structure_then_fixed     # ADR-03; alternatif: fixed
   chunk_tokens: null                # E-01
   overlap_tokens: null              # E-01
