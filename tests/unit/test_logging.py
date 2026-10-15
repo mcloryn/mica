@@ -135,7 +135,7 @@ def test_export_filters_by_date_and_splits_timings(tmp_path):
     out = tmp_path / "out" / "turns.csv"
     count = export(tmp_path, date(2026, 10, 15), date(2026, 10, 16), out)
     assert count == 2
-    with out.open(encoding="utf-8", newline="") as f:
+    with out.open(encoding="utf-8-sig", newline="") as f:
         rows = list(csv.DictReader(f))
     assert [r["turn_index"] for r in rows] == ["1", "2"]
     assert "timings" not in rows[0]
@@ -150,7 +150,7 @@ def test_export_keeps_indonesian_text(tmp_path):
     InteractionLog(tmp_path).log_turn(_turn(question=question))
     out = tmp_path / "t.csv"
     export(tmp_path, date(2026, 10, 15), date(2026, 10, 15), out)
-    text = out.read_text(encoding="utf-8")
+    text = out.read_text(encoding="utf-8-sig")
     assert "“undangan”" in text and r"\u" not in text
 
 
@@ -169,7 +169,7 @@ def test_cli_export_events(tmp_path, capsys):
         ]
     )
     assert code == 0
-    with out.open(encoding="utf-8", newline="") as f:
+    with out.open(encoding="utf-8-sig", newline="") as f:
         rows = list(csv.DictReader(f))
     assert rows[0]["event"] == "greeted"
     assert "1 baris events" in capsys.readouterr().out
@@ -178,3 +178,10 @@ def test_cli_export_events(tmp_path, capsys):
 def test_cli_rejects_bad_date(tmp_path):
     with pytest.raises(SystemExit):
         logs.main(["export", "--from", "15-10-2026", "--to", "2026-10-15", "--out", "x.csv"])
+
+
+def test_export_csv_has_utf8_bom_for_excel(tmp_path):
+    InteractionLog(tmp_path).log_turn(_turn())
+    out = tmp_path / "t.csv"
+    export(tmp_path, date(2026, 10, 15), date(2026, 10, 15), out)
+    assert out.read_bytes().startswith(b"\xef\xbb\xbf")

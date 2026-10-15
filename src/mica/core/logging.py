@@ -140,7 +140,7 @@ def export(
 
     out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    with out.open("w", encoding="utf-8", newline="") as f:
+    with out.open("w", encoding="utf-8-sig", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=_columns(rows), restval="")
         writer.writeheader()
         writer.writerows(rows)
