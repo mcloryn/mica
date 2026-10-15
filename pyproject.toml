@@ -12,6 +12,9 @@ dependencies = [
     "pyyaml",
     "pypdf",
     "python-docx",
+    "numpy",
+    "rank-bm25",
+    "sentence-transformers",
 ]
 
 [project.optional-dependencies]

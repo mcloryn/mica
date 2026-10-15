@@ -92,3 +92,33 @@ def make_kb_folder(folder: Path, sources_yaml: str = SOURCES_YAML) -> Path:
     write_docx(folder / "jalur.docx")
     (folder / "sources.yaml").write_text(sources_yaml, encoding="utf-8")
     return folder
+
+
+class FakeEmbedder:
+    """Embedder deterministik untuk tes: vektor dari hash teks, dinormalisasi; token = kata."""
+
+    model_id = "fake/embedder"
+    revision = "test"
+
+    def __init__(self, dim: int = 8, fail_on_call: bool = False) -> None:
+        self.dim = dim
+        self.fail_on_call = fail_on_call
+        self.calls = 0
+
+    def embed(self, texts: list[str]):
+        import hashlib
+
+        import numpy as np
+
+        self.calls += 1
+        if self.fail_on_call:
+            raise RuntimeError("embedder gagal (disengaja)")
+        rows = []
+        for text in texts:
+            seed = int.from_bytes(hashlib.sha256(text.encode("utf-8")).digest()[:8], "little")
+            rows.append(np.random.default_rng(seed).standard_normal(self.dim))
+        matrix = np.asarray(rows, dtype=np.float32)
+        return matrix / np.linalg.norm(matrix, axis=1, keepdims=True)
+
+    def count_tokens(self, text: str) -> int:
+        return len(text.split())
