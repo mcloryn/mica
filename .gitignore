@@ -6,3 +6,4 @@ data/kb/*
 !data/kb/.gitkeep
 __pycache__/
 *.egg-info/
+data/sources/
