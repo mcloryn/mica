@@ -131,6 +131,53 @@ def test_load_sources_skips_pdf_without_text(tmp_path, caplog):
     assert ErrorCode.KB_PDF_NO_TEXT in caplog.text
 
 
+def test_load_sources_recursive_with_group(tmp_path):
+    folder = tmp_path / "src"
+    (folder / "biaya" / "detail").mkdir(parents=True)
+    (folder / "biaya" / "uang-kuliah.md").write_text("# Uang Kuliah\nRp7.000.000", encoding="utf-8")
+    (folder / "biaya" / "detail" / "cicilan.txt").write_text("Cicilan 6 kali.", encoding="utf-8")
+    (folder / "profil.txt").write_text("Profil kampus.", encoding="utf-8")
+    (folder / ".cache").mkdir()
+    (folder / ".cache" / "abaikan.txt").write_text("x", encoding="utf-8")
+    (folder / "sources.yaml").write_text(
+        "biaya/uang-kuliah.md: {title: Uang Kuliah, valid_from: 2026-08-01}\n"
+        "biaya/detail/cicilan.txt: {valid_from: 2026-08-01}\n"
+        "profil.txt: {valid_from: 2026-08-01}\n",
+        encoding="utf-8",
+    )
+    docs = {d.doc_id: d for d in load_sources(folder, "dev")}
+    assert set(docs) == {"biaya/uang-kuliah", "biaya/detail/cicilan", "profil"}
+    assert docs["biaya/uang-kuliah"].group == "biaya"
+    assert docs["biaya/detail/cicilan"].group == "biaya"
+    assert docs["profil"].group == ""
+    assert docs["biaya/uang-kuliah"].doc_title == "Uang Kuliah"
+
+
+def test_md_frontmatter_stripped_and_returned(tmp_path):
+    path = tmp_path / "x.md"
+    path.write_text(
+        "---\ntitle: Biaya Kuliah\nurl: https://mikroskil.ac.id/biaya\ndate: 2026-09-29\n"
+        "tags: [a, b]\n---\n# Biaya\nIsi biaya.\n",
+        encoding="utf-8",
+    )
+    doc = MdParser().parse(path)
+    assert dict(doc.frontmatter) == {
+        "title": "Biaya Kuliah",
+        "url": "https://mikroskil.ac.id/biaya",
+        "date": "2026-09-29",
+    }
+    assert doc.blocks == (Block(section="Biaya", text="Isi biaya."),)
+    assert all("mikroskil.ac.id" not in (b.text or "") for b in doc.blocks)
+
+
+def test_md_without_frontmatter(tmp_path):
+    path = tmp_path / "x.md"
+    path.write_text("Teks biasa\n---\nbukan frontmatter\n", encoding="utf-8")
+    doc = MdParser().parse(path)
+    assert dict(doc.frontmatter) == {}
+    assert "Teks biasa" in doc.blocks[0].text
+
+
 def test_duplicate_doc_id_rejected(tmp_path):
     folder = make_kb_folder(tmp_path / "src")
     (folder / "brosur.md").write_text("# x\nisi", encoding="utf-8")

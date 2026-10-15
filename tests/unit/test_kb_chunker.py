@@ -68,9 +68,55 @@ def test_structure_chunker_keeps_sections_apart():
 
 
 def test_fixed_chunker_ignores_sections():
-    doc = _doc(Block("A", text="a1 a2 a3"), Block("B", text="b1 b2 b3"))
-    chunks = FixedChunker(4, 0, count_words).split(doc)
-    assert [(c.section, c.text) for c in chunks] == [("A", "a1 a2 a3 b1"), ("B", "b2 b3")]
+    doc = _doc(Block("A", text="a1 a2 a3"), Block("B", text="b1 b2 b3"), Block("C", text="c1 c2"))
+    chunks = FixedChunker(8, 0, count_words).split(doc)
+    # bagian A dan B digabung dalam satu chunk; section = bagian tempat chunk dimulai
+    assert [(c.section, c.text) for c in chunks] == [
+        ("A", "a1 a2 a3\n\nb1 b2 b3\n\nc1 c2"),
+    ]
+    chunks = FixedChunker(6, 0, count_words).split(doc)
+    assert [(c.section, c.text) for c in chunks] == [("A", "a1 a2 a3\n\nb1 b2 b3"), ("C", "c1 c2")]
+
+
+LONG_TEXT = "p1a p1b\np1c p1d\n\np2a p2b p2c\n\np3a p3b\np3c p3d p3e p3f p3g p3h"
+
+
+@pytest.mark.parametrize("cls", CHUNKERS)
+def test_long_text_split_by_paragraph_then_line(cls):
+    chunks = cls(6, 0, count_words).split(_doc(Block("A", text=LONG_TEXT)))
+    assert [c.text for c in chunks] == [
+        "p1a p1b\np1c p1d",  # paragraf 1 utuh, baris barunya tetap
+        # paragraf 3 terlalu panjang: dipecah per baris; baris pertamanya muat bersama paragraf 2
+        "p2a p2b p2c\n\np3a p3b",
+        "p3c p3d p3e p3f p3g p3h",
+    ]
+
+
+@pytest.mark.parametrize("cls", CHUNKERS)
+def test_paragraphs_packed_with_newlines(cls):
+    text = "a b\nc\n\nd e\n\nf g h i j k"
+    chunks = cls(6, 0, count_words).split(_doc(Block("A", text=text)))
+    assert [c.text for c in chunks] == ["a b\nc\n\nd e", "f g h i j k"]
+
+
+@pytest.mark.parametrize("cls", CHUNKERS)
+def test_paragraph_overlap(cls):
+    text = "a1 a2\n\nb1\n\nc1 c2 c3\n\nd1 d2"
+    chunks = cls(4, 1, count_words).split(_doc(Block("A", text=text)))
+    # paragraf "b1" (1 token) diulang sebagai overlap di awal chunk berikutnya
+    assert [c.text for c in chunks] == ["a1 a2\n\nb1", "b1\n\nc1 c2 c3", "d1 d2"]
+
+
+@pytest.mark.parametrize("cls", CHUNKERS)
+def test_only_overlong_line_split_by_words(cls):
+    text = "judul singkat\n" + WORDS
+    chunks = cls(4, 1, count_words).split(_doc(Block("A", text=text)))
+    assert [c.text for c in chunks] == [
+        "judul singkat",
+        "w0 w1 w2 w3",
+        "w3 w4 w5 w6",
+        "w6 w7 w8 w9",
+    ]
 
 
 SMALL_TABLE = (("Prodi", "Biaya"), ("Informatika", "Rp7.000.000"), ("SI", "Rp6.500.000"))

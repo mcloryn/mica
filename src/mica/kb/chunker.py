@@ -1,13 +1,18 @@
 """M-02: memotong ParsedDocument menjadi Chunk (ADR-03, Provisional; dipilih lewat kb.chunker).
 
-count_tokens dihitung per kata lalu dijumlahkan, sehingga tokenizer dipanggil sekali per kata.
-Untuk tokenizer subword hasilnya mendekati jumlah token teks utuh; count_tokens sebaiknya
-tidak menghitung token khusus (misalnya [CLS]/[SEP]).
+Teks yang lebih panjang dari chunk_tokens dipecah per paragraf, lalu per baris; pemotongan per
+kata hanya untuk satu baris yang sendirian sudah melebihi chunk_tokens. Potongan-potongan itu
+lalu digabung lagi sampai chunk_tokens, dengan overlap, sehingga baris baru tetap ada.
+
+Jumlah token sebuah chunk = jumlah token tiap potongan. Untuk tokenizer subword hasilnya mendekati
+jumlah token teks utuh; count_tokens sebaiknya tidak menghitung token khusus ([CLS]/[SEP]).
 """
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Iterator
+from dataclasses import dataclass
 from typing import Protocol
 
 from mica.core.types import Chunk, ErrorCode
@@ -16,9 +21,20 @@ from mica.kb.parsers import Block, KbBuildError, ParsedDocument
 CountTokens = Callable[[str], int]
 Table = tuple[tuple[str, ...], ...]
 
+_PARAGRAPH_BREAK = re.compile(r"\n\s*\n")
+
 
 class Chunker(Protocol):
     def split(self, doc: ParsedDocument) -> list[Chunk]: ...
+
+
+@dataclass(frozen=True)
+class _Unit:
+    section: str
+    sep: str  # pemisah dari potongan sebelumnya: "\n\n" antarparagraf, "\n" antarbaris
+    text: str
+    tokens: int
+    standalone: bool = False  # hasil potong per kata; sudah berisi overlap sendiri
 
 
 def _format_row(row: tuple[str, ...]) -> str:
@@ -58,11 +74,63 @@ class _BaseChunker:
                 overlap += counts[next_start]
             start = next_start
 
-    def _split_text(self, text: str) -> list[str]:
-        if self.count_tokens(text) <= self.chunk_tokens:
-            return [text]
-        words = text.split()
-        return [" ".join(words[s:e]) for s, e in self._windows(words)]
+    def _text_units(self, section: str, text: str) -> list[_Unit]:
+        units: list[_Unit] = []
+        for paragraph in _PARAGRAPH_BREAK.split(text):
+            paragraph = paragraph.strip()
+            if not paragraph:
+                continue
+            tokens = self.count_tokens(paragraph)
+            if tokens <= self.chunk_tokens:
+                units.append(_Unit(section, "\n\n", paragraph, tokens))
+                continue
+            sep = "\n\n"
+            for line in paragraph.splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                tokens = self.count_tokens(line)
+                if tokens <= self.chunk_tokens:
+                    units.append(_Unit(section, sep, line, tokens))
+                else:
+                    words = line.split()
+                    for s, e in self._windows(words):
+                        units.append(_Unit(section, sep, " ".join(words[s:e]), 0, standalone=True))
+                sep = "\n"
+        return units
+
+    def _pack(self, units: list[_Unit]) -> Iterator[tuple[str, str]]:
+        """Gabung potongan berurutan sampai chunk_tokens; chunk berikutnya diawali overlap."""
+        current: list[_Unit] = []
+
+        def render() -> tuple[str, str]:
+            text = current[0].text + "".join(u.sep + u.text for u in current[1:])
+            return current[0].section, text
+
+        for unit in units:
+            if unit.standalone:
+                if current:
+                    yield render()
+                    current = []
+                yield unit.section, unit.text
+                continue
+            total = sum(u.tokens for u in current)
+            if current and total + unit.tokens > self.chunk_tokens:
+                yield render()
+                # overlap: potongan terakhir yang totalnya <= overlap_tokens dan masih muat
+                tail: list[_Unit] = []
+                tail_tokens = 0
+                for prev in reversed(current[1:]):
+                    if tail_tokens + prev.tokens > self.overlap_tokens:
+                        break
+                    if tail_tokens + prev.tokens + unit.tokens > self.chunk_tokens:
+                        break
+                    tail.insert(0, prev)
+                    tail_tokens += prev.tokens
+                current = tail
+            current.append(unit)
+        if current:
+            yield render()
 
     def _split_table(self, rows: Table) -> list[str]:
         text = _format_table(rows)
@@ -122,22 +190,23 @@ class StructureThenFixedChunker(_BaseChunker):
                 for text in self._split_table(block.table):
                     yield block.section, text, True
             elif block.text:
-                for text in self._split_text(block.text):
-                    yield block.section, text, False
+                if self.count_tokens(block.text) <= self.chunk_tokens:
+                    yield block.section, block.text, False
+                    continue
+                for section, text in self._pack(self._text_units(block.section, block.text)):
+                    yield section, text, False
 
 
 class FixedChunker(_BaseChunker):
     """Potong teks berurutan tanpa memperhatikan bagian; section = bagian tempat chunk dimulai."""
 
     def _pieces(self, blocks: tuple[Block, ...]) -> Iterator[tuple[str, str, bool]]:
-        words: list[str] = []
-        word_sections: list[str] = []
+        units: list[_Unit] = []
 
         def flush() -> Iterator[tuple[str, str, bool]]:
-            for s, e in self._windows(words):
-                yield word_sections[s], " ".join(words[s:e]), False
-            words.clear()
-            word_sections.clear()
+            for section, text in self._pack(units):
+                yield section, text, False
+            units.clear()
 
         for block in blocks:
             if block.table is not None:
@@ -146,9 +215,7 @@ class FixedChunker(_BaseChunker):
                 for text in self._split_table(block.table):
                     yield block.section, text, True
             elif block.text:
-                block_words = block.text.split()
-                words.extend(block_words)
-                word_sections.extend([block.section] * len(block_words))
+                units.extend(self._text_units(block.section, block.text))
         yield from flush()
 
 
