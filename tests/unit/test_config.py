@@ -43,6 +43,7 @@ def _fill_nulls(node):
 def _complete_kiosk_raw() -> dict:
     raw = _fill_nulls(_dev_raw())
     raw["app"]["mode"] = "kiosk"
+    raw["kb"]["active_id"] = "official-2026-11-02"
     raw["llm"]["chain"] = ["groq:model-a", "groq:model-b"]
     return raw
 
