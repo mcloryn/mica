@@ -65,6 +65,10 @@ class BgeM3Embedder:
             )
         return self._model
 
+    def load(self) -> None:
+        """Muat model sekarang (misalnya sebelum mengukur latensi pencarian)."""
+        self._load()
+
     def _repo_cache(self) -> Path:
         return self.cache_dir / f"models--{self.model_id.replace('/', '--')}"
 

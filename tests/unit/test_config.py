@@ -33,10 +33,15 @@ def _write(tmp_path: Path, raw: dict, name: str = "cfg.yaml") -> Path:
     return path
 
 
+def _dummy(key: str):
+    # revisi model berupa hash commit; field null lain berupa angka
+    return "0" * 40 if key == "revision" else 1
+
+
 def _fill_nulls(node):
-    # Isi semua null dengan angka dummy supaya bisa diuji di mode kiosk.
+    # Isi semua null dengan nilai dummy supaya bisa diuji di mode kiosk.
     if isinstance(node, dict):
-        return {k: (1 if v is None else _fill_nulls(v)) for k, v in node.items()}
+        return {k: (_dummy(k) if v is None else _fill_nulls(v)) for k, v in node.items()}
     return node
 
 
@@ -300,3 +305,19 @@ def test_embedder_revision_must_be_full_hash(tmp_path, revision):
 def test_dev_yaml_pins_embedder_revision():
     revision = load_settings(DEV_YAML).kb.embedder.revision
     assert revision is not None and len(revision) == 40
+
+
+def test_reranker_revision_required_in_kiosk(tmp_path):
+    raw = _complete_kiosk_raw()
+    raw["rag"]["reranker"]["revision"] = None
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert "rag.reranker.revision" in str(exc.value)
+
+
+def test_reranker_revision_must_be_full_hash(tmp_path):
+    raw = _dev_raw()
+    raw["rag"]["reranker"]["revision"] = "main"
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert "rag.reranker.revision" in str(exc.value)

@@ -17,6 +17,7 @@ rag:
   reranker:
     enabled: false                  # ADR-01; nyala hanya bila lolos aturan E-01
     model: BAAI/bge-reranker-v2-m3
+    revision: null                  # N-14; hash commit lengkap, wajib di kiosk
   gate:
     threshold: null                 # ADR-06, E-02
   fact_check:

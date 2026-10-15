@@ -65,6 +65,8 @@ class KbConfig(_Model):
 class RerankerConfig(_Model):
     enabled: bool
     model: str
+    # hash commit Hugging Face lengkap (N-14); wajib di kiosk, null di dev = revisi main
+    revision: str | None = Field(default=None, pattern=r"^[0-9a-f]{40}$")
 
 
 class GateConfig(_Model):

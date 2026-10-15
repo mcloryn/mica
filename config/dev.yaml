@@ -12,11 +12,12 @@ kb:
 rag:
   retriever: hybrid                 # ADR-01; bm25 | dense | hybrid
   top_k: 5                          # ADR-16, diuji ulang di E-01
-  rrf_k: null                       # E-01
-  candidates_per_retriever: null    # E-01
+  rrf_k: 60                         # Cormack dkk. 2009, nilai awal; E-01
+  candidates_per_retriever: 20      # nilai awal dev; E-01
   reranker:
     enabled: false                  # ADR-01; nyala hanya bila lolos aturan E-01
     model: BAAI/bge-reranker-v2-m3
+    revision: null                  # N-14; hash commit lengkap, wajib di kiosk
   gate:
     threshold: null                 # ADR-06, E-02
   fact_check:
