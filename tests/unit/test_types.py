@@ -15,6 +15,7 @@ from mica.core.types import (
     LlmAnswer,
     LlmRequest,
     ScoredChunk,
+    ScrubbedText,
     Turn,
 )
 
@@ -39,7 +40,7 @@ def _instances() -> list:
     return [
         chunk,
         ScoredChunk(chunk=chunk, score=0.9, ranks={"bm25": 1, "dense": 2}),
-        Turn(question="berapa biaya?", answer="Rp300.000"),
+        Turn(question=ScrubbedText("berapa biaya?"), answer="Rp300.000"),
         LlmRequest(system="sys", user="q", allowed_chunk_ids=("brosur#1",)),
         LlmAnswer(
             status="answered",
@@ -110,3 +111,10 @@ def test_types_module_imports_no_mica_module():
             imported.append(node.module or "")
     assert imported
     assert not [m for m in imported if m == "mica" or m.startswith("mica.")]
+
+
+def test_scrubbed_text_is_str_marker():
+    text = ScrubbedText("halo")
+    assert isinstance(text, str)
+    assert text == "halo"
+    assert not isinstance("halo", ScrubbedText)

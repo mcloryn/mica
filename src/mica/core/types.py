@@ -30,6 +30,12 @@ class ErrorCode(StrEnum):
     CFG_GEMINI_IN_KIOSK = "CFG_GEMINI_IN_KIOSK"
 
 
+class ScrubbedText(str):
+    """Penanda teks yang sudah melewati scrub_pii; hanya teks ini yang boleh ke API atau log."""
+
+    __slots__ = ()
+
+
 @dataclass(frozen=True)
 class Chunk:
     chunk_id: str  # "<doc_id>#<urutan>"
@@ -51,7 +57,7 @@ class ScoredChunk:
 
 @dataclass(frozen=True)
 class Turn:
-    question: str  # sudah melewati scrub_pii
+    question: ScrubbedText  # sudah melewati scrub_pii
     answer: str
 
 
