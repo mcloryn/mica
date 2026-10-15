@@ -78,6 +78,25 @@ Komponen berstatus Provisional atau Terbuka selalu ditaruh di balik antarmuka da
 - Satu kiosk, satu pengunjung dalam satu waktu, sesuai Bab 1.
 - Dokumen resmi PMB datang dalam format TXT, MD, PDF berteks (bukan hasil pindai), atau DOCX. PDF hasil pindai butuh OCR dan di luar cakupan.
 
+### 2.4 Penyesuaian saat implementasi
+
+Bagian ini mencatat keputusan desain yang diambil selama implementasi MS0 dan MS1 (15 Oktober 2026), karena versi pertama SDD tidak merincinya atau perlu dipersempit. Setiap baris sudah diterapkan di kode dan diuji.
+
+| Bagian | Penyesuaian | Alasan |
+| --- | --- | --- |
+| M-01 | Nilai `null` di mode kiosk wajib diisi, kecuali `rag.rrf_k` dan `rag.candidates_per_retriever` (wajib hanya bila `rag.retriever = hybrid`) serta `audio.stt.threads` (wajib hanya bila `audio.stt.backend = faster_whisper`) | Mendefinisikan "null yang wajib" di 13.1, supaya parameter yang tidak dipakai tidak perlu dikarang |
+| M-01 | Nilai teks yang mengandung `<` dianggap placeholder dan ditolak di mode kiosk; `kb.active_id` di 13.1 ditulis `official-<YYYY-MM-DD>` | Satu aturan untuk semua placeholder |
+| M-01 | API key dibaca dari environment variable lebih dulu, lalu dari `.env`, dan tidak ikut `config_hash` | Kebiasaan umum; key bukan bagian konfigurasi yang diuji |
+| 5.1 | Field `list[...]` ditulis `tuple[..., ...]`; `Turn.question` dan `TurnRecord.question` bertipe `ScrubbedText` | Dataclass frozen benar-benar tidak bisa diubah; M-11 menolak teks yang belum melewati `scrub_pii` (N-09) |
+| M-02 | Judul dan tanggal berlaku tiap dokumen dibaca dari `sources.yaml` di folder sumber; `python -m mica.kb init-sources` membuat draf file itu | Versi pertama tidak menyebut asal tanggal berlaku (F-16) |
+| M-02 | `Chunk.valid_from` tetap wajib; `build` tidak punya opsi `--allow-missing-date`; dokumen tanpa tanggal ditolak dengan `KB_MISSING_DATE`; `check-sources` menampilkan dokumen yang belum bertanggal | Jawaban biaya dan jadwal wajib menyebut tanggal berlaku; tanggal pengganti bisa menyesatkan pengunjung |
+| M-02 | Folder sumber dibaca rekursif; `doc_id` = path relatif tanpa ekstensi; frontmatter Markdown tidak ikut menjadi isi | Data scraping dev dikelompokkan per subfolder |
+| M-02 | Tabel besar dipecah per kelompok baris yang muat dalam `chunk_tokens`, dengan judul kolom di setiap potongan; teks panjang dipecah per paragraf, lalu per baris, baru per kata | Baris tabel dan daftar tetap utuh |
+| M-02 | Jumlah token dihitung dengan tokenizer BGE-M3; tokenisasi BM25 = huruf kecil + `\w+`, tanpa stemming dan stopword (provisional, diuji di E-01) | Ukuran potongan konsisten dengan model embedding |
+| M-02 | Nilai awal dev `kb.chunk_tokens = 400` (hipotesis awal PRD) dan `kb.overlap_tokens = 50`; konfigurasi kiosk tetap `null` | Titik awal untuk E-01, bukan nilai akhir |
+| M-11 | Ekspor CSV memakai UTF-8 dengan BOM | Tabel dibuka di Excel untuk Bab 4 |
+| 8.1 | Kode baru `KB_MISSING_DATE`; `CFG_INVALID` dan `CFG_GEMINI_IN_KIOSK` masuk enum kode error yang sama | Kode error seragam di log |
+
 ## 3. Arsitektur
 
 ### 3.1 Konteks
@@ -161,7 +180,7 @@ Semua path relatif terhadap `src/mica/`. Tipe data yang disebut di sini didefini
 - **Keluaran:** folder `data/kb/<kb_id>/` (skema di 6.1). Folder ditulis ke nama sementara lalu di-rename, jadi KB yang setengah jadi tidak pernah aktif.
 - **Dependensi:** pypdf dan python-docx untuk membaca dokumen (**non-ADR**: pustaka murni Python, ringan untuk laptop tanpa GPU); FlagEmbedding atau sentence-transformers untuk BGE-M3 \[40\]; rank-bm25 (**non-ADR**: implementasi BM25 kecil yang cukup untuk KB ratusan sampai ribuan potongan).
 - **Konfigurasi:** `kb.chunker`, `kb.chunk_tokens` dan `kb.overlap_tokens` (TBD, dikalibrasi di E-01), `kb.embedder.model`.
-- **Error:** PDF tanpa teks (hasil pindai) → dilewati dengan peringatan `KB_PDF_NO_TEXT`; dokumen tanpa tanggal berlaku → build gagal kecuali `--allow-missing-date`, karena F-16 mewajibkan tanggal berlaku.
+- **Error:** PDF tanpa teks (hasil pindai) → dilewati dengan peringatan `KB_PDF_NO_TEXT`; dokumen tanpa tanggal berlaku → build gagal dengan `KB_MISSING_DATE`, karena F-16 mewajibkan tanggal berlaku. Tidak ada opsi untuk melewati aturan ini. Dokumen yang belum bertanggal diperiksa dengan `python -m mica.kb check-sources` (lihat 2.4).
 - **Selesai bila:** satu folder contoh berisi keempat format menghasilkan KB yang bisa dimuat M-03; setiap potongan punya nama dokumen, judul bagian, tanggal berlaku, dan jenis sumber; tabel kecil tidak terpotong; baris tabel besar membawa judul kolomnya.
 
 ### M-03: Retriever (`rag/retriever.py`, `rag/rerank.py`)
@@ -810,7 +829,7 @@ app:
   mode: kiosk                 # kiosk | dev; Gemini hanya boleh di dev
   version: 0.1.0
 kb:
-  active_id: official-YYYY-MM-DD   # F-17
+  active_id: official-<YYYY-MM-DD>   # F-17
   chunker: structure_then_fixed     # ADR-03; alternatif: fixed
   chunk_tokens: null                # E-01
   overlap_tokens: null              # E-01
@@ -918,3 +937,4 @@ mica/
 | Tanggal | Perubahan |
 | --- | --- |
 | 15 Oktober 2026 | Versi pertama, dari PRD dan Laporan Keputusan tanggal yang sama |
+| 15 Oktober 2026 (malam) | Penyesuaian dari implementasi MS0 dan MS1, dicatat di bagian 2.4. Aturan error M-02 diperbarui: build tanpa opsi --allow-missing-date. |
