@@ -1,0 +1,81 @@
+"""Tipe data internal SDD 5.1 dan kode error SDD 8.1.
+
+Modul ini hanya boleh mengimpor library standar supaya bisa diimpor modul mana pun tanpa siklus.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import date
+from enum import StrEnum
+from typing import Literal
+
+
+class ErrorCode(StrEnum):
+    # SDD 8.1
+    LLM_FALLBACK = "LLM_FALLBACK"
+    LLM_UNAVAILABLE = "LLM_UNAVAILABLE"
+    LLM_BAD_OUTPUT = "LLM_BAD_OUTPUT"
+    REFUSED_GATE = "REFUSED_GATE"
+    REFUSED_CHECK = "REFUSED_CHECK"
+    CAMERA_DOWN = "CAMERA_DOWN"
+    MIC_DOWN = "MIC_DOWN"
+    STT_EMPTY = "STT_EMPTY"
+    COLOR_UNSURE = "COLOR_UNSURE"
+    WORKER_RESTART = "WORKER_RESTART"
+    WORKER_DEAD = "WORKER_DEAD"
+    KB_INVALID = "KB_INVALID"
+    # M-01
+    CFG_INVALID = "CFG_INVALID"
+    CFG_GEMINI_IN_KIOSK = "CFG_GEMINI_IN_KIOSK"
+
+
+@dataclass(frozen=True)
+class Chunk:
+    chunk_id: str  # "<doc_id>#<urutan>"
+    doc_id: str
+    doc_title: str
+    section: str  # judul bagian, untuk sumber (F-09)
+    valid_from: date  # tanggal berlaku (F-16)
+    source_type: Literal["official", "dev"]
+    text: str
+    is_table: bool
+
+
+@dataclass(frozen=True)
+class ScoredChunk:
+    chunk: Chunk
+    score: float  # skor akhir dari retriever terpilih
+    ranks: dict[str, int]  # peringkat per retriever, untuk analisis E-01
+
+
+@dataclass(frozen=True)
+class Turn:
+    question: str  # sudah melewati scrub_pii
+    answer: str
+
+
+@dataclass(frozen=True)
+class LlmRequest:
+    system: str
+    user: str  # pertanyaan + potongan bernomor
+    allowed_chunk_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class LlmAnswer:
+    status: Literal["answered", "not_found", "false_premise"]
+    answer: str
+    citations: tuple[str, ...]  # harus subset allowed_chunk_ids
+    provider: str
+    latency_s: float
+
+
+@dataclass(frozen=True)
+class FinalAnswer:
+    status: Literal[
+        "answered", "refused_gate", "refused_llm", "false_premise", "refused_check", "unavailable"
+    ]
+    text: str  # yang ditampilkan dan dibacakan
+    sources: tuple[Chunk, ...]  # kosong bila menolak
+    timings: dict[str, float]

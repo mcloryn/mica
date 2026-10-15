@@ -22,17 +22,19 @@ from pydantic import (
     field_validator,
 )
 
-CFG_INVALID = "CFG_INVALID"
-CFG_GEMINI_IN_KIOSK = "CFG_GEMINI_IN_KIOSK"
+from mica.core.types import ErrorCode
+
+CFG_INVALID = ErrorCode.CFG_INVALID
+CFG_GEMINI_IN_KIOSK = ErrorCode.CFG_GEMINI_IN_KIOSK
 
 LLM_PROVIDERS = ("groq", "gemini")
 API_KEY_VARS = {"groq": "GROQ_API_KEY", "gemini": "GEMINI_API_KEY"}
 
 
 class ConfigError(Exception):
-    def __init__(self, code: str, message: str) -> None:
+    def __init__(self, code: ErrorCode, message: str) -> None:
         super().__init__(f"{code}: {message}")
-        self.code = code
+        self.code = ErrorCode(code)
         self.message = message
 
 
