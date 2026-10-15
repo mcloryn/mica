@@ -1,0 +1,68 @@
+app:
+  mode: kiosk                 # kiosk | dev; Gemini hanya boleh di dev
+  version: 0.1.0
+kb:
+  active_id: official-YYYY-MM-DD   # F-17
+  chunker: structure_then_fixed     # ADR-03; alternatif: fixed
+  chunk_tokens: null                # E-01
+  overlap_tokens: null              # E-01
+  embedder:
+    model: BAAI/bge-m3              # ADR-02
+rag:
+  retriever: hybrid                 # ADR-01; bm25 | dense | hybrid
+  top_k: 5                          # ADR-16, diuji ulang di E-01
+  rrf_k: null                       # E-01
+  candidates_per_retriever: null    # E-01
+  reranker:
+    enabled: false                  # ADR-01; nyala hanya bila lolos aturan E-01
+    model: BAAI/bge-reranker-v2-m3
+  gate:
+    threshold: null                 # ADR-06, E-02
+  fact_check:
+    enabled: true                   # ADR-06 lapis 3
+  followup_mode: concat             # ADR-05; concat | llm_rewrite (E-02)
+  history_turns: 1
+  prompt_variant: paraphrase        # ADR-07; paraphrase | plain (E-03)
+llm:
+  chain:                            # ADR-08; urutan coba
+    - groq:<id gpt-oss-120b>
+    - groq:<id gpt-oss-20b>
+  timeout_s: null                   # E-04, dari anggaran 4 detik
+  temperature: null                 # ditetapkan rendah, E-04
+audio:
+  stt:
+    backend: faster_whisper         # ADR-09; faster_whisper | groq_whisper (E-05)
+    model: small
+    compute_type: int8
+    threads: null                   # E-09
+  vad:
+    threshold: null                 # E-05
+    min_silence_ms: null            # E-05
+  max_utterance_s: null             # E-05
+  tts:
+    voice: id_ID-news_tts           # ADR-11
+vision:
+  model: yolo26n                    # ADR-12; yolo26n | yolo26n-pose | yolo11n (E-07)
+  tracker: bytetrack.yaml           # ADR-15
+  region: keypoint_torso            # ADR-13; keypoint_torso | box_upper (E-08)
+  color:
+    method: color_names_lut         # ADR-14; color_names_lut | hsv_rules (E-08)
+    min_majority: null              # E-08
+  dwell_s: null                     # E-07, syarat sapaan <= 3 detik (N-06)
+  leave_s: null                     # E-07
+  min_box_height_ratio: null        # E-07
+  fps_idle: 5                       # ADR-20
+  fps_busy: null                    # E-09
+  threads: null                     # E-09
+session:
+  idle_reset_s: null                # E-09
+  regreet_cooldown_s: null          # E-07
+ui:
+  fullscreen: true
+  font_scale: 1.0
+  topics: [Program studi, Jalur masuk, Biaya, Beasiswa, Fasilitas, Prospek karier]   # F-14, dari topik dataset PRD
+logging:
+  dir: logs/
+eval:
+  judge:
+    enabled: false                  # ADR-18; hanya pelengkap penilaian manusia
