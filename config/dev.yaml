@@ -8,6 +8,7 @@ kb:
   overlap_tokens: 50                # E-01; nilai awal dev, dikalibrasi di E-01
   embedder:
     model: BAAI/bge-m3              # ADR-02
+    revision: 9a0624b896d81da7492a910ffa53731274b6cf3d  # N-14; PR #130 SFconvertbot, model.safetensors
 rag:
   retriever: hybrid                 # ADR-01; bm25 | dense | hybrid
   top_k: 5                          # ADR-16, diuji ulang di E-01

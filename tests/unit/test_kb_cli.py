@@ -64,7 +64,7 @@ def test_build_list_inspect(tmp_path, capsys):
         "--kb-root", str(kb_root),
         "build", "--src", str(src), "--kb-id", "dev-2026-10-15",
         "--source-type", "dev", "--config", str(DEV_YAML),
-        embedder_factory=lambda model_id: FakeEmbedder(),
+        embedder_factory=lambda m, r: FakeEmbedder(),
     )
     assert code == 0, err
     assert "4 dokumen" in out and "detik" in out
@@ -87,8 +87,8 @@ def test_build_existing_kb_id_fails(tmp_path, capsys):
         "--kb-root", str(kb_root), "build", "--src", str(src), "--kb-id", "dev-x",
         "--source-type", "dev", "--config", str(DEV_YAML),
     ]
-    assert _run(capsys, *argv, embedder_factory=lambda m: FakeEmbedder())[0] == 0
-    code, _, err = _run(capsys, *argv, embedder_factory=lambda m: FakeEmbedder())
+    assert _run(capsys, *argv, embedder_factory=lambda m, r: FakeEmbedder())[0] == 0
+    code, _, err = _run(capsys, *argv, embedder_factory=lambda m, r: FakeEmbedder())
     assert code == 2 and "KB_INVALID" in err
 
 

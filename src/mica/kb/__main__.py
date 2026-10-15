@@ -30,7 +30,7 @@ from mica.kb.parsers import (
     source_key,
 )
 
-EmbedderFactory = Callable[[str], Embedder]
+EmbedderFactory = Callable[[str, str | None], Embedder]  # (model_id, revision)
 
 
 def _parse_date(value: str) -> date:
@@ -98,7 +98,7 @@ def cmd_init_sources(args: argparse.Namespace) -> int:
 
 def cmd_build(args: argparse.Namespace, embedder_factory: EmbedderFactory) -> int:
     settings = load_settings(args.config)
-    embedder = embedder_factory(settings.kb.embedder.model)
+    embedder = embedder_factory(settings.kb.embedder.model, settings.kb.embedder.revision)
     started = time.perf_counter()
     folder = build_kb(
         args.src, args.kb_id, args.source_type, settings.kb, embedder, args.kb_root
@@ -132,7 +132,8 @@ def cmd_inspect(args: argparse.Namespace) -> int:
     kb = load_kb(args.kb_id, args.kb_root)
     m = kb.manifest
     print(f"kb_id: {kb.kb_id} ({m['source_type']}), dibangun {m.get('built_at', '?')}")
-    print(f"embedder: {m['embedder']['model']} rev {m['embedder']['revision']}")
+    e = m["embedder"]
+    print(f"embedder: {e['model']} rev {e['revision']} ({e.get('weights_file', '?')})")
     print(f"chunker: {m.get('chunker')}")
     print(f"dokumen: {len(m.get('documents', []))}")
     print(f"chunk: {len(kb.chunks)} (tabel: {sum(c.is_table for c in kb.chunks)})")
@@ -192,8 +193,8 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _default_embedder(model_id: str) -> Embedder:
-    return BgeM3Embedder(model_id, cache_dir=DEFAULT_CACHE_DIR)
+def _default_embedder(model_id: str, revision: str | None) -> Embedder:
+    return BgeM3Embedder(model_id, revision=revision, cache_dir=DEFAULT_CACHE_DIR)
 
 
 def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None = None) -> int:

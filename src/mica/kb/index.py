@@ -12,6 +12,7 @@ import shutil
 import uuid
 from dataclasses import dataclass
 from datetime import date, datetime
+from importlib import metadata
 from pathlib import Path
 from typing import Any
 
@@ -59,6 +60,13 @@ class KnowledgeBase:
     chunks: tuple[Chunk, ...]
     dense: np.ndarray
     bm25: BM25Okapi
+
+
+def _package_version(name: str) -> str | None:
+    try:
+        return metadata.version(name)
+    except metadata.PackageNotFoundError:
+        return None
 
 
 def _sha256(path: Path) -> str:
@@ -169,6 +177,9 @@ def build_kb(
             "embedder": {
                 "model": embedder.model_id,
                 "revision": embedder.revision,
+                "weights_file": embedder.weights_file,
+                "sentence_transformers": _package_version("sentence-transformers"),
+                "torch": _package_version("torch"),
                 "dim": int(dense.shape[1]),
             },
             "n_chunks": len(chunks),

@@ -98,7 +98,8 @@ class FakeEmbedder:
     """Embedder deterministik untuk tes: vektor dari hash teks, dinormalisasi; token = kata."""
 
     model_id = "fake/embedder"
-    revision = "test"
+    revision = "0" * 40
+    weights_file = "fake.safetensors"
 
     def __init__(self, dim: int = 8, fail_on_call: bool = False) -> None:
         self.dim = dim

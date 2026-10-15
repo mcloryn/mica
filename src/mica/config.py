@@ -50,6 +50,8 @@ class AppConfig(_Model):
 
 class EmbedderConfig(_Model):
     model: str
+    # hash commit Hugging Face lengkap (N-14); wajib di kiosk, null di dev = revisi main
+    revision: str | None = Field(default=None, pattern=r"^[0-9a-f]{40}$")
 
 
 class KbConfig(_Model):

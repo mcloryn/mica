@@ -271,3 +271,32 @@ def test_environment_variable_wins_over_env_file(tmp_path, monkeypatch):
     assert settings.api_keys.groq.get_secret_value() == "dari-env"
     # env_file tetap dipakai sebagai cadangan
     assert settings.api_keys.gemini.get_secret_value() == "gemini-file"
+
+
+def test_embedder_revision_null_allowed_in_dev(tmp_path):
+    raw = _dev_raw()
+    raw["kb"]["embedder"]["revision"] = None
+    assert load_settings(_write(tmp_path, raw)).kb.embedder.revision is None
+
+
+def test_embedder_revision_required_in_kiosk(tmp_path):
+    raw = _complete_kiosk_raw()
+    raw["kb"]["embedder"]["revision"] = None
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert exc.value.code == CFG_INVALID
+    assert "kb.embedder.revision" in str(exc.value)
+
+
+@pytest.mark.parametrize("revision", ["main", "9a0624b", "9A0624B896D81DA7492A910FFA53731274B6CF3D"])
+def test_embedder_revision_must_be_full_hash(tmp_path, revision):
+    raw = _dev_raw()
+    raw["kb"]["embedder"]["revision"] = revision
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert "kb.embedder.revision" in str(exc.value)
+
+
+def test_dev_yaml_pins_embedder_revision():
+    revision = load_settings(DEV_YAML).kb.embedder.revision
+    assert revision is not None and len(revision) == 40

@@ -1,6 +1,8 @@
 import json
 import logging
 import sys
+import types
+from importlib import metadata
 
 import numpy as np
 import pytest
@@ -66,7 +68,13 @@ def test_manifest_content(src, kb_root):
     manifest = json.loads((_build(src, kb_root) / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["kb_id"] == "dev-2026-10-15"
     assert manifest["source_type"] == "dev"
-    assert manifest["embedder"] == {"model": "fake/embedder", "revision": "test", "dim": 8}
+    embedder = manifest["embedder"]
+    assert embedder["model"] == "fake/embedder"
+    assert embedder["revision"] == "0" * 40
+    assert embedder["weights_file"] == "fake.safetensors"
+    assert embedder["dim"] == 8
+    assert embedder["sentence_transformers"] == metadata.version("sentence-transformers")
+    assert embedder["torch"] == metadata.version("torch")
     assert manifest["chunker"]["chunk_tokens"] == 8
     assert len(manifest["config_hash"]) == 64
     docs = {d["doc_id"]: d for d in manifest["documents"]}
@@ -181,6 +189,51 @@ def test_bge_embedder_loads_lazily(tmp_path, monkeypatch):
     assert embedder.revision == "unknown"
     with pytest.raises(ImportError):
         embedder.embed(["x"])
+
+
+REV = "9a0624b896d81da7492a910ffa53731274b6cf3d"
+
+
+def _fake_sentence_transformers(monkeypatch):
+    calls = []
+
+    class FakeST:
+        def __init__(self, model_id, **kwargs):
+            calls.append((model_id, kwargs))
+
+    monkeypatch.setitem(
+        sys.modules, "sentence_transformers", types.SimpleNamespace(SentenceTransformer=FakeST)
+    )
+    return calls
+
+
+def test_bge_embedder_passes_pinned_revision(tmp_path, monkeypatch):
+    calls = _fake_sentence_transformers(monkeypatch)
+    embedder = BgeM3Embedder("BAAI/bge-m3", revision=REV, cache_dir=tmp_path)
+    embedder._load()
+    model_id, kwargs = calls[0]
+    assert model_id == "BAAI/bge-m3"
+    assert kwargs["revision"] == REV
+    assert kwargs["model_kwargs"] == {"use_safetensors": True}
+    assert kwargs["cache_folder"] == str(tmp_path)
+    assert embedder.revision == REV
+
+
+def test_bge_embedder_unpinned_uses_main(tmp_path, monkeypatch):
+    calls = _fake_sentence_transformers(monkeypatch)
+    BgeM3Embedder("BAAI/bge-m3", cache_dir=tmp_path)._load()
+    assert calls[0][1]["revision"] is None
+
+
+def test_bge_embedder_weights_file_from_snapshot(tmp_path):
+    snapshot = tmp_path / "models--BAAI--bge-m3" / "snapshots" / REV
+    snapshot.mkdir(parents=True)
+    embedder = BgeM3Embedder("BAAI/bge-m3", revision=REV, cache_dir=tmp_path)
+    assert embedder.weights_file == "unknown"
+    (snapshot / "pytorch_model.bin").write_bytes(b"")
+    assert embedder.weights_file == "pytorch_model.bin"
+    (snapshot / "model.safetensors").write_bytes(b"")
+    assert embedder.weights_file == "model.safetensors"  # safetensors diutamakan
 
 
 def test_bge_embedder_revision_from_cache(tmp_path):
