@@ -1,0 +1,22 @@
+{
+  "kb_id": "dev-2026-10-15-v2",
+  "config_hash": "a80d78844e60b03812f0dfb9e4c9b38191cb9152bd88c9b513b984c362ea0c83",
+  "retrievers": [
+    "bm25",
+    "dense",
+    "hybrid"
+  ],
+  "depth": 10,
+  "rrf_k": 60,
+  "candidates_per_retriever": 20,
+  "embedder": {
+    "model": "BAAI/bge-m3",
+    "revision": "9a0624b896d81da7492a910ffa53731274b6cf3d"
+  },
+  "dataset": "data\\eval\\questions.jsonl",
+  "dataset_sha256": "43c39a66331f4a30da2edb23debb0701e45aaa1aa871a2775f60817eb115ebfb",
+  "pool_file": "pool.csv",
+  "rows": 433,
+  "questions": 25,
+  "created_at": "2026-10-16T00:16:40.971880+07:00"
+}
