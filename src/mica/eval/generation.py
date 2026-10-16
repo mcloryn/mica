@@ -28,7 +28,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from mica.config import Settings
+from mica.config import LlmConfig, Settings
 from mica.core.types import (
     Chunk,
     LlmAnswer,
@@ -325,13 +325,29 @@ class GenerationRow:
         return self.oos_level if self.type == "out_of_kb" and self.oos_level else self.type
 
 
-def effective_settings(settings: Settings, gate_off: bool) -> Settings:
-    """Konfigurasi run ini: cek angka selalu menyala (status 'off' dihitung offline)."""
+def effective_settings(settings: Settings, gate_off: bool, model: str | None = None) -> Settings:
+    """Konfigurasi run ini: cek angka selalu menyala (status 'off' dihitung offline).
+
+    model ("penyedia:id_model") mengganti llm.chain menjadi satu model itu saja.
+    """
     rag = settings.rag
     gate = rag.gate.model_copy(update={"threshold": None}) if gate_off else rag.gate
     fact_check = rag.fact_check.model_copy(update={"enabled": True})
     rag = rag.model_copy(update={"gate": gate, "fact_check": fact_check})
-    return settings.model_copy(update={"rag": rag})
+    update: dict[str, Any] = {"rag": rag}
+    if model is not None:
+        data = settings.llm.model_dump()
+        data["chain"] = [model]
+        llm = LlmConfig.model_validate(data)  # format 'penyedia:id_model' tetap divalidasi
+        if model.partition(":")[0] == "gemini" and settings.app.mode != "dev":
+            raise ValueError("--model: penyedia gemini hanya boleh saat app.mode: dev")
+        update["llm"] = llm
+    return settings.model_copy(update=update)
+
+
+def model_slug(model: str) -> str:
+    """'groq:openai/gpt-oss-20b' -> 'gpt-oss-20b' (untuk nama folder run)."""
+    return model.partition(":")[2].rsplit("/", 1)[-1].replace(":", "-")
 
 
 def dev_questions(questions: list[Question]) -> list[Question]:
@@ -584,15 +600,20 @@ def run_generation(
     environment: dict[str, Any] | None = None,
     progress: Callable[[str], None] | None = print_progress,
     cache_only: bool = False,
+    model: str | None = None,
 ) -> tuple[Path, list[GenerationRow], list[dict[str, Any]]]:
     started_at = started_at or datetime.now().astimezone()
     clock_start = time.perf_counter()
     environment = environment if environment is not None else collect_environment()
-    eff = effective_settings(settings, gate_off)
+    eff = effective_settings(settings, gate_off, model)
     questions = dev_questions(load_questions(dataset))
 
     if provider is None:
-        provider = make_llm(eff).providers[0]  # rantai cadangan dimatikan selama eval
+        providers = make_llm(eff).providers
+        if model is not None and [p.name for p in providers] != [model]:
+            # pengaman: --model tidak boleh memanggil model lain
+            raise ValueError(f"--model {model}: chain efektif {[p.name for p in providers]}")
+        provider = providers[0]  # rantai cadangan dimatikan selama eval
     if embedder is None and eff.rag.retriever != "bm25":
         embedder = embedder_for_kb(kb)
         load = getattr(embedder, "load", None)
@@ -615,7 +636,9 @@ def run_generation(
     sweep_rows = sweep_generation(rows)
 
     stamp = started_at.strftime("%Y%m%d-%H%M%S")
-    suffix = "-gateoff" if gate_off else ""
+    suffix = (f"-{model_slug(model)}" if model is not None else "") + (
+        "-gateoff" if gate_off else ""
+    )
     run_dir = Path(out_root) / f"{stamp}-{SPLIT}-{eff.rag.retriever}{suffix}"
     run_dir.mkdir(parents=True, exist_ok=False)
     _write_csv(
@@ -653,6 +676,9 @@ def run_generation(
             "temperature": eff.llm.temperature,
             "timeout_s": eff.llm.timeout_s,
             "fallback_chain": "dimatikan; hanya model pertama llm.chain",
+            "chain_effective": list(eff.llm.chain),
+            "chain_config": list(settings.llm.chain),
+            "model_override": model,
         },
         "llm_calls": {
             "questions": len(rows),

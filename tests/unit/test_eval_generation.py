@@ -436,3 +436,83 @@ def test_progress_flushes(capsys):
 
     print_progress("[1/1] x")
     assert capsys.readouterr().out == "[1/1] x\n"
+
+
+# --- --model: chain diganti satu model ----------------------------------------------------
+
+MODEL_20B = "groq:openai/gpt-oss-20b"
+
+
+def test_effective_settings_model_replaces_chain():
+    settings = load_settings(DEV_YAML)
+    assert len(settings.llm.chain) > 1
+    eff = effective_settings(settings, True, MODEL_20B)
+    assert eff.llm.chain == (MODEL_20B,)
+    assert eff.llm.reasoning_effort == settings.llm.reasoning_effort
+    assert eff.llm.temperature == settings.llm.temperature
+    assert eff.config_hash() != effective_settings(settings, True).config_hash()
+    assert settings.llm.chain != (MODEL_20B,)  # config asli tidak berubah
+
+
+def test_effective_settings_model_validated():
+    settings = load_settings(DEV_YAML)
+    with pytest.raises(ValueError):
+        effective_settings(settings, True, "openai/gpt-oss-20b")  # tanpa penyedia
+    with pytest.raises(ValueError):
+        effective_settings(settings, True, "foo:bar")
+
+
+def test_make_llm_with_model_builds_only_that_model():
+    from mica.config import ApiKeys
+    from mica.rag.llm import make_llm
+
+    settings = load_settings(DEV_YAML).model_copy(update={"api_keys": ApiKeys(groq="x")})
+    eff = effective_settings(settings, True, MODEL_20B)
+    assert [p.name for p in make_llm(eff).providers] == [MODEL_20B]
+
+
+def test_run_generation_model_uses_only_that_model(env, monkeypatch):
+    import mica.eval.generation as gen
+
+    seen = []
+    provider = FakeProvider(_rule)
+    provider.name, provider.model = MODEL_20B, "openai/gpt-oss-20b"
+
+    class Chain:
+        def __init__(self, eff):
+            seen.append(eff.llm.chain)
+            self.providers = [provider]
+
+    monkeypatch.setattr(gen, "make_llm", Chain)
+    run_dir, rows, _ = _run(env, None, gate_off=True, model=MODEL_20B)
+    assert seen == [(MODEL_20B,)] and len(provider.requests) == len(rows)
+    assert run_dir.name.endswith("-dev-hybrid-gpt-oss-20b-gateoff")
+    run = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
+    assert run["config_hash"] == effective_settings(env[0], True, MODEL_20B).config_hash()
+    assert run["llm"]["chain_effective"] == [MODEL_20B]
+    assert run["llm"]["model_override"] == MODEL_20B
+    assert run["llm"]["provider"] == MODEL_20B
+
+
+def test_run_generation_model_guard_stops_other_chain(env, monkeypatch):
+    import mica.eval.generation as gen
+
+    other = FakeProvider(_rule)
+    other.name = "groq:openai/gpt-oss-120b"
+
+    class Chain:
+        def __init__(self, eff):
+            self.providers = [other]
+
+    monkeypatch.setattr(gen, "make_llm", Chain)
+    with pytest.raises(ValueError):
+        _run(env, None, gate_off=True, model=MODEL_20B)
+    assert other.requests == []
+
+
+def test_cli_parser_generation_model():
+    from mica.eval.__main__ import build_parser
+
+    base = ["generation", "--config", "c.yaml", "--dataset", "q.jsonl", "--out", "o"]
+    assert build_parser().parse_args(base).model is None
+    assert build_parser().parse_args([*base, "--model", MODEL_20B]).model == MODEL_20B

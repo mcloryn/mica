@@ -7,6 +7,7 @@ python -m mica.eval retrieval --config <yaml> --dataset <jsonl> --out <folder>
 python -m mica.eval gate --config <yaml> --dataset <jsonl> --out <folder>
 python -m mica.eval generation --config <yaml> --dataset <jsonl> --out <folder> [--gate-off]
     [--no-cache] [--cache-only] [--cache-dir data/cache/llm] [--env-file .env]
+    [--model penyedia:id_model]
 """
 
 from __future__ import annotations
@@ -75,6 +76,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="jangan pernah memanggil API; berhenti bila ada respons yang tidak ada di cache",
     )
     gen.add_argument("--env-file", type=Path, default=Path(".env"))
+    gen.add_argument(
+        "--model",
+        help="ganti llm.chain menjadi satu model ini saja untuk run ini, misalnya "
+        "groq:openai/gpt-oss-20b",
+    )
     return parser
 
 
@@ -183,6 +189,8 @@ def cmd_generation(args: argparse.Namespace, embedder_factory: EmbedderFactory |
     warning = dirty_warning(environment)
     if warning:
         print(warning, file=sys.stderr)
+    if args.model is not None:
+        print(f"chain efektif: [{args.model}] (llm.chain di config diabaikan)", flush=True)
     run_dir, rows, sweep_rows = run_generation(
         settings,
         kb,
@@ -194,6 +202,7 @@ def cmd_generation(args: argparse.Namespace, embedder_factory: EmbedderFactory |
         cache_only=args.cache_only,
         embedder=embedder,
         environment=environment,
+        model=args.model,
     )
     print(f"KB {kb.kb_id} | {len(rows)} pertanyaan -> {run_dir}")
     print(" | ".join(SWEEP_COLUMNS))
