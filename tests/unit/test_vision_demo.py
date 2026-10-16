@@ -14,7 +14,17 @@ from mica.vision.types import PersonTrack
 ROOT = Path(__file__).resolve().parents[2]
 DEV_YAML = ROOT / "config" / "dev.yaml"
 # data uji (bukan ambang)
-TEST_ARGS = ["--dwell-s", "1", "--leave-s", "1", "--min-ratio", "0.3", "--fps-busy", "2"]
+TEST_ARGS = ["--dwell-s", "1", "--leave-s", "1", "--min-ratio", "0.3", "--fps-busy", "2",
+             "--min-majority", "0.5", "--box-top", "0.2", "--box-bottom", "0.5", "--box-side", "0.2"]  # fmt: skip
+
+
+def write_fake_table(models_dir):
+    from test_vision_color import fake_table
+
+    from mica.vision.color import DEFAULT_COLORS_FILE
+
+    models_dir.mkdir(parents=True, exist_ok=True)
+    np.save(models_dir / DEFAULT_COLORS_FILE.name, fake_table())
 
 
 class FakeClock:
@@ -67,7 +77,12 @@ def no_disk_writes(monkeypatch, tmp_path):
     monkeypatch.setattr(cv2, "imwrite", forbidden)
     monkeypatch.setattr(cv2, "VideoWriter", forbidden)
     monkeypatch.chdir(tmp_path)
+    write_fake_table(tmp_path / "models")
     return tmp_path
+
+
+def _files(root):
+    return sorted(p.relative_to(root).as_posix() for p in Path(root).rglob("*"))
 
 
 def _run_main(argv, clock, frames=20, detector=None):
@@ -90,11 +105,15 @@ def _run_main(argv, clock, frames=20, detector=None):
 def test_demo_headless_writes_no_files(no_disk_writes, capsys):
     clock = FakeClock()
     argv = ["demo", "--config", str(DEV_YAML), "--no-window", "--seconds", "15", *TEST_ARGS]
+    before = _files(no_disk_writes)
     code, detector = _run_main(argv, clock, frames=20, detector=FakeDetector(present_calls=10))
     out = capsys.readouterr().out
     assert code == 0 and detector.calls == 20
-    assert list(no_disk_writes.iterdir()) == []
-    assert "SUMBER NILAI: argumen CLI (uji coba, bukan E-07)" in out
+    assert _files(no_disk_writes) == before == ["models", "models/color_names_w2c.npy"]
+    assert "SUMBER NILAI: argumen CLI (uji coba, nilai coba, bukan E-07/E-08)" in out
+    assert "color.min_majority = 0.5 (argumen CLI)" in out and "box_upper.top = 0.2" in out
+    assert "PersonArrived track=1 warna=hitam (1.00)" in out  # frame hitam, tabel palsu
+    assert "warna frame: hitam 1.00" in out
     assert "dwell_s = 1.0 (argumen CLI)" in out and "min_box_height_ratio = 0.3" in out
     assert "tracker bytetrack.yaml | perangkat cpu" in out
     assert "PersonArrived track=1" in out
@@ -124,6 +143,7 @@ def test_demo_missing_values_names_arguments(capsys):
     err = capsys.readouterr().err
     assert code == 2
     assert "--leave-s" in err and "--min-ratio" in err and "--fps-busy" in err
+    assert "--min-majority" in err and "--box-top" in err and "--box-side" in err
     assert "--dwell-s" not in err
 
 
@@ -199,7 +219,15 @@ def test_fetch_model_rejects_download_elsewhere(tmp_path):
         cli.cmd_fetch_model(_fetch_args(tmp_path / "models"), settings, download, lambda: None)
 
 
+def test_demo_missing_color_table_reports_code(tmp_path, capsys):
+    argv = ["demo", "--config", str(DEV_YAML), "--models-dir", str(tmp_path), "--no-window",
+            "--seconds", "1", *TEST_ARGS]  # fmt: skip
+    assert cli.main(argv) == 2
+    assert "VISION_COLORS_MISSING" in capsys.readouterr().err
+
+
 def test_demo_missing_model_reports_code(tmp_path, capsys):
+    write_fake_table(tmp_path)
     argv = ["demo", "--config", str(DEV_YAML), "--models-dir", str(tmp_path), "--no-window",
             "--seconds", "1", *TEST_ARGS]  # fmt: skip
     assert cli.main(argv) == 2
@@ -222,7 +250,7 @@ def test_real_model_smoke(no_disk_writes):
         tracks = detector.detect_and_track(frame)
         assert isinstance(tracks, list)
     assert not (no_disk_writes / "runs").exists()
-    assert sorted(os.listdir(no_disk_writes)) == []
+    assert sorted(os.listdir(no_disk_writes)) == ["models"]  # hanya tabel palsu fixture
 
 
 def test_prompt_argument_and_schedule():
@@ -256,3 +284,58 @@ def test_run_demo_announces_prompt_changes(no_disk_writes):
     )  # fmt: skip
     announced = [line.split("INSTRUKSI: ")[1] for line in lines if "INSTRUKSI" in line]
     assert announced == ["Duduk", "Mundur"] and len(beeps) == 2
+
+
+# --- fetch-colors ------------------------------------------------------------------------
+
+
+def fake_tar(rows=None):
+    import io
+    import tarfile
+
+    i = np.arange(32 * 32 * 32)
+    centers = np.stack([i % 32, (i // 32) % 32, i // 1024], axis=1) * 8 + 3.5
+    probs = np.full((i.size, 11), 1 / 11)
+    data = np.hstack([centers, probs]) if rows is None else rows
+    text = "\n".join(" ".join(f"{v:.6f}" for v in row) for row in data).encode()
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w") as tar:
+        info = tarfile.TarInfo(cli.COLORS_MEMBER)
+        info.size = len(text)
+        tar.addfile(info, io.BytesIO(text))
+    return buf.getvalue()
+
+
+def test_extract_w2c_checks_format():
+    table = cli.extract_w2c(fake_tar())
+    assert table.shape == (32768, 11) and table.dtype == np.float32
+    i = np.arange(32 * 32 * 32)
+    wrong = np.hstack(
+        [np.stack([i // 1024, (i // 32) % 32, i % 32], 1) * 8 + 3.5, np.ones((i.size, 11)) / 11]
+    )
+    with pytest.raises(cli.DemoError, match="urutan"):
+        cli.extract_w2c(fake_tar(wrong))
+
+
+def test_fetch_colors_checks_sha_and_writes_npy(tmp_path, monkeypatch, capsys):
+    import hashlib
+
+    settings = load_settings(DEV_YAML)
+    tar = fake_tar()
+    args = argparse.Namespace(models_dir=tmp_path / "models")
+    with pytest.raises(cli.DemoError, match="sha256"):
+        cli.cmd_fetch_colors(args, settings, download=lambda url: tar)
+    assert not (tmp_path / "models").exists()
+
+    monkeypatch.setattr(cli, "COLORS_TAR_SHA256", hashlib.sha256(tar).hexdigest())
+    assert cli.cmd_fetch_colors(args, settings, download=lambda url: tar) == 0
+    saved = tmp_path / "models" / "color_names_w2c.npy"
+    assert np.load(saved).shape == (32768, 11)
+    assert f"sha256 {hashlib.sha256(saved.read_bytes()).hexdigest()}" in capsys.readouterr().out
+    assert sorted(p.name for p in (tmp_path / "models").iterdir()) == ["color_names_w2c.npy"]
+
+
+def test_fetch_colors_refused_in_kiosk(monkeypatch, capsys):
+    monkeypatch.setattr(cli, "load_settings", lambda path: _kiosk_settings())
+    assert cli.main(["fetch-colors"]) == 2
+    assert "app.mode: dev" in capsys.readouterr().err
