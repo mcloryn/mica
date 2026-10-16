@@ -73,6 +73,15 @@ class GateDecision:
 
 
 @dataclass(frozen=True)
+class CheckResult:
+    """Hasil FactChecker (M-04): angka di jawaban yang tidak ditemukan di potongan sumber."""
+
+    passed: bool
+    unsupported: tuple[str, ...]  # teks asli angka yang tidak didukung sumber
+    checked: int  # jumlah angka yang diekstrak dari jawaban
+
+
+@dataclass(frozen=True)
 class Turn:
     question: ScrubbedText  # sudah melewati scrub_pii
     answer: str

@@ -19,7 +19,7 @@ rag:
     model: BAAI/bge-reranker-v2-m3
     revision: null                  # N-14; hash commit lengkap, wajib di kiosk
   gate:
-    threshold: null                 # ADR-06, E-02
+    threshold: 0.50                 # ADR-06; provisional, E-02 dev gerbang saja (results/E-02-gate/20261016-095334-dev-hybrid); final di E-02 lengkap
   fact_check:
     enabled: true                   # ADR-06 lapis 3
   followup_mode: concat             # ADR-05; concat | llm_rewrite (E-02)

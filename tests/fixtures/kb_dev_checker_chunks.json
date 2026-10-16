@@ -1,0 +1,35 @@
+{
+  "_asal": "disalin dari data/kb/dev-2026-10-15-v2/chunks.jsonl",
+  "chunks": [
+    {
+      "chunk_id": "02_pendaftaran_dan_jadwal#3",
+      "doc_id": "02_pendaftaran_dan_jadwal",
+      "doc_title": "Pendaftaran Mahasiswa Baru dan Jadwal",
+      "section": "Jadwal Pendaftaran Program Sarjana (S1) T.A. 2027/2028",
+      "valid_from": "2026-09-29",
+      "source_type": "dev",
+      "text": "Gelombang | Periode | Jalur\nGelombang 1 | 17 September 2026 sampai 31 Mei 2027 | Prestasi, Minat Bakat, Reguler\nGelombang 2 | 2 Juni 2027 sampai 4 September 2027 | Prestasi, Minat Bakat, Reguler",
+      "is_table": true
+    },
+    {
+      "chunk_id": "02_pendaftaran_dan_jadwal#8",
+      "doc_id": "02_pendaftaran_dan_jadwal",
+      "doc_title": "Pendaftaran Mahasiswa Baru dan Jadwal",
+      "section": "Kontak dan Jam Layanan Admisi dan Pemasaran",
+      "valid_from": "2026-09-29",
+      "source_type": "dev",
+      "text": "Layanan | Kontak | Jam layanan\nAdmisi dan konsultasi pendaftaran | WhatsApp 0811 602 5151; admission@mikroskil.ac.id; daftar@mikroskil.ac.id | Senin sampai Jumat 09.00 sampai 20.30 WIB; Sabtu 09.00 sampai 17.00 WIB; istirahat 12.00 sampai 13.00\nPemasaran | WhatsApp 0851 7346 3468; marketing@mikroskil.ac.id | Senin sampai Jumat 09.00 sampai 17.00 WIB; Sabtu 09.00 sampai 15.00 WIB; istirahat 12.00 sampai 13.00",
+      "is_table": true
+    },
+    {
+      "chunk_id": "03_biaya_kuliah_dan_syarat_masuk#2",
+      "doc_id": "03_biaya_kuliah_dan_syarat_masuk",
+      "doc_title": "Biaya Kuliah dan Syarat Masuk",
+      "section": "Biaya Kuliah S1 per Program Studi (per tahun)",
+      "valid_from": "2026-09-29",
+      "source_type": "dev",
+      "text": "Program Studi | Fakultas | Kelas Pagi | Kelas Sore\nS1 Teknik Informatika (Computer Science) | Informatika | Rp14.000.000 per tahun | Rp15.000.000 per tahun\nS1 Sistem Informasi | Informatika | Rp14.000.000 per tahun | Rp15.000.000 per tahun\nS1 Teknologi Informasi | Informatika | Rp14.000.000 per tahun | Rp15.000.000 per tahun\nS1 Manajemen | Bisnis dan Hukum | Rp12.500.000 per tahun | Rp13.500.000 per tahun\nS1 Akuntansi | Bisnis dan Hukum | Rp12.500.000 per tahun | Rp13.500.000 per tahun\nS1 Hukum Bisnis | Bisnis dan Hukum | Rp12.500.000 per tahun (satu tarif) | Tidak dicantumkan terpisah",
+      "is_table": true
+    }
+  ]
+}

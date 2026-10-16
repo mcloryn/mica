@@ -150,7 +150,7 @@ def test_run_gate_outputs(env):
     run = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
     assert run["experiment"] == "E-02" and run["retriever"] == "hybrid"
     assert run["config_hash"] == settings.config_hash()
-    assert run["gate_threshold_config"] is None
+    assert run["gate_threshold_config"] == settings.rag.gate.threshold
     assert run["n_questions"] == {"answerable": 1, "followup": 1, "jauh": 1, "dekat": 1,
                                   "false_premise": 1}
     assert run["environment"] == {"git_dirty": False}
