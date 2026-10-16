@@ -14,11 +14,17 @@ from mica.vision.detector import (
     model_path,
     tracks_from_result,
 )
-from mica.vision.presence import PresenceState, PresenceTracker
+from mica.vision.presence import (
+    BoxHeightSignal,
+    PresenceState,
+    PresenceTracker,
+    ShoulderWidthSignal,
+)
 from mica.vision.types import CameraStatus, PersonArrived, PersonLeft, PersonTrack
 
 # data uji (bukan ambang): frame 100 px, syarat tinggi 0,4, dwell 2 s, leave 3 s, 10 fps
 FRAME_H = 100
+FRAME = (FRAME_H, 100)
 DWELL, LEAVE, RATIO = 2.0, 3.0, 0.4
 STEP = 0.1
 
@@ -28,7 +34,7 @@ def person(track_id, height=60.0, conf=0.9):
 
 
 def tracker():
-    return PresenceTracker(dwell_s=DWELL, leave_s=LEAVE, min_box_height_ratio=RATIO)
+    return PresenceTracker(dwell_s=DWELL, leave_s=LEAVE, min_signal=RATIO, signal=BoxHeightSignal())
 
 
 class Clip:
@@ -41,7 +47,7 @@ class Clip:
 
     def play(self, seconds, tracks):
         for _ in range(round(seconds / STEP)):
-            for e in self.presence.update(tracks, FRAME_H, self.now):
+            for e in self.presence.update(tracks, FRAME, self.now):
                 self.events.append(e)
             self.now = round(self.now + STEP, 6)
         return self
@@ -301,3 +307,53 @@ def test_open_cv2_uses_dshow_for_webcam_on_windows(monkeypatch):
     camera_module._open_cv2(0)
     camera_module._open_cv2("video.mp4")
     assert calls == [(0, cv2.CAP_DSHOW), ("video.mp4",)]
+
+
+# --- sinyal lebar bahu ------------------------------------------------------------------
+
+KP_CONF = 0.5  # data uji
+
+
+def shouldered(track_id, width=30.0, conf=0.9, height=60.0):
+    """Orang dengan bahu selebar `width` px di frame 100 px."""
+    kp = np.zeros((17, 3), dtype=np.float32)
+    kp[5], kp[6] = (50 + width / 2, 50, conf), (50 - width / 2, 50, conf)
+    return PersonTrack(track_id, (20.0, 100.0 - height, 80.0, 100.0), 0.9, kp)
+
+
+def shoulder_tracker():
+    # data uji: ambang lebar bahu 0,22 dari lebar frame
+    return PresenceTracker(DWELL, LEAVE, 0.22, ShoulderWidthSignal(KP_CONF))
+
+
+def test_shoulder_width_separates_sitting_from_standing_back():
+    # box hampir setinggi frame di kedua kondisi; yang beda lebar bahu (0,30 vs 0,16)
+    near, far = shouldered(1, width=30, height=99), shouldered(1, width=16, height=99)
+    clip = Clip(shoulder_tracker()).play(3, [near]).play(LEAVE + 1, [far])
+    assert clip.kinds() == ["PersonArrived", "PersonLeft"]
+    box_clip = Clip(tracker()).play(3, [near]).play(LEAVE + 1, [far])
+    assert box_clip.kinds() == ["PersonArrived"]  # tinggi box tidak memisahkan
+
+
+def test_shoulder_unsure_briefly_does_not_trigger_leave():
+    clip = Clip(shoulder_tracker()).play(3, [shouldered(1)])
+    clip.play(LEAVE + 2, [shouldered(1, conf=0.1)])  # keypoint goyah, box masih ada
+    clip.play(1, [shouldered(1)])
+    assert clip.kinds() == ["PersonArrived"]
+    assert clip.presence.state == PresenceState.ENGAGED
+
+
+def test_shoulder_unsure_and_box_gone_leaves():
+    clip = Clip(shoulder_tracker()).play(3, [shouldered(1)]).play(0.5, [shouldered(1, conf=0.1)])
+    clip.play(LEAVE + 1, [])
+    assert clip.kinds() == ["PersonArrived", "PersonLeft"]
+
+
+def test_new_candidate_without_confident_shoulders_not_greeted():
+    clip = Clip(shoulder_tracker()).play(10, [shouldered(1, conf=0.1)])
+    assert clip.events == [] and clip.presence.state == PresenceState.IDLE
+
+
+def test_shoulder_target_is_widest():
+    clip = Clip(shoulder_tracker()).play(3, [shouldered(1, width=25), shouldered(2, width=40)])
+    assert clip.events[0].track_id == 2

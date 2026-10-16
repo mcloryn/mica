@@ -14,7 +14,7 @@ from mica.vision.types import PersonTrack
 ROOT = Path(__file__).resolve().parents[2]
 DEV_YAML = ROOT / "config" / "dev.yaml"
 # data uji (bukan ambang)
-TEST_ARGS = ["--dwell-s", "1", "--leave-s", "1", "--min-ratio", "0.3", "--fps-busy", "2",
+TEST_ARGS = ["--presence-signal", "box_height", "--dwell-s", "1", "--leave-s", "1", "--min-ratio", "0.3", "--fps-busy", "2",
              "--min-majority", "0.5", "--box-top", "0.2", "--box-bottom", "0.5", "--box-side", "0.2",
              "--kp-conf", "0.5", "--kp-shrink", "0.1", "--torso-aspect", "1.2"]  # fmt: skip
 CAMERA_FPS = 30
@@ -146,7 +146,7 @@ def test_demo_rate_limited_by_state(no_disk_writes):
     detector = FakeDetector()
     frames = [np.zeros((10, 10, 3), np.uint8)] * 1000
     camera = Camera(0, open_capture=lambda s: FakeCapture(frames, clock), clock=clock)
-    presence = cli.PresenceTracker(dwell_s=1.0, leave_s=1.0, min_box_height_ratio=0.3)
+    presence = cli.PresenceTracker(1.0, 1.0, 0.3, cli.BoxHeightSignal())
     stats = cli.run_demo(
         detector, camera, presence, fps_idle=5, fps_busy=2, seconds=5.0, show_window=False,
         clock=clock, sleep=clock.sleep, out=lambda s: None,
@@ -162,7 +162,7 @@ def test_display_rate_separate_from_detection_rate(no_disk_writes):
     detector = FakeDetector(present_calls=0)  # tidak ada orang: tetap IDLE, fps_idle
     frames = [np.full((10, 10, 3), i % 256, np.uint8) for i in range(1000)]
     camera = Camera(0, open_capture=lambda s: FakeCapture(frames, clock), clock=clock)
-    presence = cli.PresenceTracker(dwell_s=1.0, leave_s=1.0, min_box_height_ratio=0.3)
+    presence = cli.PresenceTracker(1.0, 1.0, 0.3, cli.BoxHeightSignal())
     drawn = []
 
     def draw(frame, overlay, display_fps, detect_fps, lines, kp_conf):
@@ -180,15 +180,52 @@ def test_display_rate_separate_from_detection_rate(no_disk_writes):
     assert display_fps == pytest.approx(30, abs=1.5) and detect_fps == pytest.approx(5, abs=0.5)
 
 
-def test_keypoint_region_needs_pose_model():
-    vision = load_settings(DEV_YAML).vision.model_copy(update={"model": "yolo26n"})
-    values = {"box_upper.top": 0.2, "box_upper.bottom": 0.5, "box_upper.side": 0.2,
-              "keypoint_torso.min_kp_conf": 0.5, "keypoint_torso.shrink": 0.1,
-              "keypoint_torso.torso_aspect": 1.2}  # fmt: skip
+def test_shoulder_signal_argument_needs_pose_model():
+    # cek config ada di test_config; argumen CLI juga tidak boleh melewatinya
+    vision = load_settings(DEV_YAML).vision.model_copy(
+        update={"model": "yolo26n", "region": "box_upper"}
+    )
+    args = argparse.Namespace(presence_signal="shoulder_width")
     with pytest.raises(cli.DemoError, match="-pose"):
-        cli.make_region(vision, values)
-    box_vision = vision.model_copy(update={"region": "box_upper"})
-    assert isinstance(cli.make_region(box_vision, values), cli.BoxUpperRegion)
+        cli.resolve_signal(vision, args)
+    args = argparse.Namespace(presence_signal="box_height")
+    assert cli.resolve_signal(vision, args) == ("box_height", "argumen CLI")
+    pairs = cli.demo_value_pairs(vision, "box_height")
+    assert ("min_box_height_ratio", "--min-ratio") in pairs
+    assert not any(flag.startswith("--kp") for _, flag in pairs)
+
+
+def test_shoulder_signal_on_box_region_needs_kp_conf_only():
+    vision = load_settings(DEV_YAML).vision.model_copy(update={"region": "box_upper"})
+    flags = [flag for _, flag in cli.demo_value_pairs(vision, "shoulder_width")]
+    assert "--min-shoulder-ratio" in flags and "--kp-conf" in flags
+    assert "--kp-shrink" not in flags and "--min-ratio" not in flags
+
+
+def test_demo_missing_presence_signal(monkeypatch, capsys):
+    settings = load_settings(DEV_YAML)
+    vision = settings.vision.model_copy(update={"presence_signal": None})
+    monkeypatch.setattr(
+        cli, "load_settings", lambda p: settings.model_copy(update={"vision": vision})
+    )
+    assert cli.main(["demo", "--no-window"]) == 2
+    assert "--presence-signal (vision.presence_signal null, TBD)" in capsys.readouterr().err
+
+
+def test_demo_shoulder_signal(no_disk_writes, capsys):
+    clock = FakeClock()
+    args = [a for a in TEST_ARGS if a not in ("--presence-signal", "box_height")]
+    # bahu palsu 6 px / 80 px = 0,075: ambang 0,05 lolos, 0,1 tidak
+    argv = ["demo", "--config", str(DEV_YAML), "--no-window", "--seconds", "3",
+            "--min-shoulder-ratio", "0.05", *args]  # fmt: skip
+    code, _ = _run_main(argv, clock, frames=90)
+    out = capsys.readouterr().out
+    assert code == 0 and "presence_signal = shoulder_width (config)" in out
+    assert "min_shoulder_ratio = 0.05 (argumen CLI)" in out and "PersonArrived track=1" in out
+    clock = FakeClock()
+    argv[argv.index("0.05")] = "0.1"
+    code, _ = _run_main(argv, clock, frames=90)
+    assert code == 0 and "PersonArrived" not in capsys.readouterr().out
 
 
 def test_demo_low_keypoint_confidence_uses_fallback(no_disk_writes, capsys):
@@ -205,7 +242,7 @@ def test_demo_missing_values_names_arguments(capsys):
     code = cli.main(["demo", "--config", str(DEV_YAML), "--no-window", "--dwell-s", "1"])
     err = capsys.readouterr().err
     assert code == 2
-    assert "--leave-s" in err and "--min-ratio" in err and "--fps-busy" in err
+    assert "--leave-s" in err and "--min-shoulder-ratio" in err and "--fps-busy" in err
     assert "--min-majority" in err and "--box-top" in err and "--box-side" in err
     assert "--kp-conf" in err and "--kp-shrink" in err and "--torso-aspect" in err
     assert "--dwell-s" not in err
@@ -340,7 +377,7 @@ def test_run_demo_announces_prompt_changes(no_disk_writes):
     camera = Camera(
         0, open_capture=lambda s: FakeCapture([np.zeros((10, 10, 3), np.uint8)] * 50), clock=clock
     )
-    presence = cli.PresenceTracker(dwell_s=1.0, leave_s=1.0, min_box_height_ratio=0.3)
+    presence = cli.PresenceTracker(1.0, 1.0, 0.3, cli.BoxHeightSignal())
     cli.run_demo(
         FakeDetector(), camera, presence, fps_idle=5, fps_busy=2, seconds=4.0, show_window=False,
         prompts=[(0.0, "Duduk"), (2.0, "Mundur")], beep=lambda: beeps.append(1),

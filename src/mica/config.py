@@ -174,12 +174,31 @@ class VisionConfig(_Model):
     color: ColorConfig
     dwell_s: NonNegativeFloat | None = None
     leave_s: NonNegativeFloat | None = None
+    # sinyal kehadiran (E-07); shoulder_width butuh model -pose dan keypoint_torso.min_kp_conf
+    presence_signal: Literal["box_height", "shoulder_width"] | None = None
     min_box_height_ratio: float | None = Field(default=None, ge=0, le=1)
+    min_shoulder_ratio: float | None = Field(default=None, ge=0, le=1)
     conf: float | None = Field(default=None, ge=0, le=1)  # ambang skor deteksi untuk tracker
     imgsz: PositiveInt | None = None
     fps_idle: PositiveFloat
     fps_busy: PositiveFloat | None = None
     threads: PositiveInt | None = None
+
+    @model_validator(mode="after")
+    def _keypoints_need_pose_model(self) -> VisionConfig:
+        if self.model.endswith("-pose"):
+            return self
+        if self.region == "keypoint_torso":
+            raise ValueError(
+                f"region keypoint_torso butuh model -pose (keypoint), bukan {self.model}; "
+                "pakai model yolo26n-pose atau region box_upper"
+            )
+        if self.presence_signal == "shoulder_width":
+            raise ValueError(
+                f"presence_signal shoulder_width butuh model -pose (keypoint bahu), bukan "
+                f"{self.model}; pakai model yolo26n-pose atau presence_signal box_height"
+            )
+        return self
 
 
 class SessionConfig(_Model):
@@ -296,10 +315,16 @@ def _optional_in_kiosk(settings: Settings) -> set[str]:
         optional.add("audio.stt.threads")
     if not settings.rag.reranker.enabled:
         optional.add("rag.reranker.revision")
-    if settings.vision.region != "keypoint_torso":
-        optional |= {
-            f"vision.keypoint_torso.{k}" for k in ("min_kp_conf", "shrink", "torso_aspect")
-        }
+    vision = settings.vision
+    if vision.region != "keypoint_torso":
+        optional |= {"vision.keypoint_torso.shrink", "vision.keypoint_torso.torso_aspect"}
+        if vision.presence_signal != "shoulder_width":
+            optional.add("vision.keypoint_torso.min_kp_conf")
+    # ambang sinyal yang tidak dipakai; bila presence_signal null keduanya tetap wajib
+    if vision.presence_signal == "shoulder_width":
+        optional.add("vision.min_box_height_ratio")
+    elif vision.presence_signal == "box_height":
+        optional.add("vision.min_shoulder_ratio")
     return optional
 
 

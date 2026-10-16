@@ -61,7 +61,9 @@ vision:
     min_majority: null              # E-08
   dwell_s: null                     # E-07, syarat sapaan <= 3 detik (N-06)
   leave_s: null                     # E-07
-  min_box_height_ratio: null        # E-07
+  presence_signal: shoulder_width   # E-07; box_height | shoulder_width (butuh -pose)
+  min_box_height_ratio: null        # E-07; dipakai bila presence_signal box_height
+  min_shoulder_ratio: null          # E-07; dipakai bila presence_signal shoulder_width
   conf: 0.1                         # PROVISIONAL, ditetapkan di E-07; nilai dev = bawaan model.track Ultralytics 8.4
   imgsz: 640                        # PROVISIONAL, ditetapkan di E-07; nilai dev = bawaan Ultralytics 8.4
   fps_idle: 5                       # ADR-20

@@ -9,6 +9,8 @@ Demo tidak pernah menulis gambar atau video ke disk (N-08). Nilai kehadiran yang
 (null) wajib diberikan lewat argumen; tidak ada nilai bawaan di kode. Hal yang sama berlaku
 untuk warna: --min-majority, --box-top/--box-bottom/--box-side (area kotak, juga cadangan
 keypoint), dan bila vision.region = keypoint_torso: --kp-conf/--kp-shrink/--torso-aspect.
+Sinyal kehadiran: --presence-signal box_height|shoulder_width dengan ambang --min-ratio atau
+--min-shoulder-ratio (shoulder_width juga butuh --kp-conf).
 
 Setiap frame kamera dibaca dan ditampilkan (laju penuh kamera); detektor dan PresenceTracker
 hanya berjalan sesuai fps_idle/fps_busy, dan hasil terakhirnya digambar ulang di antara deteksi.
@@ -57,7 +59,13 @@ from mica.vision.detector import (
     model_path,
     sha256_file,
 )
-from mica.vision.presence import PresenceState, PresenceTracker, select_target
+from mica.vision.presence import (
+    BoxHeightSignal,
+    PresenceSignal,
+    PresenceState,
+    PresenceTracker,
+    ShoulderWidthSignal,
+)
 from mica.vision.region import (
     L_HIP,
     L_SHOULDER,
@@ -75,9 +83,13 @@ DEFAULT_CONFIG = Path("config/dev.yaml")
 PRESENCE_ARGS = (
     ("dwell_s", "--dwell-s"),
     ("leave_s", "--leave-s"),
-    ("min_box_height_ratio", "--min-ratio"),
     ("fps_busy", "--fps-busy"),
 )
+SIGNAL_ARGS = {  # vision.presence_signal -> ambangnya
+    "box_height": ("min_box_height_ratio", "--min-ratio"),
+    "shoulder_width": ("min_shoulder_ratio", "--min-shoulder-ratio"),
+}
+PRESENCE_SIGNALS = tuple(SIGNAL_ARGS)
 COLOR_ARGS = (("color.min_majority", "--min-majority"),)
 BOX_ARGS = (
     ("box_upper.top", "--box-top"),
@@ -118,7 +130,11 @@ def build_parser() -> argparse.ArgumentParser:
     demo.add_argument("--seconds", type=float, help="berhenti setelah N detik")
     demo.add_argument("--dwell-s", type=float, help="menimpa vision.dwell_s")
     demo.add_argument("--leave-s", type=float, help="menimpa vision.leave_s")
+    demo.add_argument(
+        "--presence-signal", choices=PRESENCE_SIGNALS, help="menimpa vision.presence_signal"
+    )
     demo.add_argument("--min-ratio", type=float, help="menimpa vision.min_box_height_ratio")
+    demo.add_argument("--min-shoulder-ratio", type=float, help="menimpa vision.min_shoulder_ratio")
     demo.add_argument("--fps-busy", type=float, help="menimpa vision.fps_busy")
     demo.add_argument("--min-majority", type=float, help="menimpa vision.color.min_majority")
     demo.add_argument("--box-top", type=float, help="menimpa vision.box_upper.top")
@@ -281,16 +297,44 @@ def resolve_values(
     return values, sources
 
 
+def presence_pairs(signal: str) -> tuple[tuple[str, str], ...]:
+    return PRESENCE_ARGS[:2] + (SIGNAL_ARGS[signal],) + PRESENCE_ARGS[2:]
+
+
 def resolve_presence_values(
-    vision: VisionConfig, args: argparse.Namespace
+    vision: VisionConfig, args: argparse.Namespace, signal: str = "box_height"
 ) -> tuple[dict[str, float], dict[str, str]]:
-    return resolve_values(vision, args, PRESENCE_ARGS)
+    return resolve_values(vision, args, presence_pairs(signal))
 
 
-def demo_value_pairs(vision: VisionConfig) -> tuple[tuple[str, str], ...]:
+def resolve_signal(vision: VisionConfig, args: argparse.Namespace) -> tuple[str, str]:
+    """(sinyal kehadiran, sumber); null tanpa argumen -> DemoError."""
+    if args.presence_signal is not None:
+        signal, source = args.presence_signal, "argumen CLI"
+    elif vision.presence_signal is not None:
+        signal, source = vision.presence_signal, "config"
+    else:
+        raise DemoError("argumen kurang: --presence-signal (vision.presence_signal null, TBD)")
+    if signal == "shoulder_width" and not vision.model.endswith("-pose"):
+        raise DemoError(f"presence_signal shoulder_width butuh model -pose, bukan {vision.model}")
+    return signal, source
+
+
+def demo_value_pairs(vision: VisionConfig, signal: str) -> tuple[tuple[str, str], ...]:
     # BoxUpperRegion juga cadangan KeypointTorsoRegion, jadi fraksinya selalu dibutuhkan
-    keypoint = KP_ARGS if vision.region == "keypoint_torso" else ()
-    return PRESENCE_ARGS + COLOR_ARGS + BOX_ARGS + keypoint
+    if vision.region == "keypoint_torso":
+        keypoint = KP_ARGS
+    elif signal == "shoulder_width":
+        keypoint = KP_ARGS[:1]  # min_kp_conf untuk bahu
+    else:
+        keypoint = ()
+    return presence_pairs(signal) + COLOR_ARGS + BOX_ARGS + keypoint
+
+
+def make_signal(signal: str, values: dict[str, float]) -> PresenceSignal:
+    if signal == "shoulder_width":
+        return ShoulderWidthSignal(values["keypoint_torso.min_kp_conf"])
+    return BoxHeightSignal()
 
 
 def make_region(vision: VisionConfig, values: dict[str, float]) -> ClothingRegion:
@@ -299,9 +343,7 @@ def make_region(vision: VisionConfig, values: dict[str, float]) -> ClothingRegio
     )
     if vision.region == "box_upper":
         return box
-    if not vision.model.endswith("-pose"):
-        raise DemoError(f"vision.region keypoint_torso butuh model -pose, bukan {vision.model}")
-    return KeypointTorsoRegion(
+    return KeypointTorsoRegion(  # model -pose dijamin validasi config
         values["keypoint_torso.min_kp_conf"],
         values["keypoint_torso.shrink"],
         values["keypoint_torso.torso_aspect"],
@@ -573,7 +615,7 @@ def _detect(
     frame_h, frame_w = frame.shape[:2]
 
     # warna area pakaian target; piksel hanya di memori (N-08)
-    target = select_target(tracks, frame_h, presence.min_box_height_ratio)
+    target = presence.target_for(tracks, frame.shape)
     frame_color: ColorResult | None = None
     located = None
     if target is not None and region is not None and namer is not None:
@@ -590,7 +632,7 @@ def _detect(
 
     before = presence.track_id
     was_engaged = presence.state == PresenceState.ENGAGED
-    for event in presence.update(tracks, frame_h, t0, color_of=lambda t, c=frame_color: c):
+    for event in presence.update(tracks, frame.shape, t0, color_of=lambda t, c=frame_color: c):
         stats.events.append((elapsed, event))
         out(f"[{elapsed:6.2f}s {_wall()}] {_describe(event)}")
         if isinstance(event, PersonArrived) and presence.voting is not None:
@@ -683,7 +725,8 @@ def cmd_demo(
 ) -> int:
     _require_dev(settings, "demo")
     vision = settings.vision
-    values, sources = resolve_values(vision, args, demo_value_pairs(vision))
+    signal, signal_source = resolve_signal(vision, args)
+    values, sources = resolve_values(vision, args, demo_value_pairs(vision, signal))
     path = model_path(vision.model, args.models_dir)
     colors_path = Path(args.models_dir) / DEFAULT_COLORS_FILE.name
     namer = make_color_namer(vision, colors_path, values["color.min_majority"])
@@ -699,9 +742,10 @@ def cmd_demo(
     if colors_path.is_file():
         print(f"tabel warna: {colors_path.as_posix()} sha256 {sha256_file(colors_path)}")
     print(f"area pakaian {vision.region} | metode warna {vision.color.method}")
-    if "argumen CLI" in sources.values():
+    if "argumen CLI" in [*sources.values(), signal_source]:
         print("SUMBER NILAI: argumen CLI (uji coba, nilai coba, bukan E-07/E-08)")
-    for key, _flag in demo_value_pairs(vision):
+    print(f"  presence_signal = {signal} ({signal_source})")
+    for key, _flag in demo_value_pairs(vision, signal):
         print(f"  {key} = {values[key]} ({sources[key]})")
     print(f"  fps_idle = {vision.fps_idle} (config)")
     source: int | str = str(args.video) if args.video is not None else args.camera
@@ -722,7 +766,8 @@ def cmd_demo(
     presence = PresenceTracker(
         dwell_s=values["dwell_s"],
         leave_s=values["leave_s"],
-        min_box_height_ratio=values["min_box_height_ratio"],
+        min_signal=values[SIGNAL_ARGS[signal][0]],
+        signal=make_signal(signal, values),
         voting=ColorVoting(values["color.min_majority"]),
     )
     stats = run_demo(

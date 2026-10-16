@@ -15,7 +15,7 @@ from mica.vision.color import (
     HsvRuleNamer,
     lut_index,
 )
-from mica.vision.presence import PresenceTracker
+from mica.vision.presence import BoxHeightSignal, PresenceTracker
 from mica.vision.region import BoxUpperRegion, KeypointTorsoRegion, shoulder_width_ratio
 from mica.vision.types import PersonTrack
 
@@ -219,20 +219,24 @@ def person(track_id, height=60.0):
 def run(presence, seconds, tracks, colors, now):
     events = []
     for _ in range(round(seconds / 0.1)):
-        events += presence.update(tracks, 100, now[0], color_of=lambda t: colors[t.track_id])
+        events += presence.update(tracks, (100, 100), now[0], color_of=lambda t: colors[t.track_id])
         now[0] = round(now[0] + 0.1, 6)
     return events
 
 
 def test_arrival_carries_voted_color():
-    presence = PresenceTracker(2.0, 3.0, 0.4, voting=ColorVoting(min_majority=0.6))
+    presence = PresenceTracker(
+        2.0, 3.0, 0.4, BoxHeightSignal(), voting=ColorVoting(min_majority=0.6)
+    )
     events = run(presence, 3, [person(1)], {1: result(BIRU)}, [0.0])
     assert len(events) == 1
     assert events[0].color == "biru" and events[0].color_confidence == pytest.approx(1.0)
 
 
 def test_voting_reset_when_candidate_changes():
-    presence = PresenceTracker(2.0, 3.0, 0.4, voting=ColorVoting(min_majority=0.6))
+    presence = PresenceTracker(
+        2.0, 3.0, 0.4, BoxHeightSignal(), voting=ColorVoting(min_majority=0.6)
+    )
     now = [0.0]
     colors = {1: result(MERAH), 2: result(BIRU)}
     assert run(presence, 1.5, [person(1)], colors, now) == []  # suara merah milik kandidat 1
@@ -242,7 +246,9 @@ def test_voting_reset_when_candidate_changes():
 
 
 def test_voting_reset_after_leave():
-    presence = PresenceTracker(2.0, 3.0, 0.4, voting=ColorVoting(min_majority=0.6))
+    presence = PresenceTracker(
+        2.0, 3.0, 0.4, BoxHeightSignal(), voting=ColorVoting(min_majority=0.6)
+    )
     now = [0.0]
     run(presence, 3, [person(1)], {1: result(MERAH)}, now)
     run(presence, 4, [], {}, now)
@@ -251,18 +257,20 @@ def test_voting_reset_after_leave():
 
 
 def test_uncertain_color_gives_none_label_with_confidence():
-    presence = PresenceTracker(2.0, 3.0, 0.4, voting=ColorVoting(min_majority=0.9))
+    presence = PresenceTracker(
+        2.0, 3.0, 0.4, BoxHeightSignal(), voting=ColorVoting(min_majority=0.9)
+    )
     now = [0.0]
     flip = iter([result(BIRU), result(MERAH)] * 100)
     events = []
     for _ in range(30):
-        events += presence.update([person(1)], 100, now[0], color_of=lambda t: next(flip))
+        events += presence.update([person(1)], (100, 100), now[0], color_of=lambda t: next(flip))
         now[0] = round(now[0] + 0.1, 6)
     assert events[0].color is None and events[0].color_confidence == pytest.approx(0.5, abs=0.05)
 
 
 def test_no_voting_keeps_color_none():
-    presence = PresenceTracker(2.0, 3.0, 0.4)
+    presence = PresenceTracker(2.0, 3.0, 0.4, BoxHeightSignal())
     events = run(presence, 3, [person(1)], {1: result(BIRU)}, [0.0])
     assert events[0].color is None and events[0].color_confidence is None
 
@@ -277,10 +285,13 @@ def test_color_processing_writes_no_files(tmp_path, monkeypatch, namer):
     monkeypatch.chdir(tmp_path)
     frame = solid((255, 0, 0), h=100, w=100)
     region = BoxUpperRegion(0.2, 0.5, 0.2)
-    presence = PresenceTracker(2.0, 3.0, 0.4, voting=ColorVoting(0.6))
+    presence = PresenceTracker(2.0, 3.0, 0.4, BoxHeightSignal(), voting=ColorVoting(0.6))
     for i in range(30):
         presence.update(
-            [person(1)], 100, i * 0.1, color_of=lambda t: namer.name(region.extract(frame, t))
+            [person(1)],
+            (100, 100),
+            i * 0.1,
+            color_of=lambda t: namer.name(region.extract(frame, t)),
         )
     assert presence.state == "ENGAGED"
     assert os.listdir(tmp_path) == []

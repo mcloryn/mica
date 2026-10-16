@@ -34,8 +34,12 @@ def _write(tmp_path: Path, raw: dict, name: str = "cfg.yaml") -> Path:
 
 
 def _dummy(key: str):
-    # revisi model berupa hash commit; field null lain berupa angka
-    return "0" * 40 if key == "revision" else 1
+    # revisi model berupa hash commit; sinyal kehadiran berupa pilihan; field null lain angka
+    if key == "revision":
+        return "0" * 40
+    if key == "presence_signal":
+        return "shoulder_width"
+    return 1
 
 
 def _fill_nulls(node):
@@ -395,8 +399,14 @@ def test_keypoint_torso_required_in_kiosk_when_used(tmp_path):
 def test_keypoint_torso_optional_in_kiosk_for_box_upper(tmp_path):
     raw = _complete_kiosk_raw()
     raw["vision"]["region"] = "box_upper"
+    raw["vision"]["presence_signal"] = "box_height"
     raw["vision"]["keypoint_torso"] = {"min_kp_conf": None, "shrink": None, "torso_aspect": None}
     assert load_settings(_write(tmp_path, raw)).vision.region == "box_upper"
+    # shoulder_width memakai min_kp_conf walau region box_upper
+    raw["vision"]["presence_signal"] = "shoulder_width"
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert "vision.keypoint_torso.min_kp_conf" in str(exc.value)
 
 
 def test_dev_yaml_uses_pose_model_and_keypoint_torso():
@@ -414,3 +424,60 @@ def test_dev_yaml_color_values_stay_null():
         None,
         None,
     )
+
+
+def test_presence_signal_values(tmp_path):
+    raw = _dev_raw()
+    raw["vision"]["presence_signal"] = "box_height"
+    assert load_settings(_write(tmp_path, raw)).vision.presence_signal == "box_height"
+    raw["vision"]["presence_signal"] = "lebar"
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert "vision.presence_signal" in str(exc.value)
+
+
+def test_min_shoulder_ratio_range(tmp_path):
+    raw = _dev_raw()
+    raw["vision"]["min_shoulder_ratio"] = 1.2
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert "vision.min_shoulder_ratio" in str(exc.value)
+
+
+@pytest.mark.parametrize(
+    ("region", "signal", "needle"),
+    [
+        ("keypoint_torso", "box_height", "region keypoint_torso butuh model -pose"),
+        ("box_upper", "shoulder_width", "presence_signal shoulder_width butuh model -pose"),
+    ],
+)
+def test_keypoint_features_need_pose_model(tmp_path, region, signal, needle):
+    raw = _dev_raw()
+    raw["vision"].update({"model": "yolo26n", "region": region, "presence_signal": signal})
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert exc.value.code == CFG_INVALID and needle in str(exc.value)
+    raw["vision"].update({"region": "box_upper", "presence_signal": "box_height"})
+    assert load_settings(_write(tmp_path, raw)).vision.model == "yolo26n"
+
+
+def test_unused_signal_threshold_optional_in_kiosk(tmp_path):
+    raw = _complete_kiosk_raw()
+    raw["vision"]["presence_signal"] = "shoulder_width"
+    raw["vision"]["min_box_height_ratio"] = None
+    assert load_settings(_write(tmp_path, raw)).vision.min_box_height_ratio is None
+    raw["vision"]["min_shoulder_ratio"] = None
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert "vision.min_shoulder_ratio" in str(exc.value)
+
+
+def test_kiosk_yaml_vision_uses_pose_and_signal_is_tbd():
+    raw = yaml.safe_load(KIOSK_YAML.read_text(encoding="utf-8"))["vision"]
+    assert (raw["model"], raw["region"]) == ("yolo26n-pose", "keypoint_torso")
+    assert raw["presence_signal"] is None and raw["min_shoulder_ratio"] is None
+
+
+def test_dev_yaml_presence_signal_shoulder_width():
+    vision = load_settings(DEV_YAML).vision
+    assert vision.presence_signal == "shoulder_width" and vision.min_shoulder_ratio is None
