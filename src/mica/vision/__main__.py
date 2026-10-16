@@ -19,6 +19,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
 from mica.config import ConfigError, Settings, VisionConfig, load_settings
 from mica.vision.camera import Camera
 from mica.vision.detector import (
@@ -297,6 +299,15 @@ def cmd_demo(
     source: int | str = str(args.video) if args.video is not None else args.camera
     print(f"sumber {'video ' + str(args.video) if args.video else f'kamera {args.camera}'}")
 
+    camera = camera_factory(source)
+    t_warm = clock()
+    _frame, status = camera.read()  # buka kamera dan muat model sebelum waktu demo dihitung
+    del _frame  # N-08
+    if status is not None:
+        print(_describe(status))
+    detector.detect_and_track(np.zeros((480, 640, 3), dtype=np.uint8))
+    print(f"pemanasan kamera dan model {clock() - t_warm:.1f} s")
+
     presence = PresenceTracker(
         dwell_s=values["dwell_s"],
         leave_s=values["leave_s"],
@@ -304,7 +315,7 @@ def cmd_demo(
     )
     stats = run_demo(
         detector,
-        camera_factory(source),
+        camera,
         presence,
         fps_idle=vision.fps_idle,
         fps_busy=values["fps_busy"],

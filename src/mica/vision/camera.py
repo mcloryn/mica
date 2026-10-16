@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 import time
 from collections.abc import Callable
 from typing import Any
@@ -17,6 +18,10 @@ REOPEN_INTERVAL_S = 2.0
 def _open_cv2(source: int | str) -> Any:
     import cv2
 
+    if isinstance(source, int) and sys.platform == "win32":
+        # backend bawaan Windows (MSMF) butuh sekitar 1 menit untuk membuka webcam di laptop dev
+        # (diukur 16 Okt 2026: MSMF 59 s, DSHOW 1,9 s)
+        return cv2.VideoCapture(source, cv2.CAP_DSHOW)
     return cv2.VideoCapture(source)
 
 

@@ -288,3 +288,16 @@ def test_event_types():
     assert PersonLeft(1, 5.0, 3.0).duration_s == 3.0
     assert person(1, height=50).height_ratio(FRAME_H) == 0.5
     assert person(1).height_ratio(0) == 0.0
+
+
+def test_open_cv2_uses_dshow_for_webcam_on_windows(monkeypatch):
+    import cv2
+
+    from mica.vision import camera as camera_module
+
+    calls = []
+    monkeypatch.setattr(cv2, "VideoCapture", lambda *args: calls.append(args))
+    monkeypatch.setattr(camera_module.sys, "platform", "win32")
+    camera_module._open_cv2(0)
+    camera_module._open_cv2("video.mp4")
+    assert calls == [(0, cv2.CAP_DSHOW), ("video.mp4",)]
