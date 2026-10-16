@@ -7,6 +7,9 @@ IDLE -> CANDIDATE -> ENGAGED:
 - ENGAGED: ID berganti (ID switch) -> ID diperbarui diam-diam, tanpa sapaan kedua;
 - tidak ada yang memenuhi syarat >= leave_s -> PersonLeft, IDLE.
 
+Warna pakaian: selama CANDIDATE, suara warna target (color_of) dikumpulkan di ColorVoting dan
+direset bila kandidat berganti; hasilnya mengisi PersonArrived.color dan color_confidence.
+
 Waktu hanya dari parameter now (monotonic) supaya bisa diuji. dwell_s, leave_s, dan
 min_box_height_ratio TBD (E-07), jadi wajib diberikan pemanggil; tidak ada nilai bawaan.
 """
@@ -14,8 +17,10 @@ min_box_height_ratio TBD (E-07), jadi wajib diberikan pemanggil; tidak ada nilai
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from enum import StrEnum
 
+from mica.vision.color import ColorResult, ColorVoting
 from mica.vision.types import PersonArrived, PersonLeft, PersonTrack, VisionEvent
 
 log = logging.getLogger(__name__)
@@ -35,7 +40,14 @@ def select_target(
 
 
 class PresenceTracker:
-    def __init__(self, dwell_s: float, leave_s: float, min_box_height_ratio: float) -> None:
+    def __init__(
+        self,
+        dwell_s: float,
+        leave_s: float,
+        min_box_height_ratio: float,
+        voting: ColorVoting | None = None,
+    ) -> None:
+        self.voting = voting
         self.dwell_s = dwell_s
         self.leave_s = leave_s
         self.min_box_height_ratio = min_box_height_ratio
@@ -50,8 +62,17 @@ class PresenceTracker:
         self.state = PresenceState.IDLE
         self.track_id = None
         self.since = self.arrived_at = self.last_seen = None
+        if self.voting is not None:
+            self.voting.reset()
 
-    def update(self, tracks: list[PersonTrack], frame_h: int, now: float) -> list[VisionEvent]:
+    def update(
+        self,
+        tracks: list[PersonTrack],
+        frame_h: int,
+        now: float,
+        color_of: Callable[[PersonTrack], ColorResult | None] | None = None,
+    ) -> list[VisionEvent]:
+        """color_of(target) menamai warna area pakaian frame ini (dipanggil hanya saat CANDIDATE)."""
         target = select_target(tracks, frame_h, self.min_box_height_ratio)
         events: list[VisionEvent] = []
 
@@ -77,9 +98,19 @@ class PresenceTracker:
             self.state = PresenceState.CANDIDATE
             self.track_id = target.track_id
             self.since = now
+            if self.voting is not None:
+                self.voting.reset()  # suara milik kandidat lama dibuang
         assert self.since is not None
+        if self.voting is not None and color_of is not None:
+            result = color_of(target)
+            if result is not None:
+                self.voting.add(result)
         if now - self.since >= self.dwell_s:
             self.state = PresenceState.ENGAGED
             self.arrived_at = self.last_seen = now
-            events.append(PersonArrived(target.track_id, target.box_xyxy, now))
+            color = confidence = None
+            if self.voting is not None and self.voting.frames:
+                voted = self.voting.result()
+                color, confidence = voted.label, voted.majority
+            events.append(PersonArrived(target.track_id, target.box_xyxy, now, color, confidence))
         return events

@@ -1,0 +1,242 @@
+import os
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+from mica.core.types import ErrorCode
+from mica.vision.color import (
+    COLOR_NAMES,
+    DEFAULT_COLORS_FILE,
+    ColorNamesLut,
+    ColorResult,
+    ColorsMissing,
+    ColorVoting,
+    HsvRuleNamer,
+    lut_index,
+)
+from mica.vision.presence import PresenceTracker
+from mica.vision.region import BoxUpperRegion, KeypointTorsoRegion
+from mica.vision.types import PersonTrack
+
+ROOT = Path(__file__).resolve().parents[2]
+BIRU, MERAH, PUTIH, HITAM = (COLOR_NAMES.index(n) for n in ("biru", "merah", "putih", "hitam"))
+
+
+def fake_table():
+    """Tabel palsu: biru bila B tinggi, merah bila R tinggi, putih bila semua tinggi, selain itu
+    hitam; satu label bernilai 1 per baris (data uji, bukan tabel van de Weijer)."""
+    i = np.arange(32 * 32 * 32)
+    r, g, b = i % 32 >= 16, (i // 32) % 32 >= 16, i // 1024 >= 16
+    label = np.full(i.shape, HITAM)
+    label[b & ~r] = BIRU
+    label[r & ~b] = MERAH
+    label[r & g & b] = PUTIH
+    table = np.zeros((i.size, len(COLOR_NAMES)), dtype=np.float32)
+    table[i, label] = 1.0
+    return table
+
+
+def solid(bgr, h=20, w=10):
+    return np.tile(np.array(bgr, dtype=np.uint8), (h, w, 1))
+
+
+@pytest.fixture
+def namer():
+    return ColorNamesLut(fake_table(), min_majority=0.6)
+
+
+def test_lut_index_follows_im2c_layout():
+    # im2c.m: 1 + floor(R/8) + 32*floor(G/8) + 32*32*floor(B/8); piksel kita BGR, 0-based
+    assert lut_index(np.array([[0, 0, 8]], np.uint8)).tolist() == [1]  # R=8
+    assert lut_index(np.array([[0, 8, 0]], np.uint8)).tolist() == [32]  # G=8
+    assert lut_index(np.array([[8, 0, 0]], np.uint8)).tolist() == [1024]  # B=8
+    assert lut_index(np.array([[255, 255, 255]], np.uint8)).tolist() == [32767]
+
+
+def test_single_color_image_named(namer):
+    result = namer.name(solid((255, 0, 0)))  # BGR biru murni
+    assert result.label == "biru" and result.majority == 1.0 and result.pixels == 200
+    assert namer.name(solid((0, 0, 255))).label == "merah"
+    assert namer.name(solid((255, 255, 255))).label == "putih"
+
+
+def test_half_half_with_high_min_majority_is_none(namer):
+    img = np.concatenate([solid((255, 0, 0)), solid((0, 0, 255))], axis=1)
+    result = namer.name(img)
+    assert result.label is None and result.majority == pytest.approx(0.5)
+    assert result.top in ("biru", "merah")
+    assert dict(result.ranked()) == pytest.approx({"biru": 0.5, "merah": 0.5})
+    assert ColorNamesLut(fake_table(), min_majority=0.5).name(img).label is not None
+
+
+def test_empty_pixels(namer):
+    result = namer.name(np.zeros((0, 0, 3), np.uint8))
+    assert result.label is None and result.pixels == 0 and result.top is None
+
+
+def test_table_shape_checked():
+    with pytest.raises(ValueError):
+        ColorNamesLut(np.zeros((10, 11)), 0.5)
+
+
+def test_missing_table_has_error_code(tmp_path):
+    with pytest.raises(ColorsMissing) as exc:
+        ColorNamesLut.load(tmp_path / "w2c.npy", 0.5)
+    assert exc.value.code == ErrorCode.VISION_COLORS_MISSING
+    assert "fetch-colors" in str(exc.value)
+
+
+def test_load_npy(tmp_path):
+    path = tmp_path / "w2c.npy"
+    np.save(path, fake_table())
+    assert ColorNamesLut.load(path, 0.5).name(solid((255, 0, 0))).label == "biru"
+
+
+def test_hsv_rules_not_implemented_yet():
+    with pytest.raises(NotImplementedError, match="E-08"):
+        HsvRuleNamer(0.5).name(solid((0, 0, 0)))
+
+
+# --- region -----------------------------------------------------------------------------
+
+
+def track(box):
+    return PersonTrack(1, box, 0.9)
+
+
+def test_box_upper_region_rect_and_pixels():
+    frame = np.zeros((100, 100, 3), np.uint8)
+    frame[30:50, 20:40] = (255, 0, 0)
+    region = BoxUpperRegion(top=0.25, bottom=0.45, side=0.25)
+    t = track((10.0, 10.0, 50.0, 110.0))  # box 40x100
+    assert region.rect(frame.shape, t) == (20, 35, 40, 55)
+    pixels = region.extract(frame, t)
+    assert pixels.shape == (20, 20, 3)
+
+
+def test_box_upper_region_clipped_outside_frame():
+    frame = np.zeros((100, 100, 3), np.uint8)
+    region = BoxUpperRegion(top=0.0, bottom=0.5, side=0.0)
+    assert region.rect(frame.shape, track((-50.0, -40.0, 30.0, 60.0))) == (0, 0, 30, 10)
+    assert region.rect(frame.shape, track((120.0, 0.0, 180.0, 50.0))) is None
+    assert region.extract(frame, track((120.0, 0.0, 180.0, 50.0))) is None
+    assert region.extract(frame, track((10.0, 150.0, 20.0, 400.0))) is None  # di bawah frame
+
+
+def test_keypoint_torso_stub():
+    with pytest.raises(NotImplementedError, match="yolo26n-pose"):
+        KeypointTorsoRegion().extract(np.zeros((4, 4, 3), np.uint8), track((0.0, 0.0, 4.0, 4.0)))
+
+
+# --- voting lintas frame -----------------------------------------------------------------
+
+
+def result(label_index, pixels=100):
+    dist = [0.0] * len(COLOR_NAMES)
+    dist[label_index] = 1.0
+    return ColorResult(COLOR_NAMES[label_index], 1.0, COLOR_NAMES[label_index], tuple(dist), pixels)
+
+
+def test_voting_equal_weight_per_frame():
+    voting = ColorVoting(min_majority=0.6)
+    voting.add(result(BIRU, pixels=10))
+    voting.add(result(BIRU, pixels=10))
+    voting.add(result(MERAH, pixels=1000))  # piksel banyak tidak mendominasi
+    out = voting.result()
+    assert out.label == "biru" and out.majority == pytest.approx(2 / 3)
+    voting.add(ColorResult(None, 0.0, None, (0.0,) * 11, 0))  # frame tanpa piksel diabaikan
+    assert voting.frames == 3
+
+
+def person(track_id, height=60.0):
+    return PersonTrack(track_id, (10.0, 100.0 - height, 50.0, 100.0), 0.9)
+
+
+def run(presence, seconds, tracks, colors, now):
+    events = []
+    for _ in range(round(seconds / 0.1)):
+        events += presence.update(tracks, 100, now[0], color_of=lambda t: colors[t.track_id])
+        now[0] = round(now[0] + 0.1, 6)
+    return events
+
+
+def test_arrival_carries_voted_color():
+    presence = PresenceTracker(2.0, 3.0, 0.4, voting=ColorVoting(min_majority=0.6))
+    events = run(presence, 3, [person(1)], {1: result(BIRU)}, [0.0])
+    assert len(events) == 1
+    assert events[0].color == "biru" and events[0].color_confidence == pytest.approx(1.0)
+
+
+def test_voting_reset_when_candidate_changes():
+    presence = PresenceTracker(2.0, 3.0, 0.4, voting=ColorVoting(min_majority=0.6))
+    now = [0.0]
+    colors = {1: result(MERAH), 2: result(BIRU)}
+    assert run(presence, 1.5, [person(1)], colors, now) == []  # suara merah milik kandidat 1
+    events = run(presence, 3, [person(2)], colors, now)
+    assert events[0].track_id == 2 and events[0].color == "biru"
+    assert events[0].color_confidence == pytest.approx(1.0)
+
+
+def test_voting_reset_after_leave():
+    presence = PresenceTracker(2.0, 3.0, 0.4, voting=ColorVoting(min_majority=0.6))
+    now = [0.0]
+    run(presence, 3, [person(1)], {1: result(MERAH)}, now)
+    run(presence, 4, [], {}, now)
+    events = run(presence, 3, [person(2)], {2: result(BIRU)}, now)
+    assert events[0].color == "biru" and events[0].color_confidence == pytest.approx(1.0)
+
+
+def test_uncertain_color_gives_none_label_with_confidence():
+    presence = PresenceTracker(2.0, 3.0, 0.4, voting=ColorVoting(min_majority=0.9))
+    now = [0.0]
+    flip = iter([result(BIRU), result(MERAH)] * 100)
+    events = []
+    for _ in range(30):
+        events += presence.update([person(1)], 100, now[0], color_of=lambda t: next(flip))
+        now[0] = round(now[0] + 0.1, 6)
+    assert events[0].color is None and events[0].color_confidence == pytest.approx(0.5, abs=0.05)
+
+
+def test_no_voting_keeps_color_none():
+    presence = PresenceTracker(2.0, 3.0, 0.4)
+    events = run(presence, 3, [person(1)], {1: result(BIRU)}, [0.0])
+    assert events[0].color is None and events[0].color_confidence is None
+
+
+def test_color_processing_writes_no_files(tmp_path, monkeypatch, namer):
+    import cv2
+
+    def forbidden(*a, **k):
+        raise AssertionError("tidak boleh menulis gambar (N-08)")
+
+    monkeypatch.setattr(cv2, "imwrite", forbidden)
+    monkeypatch.chdir(tmp_path)
+    frame = solid((255, 0, 0), h=100, w=100)
+    region = BoxUpperRegion(0.2, 0.5, 0.2)
+    presence = PresenceTracker(2.0, 3.0, 0.4, voting=ColorVoting(0.6))
+    for i in range(30):
+        presence.update(
+            [person(1)], 100, i * 0.1, color_of=lambda t: namer.name(region.extract(frame, t))
+        )
+    assert presence.state == "ENGAGED"
+    assert os.listdir(tmp_path) == []
+
+
+# --- tes asap tabel asli -----------------------------------------------------------------
+
+REAL_TABLE = ROOT / DEFAULT_COLORS_FILE
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(not REAL_TABLE.is_file(), reason="tabel warna belum diunduh (fetch-colors)")
+def test_real_table_pure_colors():
+    namer = ColorNamesLut.load(REAL_TABLE, min_majority=0.0)
+    # (R, G, B) -> BGR untuk OpenCV
+    for rgb, name in [
+        ((0, 0, 255), "biru"),
+        ((255, 0, 0), "merah"),
+        ((255, 255, 255), "putih"),
+        ((0, 0, 0), "hitam"),
+    ]:
+        assert namer.name(solid(rgb[::-1])).label == name, rgb

@@ -48,6 +48,10 @@ vision:
   model: yolo26n                    # ADR-12; yolo26n | yolo26n-pose | yolo11n (E-07)
   tracker: bytetrack.yaml           # ADR-15
   region: keypoint_torso            # ADR-13; keypoint_torso | box_upper (E-08)
+  box_upper:                        # area dada BoxUpperRegion, fraksi tinggi/lebar box (E-08)
+    top: null                       # E-08
+    bottom: null                    # E-08
+    side: null                      # E-08
   color:
     method: color_names_lut         # ADR-14; color_names_lut | hsv_rules (E-08)
     min_majority: null              # E-08

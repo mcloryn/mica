@@ -363,3 +363,30 @@ def test_dev_yaml_vision_tbd_values_stay_null():
         None,
         None,
     )
+
+
+def test_box_upper_required_in_kiosk_when_used(tmp_path):
+    raw = _complete_kiosk_raw()
+    raw["vision"]["region"] = "box_upper"
+    raw["vision"]["box_upper"]["top"] = None
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert "vision.box_upper.top" in str(exc.value)
+
+
+def test_box_upper_optional_in_kiosk_for_keypoint_torso(tmp_path):
+    raw = _complete_kiosk_raw()
+    raw["vision"]["model"] = "yolo26n-pose"
+    raw["vision"]["region"] = "keypoint_torso"
+    raw["vision"]["box_upper"] = {"top": None, "bottom": None, "side": None}
+    assert load_settings(_write(tmp_path, raw)).vision.region == "keypoint_torso"
+
+
+def test_dev_yaml_color_values_stay_null():
+    vision = load_settings(DEV_YAML).vision
+    assert vision.color.min_majority is None
+    assert (vision.box_upper.top, vision.box_upper.bottom, vision.box_upper.side) == (
+        None,
+        None,
+        None,
+    )

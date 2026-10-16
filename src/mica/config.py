@@ -148,13 +148,21 @@ class AudioConfig(_Model):
 
 class ColorConfig(_Model):
     method: Literal["color_names_lut", "hsv_rules"]
-    min_majority: float | None = None
+    min_majority: float | None = Field(default=None, ge=0, le=1)
+
+
+class BoxUpperConfig(_Model):
+    # fraksi box orang untuk area dada BoxUpperRegion (ADR-13 cadangan); TBD E-08
+    top: float | None = Field(default=None, ge=0, le=1)  # dari atas box
+    bottom: float | None = Field(default=None, ge=0, le=1)  # dari atas box
+    side: float | None = Field(default=None, ge=0, le=1)  # dipotong di kiri dan kanan
 
 
 class VisionConfig(_Model):
     model: Literal["yolo26n", "yolo26n-pose", "yolo11n"]
     tracker: str
     region: Literal["keypoint_torso", "box_upper"]
+    box_upper: BoxUpperConfig
     color: ColorConfig
     dwell_s: NonNegativeFloat | None = None
     leave_s: NonNegativeFloat | None = None
@@ -280,6 +288,8 @@ def _optional_in_kiosk(settings: Settings) -> set[str]:
         optional.add("audio.stt.threads")
     if not settings.rag.reranker.enabled:
         optional.add("rag.reranker.revision")
+    if settings.vision.region != "box_upper":
+        optional |= {f"vision.box_upper.{k}" for k in ("top", "bottom", "side")}
     return optional
 
 
