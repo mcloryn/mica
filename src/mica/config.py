@@ -105,6 +105,7 @@ class LlmConfig(_Model):
     chain: tuple[str, ...] = Field(strict=False)
     timeout_s: PositiveFloat | None = None
     temperature: NonNegativeFloat | None = None
+    reasoning_effort: Literal["low", "medium", "high"] | None = None  # gpt-oss di Groq; E-04
 
     @field_validator("chain")
     @classmethod

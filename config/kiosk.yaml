@@ -31,6 +31,7 @@ llm:
     - groq:<id gpt-oss-20b>
   timeout_s: null                   # E-04, dari anggaran 4 detik
   temperature: null                 # ditetapkan rendah, E-04
+  reasoning_effort: null            # low | medium | high; E-04
 audio:
   stt:
     backend: faster_whisper         # ADR-09; faster_whisper | groq_whisper (E-05)

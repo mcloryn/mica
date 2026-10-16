@@ -27,10 +27,11 @@ rag:
   prompt_variant: paraphrase        # ADR-07; paraphrase | plain (E-03)
 llm:
   chain:                            # ADR-08; urutan coba
-    - groq:<id gpt-oss-120b>
-    - groq:<id gpt-oss-20b>
-  timeout_s: null                   # E-04, dari anggaran 4 detik
-  temperature: null                 # ditetapkan rendah, E-04
+    - groq:openai/gpt-oss-120b      # ID dicek di dokumentasi Groq 16 Okt 2026
+    - groq:openai/gpt-oss-20b
+  timeout_s: 10                     # provisional dev, E-04
+  temperature: 0.2                  # provisional dev, E-04
+  reasoning_effort: low             # low | medium | high; provisional dev, E-04
 audio:
   stt:
     backend: faster_whisper         # ADR-09; faster_whisper | groq_whisper (E-05)

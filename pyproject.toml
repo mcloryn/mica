@@ -15,6 +15,7 @@ dependencies = [
     "numpy",
     "rank-bm25",
     "sentence-transformers",
+    "httpx",
 ]
 
 [project.optional-dependencies]

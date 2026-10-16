@@ -101,6 +101,16 @@ class LlmAnswer:
     citations: tuple[str, ...]  # harus subset allowed_chunk_ids
     provider: str
     latency_s: float
+    # prompt_tokens, completion_tokens, total_tokens dari respons penyedia; None bila tidak ada
+    usage: dict[str, int] | None = None
+
+
+class LlmUnavailable(Exception):
+    """Semua penyedia di rantai gagal (kuota, timeout, jaringan, galat server)."""
+
+
+class LlmBadOutput(Exception):
+    """Keluaran LLM tidak sesuai skema SDD 5.3 setelah satu kali coba ulang."""
 
 
 @dataclass(frozen=True)
