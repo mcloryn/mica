@@ -357,7 +357,8 @@ def test_run_generation_outputs(env):
 
     run = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
     assert run["experiment"] == "E-02" and run["gate_off"] is True
-    assert run["gate_threshold_config"] == 0.5 and run["gate_threshold_effective"] is None
+    threshold = env[0].rag.gate.threshold
+    assert run["gate_threshold_config"] == threshold and run["gate_threshold_effective"] is None
     assert run["config_hash"] == effective_settings(env[0], True).config_hash()
     assert run["config_hash"] != run["config_hash_file"]
     assert run["llm_calls"]["api_calls"] == 5 and run["llm_calls"]["from_cache"] == 0
@@ -388,7 +389,8 @@ def test_rerun_no_cache_calls_again(env):
 def test_gate_on_uses_config_threshold(env):
     run_dir, _rows, _ = _run(env, FakeProvider(_rule), gate_off=False)
     run = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
-    assert run["gate_threshold_effective"] == 0.5 and not run_dir.name.endswith("gateoff")
+    threshold = env[0].rag.gate.threshold
+    assert run["gate_threshold_effective"] == threshold and not run_dir.name.endswith("gateoff")
 
 
 def test_cli_parser_generation():

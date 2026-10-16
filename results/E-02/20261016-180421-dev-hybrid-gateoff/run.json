@@ -1,0 +1,96 @@
+{
+  "experiment": "E-02",
+  "component": "generation",
+  "split": "dev",
+  "retriever": "hybrid",
+  "top_k": 5,
+  "gate_off": true,
+  "gate_threshold_config": 0.5,
+  "gate_threshold_effective": null,
+  "fact_check": "dijalankan; status cek angka mati dihitung offline",
+  "followup_mode": "concat",
+  "history_turns": 1,
+  "prompt_variant": "paraphrase",
+  "prompt_version": "v1",
+  "config_hash": "fa4c98c26b3c5ae07c44fc40146387424b2e4d11b0b513698263f4b07cd8bb49",
+  "config_hash_file": "db546b4bb6389a4ac3f4635976e8d7a88df34075e30c011a934f7231ac354c02",
+  "kb_id": "dev-2026-10-15-v2",
+  "dataset": {
+    "path": "data/eval/questions.jsonl",
+    "sha256": "9dc9c399ea0124088c4affa6cd41a23516a8458255b0726a6deda34dfd69627a"
+  },
+  "embedder": {
+    "model": "BAAI/bge-m3",
+    "revision": "9a0624b896d81da7492a910ffa53731274b6cf3d"
+  },
+  "llm": {
+    "provider": "groq:openai/gpt-oss-120b",
+    "model": "openai/gpt-oss-120b",
+    "reasoning_effort": "low",
+    "temperature": 0.2,
+    "timeout_s": 10.0,
+    "fallback_chain": "dimatikan; hanya model pertama llm.chain"
+  },
+  "llm_calls": {
+    "questions": 45,
+    "api_calls": 0,
+    "from_cache": 45,
+    "retries_429": 0,
+    "wait_429_s": 0.0,
+    "rate_limit_wait_s": 0.0,
+    "cache_read": true,
+    "cache_only": true
+  },
+  "tokens_api": {
+    "prompt_tokens": 0,
+    "completion_tokens": 0,
+    "total_tokens": 0
+  },
+  "tokens_all_answers": {
+    "prompt_tokens": 90677,
+    "completion_tokens": 5036,
+    "total_tokens": 95713
+  },
+  "rate_limit_tpm": 6000,
+  "sweep": {
+    "thresholds": [
+      null,
+      0.45,
+      0.48,
+      0.5,
+      0.52,
+      0.55
+    ],
+    "rule": "false_reject_rate <= 0.10, lalu correct_reject_rate tertinggi; seri -> false_reject_rate terkecil"
+  },
+  "n_questions": {
+    "answerable": 23,
+    "followup": 2,
+    "jauh": 6,
+    "dekat": 11,
+    "false_premise": 3
+  },
+  "environment": {
+    "python": "3.13.7",
+    "torch": "2.14.1+cpu",
+    "torch_num_threads": 14,
+    "sentence_transformers": "6.1.0",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "cpu_count_logical": 20,
+    "power": {
+      "source": "battery",
+      "battery_percent": 17,
+      "battery_saver": true
+    },
+    "power_plan": {
+      "guid": "bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b",
+      "name": "ASUS Recommended",
+      "raw": "Power Scheme GUID: bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b  (ASUS Recommended)"
+    },
+    "git_commit": "2dbb6fbb2128b48d866bc09217520dc61e836f5b",
+    "git_dirty": false
+  },
+  "started_at": "2026-10-16T18:04:21.456495+07:00",
+  "duration_s": 17.2
+}
