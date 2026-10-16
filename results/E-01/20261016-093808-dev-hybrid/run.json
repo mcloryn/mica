@@ -1,0 +1,63 @@
+{
+  "experiment": "E-01",
+  "split": "dev",
+  "retriever": "hybrid",
+  "reranker_enabled": false,
+  "config_hash": "a80d78844e60b03812f0dfb9e4c9b38191cb9152bd88c9b513b984c362ea0c83",
+  "kb_id": "dev-2026-10-15-v2",
+  "kb_config_hash": "d4ce25f8c3164a6d696cff92da582706aa34fe38e9de5232883729eff65b3dab",
+  "dataset": {
+    "path": "data/eval/questions.jsonl",
+    "sha256": "fd97b9e851e1e8abc9829b611f34b628b1a336e77558634717a3c59c7892d45a"
+  },
+  "pool": {
+    "path": "data/eval/pool.csv",
+    "sha256": "b12d55e147336ce3826a502d6780f505ef46af510393e8299b4b2786f2e86862"
+  },
+  "embedder": {
+    "model": "BAAI/bge-m3",
+    "revision": "9a0624b896d81da7492a910ffa53731274b6cf3d"
+  },
+  "depth": 10,
+  "recall_k": 5,
+  "latency": {
+    "repeats": 3,
+    "aggregate": "median",
+    "warmup_queries": 1
+  },
+  "n_questions": {
+    "answerable": 23,
+    "followup_tanpa_rewrite": 2
+  },
+  "metrics": {
+    "answerable": {
+      "n_questions": 23,
+      "recall@5": 1.0,
+      "mrr@10": 0.9347826086956522,
+      "ndcg@10": 0.8543380931402093,
+      "latency_p50_ms": 142.50790000369307,
+      "latency_p95_ms": 157.78131000115536,
+      "unjudged": 0
+    },
+    "followup_tanpa_rewrite": {
+      "n_questions": 2,
+      "recall@5": 1.0,
+      "mrr@10": 0.625,
+      "ndcg@10": 0.6846339007333749,
+      "latency_p50_ms": 140.04500000010012,
+      "latency_p95_ms": 141.4460300009523,
+      "unjudged": 6
+    }
+  },
+  "environment": {
+    "python": "3.13.7",
+    "torch": "2.14.1+cpu",
+    "sentence_transformers": "6.1.0",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "cpu_count_logical": 20,
+    "git_commit": "83f7fbceae8cde86079f5d69fc91391e9434215d",
+    "git_dirty": false
+  },
+  "started_at": "2026-10-16T09:38:08.016112+07:00"
+}
