@@ -37,8 +37,15 @@ def git_dirty(cwd: Path | None = None) -> bool | None:
     if top is None:
         return None
     status = _run(
-        ["git", "status", "--porcelain", "--untracked-files=normal", "--", ".",
-         ":(exclude)results"],
+        [
+            "git",
+            "status",
+            "--porcelain",
+            "--untracked-files=normal",
+            "--",
+            ".",
+            ":(exclude)results",
+        ],
         Path(top.strip()),
     )
     return None if status is None else bool(status.strip())

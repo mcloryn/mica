@@ -306,4 +306,3 @@ def run_retrieval(
 
 def _fmt(value: float | None) -> str:
     return "" if value is None else f"{value:.4f}"
-

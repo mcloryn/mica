@@ -100,9 +100,7 @@ def cmd_build(args: argparse.Namespace, embedder_factory: EmbedderFactory) -> in
     settings = load_settings(args.config)
     embedder = embedder_factory(settings.kb.embedder.model, settings.kb.embedder.revision)
     started = time.perf_counter()
-    folder = build_kb(
-        args.src, args.kb_id, args.source_type, settings.kb, embedder, args.kb_root
-    )
+    folder = build_kb(args.src, args.kb_id, args.source_type, settings.kb, embedder, args.kb_root)
     elapsed = time.perf_counter() - started
     manifest = read_manifest(folder)
     print(

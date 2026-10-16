@@ -103,9 +103,7 @@ class DenseRetriever(_SingleRetriever):
         if not hits:
             return hits
         top1 = hits[0].score
-        return [
-            dataclasses.replace(h, raw_scores={**h.raw_scores, DENSE_TOP1: top1}) for h in hits
-        ]
+        return [dataclasses.replace(h, raw_scores={**h.raw_scores, DENSE_TOP1: top1}) for h in hits]
 
     def __init__(self, kb: KnowledgeBase, embedder: Embedder) -> None:
         super().__init__(kb.chunks)
@@ -161,7 +159,10 @@ class HybridRrfRetriever:
         order = sorted(scores, key=lambda i: (-scores[i], i))[:k]
         return [
             ScoredChunk(
-                chunk=self.chunks[i], score=scores[i], ranks=ranks[i], raw_scores={**raw[i], **extra}
+                chunk=self.chunks[i],
+                score=scores[i],
+                ranks=ranks[i],
+                raw_scores={**raw[i], **extra},
             )
             for i in order
         ]
@@ -179,7 +180,10 @@ class _LoggedRetriever:
         hits = self.inner.search(query, k)
         logger.info(
             "retriever=%s k=%d hasil=%d latency_ms=%.1f",
-            self.name, k, len(hits), (time.perf_counter() - started) * 1000,
+            self.name,
+            k,
+            len(hits),
+            (time.perf_counter() - started) * 1000,
         )
         return hits
 

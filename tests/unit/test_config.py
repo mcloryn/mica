@@ -295,7 +295,9 @@ def test_embedder_revision_required_in_kiosk(tmp_path):
     assert "kb.embedder.revision" in str(exc.value)
 
 
-@pytest.mark.parametrize("revision", ["main", "9a0624b", "9A0624B896D81DA7492A910FFA53731274B6CF3D"])
+@pytest.mark.parametrize(
+    "revision", ["main", "9a0624b", "9A0624B896D81DA7492A910FFA53731274B6CF3D"]
+)
 def test_embedder_revision_must_be_full_hash(tmp_path, revision):
     raw = _dev_raw()
     raw["kb"]["embedder"]["revision"] = revision

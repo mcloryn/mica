@@ -69,7 +69,9 @@ class _BaseChunker:
             if end == len(words):
                 return
             next_start, overlap = end, 0
-            while next_start - 1 > start and overlap + counts[next_start - 1] <= self.overlap_tokens:
+            while (
+                next_start - 1 > start and overlap + counts[next_start - 1] <= self.overlap_tokens
+            ):
                 next_start -= 1
                 overlap += counts[next_start]
             start = next_start

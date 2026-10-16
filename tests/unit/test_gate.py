@@ -44,8 +44,9 @@ def test_no_signal_rejected_when_threshold_set():
 
 
 def test_signal_is_dense_top1_not_rrf_score():
-    hit = ScoredChunk(_chunk(0), 0.0325, {"bm25": 1, "dense": 1},
-                      {"bm25": 9.5, "dense": 0.71, "dense@1": 0.71})
+    hit = ScoredChunk(
+        _chunk(0), 0.0325, {"bm25": 1, "dense": 1}, {"bm25": 9.5, "dense": 0.71, "dense@1": 0.71}
+    )
     assert gate_signal([hit]) == 0.71
 
 

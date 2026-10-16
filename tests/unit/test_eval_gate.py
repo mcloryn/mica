@@ -17,8 +17,16 @@ DEV_YAML = Path(__file__).resolve().parents[2] / "config" / "dev.yaml"
 
 
 def _q(qid, type_, question, oos=None, prev=None, split="dev"):
-    q = {"qid": qid, "question": question, "type": type_, "topic": "x", "gold_chunk_ids": [],
-         "reference_answer": "", "split": split, "prev_qid": prev}
+    q = {
+        "qid": qid,
+        "question": question,
+        "type": type_,
+        "topic": "x",
+        "gold_chunk_ids": [],
+        "reference_answer": "",
+        "split": split,
+        "prev_qid": prev,
+    }
     if oos is not None:
         q["oos_level"] = oos
     return q
@@ -94,7 +102,10 @@ def test_sweep_counts():
     rows = {r["threshold"]: r for r in sweep(scores)}
     r = rows["0.55"]
     assert (r["answerable_followup_n"], r["false_reject_n"], r["false_reject_rate"]) == (
-        3, 1, "0.3333")
+        3,
+        1,
+        "0.3333",
+    )
     assert (r["jauh_n"], r["jauh_reject_n"]) == (1, 1)
     assert (r["dekat_n"], r["dekat_reject_n"]) == (1, 0)
     assert (r["false_premise_n"], r["false_premise_reject_n"]) == (1, 1)
@@ -109,8 +120,14 @@ def test_sweep_counts():
 def env(tmp_path):
     settings = load_settings(DEV_YAML)
     kb_root = tmp_path / "kb"
-    build_kb(make_kb_folder(tmp_path / "src"), settings.kb.active_id, "dev", settings.kb,
-             FakeEmbedder(), kb_root)
+    build_kb(
+        make_kb_folder(tmp_path / "src"),
+        settings.kb.active_id,
+        "dev",
+        settings.kb,
+        FakeEmbedder(),
+        kb_root,
+    )
     kb = load_kb(settings.kb.active_id, kb_root)
     return settings, kb, kb_root, _write(tmp_path / "questions.jsonl", QUESTIONS), tmp_path
 
@@ -128,8 +145,9 @@ class SpyEmbedder(FakeEmbedder):
 def test_run_gate_outputs(env):
     settings, kb, _, dataset, tmp = env
     spy = SpyEmbedder()
-    run_dir, scores = run_gate(settings, kb, dataset, tmp / "out", embedder=spy,
-                               environment={"git_dirty": False})
+    run_dir, scores = run_gate(
+        settings, kb, dataset, tmp / "out", embedder=spy, environment={"git_dirty": False}
+    )
     assert [s.qid for s in scores] == ["a1", "f1", "j1", "k1", "p1"]  # hanya split dev
     assert "Berapa biaya pendaftaran? Kalau beasiswa?" in spy.queries  # followup concat
     # skor gerbang = cosine dense peringkat 1 yang dihitung langsung
@@ -151,8 +169,13 @@ def test_run_gate_outputs(env):
     assert run["experiment"] == "E-02" and run["retriever"] == "hybrid"
     assert run["config_hash"] == settings.config_hash()
     assert run["gate_threshold_config"] == settings.rag.gate.threshold
-    assert run["n_questions"] == {"answerable": 1, "followup": 1, "jauh": 1, "dekat": 1,
-                                  "false_premise": 1}
+    assert run["n_questions"] == {
+        "answerable": 1,
+        "followup": 1,
+        "jauh": 1,
+        "dekat": 1,
+        "false_premise": 1,
+    }
     assert run["environment"] == {"git_dirty": False}
 
 
@@ -166,7 +189,8 @@ def test_run_gate_does_not_change_config(env):
 def test_run_gate_rejects_bm25(env):
     settings, kb, _, dataset, tmp = env
     bm25 = settings.model_copy(
-        update={"rag": settings.rag.model_copy(update={"retriever": "bm25"})})
+        update={"rag": settings.rag.model_copy(update={"retriever": "bm25"})}
+    )
     with pytest.raises(ValueError):
         run_gate(bm25, kb, dataset, tmp / "out", embedder=FakeEmbedder(), environment={})
 
@@ -174,8 +198,17 @@ def test_run_gate_rejects_bm25(env):
 def test_cli_gate(env, capsys):
     _, _, kb_root, dataset, tmp = env
     code = eval_cli.main(
-        ["--kb-root", str(kb_root), "gate", "--config", str(DEV_YAML),
-         "--dataset", str(dataset), "--out", str(tmp / "E-02-gate")],
+        [
+            "--kb-root",
+            str(kb_root),
+            "gate",
+            "--config",
+            str(DEV_YAML),
+            "--dataset",
+            str(dataset),
+            "--out",
+            str(tmp / "E-02-gate"),
+        ],
         embedder_factory=lambda m, r: FakeEmbedder(),
     )
     out = capsys.readouterr().out

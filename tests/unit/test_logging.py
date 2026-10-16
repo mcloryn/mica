@@ -164,8 +164,17 @@ def test_cli_export_events(tmp_path, capsys):
     out = tmp_path / "events.csv"
     code = logs.main(
         [
-            "export", "--from", "2026-10-15", "--to", "2026-10-15",
-            "--out", str(out), "--kind", "events", "--dir", str(tmp_path),
+            "export",
+            "--from",
+            "2026-10-15",
+            "--to",
+            "2026-10-15",
+            "--out",
+            str(out),
+            "--kind",
+            "events",
+            "--dir",
+            str(tmp_path),
         ]
     )
     assert code == 0

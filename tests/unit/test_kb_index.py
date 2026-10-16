@@ -96,7 +96,9 @@ def test_pdf_without_text_logged_in_build_log(src, kb_root):
 
 def test_build_log_handler_detached(src, kb_root):
     _build(src, kb_root)
-    assert not any(isinstance(h, logging.FileHandler) for h in logging.getLogger("mica.kb").handlers)
+    assert not any(
+        isinstance(h, logging.FileHandler) for h in logging.getLogger("mica.kb").handlers
+    )
 
 
 def test_failed_embedding_leaves_no_folder(src, kb_root):
@@ -181,7 +183,13 @@ def test_list_kbs_ignores_tmp(src, kb_root):
 
 def test_tokenize():
     assert tokenize("Biaya UKT Rp7.000.000, per-semester!") == [
-        "biaya", "ukt", "rp7", "000", "000", "per", "semester",
+        "biaya",
+        "ukt",
+        "rp7",
+        "000",
+        "000",
+        "per",
+        "semester",
     ]
 
 

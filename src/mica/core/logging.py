@@ -127,9 +127,7 @@ def _columns(rows: list[dict[str, Any]]) -> list[str]:
     return columns + known + [c for c in timing_cols if c not in known]
 
 
-def export(
-    log_dir: Path, start: date, end: date, out: Path, kind: LogKind = "turns"
-) -> int:
+def export(log_dir: Path, start: date, end: date, out: Path, kind: LogKind = "turns") -> int:
     """Ekspor log bertanggal start..end (inklusif) ke CSV. Mengembalikan jumlah baris."""
     if start > end:
         raise ValueError("tanggal --from harus <= --to")

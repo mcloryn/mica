@@ -71,9 +71,7 @@ class FakeCrossEncoder:
 
     def predict(self, pairs, **kwargs):
         self.calls += 1
-        return [
-            float(len(set(tokenize(q)) & set(tokenize(t)))) for q, t in pairs
-        ]
+        return [float(len(set(tokenize(q)) & set(tokenize(t)))) for q, t in pairs]
 
 
 def _bm25(kb):
@@ -105,8 +103,9 @@ def test_contract_k_sorted_types(factory, k):
     assert all(isinstance(h.score, float) for h in hits)
     assert [h.score for h in hits] == sorted((h.score for h in hits), reverse=True)
     assert len({h.chunk.chunk_id for h in hits}) == k
-    assert all(h.ranks and all(isinstance(r, int) and r >= 1 for r in h.ranks.values())
-               for h in hits)
+    assert all(
+        h.ranks and all(isinstance(r, int) and r >= 1 for r in h.ranks.values()) for h in hits
+    )
     # skor asli tersedia untuk setiap retriever yang menemukan chunk
     assert all(set(h.raw_scores) - {"dense@1"} == set(h.ranks) for h in hits)
     # retriever yang memakai dense membawa sinyal gerbang dense@1 di setiap hasil
@@ -297,8 +296,9 @@ def test_make_retriever_hybrid_requires_params():
     with pytest.raises(ValueError):
         make_retriever(_settings(rrf_k=None), make_kb(), _factory_from_manifest([]))
     with pytest.raises(ValueError):
-        make_retriever(_settings(candidates_per_retriever=None), make_kb(),
-                       _factory_from_manifest([]))
+        make_retriever(
+            _settings(candidates_per_retriever=None), make_kb(), _factory_from_manifest([])
+        )
 
 
 def test_make_retriever_wraps_reranker_when_enabled():
@@ -335,8 +335,18 @@ def test_cli_search_with_built_kb(tmp_path, capsys):
     build_kb(src, settings.kb.active_id, "dev", settings.kb, FakeEmbedder(), kb_root)
     for kind in ("bm25", "dense", "hybrid"):
         code = rag_cli.main(
-            ["--kb-root", str(kb_root), "search", "biaya pendaftaran", "--config", str(DEV_YAML),
-             "--retriever", kind, "--k", "3"],
+            [
+                "--kb-root",
+                str(kb_root),
+                "search",
+                "biaya pendaftaran",
+                "--config",
+                str(DEV_YAML),
+                "--retriever",
+                kind,
+                "--k",
+                "3",
+            ],
             embedder_factory=lambda m, r: FakeEmbedder(),
         )
         out = capsys.readouterr().out

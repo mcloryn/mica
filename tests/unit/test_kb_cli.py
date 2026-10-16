@@ -61,9 +61,17 @@ def test_build_list_inspect(tmp_path, capsys):
     kb_root = tmp_path / "kb"
     code, out, err = _run(
         capsys,
-        "--kb-root", str(kb_root),
-        "build", "--src", str(src), "--kb-id", "dev-2026-10-15",
-        "--source-type", "dev", "--config", str(DEV_YAML),
+        "--kb-root",
+        str(kb_root),
+        "build",
+        "--src",
+        str(src),
+        "--kb-id",
+        "dev-2026-10-15",
+        "--source-type",
+        "dev",
+        "--config",
+        str(DEV_YAML),
         embedder_factory=lambda m, r: FakeEmbedder(),
     )
     assert code == 0, err
@@ -84,8 +92,17 @@ def test_build_existing_kb_id_fails(tmp_path, capsys):
     src = make_kb_folder(tmp_path / "src")
     kb_root = tmp_path / "kb"
     argv = [
-        "--kb-root", str(kb_root), "build", "--src", str(src), "--kb-id", "dev-x",
-        "--source-type", "dev", "--config", str(DEV_YAML),
+        "--kb-root",
+        str(kb_root),
+        "build",
+        "--src",
+        str(src),
+        "--kb-id",
+        "dev-x",
+        "--source-type",
+        "dev",
+        "--config",
+        str(DEV_YAML),
     ]
     assert _run(capsys, *argv, embedder_factory=lambda m, r: FakeEmbedder())[0] == 0
     code, _, err = _run(capsys, *argv, embedder_factory=lambda m, r: FakeEmbedder())
@@ -94,10 +111,20 @@ def test_build_existing_kb_id_fails(tmp_path, capsys):
 
 def test_build_has_no_allow_missing_date(tmp_path):
     with pytest.raises(SystemExit):
-        main([
-            "build", "--src", str(tmp_path), "--kb-id", "x", "--source-type", "dev",
-            "--config", str(DEV_YAML), "--allow-missing-date",
-        ])
+        main(
+            [
+                "build",
+                "--src",
+                str(tmp_path),
+                "--kb-id",
+                "x",
+                "--source-type",
+                "dev",
+                "--config",
+                str(DEV_YAML),
+                "--allow-missing-date",
+            ]
+        )
 
 
 def test_check_sources_lists_missing_dates(tmp_path, capsys):

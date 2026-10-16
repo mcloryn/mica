@@ -24,7 +24,7 @@ class DatasetError(Exception):
 
 
 def parse_gold_ref(ref: str) -> tuple[str, str]:
-    """"<doc_id>::<judul bagian>" -> (doc_id, section)."""
+    """ "<doc_id>::<judul bagian>" -> (doc_id, section)."""
     doc_id, sep, section = ref.partition(GOLD_REF_SEP)
     if not sep or not doc_id.strip() or not section.strip():
         raise ValueError(f"gold_ref harus berformat '<doc_id>::<judul bagian>': {ref!r}")

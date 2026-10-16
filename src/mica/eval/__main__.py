@@ -106,8 +106,14 @@ def cmd_retrieval(args: argparse.Namespace, embedder_factory: EmbedderFactory | 
     if warning:
         print(warning, file=sys.stderr)
     runs, summary = run_retrieval(
-        settings, kb, args.dataset, pool, args.out, retrievers,
-        embedder=embedder, environment=environment,
+        settings,
+        kb,
+        args.dataset,
+        pool,
+        args.out,
+        retrievers,
+        embedder=embedder,
+        environment=environment,
     )
     print(f"KB {kb.kb_id} | split dev | {len(runs)} run -> {summary}")
     print("retriever | Recall@5 | MRR | nDCG@10 | p50 ms | p95 ms | unjudged")

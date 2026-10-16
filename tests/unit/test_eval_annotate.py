@@ -72,8 +72,12 @@ def env(tmp_path):
     settings = load_settings(DEV_YAML)
     kb_root = tmp_path / "kb"
     build_kb(
-        make_kb_folder(tmp_path / "src"), settings.kb.active_id, "dev", settings.kb,
-        FakeEmbedder(), kb_root,
+        make_kb_folder(tmp_path / "src"),
+        settings.kb.active_id,
+        "dev",
+        settings.kb,
+        FakeEmbedder(),
+        kb_root,
     )
     kb = load_kb(settings.kb.active_id, kb_root)
     dataset = write_dataset(tmp_path / "questions.jsonl")
@@ -186,8 +190,9 @@ def test_export_reports_unmatched_gold_ref(env):
     questions = [dict(q) for q in QUESTIONS]
     questions[0]["gold_refs"] = ["biaya::Bagian Salah Ketik"]
     dataset = write_dataset(tmp / "q.jsonl", questions)
-    result = export_pool(settings, kb, dataset, tmp / "p.csv",
-                         embedder_factory=lambda m, r: FakeEmbedder())
+    result = export_pool(
+        settings, kb, dataset, tmp / "p.csv", embedder_factory=lambda m, r: FakeEmbedder()
+    )
     assert result.unmatched_gold_refs == ["q1: biaya::Bagian Salah Ketik"]
 
 
@@ -198,8 +203,9 @@ def test_export_does_not_overwrite_pool(env):
     with pytest.raises(FileExistsError):
         export_pool(settings, kb, dataset, out, embedder_factory=lambda m, r: FakeEmbedder())
     assert out.read_text(encoding="utf-8") == "anotasi lama"
-    export_pool(settings, kb, dataset, out, embedder_factory=lambda m, r: FakeEmbedder(),
-                force=True)
+    export_pool(
+        settings, kb, dataset, out, embedder_factory=lambda m, r: FakeEmbedder(), force=True
+    )
     assert read_pool(out)
 
 
@@ -277,8 +283,18 @@ def test_cli_export_then_import(env, capsys):
     _, _, kb_root, dataset, tmp = env
     out = tmp / "pool.csv"
     code = eval_cli.main(
-        ["--kb-root", str(kb_root), "annotate", "export", "--config", str(DEV_YAML),
-         "--dataset", str(dataset), "--out", str(out)],
+        [
+            "--kb-root",
+            str(kb_root),
+            "annotate",
+            "export",
+            "--config",
+            str(DEV_YAML),
+            "--dataset",
+            str(dataset),
+            "--out",
+            str(out),
+        ],
         embedder_factory=lambda m, r: FakeEmbedder(),
     )
     printed = capsys.readouterr().out
@@ -297,8 +313,18 @@ def test_cli_export_invalid_dataset(env, capsys):
     bad = tmp / "bad.jsonl"
     bad.write_text("bukan json\n", encoding="utf-8")
     code = eval_cli.main(
-        ["--kb-root", str(kb_root), "annotate", "export", "--config", str(DEV_YAML),
-         "--dataset", str(bad), "--out", str(tmp / "p.csv")],
+        [
+            "--kb-root",
+            str(kb_root),
+            "annotate",
+            "export",
+            "--config",
+            str(DEV_YAML),
+            "--dataset",
+            str(bad),
+            "--out",
+            str(tmp / "p.csv"),
+        ],
         embedder_factory=lambda m, r: FakeEmbedder(),
     )
     assert code == 2 and "bukan JSON valid" in capsys.readouterr().err

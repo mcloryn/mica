@@ -36,8 +36,14 @@ def _q(qid, type_, question, gold=(), split="dev", prev=None):
 def env(tmp_path):
     settings = load_settings(DEV_YAML)
     kb_root = tmp_path / "kb"
-    build_kb(make_kb_folder(tmp_path / "src"), settings.kb.active_id, "dev", settings.kb,
-             FakeEmbedder(), kb_root)
+    build_kb(
+        make_kb_folder(tmp_path / "src"),
+        settings.kb.active_id,
+        "dev",
+        settings.kb,
+        FakeEmbedder(),
+        kb_root,
+    )
     kb = load_kb(settings.kb.active_id, kb_root)
     ids = {c.chunk_id: c for c in kb.chunks}
     biaya = [c for c in ids if c.startswith("biaya#")]
@@ -82,8 +88,9 @@ def test_select_questions_requires_gold():
 
 
 def _result(hit5, rr, ndcg, latency, unjudged=0):
-    return QuestionResult("q", "answerable", "answerable", 1, None, hit5, rr, ndcg, latency, (),
-                          unjudged)
+    return QuestionResult(
+        "q", "answerable", "answerable", 1, None, hit5, rr, ndcg, latency, (), unjudged
+    )
 
 
 def test_summarize_recall_is_fraction_of_questions_with_hit():
@@ -105,7 +112,9 @@ def test_run_retrieval_outputs(env):
     assert [r.retriever for r in runs] == ["bm25", "dense", "hybrid"]
     assert len({r.config_hash for r in runs}) == 3  # hash dari konfigurasi efektif
     stamp = runs[0].run_dir.name.split("-dev-")[0]
-    assert [r.run_dir.name for r in runs] == [f"{stamp}-dev-{k}" for k in ("bm25", "dense", "hybrid")]
+    assert [r.run_dir.name for r in runs] == [
+        f"{stamp}-dev-{k}" for k in ("bm25", "dense", "hybrid")
+    ]
     assert summary.name == f"summary-dev-{stamp}.csv"
 
     run = json.loads((runs[2].run_dir / "run.json").read_text(encoding="utf-8"))
@@ -118,8 +127,14 @@ def test_run_retrieval_outputs(env):
     assert len(run["dataset"]["sha256"]) == 64 and len(run["pool"]["sha256"]) == 64
     assert run["embedder"]["revision"] == kb.manifest["embedder"]["revision"]
     assert run["n_questions"] == {"answerable": 2, "followup_tanpa_rewrite": 1}
-    assert set(run["metrics"]["answerable"]) >= {"recall@5", "mrr@10", "ndcg@10",
-                                                  "latency_p50_ms", "latency_p95_ms", "unjudged"}
+    assert set(run["metrics"]["answerable"]) >= {
+        "recall@5",
+        "mrr@10",
+        "ndcg@10",
+        "latency_p50_ms",
+        "latency_p95_ms",
+        "unjudged",
+    }
     env_info = run["environment"]
     assert env_info["python"] and env_info["torch"] and env_info["cpu_count_logical"]
 
@@ -128,8 +143,18 @@ def test_run_retrieval_outputs(env):
     with per_q.open(encoding="utf-8-sig", newline="") as f:
         rows = list(csv.DictReader(f))
     assert [r["qid"] for r in rows] == ["a1", "a2", "f1"]
-    assert list(rows[0]) == ["qid", "type", "n_relevant", "first_relevant_rank", "hit@5", "rr",
-                             "ndcg10", "latency_ms", "top5_chunk_ids", "unjudged"]
+    assert list(rows[0]) == [
+        "qid",
+        "type",
+        "n_relevant",
+        "first_relevant_rank",
+        "hit@5",
+        "rr",
+        "ndcg10",
+        "latency_ms",
+        "top5_chunk_ids",
+        "unjudged",
+    ]
     for row in rows:
         assert len(row["top5_chunk_ids"].split()) <= 5
         assert float(row["latency_ms"]) >= 0
@@ -142,8 +167,9 @@ def test_run_retrieval_outputs(env):
 
 def test_unjudged_counts_chunks_outside_pool(env):
     settings, kb, _, dataset, pool, tmp = env
-    runs, _ = run_retrieval(settings, kb, dataset, pool, tmp / "r", ["dense"],
-                            embedder=FakeEmbedder())
+    runs, _ = run_retrieval(
+        settings, kb, dataset, pool, tmp / "r", ["dense"], embedder=FakeEmbedder()
+    )
     # pool di fixture: dua chunk biaya pertama (urutan KB) untuk setiap qid
     pooled = [c.chunk_id for c in kb.chunks if c.chunk_id.startswith("biaya#")][:2]
     for r in runs[0].questions:
@@ -174,8 +200,19 @@ def test_cli_retrieval(env, capsys):
     _, _, kb_root, dataset, _, tmp = env
     out = tmp / "results" / "E-01"
     code = eval_cli.main(
-        ["--kb-root", str(kb_root), "retrieval", "--config", str(DEV_YAML),
-         "--dataset", str(dataset), "--out", str(out), "--retrievers", "bm25,hybrid"],
+        [
+            "--kb-root",
+            str(kb_root),
+            "retrieval",
+            "--config",
+            str(DEV_YAML),
+            "--dataset",
+            str(dataset),
+            "--out",
+            str(out),
+            "--retrievers",
+            "bm25,hybrid",
+        ],
         embedder_factory=lambda m, r: FakeEmbedder(),
     )
     printed = capsys.readouterr().out
@@ -188,8 +225,21 @@ def test_cli_retrieval(env, capsys):
 def test_cli_rejects_unknown_retriever(env):
     _, _, kb_root, dataset, _, tmp = env
     with pytest.raises(SystemExit):
-        eval_cli.main(["--kb-root", str(kb_root), "retrieval", "--config", str(DEV_YAML),
-                       "--dataset", str(dataset), "--out", str(tmp), "--retrievers", "bm25,splade"])
+        eval_cli.main(
+            [
+                "--kb-root",
+                str(kb_root),
+                "retrieval",
+                "--config",
+                str(DEV_YAML),
+                "--dataset",
+                str(dataset),
+                "--out",
+                str(tmp),
+                "--retrievers",
+                "bm25,splade",
+            ]
+        )
 
 
 def _git_repo(path):
@@ -244,8 +294,16 @@ def test_git_dirty_outside_repo(tmp_path, monkeypatch):
 def test_run_json_records_environment(env):
     settings, kb, _, dataset, pool, tmp = env
     environment = {"git_commit": "a" * 40, "git_dirty": True, "python": "3.x"}
-    runs, _ = run_retrieval(settings, kb, dataset, pool, tmp / "r", ["bm25"],
-                            embedder=FakeEmbedder(), environment=environment)
+    runs, _ = run_retrieval(
+        settings,
+        kb,
+        dataset,
+        pool,
+        tmp / "r",
+        ["bm25"],
+        embedder=FakeEmbedder(),
+        environment=environment,
+    )
     run = json.loads((runs[0].run_dir / "run.json").read_text(encoding="utf-8"))
     assert run["environment"]["git_dirty"] is True
     assert run["environment"]["git_commit"] == "a" * 40
@@ -257,8 +315,19 @@ def test_cli_warns_when_dirty(env, capsys, monkeypatch):
     _, _, kb_root, dataset, _, tmp = env
     monkeypatch.setattr(environment, "git_dirty", lambda cwd=None: True)
     code = eval_cli.main(
-        ["--kb-root", str(kb_root), "retrieval", "--config", str(DEV_YAML),
-         "--dataset", str(dataset), "--out", str(tmp / "out"), "--retrievers", "bm25"],
+        [
+            "--kb-root",
+            str(kb_root),
+            "retrieval",
+            "--config",
+            str(DEV_YAML),
+            "--dataset",
+            str(dataset),
+            "--out",
+            str(tmp / "out"),
+            "--retrievers",
+            "bm25",
+        ],
     )
     assert code == 0  # tetap jalan
     assert "peringatan" in capsys.readouterr().err
