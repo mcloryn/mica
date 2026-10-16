@@ -366,7 +366,7 @@ def test_run_generation_outputs(env):
     assert run["tokens_api"]["total_tokens"] == 5 * 110
     assert run["llm"]["model"] == "fake" and run["llm"]["reasoning_effort"] == "low"
     assert run["environment"] == {"git_dirty": False}
-    assert run_dir.name.endswith("-dev-hybrid-gateoff")
+    assert run_dir.name.endswith("-E-02-dev-hybrid-gateoff")
 
 
 def test_rerun_uses_cache(env):
@@ -516,3 +516,17 @@ def test_cli_parser_generation_model():
     base = ["generation", "--config", "c.yaml", "--dataset", "q.jsonl", "--out", "o"]
     assert build_parser().parse_args(base).model is None
     assert build_parser().parse_args([*base, "--model", MODEL_20B]).model == MODEL_20B
+    assert build_parser().parse_args(base).experiment == "E-02"
+    assert build_parser().parse_args([*base, "--experiment", "E-04"]).experiment == "E-04"
+
+
+def test_run_generation_experiment_label(env):
+    run_dir, *_ = _run(env, FakeProvider(_rule), gate_off=True, experiment="E-04")
+    run = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
+    assert run["experiment"] == "E-04"
+    assert run_dir.name.endswith("-E-04-dev-hybrid-gateoff")
+
+
+def test_run_generation_experiment_validated(env):
+    with pytest.raises(ValueError):
+        _run(env, FakeProvider(_rule), gate_off=True, experiment="../x")

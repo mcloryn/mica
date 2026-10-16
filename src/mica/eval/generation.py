@@ -20,6 +20,7 @@ import csv
 import hashlib
 import json
 import os
+import re
 import time
 from collections import deque
 from collections.abc import Callable
@@ -601,7 +602,10 @@ def run_generation(
     progress: Callable[[str], None] | None = print_progress,
     cache_only: bool = False,
     model: str | None = None,
+    experiment: str = EXPERIMENT,
 ) -> tuple[Path, list[GenerationRow], list[dict[str, Any]]]:
+    if not re.fullmatch(r"E-\d{2}", experiment):
+        raise ValueError(f"--experiment {experiment!r} harus berformat E-NN, misalnya E-04")
     started_at = started_at or datetime.now().astimezone()
     clock_start = time.perf_counter()
     environment = environment if environment is not None else collect_environment()
@@ -639,7 +643,7 @@ def run_generation(
     suffix = (f"-{model_slug(model)}" if model is not None else "") + (
         "-gateoff" if gate_off else ""
     )
-    run_dir = Path(out_root) / f"{stamp}-{SPLIT}-{eff.rag.retriever}{suffix}"
+    run_dir = Path(out_root) / f"{stamp}-{experiment}-{SPLIT}-{eff.rag.retriever}{suffix}"
     run_dir.mkdir(parents=True, exist_ok=False)
     _write_csv(
         run_dir / "per_question.csv", PER_QUESTION_COLUMNS, [_per_question_row(r) for r in rows]
@@ -651,7 +655,7 @@ def run_generation(
     stats = llm.stats
     all_usage = [r.usage for r in rows if r.usage]
     run = {
-        "experiment": EXPERIMENT,
+        "experiment": experiment,
         "component": "generation",
         "split": SPLIT,
         "retriever": eff.rag.retriever,

@@ -7,7 +7,7 @@ python -m mica.eval retrieval --config <yaml> --dataset <jsonl> --out <folder>
 python -m mica.eval gate --config <yaml> --dataset <jsonl> --out <folder>
 python -m mica.eval generation --config <yaml> --dataset <jsonl> --out <folder> [--gate-off]
     [--no-cache] [--cache-only] [--cache-dir data/cache/llm] [--env-file .env]
-    [--model penyedia:id_model]
+    [--model penyedia:id_model] [--experiment E-02]
 """
 
 from __future__ import annotations
@@ -21,7 +21,13 @@ from mica.eval.annotate import POOL_DEPTH, export_pool, import_pool
 from mica.eval.dataset import DatasetError
 from mica.eval.environment import collect_environment, dirty_warning
 from mica.eval.gate import GROUPS, group_stats, run_gate
-from mica.eval.generation import DEFAULT_CACHE_DIR, SWEEP_COLUMNS, CacheMiss, run_generation
+from mica.eval.generation import (
+    DEFAULT_CACHE_DIR,
+    EXPERIMENT,
+    SWEEP_COLUMNS,
+    CacheMiss,
+    run_generation,
+)
 from mica.eval.retrieval import MAIN_GROUP, run_retrieval
 from mica.kb.index import DEFAULT_KB_ROOT, KbLoadError, load_kb
 from mica.rag.retriever import EmbedderFactory
@@ -80,6 +86,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--model",
         help="ganti llm.chain menjadi satu model ini saja untuk run ini, misalnya "
         "groq:openai/gpt-oss-20b",
+    )
+    gen.add_argument(
+        "--experiment",
+        default=EXPERIMENT,
+        help="label eksperimen di run.json dan nama folder run (default E-02)",
     )
     return parser
 
@@ -203,6 +214,7 @@ def cmd_generation(args: argparse.Namespace, embedder_factory: EmbedderFactory |
         embedder=embedder,
         environment=environment,
         model=args.model,
+        experiment=args.experiment,
     )
     print(f"KB {kb.kb_id} | {len(rows)} pertanyaan -> {run_dir}")
     print(" | ".join(SWEEP_COLUMNS))
