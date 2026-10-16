@@ -16,6 +16,9 @@ Keterlacakan normalisasi:
 - Desimal: koma gaya Indonesia ("2,75") dan titik gaya Inggris ("2.75") sama-sama dibaca.
 - Tanggal: "17 September 2026", "17 Sep 2026", "17-09-2026", "17/9/2026", "17.09.2026",
   "2026-09-17" -> 2026-09-17; tanggal tanpa tahun ("17 September") dicocokkan dengan hari-bulan.
+- Rentang: "22 sampai 27 Februari 2027", "22-27 Feb 2027", "22 Februari s.d. 3 Maret 2027"
+  (sampai, hingga, s.d., s/d, -, en dash, em dash) menjadi dua token: tanggal awal dan akhir.
+  Bulan awal setelah bulan akhir ("20 Desember sampai 5 Januari 2027") berarti tahun sebelumnya.
 - Jam: "09.00", "9:00", "pukul 9 WIB/pagi" -> 09:00; "sore" (jam < 12) dan "malam" (jam 6-11)
   ditambah 12, "siang" (jam < 6) ditambah 12. "pukul 9" tanpa penanda dibaca sebagai angka 9.
 - Telepon: diawali 0, +62, atau "(0", 9-13 digit; hanya urutan digit, +62 disamakan dengan 0.
@@ -29,8 +32,8 @@ Keterbatasan (bisa lolos padahal salah, atau ditolak padahal benar):
   pun di sumber, "2.750" didukung oleh 2,75.
 - Angka kecil (1, 2, 3) hampir selalu ada di sumber, sehingga hampir tidak pernah ditolak.
 - Angka yang ditulis sebagai kata ("tiga jalur", "lima juta") tidak diekstrak sama sekali.
-- Rentang di sumber tidak diuraikan: "22 sampai 27 Februari 2027" tidak mendukung jawaban
-  "22 Februari 2027".
+- Rentang tanggal hanya diuraikan menjadi ujung awal dan akhirnya: "22 sampai 27 Februari 2027"
+  mendukung "22 Februari 2027" dan "27 Februari 2027", tetapi tidak "25 Februari 2027".
 - Hasil hitung (jumlah, selisih, biaya per semester dari biaya per tahun) selalu ditolak.
 """
 
@@ -78,6 +81,11 @@ _TIME_MARK = r"(?i:WIB|WITA|WIT|pagi|siang|sore|malam)\b"
 
 LIST_MARKER = re.compile(r"^([ \t]*)\d{1,2}[.)](?=[ \t])", re.MULTILINE)
 PHONE = re.compile(r"(?<![\w+])(?:\+62[ .-]?|\(0|0)\d[\d .()-]*\d")
+_RANGE_SEP = r"(?:(?i:sampai|hingga|s\.?d\.?|s/d)|[-–—])"
+DATE_RANGE = re.compile(
+    rf"(?<![\w.,])(\d{{1,2}})(?:[ \t]+((?i:{_MONTH_RE}))\.?)?[ \t]*{_RANGE_SEP}[ \t]*"
+    rf"(\d{{1,2}})[ \t]+((?i:{_MONTH_RE}))\.?(?:[ \t]+(\d{{4}}))?(?!\w)"
+)
 DATE_TEXT = re.compile(
     rf"(?<![\w.,])(\d{{1,2}})[ \t]+((?i:{_MONTH_RE}))\.?(?:[ \t]+(\d{{4}}))?(?!\w)"
 )
@@ -183,6 +191,23 @@ def _phone_token(match: re.Match[str]) -> tuple[NumericToken, int] | None:
     return best
 
 
+def _range_tokens(m: re.Match[str]) -> list[tuple[int, NumericToken]] | None:
+    """Rentang tanggal -> token tanggal awal dan akhir; None bila salah satunya tidak sah."""
+    end_month = MONTHS[m.group(4).lower()]
+    start_month = MONTHS[m.group(2).lower()] if m.group(2) else end_month
+    end_year = int(m.group(5)) if m.group(5) else None
+    start_year = end_year
+    if end_year is not None and start_month > end_month:
+        start_year = end_year - 1
+    whole = m.group()
+    start_text = whole[: (m.end(2) if m.group(2) else m.end(1)) - m.start()]
+    start = _date_token(start_text, int(m.group(1)), start_month, start_year)
+    end = _date_token(whole[m.start(3) - m.start() :], int(m.group(3)), end_month, end_year)
+    if start is None or end is None:
+        return None
+    return [(m.start(), start), (m.start(3), end)]
+
+
 def _scan(text: str) -> Iterator[tuple[int, NumericToken]]:
     """Token berurutan menurut jenis; span yang sudah diambil diganti MASK."""
     buf = LIST_MARKER.sub(lambda m: m.group(1) + MASK * (len(m.group()) - len(m.group(1))), text)
@@ -246,6 +271,12 @@ def _scan(text: str) -> Iterator[tuple[int, NumericToken]]:
 
     def number(m: re.Match[str]) -> Built:
         return NumericToken(m.group(), _nums(number_values(m.group()))), m.end()
+
+    for m in list(DATE_RANGE.finditer(buf)):
+        tokens = _range_tokens(m)
+        if tokens is not None:
+            take(m.start(), m.end())
+            yield from tokens
 
     # urutan penting: jenis yang lebih spesifik diambil dulu
     for pattern, build in (

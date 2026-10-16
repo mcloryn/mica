@@ -178,3 +178,62 @@ def test_kb_dev_jam_layanan_admisi(kb_dev):
     assert ok == CheckResult(passed=True, unsupported=(), checked=7)
     bad = checker.check("Admisi buka Senin sampai Jumat 09.00 sampai 21.00 WIB.", sources)
     assert bad == CheckResult(passed=False, unsupported=("21.00 WIB",), checked=2)
+
+
+# Rentang tanggal di sumber: hanya ujung awal dan akhir
+
+
+RANGE_SOURCES = [
+    "Matrikulasi 22 sampai 27 Februari 2027.",
+    "Matrikulasi 22-27 Februari 2027.",
+    "Matrikulasi 22–27 Feb 2027.",
+    "Matrikulasi 22 hingga 27 Februari 2027.",
+    "Matrikulasi 22 s.d. 27 Februari 2027.",
+    "Matrikulasi 22 s/d 27 Februari 2027.",
+]
+
+
+@pytest.mark.parametrize("source", RANGE_SOURCES)
+@pytest.mark.parametrize(
+    ("answer", "passed"),
+    [("22 Februari 2027", True), ("27 Februari 2027", True), ("25 Februari 2027", False),
+     ("21 Februari 2027", False), ("28 Februari 2027", False)],
+)  # fmt: skip
+def test_range_same_month_endpoints_only(source, answer, passed):
+    result = _check(f"Matrikulasi dimulai {answer}.", source)
+    assert result.passed is passed and result.checked == 1
+
+
+@pytest.mark.parametrize(
+    ("answer", "passed"),
+    [("22 Februari 2027", True), ("3 Maret 2027", True), ("1 Maret 2027", False),
+     ("22 Maret 2027", False)],
+)  # fmt: skip
+def test_range_across_months(answer, passed):
+    result = _check(f"Mulai {answer}.", "Periode 22 Februari sampai 3 Maret 2027.")
+    assert result.passed is passed
+
+
+@pytest.mark.parametrize(
+    ("answer", "passed"),
+    [("17 September 2026", True), ("31 Mei 2027", True), ("30 Mei 2027", False)],
+)
+def test_range_full_dates(answer, passed):
+    result = _check(
+        f"Gelombang 1 ditutup {answer}.", "Gelombang 1: 17 September 2026 s.d. 31 Mei 2027."
+    )
+    assert result.passed is passed
+
+
+def test_range_across_year_end():
+    source = "Libur 20 Desember s/d 5 Januari 2027."
+    assert _check("Libur mulai 20 Desember 2026.", source).passed is True
+    assert _check("Libur mulai 20 Desember 2027.", source).passed is False
+
+
+def test_range_in_answer_checks_both_endpoints():
+    source = "Matrikulasi 22 sampai 27 Februari 2027."
+    assert _check("Matrikulasi 22-27 Februari 2027.", source) == CheckResult(True, (), 2)
+    assert _check("Matrikulasi 22-28 Februari 2027.", source) == CheckResult(
+        False, ("28 Februari 2027",), 2
+    )
