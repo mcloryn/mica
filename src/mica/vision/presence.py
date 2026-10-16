@@ -12,7 +12,13 @@ Sinyal kehadiran (vision.presence_signal, dipilih di E-07):
 - shoulder_width: |x bahu kiri - x bahu kanan| (COCO 5, 6) / lebar frame, hanya bila kedua
   confidence >= min_kp_conf. Bila bahu tidak yakin pada frame itu (nilai None):
   - track yang memenuhi syarat pada update sebelumnya dan box-nya masih ada tetap dianggap
-    memenuhi syarat dengan nilai terakhirnya, supaya keypoint yang goyah tidak memicu PersonLeft;
+    memenuhi syarat dengan nilai terakhirnya (carry-over), supaya keypoint yang goyah tidak
+    memicu PersonLeft;
+  - carry-over berlaku paling lama leave_s sejak bahu track itu terakhir yakin. leave_s adalah
+    definisi "pergi": tanpa bukti kehadiran selama leave_s, orang dianggap pergi. Tanpa batas
+    ini, box yang tertinggal (misalnya kursi yang terdeteksi sebagai orang) bisa menahan sesi
+    selamanya. Akibatnya PersonLeft paling lambat sekitar 2 x leave_s setelah bahu terakhir
+    yakin (leave_s carry-over + leave_s tanpa target);
   - track lain (kandidat baru) tidak memenuhi syarat.
 
 Warna pakaian: selama CANDIDATE, suara warna target (color_of) dikumpulkan di ColorVoting dan
@@ -90,6 +96,7 @@ class PresenceTracker:
         self.last_seen: float | None = None
         self.id_switches = 0
         self.eligible: dict[int, float] = {}  # track yang memenuhi syarat di update terakhir
+        self.last_measured: dict[int, float] = {}  # track_id -> waktu sinyal terakhir terukur
 
     def _reset(self) -> None:
         self.state = PresenceState.IDLE
@@ -98,22 +105,30 @@ class PresenceTracker:
         if self.voting is not None:
             self.voting.reset()
 
+    def _carry_allowed(self, track_id: int, now: float) -> bool:
+        if track_id not in self.eligible:
+            return False
+        measured = self.last_measured.get(track_id)
+        return measured is not None and now - measured < self.leave_s
+
     def eligible_tracks(
-        self, tracks: list[PersonTrack], frame_shape: FrameShape
+        self, tracks: list[PersonTrack], frame_shape: FrameShape, now: float
     ) -> dict[int, tuple[PersonTrack, float]]:
         """track_id -> (track, nilai sinyal) yang memenuhi syarat frame ini; tidak mengubah state."""
         out: dict[int, tuple[PersonTrack, float]] = {}
         for t in tracks:
             value = self.signal.value(t, frame_shape)
             if value is None:
-                if t.track_id in self.eligible:  # sinyal goyah: pertahankan, box masih ada
+                if self._carry_allowed(t.track_id, now):  # sinyal goyah: carry-over
                     out[t.track_id] = (t, self.eligible[t.track_id])
             elif value >= self.min_signal:
                 out[t.track_id] = (t, value)
         return out
 
-    def target_for(self, tracks: list[PersonTrack], frame_shape: FrameShape) -> PersonTrack | None:
-        eligible = self.eligible_tracks(tracks, frame_shape)
+    def target_for(
+        self, tracks: list[PersonTrack], frame_shape: FrameShape, now: float
+    ) -> PersonTrack | None:
+        eligible = self.eligible_tracks(tracks, frame_shape, now)
         if not eligible:
             return None
         return max(eligible.values(), key=lambda tv: tv[1])[0]
@@ -126,8 +141,13 @@ class PresenceTracker:
         color_of: Callable[[PersonTrack], ColorResult | None] | None = None,
     ) -> list[VisionEvent]:
         """color_of(target) menamai warna area pakaian frame ini (dipanggil hanya saat CANDIDATE)."""
-        eligible = self.eligible_tracks(tracks, frame_shape)
+        eligible = self.eligible_tracks(tracks, frame_shape, now)
         self.eligible = {tid: value for tid, (_t, value) in eligible.items()}
+        present = {t.track_id for t in tracks}
+        self.last_measured = {tid: at for tid, at in self.last_measured.items() if tid in present}
+        for t in tracks:
+            if self.signal.value(t, frame_shape) is not None:
+                self.last_measured[t.track_id] = now
         target = max(eligible.values(), key=lambda tv: tv[1])[0] if eligible else None
         events: list[VisionEvent] = []
 

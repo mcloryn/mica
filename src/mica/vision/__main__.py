@@ -376,13 +376,17 @@ class TrackObs:
 
 def observe_tracks(
     t: float,
+    now: float,
     tracks: list[PersonTrack],
     frame_shape: tuple[int, ...],
     presence: PresenceTracker,
     target: PersonTrack | None,
 ) -> list[TrackObs]:
-    """Dipanggil sebelum presence.update: carry-over dinilai dari state update sebelumnya."""
-    eligible = presence.eligible_tracks(tracks, frame_shape)
+    """Dipanggil sebelum presence.update: carry-over dinilai dari state update sebelumnya.
+
+    t = detik sejak demo mulai (untuk laporan); now = jam monotonic yang sama dengan PresenceTracker.
+    """
+    eligible = presence.eligible_tracks(tracks, frame_shape, now)
     out = []
     for tr in tracks:
         kp = tr.keypoints
@@ -711,7 +715,7 @@ def _detect(
     frame_h, frame_w = frame.shape[:2]
 
     # warna area pakaian target; piksel hanya di memori (N-08)
-    target = presence.target_for(tracks, frame.shape)
+    target = presence.target_for(tracks, frame.shape, t0)
     frame_color: ColorResult | None = None
     located = None
     if target is not None and region is not None and namer is not None:
@@ -726,7 +730,7 @@ def _detect(
         else:
             stats.region_sources["none"] = stats.region_sources.get("none", 0) + 1
 
-    observations = observe_tracks(elapsed, tracks, frame.shape, presence, target)
+    observations = observe_tracks(elapsed, t0, tracks, frame.shape, presence, target)
     stats.track_obs.extend(observations)
     before = presence.track_id
     was_engaged = presence.state == PresenceState.ENGAGED

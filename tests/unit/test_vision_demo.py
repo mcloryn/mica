@@ -449,7 +449,7 @@ def test_track_observations_mark_carry_over():
     frame = (100, 100)
     presence.update([shouldered(1)], frame, 0.0)  # bahu yakin 0,30 -> memenuhi syarat
     unsure = shouldered(1, conf=0.1)
-    obs = cli.observe_tracks(0.5, [unsure, shouldered(2, width=10)], frame, presence, unsure)
+    obs = cli.observe_tracks(0.5, 0.5, [unsure, shouldered(2, width=10)], frame, presence, unsure)
     one, two = obs
     assert (one.track_id, one.signal, one.eligible, one.carried, one.target) == (
         1, None, True, True, True)  # fmt: skip

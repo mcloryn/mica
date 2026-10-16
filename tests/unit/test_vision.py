@@ -337,10 +337,25 @@ def test_shoulder_width_separates_sitting_from_standing_back():
 
 def test_shoulder_unsure_briefly_does_not_trigger_leave():
     clip = Clip(shoulder_tracker()).play(3, [shouldered(1)])
-    clip.play(LEAVE + 2, [shouldered(1, conf=0.1)])  # keypoint goyah, box masih ada
+    clip.play(LEAVE - 0.5, [shouldered(1, conf=0.1)])  # keypoint goyah < leave_s, box masih ada
+    clip.play(1, [shouldered(1)])
+    clip.play(LEAVE - 0.5, [shouldered(1, conf=0.1)])  # goyah lagi: batas dihitung ulang
     clip.play(1, [shouldered(1)])
     assert clip.kinds() == ["PersonArrived"]
     assert clip.presence.state == PresenceState.ENGAGED
+
+
+def test_box_without_confident_shoulders_longer_than_leave_leaves():
+    # box tertinggal (mis. kursi) tanpa bahu yakin: carry-over habis setelah leave_s,
+    # lalu PersonLeft setelah leave_s berikutnya tanpa target -> sekitar 2 x leave_s
+    clip = Clip(shoulder_tracker()).play(3, [shouldered(1)])
+    last_confident = clip.now - STEP
+    clip.play(3 * LEAVE, [shouldered(1, conf=0.1)])
+    assert clip.kinds() == ["PersonArrived", "PersonLeft"]
+    left = clip.events[1]
+    assert left.t - last_confident == pytest.approx(2 * LEAVE, abs=2 * STEP)
+    clip.play(5, [shouldered(1, conf=0.1)])
+    assert clip.kinds() == ["PersonArrived", "PersonLeft"]  # box itu tidak disapa lagi
 
 
 def test_shoulder_unsure_and_box_gone_leaves():
