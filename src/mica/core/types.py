@@ -31,6 +31,8 @@ class ErrorCode(StrEnum):
     # M-01
     CFG_INVALID = "CFG_INVALID"
     CFG_GEMINI_IN_KIOSK = "CFG_GEMINI_IN_KIOSK"
+    # M-07
+    VISION_MODEL_MISSING = "VISION_MODEL_MISSING"
 
 
 class ScrubbedText(str):
