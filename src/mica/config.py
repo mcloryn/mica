@@ -158,7 +158,9 @@ class VisionConfig(_Model):
     color: ColorConfig
     dwell_s: NonNegativeFloat | None = None
     leave_s: NonNegativeFloat | None = None
-    min_box_height_ratio: float | None = None
+    min_box_height_ratio: float | None = Field(default=None, ge=0, le=1)
+    conf: float | None = Field(default=None, ge=0, le=1)  # ambang skor deteksi untuk tracker
+    imgsz: PositiveInt | None = None
     fps_idle: PositiveFloat
     fps_busy: PositiveFloat | None = None
     threads: PositiveInt | None = None

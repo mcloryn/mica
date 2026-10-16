@@ -16,6 +16,10 @@ dependencies = [
     "rank-bm25",
     "sentence-transformers",
     "httpx",
+    # M-07 vision (ADR-12, ADR-15); torch versi CPU
+    "ultralytics>=8.4.63,<8.5",
+    "opencv-python",
+    "lap>=0.5.12",  # ByteTrack; dipasang eksplisit supaya Ultralytics tidak memasang saat runtime
 ]
 
 [project.optional-dependencies]
@@ -29,6 +33,7 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["slow: memakai bobot model asli di models/ (dilewati bila belum diunduh)"]
 
 [tool.ruff]
 line-length = 100

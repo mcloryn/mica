@@ -333,3 +333,33 @@ def test_reranker_revision_must_be_full_hash(tmp_path):
     with pytest.raises(ConfigError) as exc:
         load_settings(_write(tmp_path, raw))
     assert "rag.reranker.revision" in str(exc.value)
+
+
+def test_vision_conf_imgsz_required_in_kiosk(tmp_path):
+    raw = _complete_kiosk_raw()
+    raw["vision"]["conf"] = None
+    raw["vision"]["imgsz"] = None
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert "vision.conf" in str(exc.value) and "vision.imgsz" in str(exc.value)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"), [("conf", 1.5), ("min_box_height_ratio", -0.1), ("imgsz", 0)]
+)
+def test_vision_values_range_checked(tmp_path, field, value):
+    raw = _dev_raw()
+    raw["vision"][field] = value
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert f"vision.{field}" in str(exc.value)
+
+
+def test_dev_yaml_vision_tbd_values_stay_null():
+    vision = load_settings(DEV_YAML).vision
+    assert (vision.dwell_s, vision.leave_s, vision.min_box_height_ratio, vision.fps_busy) == (
+        None,
+        None,
+        None,
+        None,
+    )

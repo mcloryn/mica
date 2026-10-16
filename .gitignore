@@ -1,6 +1,7 @@
 .env
 .venv/
 models/
+models/*.pt
 logs/*.jsonl
 data/kb/*
 !data/kb/.gitkeep
