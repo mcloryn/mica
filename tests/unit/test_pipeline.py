@@ -363,3 +363,17 @@ def test_false_premise_rule_covers_missing_options(variant):
     system = build_prompt(ScrubbedText("q"), [], [], variant).system
     assert "pilihan (misalnya prodi, jalur, gelombang, atau kelas) yang tidak ada" in system
     assert "sebutkan pilihan yang ada beserta sitasinya" in system
+
+
+@pytest.mark.parametrize("variant", ["paraphrase", "plain"])
+def test_only_asked_rule_v2(variant):
+    import re
+
+    system = build_prompt(ScrubbedText("q"), [], [], variant).system
+    assert PROMPT_VERSION == "v2"
+    assert "3. Jawab hanya hal yang ditanyakan." in system
+    assert "isi status not_found. Jangan mengganti pertanyaan pengguna" in system
+    assert "biaya barang atau layanan lain, atau tentang kampus lain" in system
+    # aturan bernomor urut 1..10 setelah sisipan
+    numbers = [int(n) for n in re.findall(r"^(\d+)\. ", system, re.MULTILINE)]
+    assert numbers == list(range(1, 11))
