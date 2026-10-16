@@ -6,6 +6,10 @@ python -m mica.vision demo [--config config/dev.yaml] [--camera 0] [--video <pat
 
 Demo tidak pernah menulis gambar atau video ke disk (N-08). Nilai kehadiran yang TBD di config
 (null) wajib diberikan lewat argumen; tidak ada nilai bawaan di kode.
+
+python -m mica.vision demo ... [--countdown N] [--prompt DETIK:TEKS ...] menampilkan instruksi
+berjadwal di jendela (misalnya "10:Berdiri, mundur 4-5 m") untuk uji coba dengan relawan;
+--countdown memberi waktu bersiap sebelum waktu demo dihitung.
 """
 
 from __future__ import annotations
@@ -65,7 +69,32 @@ def build_parser() -> argparse.ArgumentParser:
     demo.add_argument("--leave-s", type=float, help="menimpa vision.leave_s")
     demo.add_argument("--min-ratio", type=float, help="menimpa vision.min_box_height_ratio")
     demo.add_argument("--fps-busy", type=float, help="menimpa vision.fps_busy")
+    demo.add_argument(
+        "--prompt",
+        type=_prompt,
+        action="append",
+        default=[],
+        metavar="DETIK:TEKS",
+        help="instruksi di jendela mulai detik ke-N (boleh berulang; teks ASCII)",
+    )
+    demo.add_argument(
+        "--countdown",
+        type=float,
+        default=0.0,
+        help="hitung mundur N detik di jendela sebelum mulai",
+    )
     return parser
+
+
+def _prompt(value: str) -> tuple[float, str]:
+    at, sep, text = value.partition(":")
+    try:
+        seconds = float(at)
+    except ValueError:
+        seconds = -1.0
+    if not sep or seconds < 0 or not text.strip():
+        raise argparse.ArgumentTypeError(f"format DETIK:TEKS, didapat {value!r}")
+    return seconds, text.strip()
 
 
 class DemoError(Exception):
@@ -159,7 +188,52 @@ def _describe(event: VisionEvent) -> str:
     return repr(event)
 
 
-def _draw(frame: Any, tracks: list[PersonTrack], state: str, target: int | None, fps: float):
+def current_prompt(
+    prompts: list[tuple[float, str]], elapsed: float
+) -> tuple[str | None, tuple[float, str] | None]:
+    """(instruksi yang berlaku, (detik, instruksi) berikutnya)."""
+    now = None
+    upcoming = None
+    for at, text in sorted(prompts):
+        if at <= elapsed:
+            now = text
+        elif upcoming is None:
+            upcoming = (at, text)
+    return now, upcoming
+
+
+def _banner(frame: Any, lines: list[str]) -> None:
+    import cv2
+
+    h, w = frame.shape[:2]
+    top = h - 34 * len(lines) - 12
+    cv2.rectangle(frame, (0, top), (w, h), (0, 0, 0), -1)
+    for i, line in enumerate(lines):
+        scale, thick = (0.9, 2) if i == 0 else (0.6, 1)
+        y = top + 32 + 34 * i
+        cv2.putText(frame, line, (12, y), cv2.FONT_HERSHEY_SIMPLEX, scale, (255, 255, 255), thick)
+
+
+def _prompt_lines(
+    prompts: list[tuple[float, str]], elapsed: float, seconds: float | None
+) -> list[str]:
+    now, upcoming = current_prompt(prompts, elapsed)
+    lines = [now] if now else []
+    if upcoming is not None:
+        lines.append(f"Berikutnya dalam {upcoming[0] - elapsed:.0f} s: {upcoming[1]}")
+    if seconds is not None:
+        lines.append(f"Sisa waktu rekaman {max(seconds - elapsed, 0):.0f} s")
+    return lines
+
+
+def _draw(
+    frame: Any,
+    tracks: list[PersonTrack],
+    state: str,
+    target: int | None,
+    fps: float,
+    lines: list[str],
+):
     import cv2
 
     h = frame.shape[0]
@@ -172,6 +246,8 @@ def _draw(frame: Any, tracks: list[PersonTrack], state: str, target: int | None,
     cv2.putText(
         frame, f"{state} | {fps:.1f} fps", (8, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2
     )
+    if lines:
+        _banner(frame, lines)
     cv2.imshow("MICA vision demo (q = keluar)", frame)
     return cv2.waitKey(1) & 0xFF
 
@@ -186,11 +262,15 @@ def run_demo(
     seconds: float | None,
     show_window: bool,
     stop_on_read_fail: bool = False,
+    prompts: list[tuple[float, str]] | None = None,
+    beep: Callable[[], None] | None = None,
     clock: Callable[[], float] = time.monotonic,
     sleep: Callable[[float], None] = time.sleep,
     out: Callable[[str], None] = print,
 ) -> DemoStats:
     stats = DemoStats()
+    prompts = prompts or []
+    shown_prompt: str | None = None
     start = clock()
     report_at = start + 1.0
     window_ratios: list[float] = []  # rasio box terbesar per frame dalam detik ini
@@ -201,6 +281,12 @@ def run_demo(
             elapsed = t0 - start
             if seconds is not None and elapsed >= seconds:
                 break
+            prompt, _next = current_prompt(prompts, elapsed)
+            if prompt != shown_prompt:
+                shown_prompt = prompt
+                out(f"[{elapsed:6.2f}s {_wall()}] INSTRUKSI: {prompt}")
+                if beep is not None:
+                    beep()
             frame, status = camera.read()
             if status is not None:
                 stats.events.append((elapsed, status))
@@ -231,7 +317,8 @@ def run_demo(
                 window_ratios.append(max(t.height_ratio(frame_h) for t in tracks))
 
             if show_window:
-                key = _draw(frame, tracks, presence.state, presence.track_id, stats.fps)
+                lines = _prompt_lines(prompts, elapsed, seconds)
+                key = _draw(frame, tracks, presence.state, presence.track_id, stats.fps, lines)
                 if key == ord("q"):
                     break
             del frame  # N-08: frame hanya di memori
@@ -265,6 +352,33 @@ def run_demo(
             cv2.destroyAllWindows()
     stats.seconds = clock() - start
     return stats
+
+
+def _beep() -> None:
+    try:
+        import winsound
+
+        winsound.Beep(1200, 250)
+    except (ImportError, RuntimeError):
+        pass
+
+
+def _countdown(camera: Camera, seconds: float, prompts: list[tuple[float, str]]) -> None:
+    """Tampilkan kamera dan hitung mundur sebelum waktu demo dihitung (tanpa deteksi)."""
+    import cv2
+
+    first, _ = current_prompt(prompts, 0.0)
+    end = time.monotonic() + seconds
+    while (left := end - time.monotonic()) > 0:
+        frame, _status = camera.read()
+        if frame is None:
+            time.sleep(0.1)
+            continue
+        lines = [f"Mulai dalam {left:.0f} s"] + ([f"Siapkan: {first}"] if first else [])
+        _banner(frame, lines)
+        cv2.imshow("MICA vision demo (q = keluar)", frame)
+        del frame  # N-08
+        cv2.waitKey(30)
 
 
 def _make_detector(settings: Settings, path: Path) -> PersonDetector:
@@ -308,6 +422,9 @@ def cmd_demo(
     detector.detect_and_track(np.zeros((480, 640, 3), dtype=np.uint8))
     print(f"pemanasan kamera dan model {clock() - t_warm:.1f} s")
 
+    if args.countdown > 0 and not args.no_window:
+        _countdown(camera, args.countdown, args.prompt)
+
     presence = PresenceTracker(
         dwell_s=values["dwell_s"],
         leave_s=values["leave_s"],
@@ -322,6 +439,8 @@ def cmd_demo(
         seconds=args.seconds,
         show_window=not args.no_window,
         stop_on_read_fail=args.video is not None,
+        prompts=args.prompt,
+        beep=None if args.no_window else _beep,
         clock=clock,
         sleep=sleep,
     )

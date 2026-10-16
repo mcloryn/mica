@@ -223,3 +223,36 @@ def test_real_model_smoke(no_disk_writes):
         assert isinstance(tracks, list)
     assert not (no_disk_writes / "runs").exists()
     assert sorted(os.listdir(no_disk_writes)) == []
+
+
+def test_prompt_argument_and_schedule():
+    args = cli.build_parser().parse_args(
+        ["demo", "--prompt", "10:Berdiri, mundur", "--prompt", "0:Duduk dekat laptop"]
+    )
+    assert args.prompt == [(10.0, "Berdiri, mundur"), (0.0, "Duduk dekat laptop")]
+    assert cli.current_prompt(args.prompt, 3.0) == ("Duduk dekat laptop", (10.0, "Berdiri, mundur"))
+    assert cli.current_prompt(args.prompt, 12.0) == ("Berdiri, mundur", None)
+    lines = cli._prompt_lines(args.prompt, 3.0, 20.0)
+    assert lines == [
+        "Duduk dekat laptop",
+        "Berikutnya dalam 7 s: Berdiri, mundur",
+        "Sisa waktu rekaman 17 s",
+    ]
+    with pytest.raises(SystemExit):
+        cli.build_parser().parse_args(["demo", "--prompt", "tanpa-detik"])
+
+
+def test_run_demo_announces_prompt_changes(no_disk_writes):
+    clock = FakeClock()
+    lines, beeps = [], []
+    camera = Camera(
+        0, open_capture=lambda s: FakeCapture([np.zeros((10, 10, 3), np.uint8)] * 50), clock=clock
+    )
+    presence = cli.PresenceTracker(dwell_s=1.0, leave_s=1.0, min_box_height_ratio=0.3)
+    cli.run_demo(
+        FakeDetector(), camera, presence, fps_idle=5, fps_busy=2, seconds=4.0, show_window=False,
+        prompts=[(0.0, "Duduk"), (2.0, "Mundur")], beep=lambda: beeps.append(1),
+        clock=clock, sleep=clock.sleep, out=lines.append,
+    )  # fmt: skip
+    announced = [line.split("INSTRUKSI: ")[1] for line in lines if "INSTRUKSI" in line]
+    assert announced == ["Duduk", "Mundur"] and len(beeps) == 2
