@@ -237,3 +237,44 @@ def test_range_in_answer_checks_both_endpoints():
     assert _check("Matrikulasi 22-28 Februari 2027.", source) == CheckResult(
         False, ("28 Februari 2027",), 2
     )
+
+
+# Metadata sumber (judul, valid_from) dan premis pertanyaan
+
+
+@pytest.mark.parametrize(
+    ("answer", "passed"),
+    [
+        ("Biaya Rp14.000.000, berlaku sejak 29 September 2026.", True),
+        ("Biaya Rp14.000.000, berlaku sejak 29-09-2026.", True),
+        ("Biaya Rp14.000.000, berlaku sejak 30 September 2026.", False),
+        ("Biaya Rp14.000.000, berlaku sejak 29 September 2025.", False),
+    ],
+)
+def test_valid_from_metadata_supports_dates(answer, passed):
+    chunk = Chunk("biaya#2", "biaya", "Biaya Kuliah", "Biaya", date(2026, 9, 29), "dev",
+                  "SI Rp14.000.000 per tahun", False)  # fmt: skip
+    assert checker.check(answer, [chunk]).passed is passed
+
+
+def test_title_metadata_supports_numbers_but_chunk_id_does_not():
+    chunk = Chunk("brosur#7", "brosur", "Brosur PMB 2027/2028", "B", date(2026, 9, 29), "dev",
+                  "Biaya Rp14.000.000", False)  # fmt: skip
+    assert checker.check("Menurut brosur 2027/2028, biaya Rp14.000.000.", [chunk]).passed
+    assert checker.check("Ada 7 jalur.", [chunk]).passed is False
+
+
+JADWAL_S1 = "Gelombang 1 | 17 September 2026 sampai 31 Mei 2027\nGelombang 2 | 2 Juni 2027"
+
+
+def test_premise_numbers_supported_for_false_premise():
+    answer = "Gelombang 3 tidak ada; yang ada Gelombang 1 dan 2."
+    premise = "Pendaftaran S1 gelombang 3 dibuka kapan?"
+    assert checker.check(answer, [_chunk(JADWAL_S1)]).passed is False
+    assert checker.check(answer, [_chunk(JADWAL_S1)], premise) == CheckResult(True, (), 3)
+
+
+def test_premise_does_not_support_other_fabricated_numbers():
+    answer = "Gelombang 3 tidak ada; Gelombang 2 dibuka 1 Juni 2027."
+    result = checker.check(answer, [_chunk(JADWAL_S1)], "gelombang 3 kapan?")
+    assert result == CheckResult(False, ("1 Juni 2027",), 3)

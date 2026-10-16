@@ -318,3 +318,47 @@ def test_ask_cli_rejects_kiosk_config(tmp_path, capsys):
 
     assert main(["x", "--config", str(ROOT / "config" / "kiosk.yaml")]) == 2
     assert "error:" in capsys.readouterr().err
+
+
+def test_false_premise_numbers_from_question_supported(tmp_path):
+    reply = ("false_premise", "Gelombang 3 tidak ada; yang ada Gelombang 1 mulai 17 September 2026.",
+             ["02_jadwal#3"])  # fmt: skip
+    pipeline, *_ = _pipeline(tmp_path, reply)
+    assert pipeline.answer("Gelombang 3 dibuka kapan?", [], "s-1").status == "false_premise"
+
+
+def test_answered_does_not_use_question_numbers(tmp_path):
+    reply = ("answered", "Gelombang 3 dibuka 17 September 2026.", ["02_jadwal#3"])
+    pipeline, *_ = _pipeline(tmp_path, reply)
+    final = pipeline.answer("Gelombang 3 dibuka kapan?", [], "s-1")
+    assert final.status == "refused_check"
+    assert _log_lines(tmp_path)[0]["fact_check"]["unsupported"] == ["3"]
+
+
+def test_valid_from_in_answer_supported(tmp_path):
+    reply = ("answered", "Biaya SI Rp14.000.000 per tahun, berlaku sejak 29 September 2026.",
+             ["03_biaya#2"])  # fmt: skip
+    pipeline, *_ = _pipeline(tmp_path, reply)
+    assert pipeline.answer("Biaya SI?", [], "s-1").status == "answered"
+
+
+@pytest.mark.parametrize("threshold", [None, 0.5])
+def test_no_hits_refused_gate_without_llm(tmp_path, threshold):
+    from mica.rag.gate import ScoreThresholdGate
+
+    llm = FakeLlm(ANSWER_SI)
+    pipeline = AnswerPipeline(_settings(), FakeRetriever(chunks=()), ScoreThresholdGate(threshold),
+                              llm, NumericFactChecker(), kb_id="dev-test",
+                              log=InteractionLog(tmp_path / "logs"))  # fmt: skip
+    final = pipeline.answer("Biaya SI?", [], "s-1")
+    assert (final.status, final.text) == ("refused_gate", REFUSAL)
+    assert llm.requests == []
+    (line,) = _log_lines(tmp_path)
+    assert line["gate"]["passed"] is False and line["error_code"] == "REFUSED_GATE"
+
+
+@pytest.mark.parametrize("variant", ["paraphrase", "plain"])
+def test_false_premise_rule_covers_missing_options(variant):
+    system = build_prompt(ScrubbedText("q"), [], [], variant).system
+    assert "pilihan (misalnya prodi, jalur, gelombang, atau kelas) yang tidak ada" in system
+    assert "sebutkan pilihan yang ada beserta sitasinya" in system

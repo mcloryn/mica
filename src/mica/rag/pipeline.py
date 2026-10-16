@@ -120,6 +120,9 @@ class AnswerPipeline:
         t = trace.stage("retrieval", t)
 
         trace.gate = self.gate.decide(trace.hits)
+        if not trace.hits:
+            # tanpa potongan tidak ada yang bisa dijawab, juga saat ambang masih null
+            trace.gate = GateDecision(False, trace.gate.score, trace.gate.threshold)
         t = trace.stage("gate", t)
         if not trace.gate.passed:
             trace.error_code = ErrorCode.REFUSED_GATE
@@ -163,7 +166,8 @@ class AnswerPipeline:
         sources = tuple(by_id[c] for c in dict.fromkeys(out.citations) if c in by_id)
 
         if rag.fact_check.enabled:  # juga untuk false_premise (SDD 7.3)
-            result = self.checker.check(out.answer, list(sources))
+            premise = q if out.status == "false_premise" else None
+            result = self.checker.check(out.answer, list(sources), premise)
             trace.fact_check = {
                 "passed": result.passed,
                 "checked": result.checked,

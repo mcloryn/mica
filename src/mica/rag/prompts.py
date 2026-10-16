@@ -15,7 +15,7 @@ import re
 from collections.abc import Sequence
 from typing import Literal
 
-from mica.core.types import LlmRequest, ScoredChunk, ScrubbedText, Turn
+from mica.core.types import Chunk, LlmRequest, ScoredChunk, ScrubbedText, Turn
 
 PromptVariant = Literal["paraphrase", "plain"]
 
@@ -36,7 +36,10 @@ _ONLY_SOURCES = (
 _FALSE_PREMISE = (
     "3. Bila pertanyaan memuat anggapan yang bertentangan dengan dokumen, misalnya jalur atau "
     'program yang tidak ada, isi status dengan "false_premise" dan luruskan anggapannya '
-    "berdasarkan potongan."
+    "berdasarkan potongan. Ini termasuk pertanyaan yang menanyakan pilihan (misalnya prodi, "
+    "jalur, gelombang, atau kelas) yang tidak ada di daftar dalam potongan: isi status "
+    "false_premise, jelaskan bahwa pilihan itu tidak ada, lalu sebutkan pilihan yang ada beserta "
+    "sitasinya."
 )
 _EXACT_PARAPHRASE = (
     "4. Susun jawaban dengan kalimat sendiri, jangan menyalin kalimat potongan, tetapi tulis "
@@ -98,10 +101,13 @@ def _data(text: str) -> str:
     return _MARKER.sub("", text).strip()
 
 
-def chunk_label(hit: ScoredChunk) -> str:
-    c = hit.chunk
-    title = _data(c.doc_title)
-    return f"[ID: {c.chunk_id} | Sumber: {title} | Berlaku: {c.valid_from.isoformat()}]"
+def source_label(chunk: Chunk) -> str:
+    """Metadata sumber seperti di label prompt; juga dibaca checker (M-04)."""
+    return f"Sumber: {_data(chunk.doc_title)} | Berlaku: {chunk.valid_from.isoformat()}"
+
+
+def chunk_label(chunk: Chunk) -> str:
+    return f"[ID: {chunk.chunk_id} | {source_label(chunk)}]"
 
 
 def build_prompt(
@@ -121,7 +127,7 @@ def build_prompt(
             if turn.answer:
                 lines.append(f"MICA: {_data(turn.answer)}")
         parts.append("<<<RIWAYAT>>>\n" + "\n".join(lines) + "\n<<<AKHIR RIWAYAT>>>")
-    chunks = "\n\n".join(f"{chunk_label(h)}\n{_data(h.chunk.text)}" for h in hits)
+    chunks = "\n\n".join(f"{chunk_label(h.chunk)}\n{_data(h.chunk.text)}" for h in hits)
     parts.append(f"<<<POTONGAN>>>\n{chunks}\n<<<AKHIR POTONGAN>>>")
     return LlmRequest(
         system=system_prompt(variant),

@@ -48,6 +48,7 @@ from typing import Protocol
 
 from mica.config import Settings
 from mica.core.types import CheckResult, Chunk
+from mica.rag.prompts import source_label
 
 MASK = "\x00"  # pengganti span yang sudah diekstrak; bukan \w dan bukan spasi
 
@@ -120,7 +121,9 @@ Built = tuple[NumericToken, int] | None  # token dan ujung span-nya, atau None b
 
 
 class FactChecker(Protocol):
-    def check(self, answer: str, sources: list[Chunk]) -> CheckResult: ...
+    def check(
+        self, answer: str, sources: list[Chunk], premise: str | None = None
+    ) -> CheckResult: ...
 
 
 def number_values(text: str, thousands_only: bool = False) -> set[Decimal]:
@@ -299,8 +302,15 @@ def extract_numbers(text: str) -> list[NumericToken]:
     return [token for _, token in sorted(_scan(text), key=lambda item: item[0])]
 
 
-def source_index(sources: Iterable[Chunk]) -> frozenset[Interp]:
-    text = "\n".join(chunk.text for chunk in sources)
+def source_index(sources: Iterable[Chunk], premise: str | None = None) -> frozenset[Interp]:
+    """Teks chunk + metadata label prompt (judul, valid_from), ditambah premise bila ada.
+
+    chunk_id sengaja tidak ikut: digit di ID ("...#2") bukan fakta dokumen.
+    """
+    parts = [f"{chunk.text}\n{source_label(chunk)}" for chunk in sources]
+    if premise:
+        parts.append(premise)
+    text = "\n".join(parts)
     index: set[Interp] = set()
     for token in extract_numbers(text):
         index |= token.interps | token.implied
@@ -308,11 +318,16 @@ def source_index(sources: Iterable[Chunk]) -> frozenset[Interp]:
 
 
 class NumericFactChecker:
-    def check(self, answer: str, sources: list[Chunk]) -> CheckResult:
+    def check(self, answer: str, sources: list[Chunk], premise: str | None = None) -> CheckResult:
+        """premise: pertanyaan yang sudah disamarkan, diisi pemanggil hanya untuk false_premise.
+
+        Koreksi premis wajar mengulang angka dari pertanyaan ("gelombang 3 tidak ada"), jadi
+        angka itu dianggap didukung. Untuk status answered, premise tidak diisi.
+        """
         tokens = extract_numbers(answer)
         if not tokens:
             return CheckResult(passed=True, unsupported=(), checked=0)
-        index = source_index(sources)
+        index = source_index(sources, premise)
         unsupported = tuple(t.text for t in tokens if not (t.interps & index))
         return CheckResult(passed=not unsupported, unsupported=unsupported, checked=len(tokens))
 
