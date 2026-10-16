@@ -12,6 +12,8 @@ from pathlib import Path
 from typing import Any
 
 QUESTION_TYPES = ("answerable", "out_of_kb", "false_premise", "followup")
+# seberapa dekat pertanyaan di luar KB dengan topik PMB: wajib untuk out_of_kb saja
+OOS_LEVELS = ("jauh", "dekat")
 GOLD_REF_SEP = "::"
 
 Question = dict[str, Any]
@@ -47,6 +49,12 @@ def validate_questions(questions: list[Question]) -> None:
             errors.append(f"{where}: type {q.get('type')!r} bukan salah satu dari {QUESTION_TYPES}")
         if q.get("type") == "followup" and not q.get("prev_qid"):
             errors.append(f"{where}: followup wajib punya prev_qid")
+        oos_level = q.get("oos_level")
+        if q.get("type") == "out_of_kb":
+            if oos_level not in OOS_LEVELS:
+                errors.append(f"{where}: out_of_kb wajib punya oos_level, salah satu {OOS_LEVELS}")
+        elif oos_level is not None:
+            errors.append(f"{where}: oos_level hanya untuk out_of_kb, harus null atau tidak ada")
         refs = q.get("gold_refs", [])
         if not isinstance(refs, list):
             errors.append(f"{where}: gold_refs harus list")

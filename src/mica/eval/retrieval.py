@@ -10,10 +10,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
-import os
-import platform
 import statistics
-import subprocess
 import time
 from dataclasses import dataclass
 from datetime import datetime
@@ -22,6 +19,7 @@ from typing import Any
 
 from mica.config import Settings
 from mica.eval.dataset import DatasetError, Question, load_questions
+from mica.eval.environment import collect_environment
 from mica.eval.metrics import (
     first_relevant_rank,
     hit_at,
@@ -30,7 +28,7 @@ from mica.eval.metrics import (
     reciprocal_rank,
 )
 from mica.kb.embedder import Embedder
-from mica.kb.index import KnowledgeBase, package_version, torch_version
+from mica.kb.index import KnowledgeBase
 from mica.rag.retriever import Retriever, embedder_for_kb, make_retriever
 
 EXPERIMENT = "E-01"
@@ -181,51 +179,6 @@ def summarize(results: list[QuestionResult]) -> dict[str, Any]:
         "latency_p50_ms": percentile(latencies, 50),
         "latency_p95_ms": percentile(latencies, 95),
         "unjudged": sum(r.unjudged for r in results),
-    }
-
-
-def _git(args: list[str], cwd: Path | None = None) -> str | None:
-    try:
-        out = subprocess.run(
-            ["git", *args], cwd=cwd, capture_output=True, text=True, timeout=10, check=True
-        )
-    except (OSError, subprocess.SubprocessError):
-        return None
-    return out.stdout
-
-
-def git_commit(cwd: Path | None = None) -> str | None:
-    out = _git(["rev-parse", "HEAD"], cwd)
-    if out is None:
-        return None
-    return out.strip() or None
-
-
-def git_dirty(cwd: Path | None = None) -> bool | None:
-    """True bila ada perubahan belum di-commit (termasuk file baru) di luar results/.
-
-    None bila bukan repo git atau git tidak tersedia.
-    """
-    top = _git(["rev-parse", "--show-toplevel"], cwd)
-    if top is None:
-        return None
-    status = _git(
-        ["status", "--porcelain", "--untracked-files=normal", "--", ".", ":(exclude)results"],
-        Path(top.strip()),
-    )
-    return None if status is None else bool(status.strip())
-
-
-def collect_environment(cwd: Path | None = None) -> dict[str, Any]:
-    return {
-        "python": platform.python_version(),
-        "torch": torch_version(),
-        "sentence_transformers": package_version("sentence-transformers"),
-        "platform": platform.platform(),
-        "cpu": platform.processor(),
-        "cpu_count_logical": os.cpu_count(),
-        "git_commit": git_commit(cwd),
-        "git_dirty": git_dirty(cwd),
     }
 
 

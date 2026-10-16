@@ -20,6 +20,7 @@ from pydantic import (
     SecretStr,
     ValidationError,
     field_validator,
+    model_validator,
 )
 
 from mica.core.types import ErrorCode
@@ -88,6 +89,15 @@ class RagConfig(_Model):
     followup_mode: Literal["concat", "llm_rewrite"]
     history_turns: NonNegativeInt
     prompt_variant: Literal["paraphrase", "plain"]
+
+    @model_validator(mode="after")
+    def _gate_needs_dense(self) -> RagConfig:
+        # Sinyal gerbang = cosine dense peringkat 1; retriever bm25 tidak punya sinyal itu.
+        if self.retriever == "bm25" and self.gate.threshold is not None:
+            raise ValueError(
+                "rag.gate.threshold harus null bila rag.retriever = bm25 (tidak ada skor dense)"
+            )
+        return self
 
 
 class LlmConfig(_Model):
@@ -260,6 +270,9 @@ def _optional_in_kiosk(settings: Settings) -> set[str]:
     optional: set[str] = set()
     if settings.rag.retriever != "hybrid":
         optional |= {"rag.rrf_k", "rag.candidates_per_retriever"}
+    if settings.rag.retriever == "bm25":
+        # bm25 tidak punya sinyal dense untuk gerbang, jadi threshold wajib null
+        optional.add("rag.gate.threshold")
     if settings.audio.stt.backend != "faster_whisper":
         optional.add("audio.stt.threads")
     if not settings.rag.reranker.enabled:

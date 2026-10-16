@@ -40,6 +40,7 @@ QUESTIONS = [
         "qid": "q3",
         "question": "Apakah ada asrama?",
         "type": "out_of_kb",
+        "oos_level": "jauh",
         "topic": "Fasilitas",
         "gold_chunk_ids": [],
         "reference_answer": "",

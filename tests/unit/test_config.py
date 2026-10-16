@@ -246,6 +246,8 @@ def test_hybrid_params_optional_for_other_retrievers_in_kiosk(tmp_path, retrieve
     raw["rag"]["retriever"] = retriever
     raw["rag"]["rrf_k"] = None
     raw["rag"]["candidates_per_retriever"] = None
+    if retriever == "bm25":
+        raw["rag"]["gate"]["threshold"] = None
     settings = load_settings(_write(tmp_path, raw))
     assert settings.rag.rrf_k is None
 

@@ -57,8 +57,19 @@ class ScoredChunk:
     score: float  # skor akhir dari retriever terpilih
     ranks: dict[str, int]  # peringkat per retriever, untuk analisis E-01
     # skor asli per retriever, misalnya {"bm25": 9.48, "dense": 0.71}; skor RRF hanya berbasis
-    # peringkat, jadi gate (M-04) memakai skor asli ini (cosine dense)
+    # peringkat, jadi gate (M-04) memakai skor asli ini (cosine dense). Kunci "dense@1" berisi
+    # cosine dense peringkat 1 untuk kueri itu, sama di semua hasil, walau chunk tersebut tidak
+    # masuk top-k hasil fusi.
     raw_scores: dict[str, float] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class GateDecision:
+    """Keputusan RelevanceGate (M-04): lolos ke LLM atau ditolak sebelum LLM dipanggil."""
+
+    passed: bool
+    score: float | None  # sinyal gerbang (cosine dense peringkat 1); None bila tidak tersedia
+    threshold: float | None  # rag.gate.threshold yang dipakai; None = gerbang belum dikalibrasi
 
 
 @dataclass(frozen=True)

@@ -108,7 +108,10 @@ def test_contract_k_sorted_types(factory, k):
     assert all(h.ranks and all(isinstance(r, int) and r >= 1 for r in h.ranks.values())
                for h in hits)
     # skor asli tersedia untuk setiap retriever yang menemukan chunk
-    assert all(set(h.raw_scores) == set(h.ranks) for h in hits)
+    assert all(set(h.raw_scores) - {"dense@1"} == set(h.ranks) for h in hits)
+    # retriever yang memakai dense membawa sinyal gerbang dense@1 di setiap hasil
+    if factory is not _bm25:
+        assert len({h.raw_scores["dense@1"] for h in hits}) == 1
     assert all(isinstance(v, float) for h in hits for v in h.raw_scores.values())
 
 
@@ -167,7 +170,9 @@ def test_dense_exact_cosine():
     expected = kb.dense @ FakeEmbedder().embed([query])[0]
     assert [h.score for h in hits] == pytest.approx(sorted(expected, reverse=True)[:3], abs=1e-6)
     assert [h.ranks["dense"] for h in hits] == [1, 2, 3]
-    assert [h.raw_scores for h in hits] == [{"dense": h.score} for h in hits]
+    assert [h.raw_scores for h in hits] == [
+        {"dense": h.score, "dense@1": hits[0].score} for h in hits
+    ]
 
 
 class StubSource:
@@ -199,11 +204,12 @@ def test_rrf_matches_manual_calculation():
     assert [(h.chunk.chunk_id, h.ranks) for h in hits] == [(c, r) for c, _, r in expected]
     assert [h.score for h in hits] == pytest.approx([s for _, s, _ in expected], abs=1e-12)
     # skor asli per retriever ikut dibawa; chunk yang tidak ditemukan dense tidak punya kuncinya
+    # dense@1 = skor dense peringkat 1 (0.71), dibawa di semua hasil
     assert [h.raw_scores for h in hits] == [
-        {"bm25": 7.0, "dense": 0.71},
-        {"bm25": 9.5},
-        {"dense": 0.4},
-        {"bm25": 3.25},
+        {"bm25": 7.0, "dense": 0.71, "dense@1": 0.71},
+        {"bm25": 9.5, "dense@1": 0.71},
+        {"dense": 0.4, "dense@1": 0.71},
+        {"bm25": 3.25, "dense@1": 0.71},
     ]
 
 

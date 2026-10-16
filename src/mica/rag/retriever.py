@@ -6,6 +6,7 @@ Bila skor sama, hasil diurutkan menurut urutan chunk di KB supaya deterministik.
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 import time
 from collections.abc import Callable, Sequence
@@ -22,6 +23,8 @@ logger = logging.getLogger(__name__)
 
 # (indeks chunk di KB, skor), terurut dari yang terbaik
 Ranked = list[tuple[int, float]]
+# kunci raw_scores untuk cosine dense peringkat 1 (sinyal gerbang M-04)
+DENSE_TOP1 = "dense@1"
 EmbedderFactory = Callable[[str, str | None], Embedder]  # (model_id, revision)
 
 
@@ -95,6 +98,15 @@ class Bm25Retriever(_SingleRetriever):
 class DenseRetriever(_SingleRetriever):
     name = "dense"
 
+    def search(self, query: str, k: int) -> list[ScoredChunk]:
+        hits = super().search(query, k)
+        if not hits:
+            return hits
+        top1 = hits[0].score
+        return [
+            dataclasses.replace(h, raw_scores={**h.raw_scores, DENSE_TOP1: top1}) for h in hits
+        ]
+
     def __init__(self, kb: KnowledgeBase, embedder: Embedder) -> None:
         super().__init__(kb.chunks)
         self.dense = kb.dense
@@ -136,14 +148,21 @@ class HybridRrfRetriever:
         scores: dict[int, float] = {}
         ranks: dict[int, dict[str, int]] = {}
         raw: dict[int, dict[str, float]] = {}
+        extra: dict[str, float] = {}
         for source in self.sources:
-            for rank, (i, raw_score) in enumerate(source.rank(query, self.candidates), start=1):
+            ranked = source.rank(query, self.candidates)
+            if source.name == DenseRetriever.name and ranked:
+                # dense peringkat 1 dibawa terpisah: chunk itu bisa saja kalah di fusi RRF
+                extra[DENSE_TOP1] = ranked[0][1]
+            for rank, (i, raw_score) in enumerate(ranked, start=1):
                 scores[i] = scores.get(i, 0.0) + 1.0 / (self.rrf_k + rank)
                 ranks.setdefault(i, {})[source.name] = rank
                 raw.setdefault(i, {})[source.name] = raw_score
         order = sorted(scores, key=lambda i: (-scores[i], i))[:k]
         return [
-            ScoredChunk(chunk=self.chunks[i], score=scores[i], ranks=ranks[i], raw_scores=raw[i])
+            ScoredChunk(
+                chunk=self.chunks[i], score=scores[i], ranks=ranks[i], raw_scores={**raw[i], **extra}
+            )
             for i in order
         ]
 

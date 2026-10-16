@@ -46,7 +46,7 @@ def env(tmp_path):
         _q("a2", "answerable", "Beasiswa prestasi nilai rapor", biaya[-1:]),
         _q("t1", "answerable", "Biaya test split", biaya[:1], split="test"),
         _q("f1", "followup", "Kalau beasiswa?", biaya[-1:], prev="a1"),
-        _q("o1", "out_of_kb", "Ada asrama?"),
+        {**_q("o1", "out_of_kb", "Ada asrama?"), "oos_level": "jauh"},
     ]
     data = tmp_path / "eval"
     data.mkdir()
@@ -211,7 +211,7 @@ def _git_repo(path):
 
 
 def test_git_dirty_ignores_results(tmp_path):
-    from mica.eval.retrieval import git_commit, git_dirty
+    from mica.eval.environment import git_commit, git_dirty
 
     repo = _git_repo(tmp_path / "repo")
     assert git_dirty(repo) is False
@@ -224,7 +224,7 @@ def test_git_dirty_ignores_results(tmp_path):
 
 
 def test_git_dirty_counts_untracked_files(tmp_path):
-    from mica.eval.retrieval import git_dirty
+    from mica.eval.environment import git_dirty
 
     repo = _git_repo(tmp_path / "repo")
     (repo / "baru.py").write_text("", encoding="utf-8")
@@ -232,7 +232,7 @@ def test_git_dirty_counts_untracked_files(tmp_path):
 
 
 def test_git_dirty_outside_repo(tmp_path, monkeypatch):
-    from mica.eval.retrieval import git_dirty
+    from mica.eval.environment import git_dirty
 
     outside = tmp_path / "bukan-repo"
     outside.mkdir()
@@ -252,10 +252,10 @@ def test_run_json_records_environment(env):
 
 
 def test_cli_warns_when_dirty(env, capsys, monkeypatch):
-    from mica.eval import retrieval
+    from mica.eval import environment
 
     _, _, kb_root, dataset, _, tmp = env
-    monkeypatch.setattr(retrieval, "git_dirty", lambda cwd=None: True)
+    monkeypatch.setattr(environment, "git_dirty", lambda cwd=None: True)
     code = eval_cli.main(
         ["--kb-root", str(kb_root), "retrieval", "--config", str(DEV_YAML),
          "--dataset", str(dataset), "--out", str(tmp / "out"), "--retrievers", "bm25"],

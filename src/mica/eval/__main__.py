@@ -1,9 +1,10 @@
-"""CLI evaluasi (M-12). Saat ini subperintah annotate dan retrieval.
+"""CLI evaluasi (M-12). Saat ini subperintah annotate, retrieval, dan gate.
 
 python -m mica.eval annotate export --config <yaml> --dataset <jsonl> --out <pool.csv> [--force]
 python -m mica.eval annotate import --dataset <jsonl> --pool <pool.csv>
 python -m mica.eval retrieval --config <yaml> --dataset <jsonl> --out <folder>
     [--retrievers bm25,dense,hybrid] [--pool <pool.csv>]
+python -m mica.eval gate --config <yaml> --dataset <jsonl> --out <folder>
 """
 
 from __future__ import annotations
@@ -15,7 +16,9 @@ from pathlib import Path
 from mica.config import ConfigError, load_settings
 from mica.eval.annotate import POOL_DEPTH, export_pool, import_pool
 from mica.eval.dataset import DatasetError
-from mica.eval.retrieval import MAIN_GROUP, collect_environment, run_retrieval
+from mica.eval.environment import collect_environment, dirty_warning
+from mica.eval.gate import GROUPS, group_stats, run_gate
+from mica.eval.retrieval import MAIN_GROUP, run_retrieval
 from mica.kb.index import DEFAULT_KB_ROOT, KbLoadError, load_kb
 from mica.rag.retriever import EmbedderFactory
 
@@ -48,6 +51,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="daftar dipisah koma, misalnya bm25,dense,hybrid (default: rag.retriever)",
     )
     ret.add_argument("--pool", type=Path, help="default: pool.csv di folder dataset")
+
+    gate = sub.add_parser("gate", help="E-02: skor gerbang M-04 dan sweep ambang")
+    gate.add_argument("--config", type=Path, required=True)
+    gate.add_argument("--dataset", type=Path, required=True)
+    gate.add_argument("--out", type=Path, required=True)
     return parser
 
 
@@ -94,12 +102,9 @@ def cmd_retrieval(args: argparse.Namespace, embedder_factory: EmbedderFactory | 
         info = kb.manifest["embedder"]
         embedder = embedder_factory(info["model"], info["revision"])
     environment = collect_environment()
-    if environment["git_dirty"]:
-        print(
-            "peringatan: ada perubahan belum di-commit di luar results/ "
-            f"(git_commit {environment['git_commit']}); hasil ini tidak terikat ke satu commit",
-            file=sys.stderr,
-        )
+    warning = dirty_warning(environment)
+    if warning:
+        print(warning, file=sys.stderr)
     runs, summary = run_retrieval(
         settings, kb, args.dataset, pool, args.out, retrievers,
         embedder=embedder, environment=environment,
@@ -115,6 +120,33 @@ def cmd_retrieval(args: argparse.Namespace, embedder_factory: EmbedderFactory | 
     return 0
 
 
+def cmd_gate(args: argparse.Namespace, embedder_factory: EmbedderFactory | None) -> int:
+    settings = load_settings(args.config)
+    kb = load_kb(settings.kb.active_id, args.kb_root)
+    embedder = None
+    if embedder_factory is not None:
+        info = kb.manifest["embedder"]
+        embedder = embedder_factory(info["model"], info["revision"])
+    environment = collect_environment()
+    warning = dirty_warning(environment)
+    if warning:
+        print(warning, file=sys.stderr)
+    run_dir, scores = run_gate(
+        settings, kb, args.dataset, args.out, embedder=embedder, environment=environment
+    )
+    print(
+        f"KB {kb.kb_id} | retriever {settings.rag.retriever} | "
+        f"{len(scores)} pertanyaan -> {run_dir}"
+    )
+    print("kelompok | n | min | median | maks")
+    stats = group_stats(scores)
+    for group in GROUPS:
+        st = stats[group]
+        if st["n"]:
+            print(f"{group} | {st['n']} | {st['min']:.4f} | {st['median']:.4f} | {st['max']:.4f}")
+    return 0
+
+
 def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -122,6 +154,8 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
     try:
         if args.command == "retrieval":
             return cmd_retrieval(args, embedder_factory)
+        if args.command == "gate":
+            return cmd_gate(args, embedder_factory)
         if args.action == "export":
             return cmd_export(args, embedder_factory)
         return cmd_import(args)
