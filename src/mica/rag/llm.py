@@ -35,7 +35,8 @@ GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:ge
 
 STATUSES = ("answered", "not_found", "false_premise")
 
-# Skema keluaran SDD 5.3 (JSON Schema, untuk structured output Groq strict)
+# Skema keluaran SDD 5.3 (JSON Schema, untuk structured output Groq strict); citations dibatasi
+# per request lewat output_schema()
 OUTPUT_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
@@ -60,6 +61,27 @@ GEMINI_SCHEMA: dict[str, Any] = {
 }
 
 ReasoningEffort = Literal["low", "medium", "high"]
+
+
+def _citations_schema(allowed: tuple[str, ...], array: str, string: str) -> dict[str, Any]:
+    # sitasi dibatasi ke ID potongan yang dikirim; tanpa potongan, sitasi harus kosong
+    if not allowed:
+        return {"type": array, "items": {"type": string}, "maxItems": 0}
+    return {"type": array, "items": {"type": string, "enum": list(allowed)}}
+
+
+def output_schema(allowed: tuple[str, ...]) -> dict[str, Any]:
+    """OUTPUT_SCHEMA dengan citations.items.enum = allowed_chunk_ids request ini (Groq)."""
+    schema = json.loads(json.dumps(OUTPUT_SCHEMA))
+    schema["properties"]["citations"] = _citations_schema(allowed, "array", "string")
+    return schema
+
+
+def gemini_schema(allowed: tuple[str, ...]) -> dict[str, Any]:
+    """GEMINI_SCHEMA dengan citations dibatasi seperti output_schema."""
+    schema = json.loads(json.dumps(GEMINI_SCHEMA))
+    schema["properties"]["citations"] = _citations_schema(allowed, "ARRAY", "STRING")
+    return schema
 
 
 class LLMProvider(Protocol):
@@ -239,7 +261,11 @@ class GroqProvider(_HttpProvider):
             "include_reasoning": False,
             "response_format": {
                 "type": "json_schema",
-                "json_schema": {"name": "mica_answer", "strict": True, "schema": OUTPUT_SCHEMA},
+                "json_schema": {
+                    "name": "mica_answer",
+                    "strict": True,
+                    "schema": output_schema(request.allowed_chunk_ids),
+                },
             },
             "stream": False,
         }
@@ -297,7 +323,7 @@ class GeminiProvider(_HttpProvider):
     def _body(self, request: LlmRequest) -> dict[str, Any]:
         config: dict[str, Any] = {
             "responseMimeType": "application/json",
-            "responseSchema": GEMINI_SCHEMA,
+            "responseSchema": gemini_schema(request.allowed_chunk_ids),
         }
         if self.temperature is not None:
             config["temperature"] = self.temperature

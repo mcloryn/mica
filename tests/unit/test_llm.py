@@ -17,6 +17,7 @@ from mica.rag.llm import (
     GroqProvider,
     ProviderChain,
     make_llm,
+    output_schema,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -95,7 +96,14 @@ def test_groq_request_body():
     fmt = body["response_format"]
     assert fmt["type"] == "json_schema" and fmt["json_schema"]["strict"] is True
     schema = fmt["json_schema"]["schema"]
-    assert schema == OUTPUT_SCHEMA
+    assert schema == output_schema(("doc#0",))
+    assert schema["properties"]["citations"] == {
+        "type": "array",
+        "items": {"type": "string", "enum": ["doc#0"]},
+    }
+    assert {k: v for k, v in schema.items() if k != "properties"} == {
+        k: v for k, v in OUTPUT_SCHEMA.items() if k != "properties"
+    }
     assert schema["additionalProperties"] is False
     assert schema["required"] == ["status", "answer", "citations"]
     assert schema["properties"]["status"]["enum"] == ["answered", "not_found", "false_premise"]
@@ -302,3 +310,44 @@ def test_make_llm_without_key(tmp_path, monkeypatch):
     with pytest.raises(ConfigError) as exc:
         make_llm(settings)
     assert "GROQ_API_KEY" in str(exc.value) and KEY not in str(exc.value)
+
+
+@pytest.mark.parametrize("kind", ["groq", "gemini"])
+def test_citation_enum_per_request(kind):
+    allowed = ("a#1", "b#2", "c#3")
+    request = LlmRequest(system="s", user="u", allowed_chunk_ids=allowed)
+    server = Server({"m": [_groq_ok() if kind == "groq" else _gemini_ok()] * 2})
+    if kind == "groq":
+        provider = _groq(server, "m")
+    else:
+        provider = GeminiProvider("m", mode="dev", api_key=SecretStr(KEY), client=server.client())
+    provider.generate(request, 5)
+    provider.generate(REQUEST, 5)
+    first, second = server.bodies()
+    if kind == "groq":
+        cites = [b["response_format"]["json_schema"]["schema"]["properties"]["citations"]
+                 for b in (first, second)]  # fmt: skip
+    else:
+        cites = [b["generationConfig"]["responseSchema"]["properties"]["citations"]
+                 for b in (first, second)]  # fmt: skip
+    assert cites[0]["items"]["enum"] == list(allowed)
+    assert cites[1]["items"]["enum"] == ["doc#0"]
+
+
+@pytest.mark.parametrize("kind", ["groq", "gemini"])
+def test_citation_schema_empty_when_no_chunks(kind):
+    request = LlmRequest(system="s", user="u", allowed_chunk_ids=())
+    empty = {"status": "not_found", "answer": "", "citations": []}
+    server = Server({"m": [_groq_ok(empty)]})
+    if kind == "groq":
+        _groq(server, "m").generate(request, 5)
+        cites = server.bodies()[0]["response_format"]["json_schema"]["schema"]["properties"]
+    else:
+        server.replies["m"] = [httpx.Response(200, json={
+            "candidates": [{"content": {"parts": [{"text": json.dumps(empty)}]}}]})]  # fmt: skip
+        GeminiProvider("m", mode="dev", api_key=SecretStr(KEY), client=server.client()).generate(
+            request, 5
+        )
+        cites = server.bodies()[0]["generationConfig"]["responseSchema"]["properties"]
+    assert cites["citations"]["maxItems"] == 0
+    assert "enum" not in cites["citations"]["items"]
