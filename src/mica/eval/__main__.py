@@ -6,7 +6,7 @@ python -m mica.eval retrieval --config <yaml> --dataset <jsonl> --out <folder>
     [--retrievers bm25,dense,hybrid] [--pool <pool.csv>]
 python -m mica.eval gate --config <yaml> --dataset <jsonl> --out <folder>
 python -m mica.eval generation --config <yaml> --dataset <jsonl> --out <folder> [--gate-off]
-    [--no-cache] [--cache-dir data/cache/llm] [--env-file .env]
+    [--no-cache] [--cache-only] [--cache-dir data/cache/llm] [--env-file .env]
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from mica.eval.annotate import POOL_DEPTH, export_pool, import_pool
 from mica.eval.dataset import DatasetError
 from mica.eval.environment import collect_environment, dirty_warning
 from mica.eval.gate import GROUPS, group_stats, run_gate
-from mica.eval.generation import DEFAULT_CACHE_DIR, SWEEP_COLUMNS, run_generation
+from mica.eval.generation import DEFAULT_CACHE_DIR, SWEEP_COLUMNS, CacheMiss, run_generation
 from mica.eval.retrieval import MAIN_GROUP, run_retrieval
 from mica.kb.index import DEFAULT_KB_ROOT, KbLoadError, load_kb
 from mica.rag.retriever import EmbedderFactory
@@ -69,6 +69,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     gen.add_argument("--no-cache", action="store_true", help="jangan baca cache; panggil ulang LLM")
     gen.add_argument("--cache-dir", type=Path, default=DEFAULT_CACHE_DIR)
+    gen.add_argument(
+        "--cache-only",
+        action="store_true",
+        help="jangan pernah memanggil API; berhenti bila ada respons yang tidak ada di cache",
+    )
     gen.add_argument("--env-file", type=Path, default=Path(".env"))
     return parser
 
@@ -186,6 +191,7 @@ def cmd_generation(args: argparse.Namespace, embedder_factory: EmbedderFactory |
         gate_off=args.gate_off,
         use_cache=not args.no_cache,
         cache_dir=args.cache_dir,
+        cache_only=args.cache_only,
         embedder=embedder,
         environment=environment,
     )
@@ -210,7 +216,7 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
         if args.action == "export":
             return cmd_export(args, embedder_factory)
         return cmd_import(args)
-    except (ConfigError, KbLoadError, DatasetError, FileExistsError, ValueError) as exc:
+    except (ConfigError, KbLoadError, DatasetError, FileExistsError, ValueError, CacheMiss) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 

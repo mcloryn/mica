@@ -52,6 +52,7 @@ class TurnRecord:
     llm_usage: dict[str, int] | None = None  # prompt_tokens, completion_tokens, total_tokens
     citations: tuple[str, ...] = ()  # sitasi mentah dari LLM, sebelum divalidasi
     error_code: str | None = None  # ErrorCode SDD 8.1 bila tidak answered/false_premise
+    prompt_version: str | None = None  # rag/prompts.py PROMPT_VERSION
 
     def __post_init__(self) -> None:
         _require_aware(self.ts)

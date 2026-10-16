@@ -51,6 +51,9 @@ from mica.core.types import CheckResult, Chunk
 from mica.rag.prompts import source_label
 
 MASK = "\x00"  # pengganti span yang sudah diekstrak; bukan \w dan bukan spasi
+# spasi Unicode selain spasi/tab/baris baru ASCII (U+00A0, U+2009, U+202F, ...) -> spasi biasa;
+# LLM kadang menulis "88 %"
+UNICODE_SPACE = re.compile(r"[^\S \t\n\r\f\v]")
 
 MONTHS = {
     "januari": 1, "jan": 1,
@@ -213,6 +216,7 @@ def _range_tokens(m: re.Match[str]) -> list[tuple[int, NumericToken]] | None:
 
 def _scan(text: str) -> Iterator[tuple[int, NumericToken]]:
     """Token berurutan menurut jenis; span yang sudah diambil diganti MASK."""
+    text = UNICODE_SPACE.sub(" ", text)  # satu karakter -> satu karakter, posisi tetap
     buf = LIST_MARKER.sub(lambda m: m.group(1) + MASK * (len(m.group()) - len(m.group(1))), text)
 
     def take(start: int, end: int) -> None:

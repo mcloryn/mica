@@ -19,6 +19,9 @@ from mica.core.types import Chunk, LlmRequest, ScoredChunk, ScrubbedText, Turn
 
 PromptVariant = Literal["paraphrase", "plain"]
 
+# naikkan setiap kali teks prompt sistem atau format pesan user berubah; dicatat di log dan run.json
+PROMPT_VERSION = "v1"
+
 REFUSAL = (
     "Maaf, saya belum menemukan informasi itu di dokumen resmi PMB. "
     "Silakan tanyakan langsung ke staf PMB di ruangan ini."

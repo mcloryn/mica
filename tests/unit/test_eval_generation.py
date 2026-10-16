@@ -399,3 +399,37 @@ def test_cli_parser_generation():
     )
     assert args.gate_off is True and args.no_cache is False
     assert args.cache_dir.as_posix() == "data/cache/llm"
+
+
+def test_cache_only_stops_before_api(tmp_path):
+    from mica.eval.generation import CacheMiss
+
+    provider = FakeProvider()
+    cache = LlmCache(tmp_path / "cache")
+    EvalLlm(provider, TokenRateLimiter(), cache=cache).generate(REQUEST, 5)
+    guarded = EvalLlm(provider, TokenRateLimiter(), cache=cache, cache_only=True)
+    assert guarded.generate(REQUEST, 5).provider == "groq:fake"  # dari cache
+    with pytest.raises(CacheMiss):
+        guarded.generate(LlmRequest("s", "baru", ("c#0",)), 5)
+    assert len(provider.requests) == 1 and guarded.stats.api_calls == 0
+
+
+def test_run_cache_only(env):
+    from mica.eval.generation import CacheMiss
+
+    with pytest.raises(CacheMiss):
+        _run(env, FakeProvider(_rule), gate_off=True, cache_only=True)
+    _run(env, FakeProvider(_rule), out="out2", gate_off=True)
+    provider = FakeProvider(_rule)
+    run_dir, *_ = _run(env, provider, out="out3", gate_off=True, cache_only=True)
+    run = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
+    assert provider.requests == []
+    assert run["llm_calls"]["cache_only"] is True and run["llm_calls"]["api_calls"] == 0
+    assert run["prompt_version"] == "v1"
+
+
+def test_progress_flushes(capsys):
+    from mica.eval.generation import print_progress
+
+    print_progress("[1/1] x")
+    assert capsys.readouterr().out == "[1/1] x\n"

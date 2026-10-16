@@ -32,7 +32,7 @@ from mica.rag.checker import FactChecker
 from mica.rag.gate import RelevanceGate
 from mica.rag.llm import LLMProvider
 from mica.rag.pii import scrub_pii
-from mica.rag.prompts import REFUSAL, UNAVAILABLE, build_prompt
+from mica.rag.prompts import PROMPT_VERSION, REFUSAL, UNAVAILABLE, build_prompt
 from mica.rag.retriever import Retriever
 
 Status = Literal[
@@ -229,6 +229,7 @@ class AnswerPipeline:
             llm_usage=out.usage if out else None,
             citations=out.citations if out else (),
             error_code=str(trace.error_code) if trace.error_code else None,
+            prompt_version=PROMPT_VERSION,
         )
         if self.log is not None:
             self.log.log_turn(record)

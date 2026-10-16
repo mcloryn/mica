@@ -46,6 +46,7 @@ from mica.rag.gate import make_gate
 from mica.rag.llm import ProviderFailed, make_llm
 from mica.rag.pii import scrub_pii
 from mica.rag.pipeline import AnswerPipeline
+from mica.rag.prompts import PROMPT_VERSION
 from mica.rag.retriever import embedder_for_kb, make_retriever
 
 EXPERIMENT = "E-02"
@@ -119,6 +120,14 @@ ANNOTATE_COLUMNS = (
 
 
 # --- pembatas laju, cache, dan LLM khusus eval ------------------------------------
+
+
+def print_progress(message: str) -> None:
+    print(message, flush=True)  # tetap terlihat saat keluaran dialihkan ke file
+
+
+class CacheMiss(RuntimeError):
+    """--cache-only: respons tidak ada di cache; run dihentikan sebelum memanggil API."""
 
 
 class TokenRateLimiter:
@@ -229,9 +238,11 @@ class EvalLlm:
         sleep: Callable[[float], None] = time.sleep,
         max_retries: int = MAX_429_RETRIES,
         read_cache: bool = True,
+        cache_only: bool = False,
     ) -> None:
         self.provider = provider
         self.read_cache = read_cache
+        self.cache_only = cache_only
         self.name = provider.name
         self.limiter = limiter
         self.cache = cache
@@ -249,6 +260,8 @@ class EvalLlm:
                 self.stats.from_cache += 1
                 self.last, self.last_from_cache = cached, True
                 return cached
+        if self.cache_only:
+            raise CacheMiss(f"{self.name}: respons tidak ada di cache (kunci {key[:12]})")
         self.limiter.wait()
         for attempt in range(self.max_retries + 1):
             self.stats.api_calls += 1
@@ -329,7 +342,7 @@ def answer_questions(
     pipeline: AnswerPipeline,
     llm: EvalLlm,
     questions: list[Question],
-    progress: Callable[[str], None] | None = print,
+    progress: Callable[[str], None] | None = print_progress,
 ) -> list[GenerationRow]:
     """Urut qid; prev_qid dijawab dulu bila perlu, lalu riwayat = pertanyaan + jawaban sistemnya."""
     by_qid = {q["qid"]: q for q in questions}
@@ -569,7 +582,8 @@ def run_generation(
     sleep: Callable[[float], None] = time.sleep,
     started_at: datetime | None = None,
     environment: dict[str, Any] | None = None,
-    progress: Callable[[str], None] | None = print,
+    progress: Callable[[str], None] | None = print_progress,
+    cache_only: bool = False,
 ) -> tuple[Path, list[GenerationRow], list[dict[str, Any]]]:
     started_at = started_at or datetime.now().astimezone()
     clock_start = time.perf_counter()
@@ -592,6 +606,7 @@ def run_generation(
         sleep=sleep,
         # --no-cache: cache tidak dibaca (semua dipanggil ulang), tetapi tetap ditulis
         read_cache=use_cache,
+        cache_only=cache_only,
     )
     pipeline = AnswerPipeline(
         eff, retriever, make_gate(eff), llm, NumericFactChecker(), kb_id=kb.kb_id, log=None
@@ -625,6 +640,7 @@ def run_generation(
         "followup_mode": eff.rag.followup_mode,
         "history_turns": eff.rag.history_turns,
         "prompt_variant": eff.rag.prompt_variant,
+        "prompt_version": PROMPT_VERSION,
         "config_hash": eff.config_hash(),
         "config_hash_file": settings.config_hash(),
         "kb_id": kb.kb_id,
@@ -646,6 +662,7 @@ def run_generation(
             "wait_429_s": round(stats.wait_429_s, 1),
             "rate_limit_wait_s": round(llm.limiter.waited_s, 1),
             "cache_read": use_cache,
+            "cache_only": cache_only,
         },
         "tokens_api": {
             "prompt_tokens": stats.prompt_tokens,

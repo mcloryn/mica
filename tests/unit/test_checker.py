@@ -278,3 +278,15 @@ def test_premise_does_not_support_other_fabricated_numbers():
     answer = "Gelombang 3 tidak ada; Gelombang 2 dibuka 1 Juni 2027."
     result = checker.check(answer, [_chunk(JADWAL_S1)], "gelombang 3 kapan?")
     assert result == CheckResult(False, ("1 Juni 2027",), 3)
+
+
+@pytest.mark.parametrize(
+    "space", [" ", " ", " ", " ", "　"], ids=["202f", "a0", "2009", "2007", "3000"]
+)
+def test_unicode_spaces_normalized(space):
+    # jawaban d022 E-02: "88 %" ditolak padahal sumber memuat "88%"
+    assert _check(f"Sebanyak 88{space}% lulusan bekerja.", "88% lulusan bekerja.").passed
+    assert _check("Sebanyak 88% lulusan bekerja.", f"88{space}persen lulusan.").passed
+    assert _check(f"Biaya Rp{space}14.000.000.", "Biaya Rp14.000.000.").passed
+    assert _check(f"Dibuka 17{space}September{space}2026.", "Dibuka 17-09-2026.").passed
+    assert _check(f"Sebanyak 89{space}% lulusan.", "88% lulusan bekerja.").passed is False

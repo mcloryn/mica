@@ -20,7 +20,7 @@ from mica.core.types import (
 )
 from mica.rag.checker import NumericFactChecker
 from mica.rag.pipeline import AnswerPipeline
-from mica.rag.prompts import REFUSAL, UNAVAILABLE, build_prompt
+from mica.rag.prompts import PROMPT_VERSION, REFUSAL, UNAVAILABLE, build_prompt
 
 ROOT = Path(__file__).resolve().parents[2]
 DEV_YAML = ROOT / "config" / "dev.yaml"
@@ -123,6 +123,7 @@ def test_answered(tmp_path):
     assert line["fact_check"] == {"passed": True, "checked": 1, "unsupported": []}
     assert line["kb_id"] == "dev-test" and line["config_hash"] == pipeline.config_hash
     assert line["error_code"] is None
+    assert line["prompt_version"] == PROMPT_VERSION
     assert [r["chunk_id"] for r in line["retrieved"]] == ["03_biaya#2", "02_jadwal#3"]
 
 
