@@ -152,6 +152,10 @@ class _HttpProvider:
     def __repr__(self) -> str:
         return f"{type(self).__name__}({self.model!r})"
 
+    def request_body(self, request: LlmRequest) -> dict[str, Any]:
+        """Badan request persis seperti yang dikirim (tanpa header/key); dipakai kunci cache M-12."""
+        return self._body(request)
+
     # diisi subkelas
     def _url(self) -> str:
         raise NotImplementedError

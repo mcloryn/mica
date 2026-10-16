@@ -22,7 +22,7 @@ RINGKASAN
 - Komponen yang di SDD berstatus Provisional atau Terbuka wajib berada di balik `Protocol` dan dipilih lewat konfigurasi.
 - Jangan mengarang angka ambang. Nilai yang di SDD tertulis TBD dibiarkan `null` di konfigurasi.
 - Jangan menambah library di luar yang disebut SDD tanpa bertanya dulu.
-- Jalankan pytest dan ruff check sebelum setiap commit. Jangan commit bila ada tes yang gagal.
+- Jalankan pytest, `ruff check .`, dan `ruff format --check .` sebelum setiap commit. Jangan commit bila ada tes yang gagal.
 
 ## Privasi dan rahasia
 - Jangan pernah menyimpan frame kamera atau audio mikrofon ke disk di mode kiosk.

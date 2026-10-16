@@ -7,3 +7,4 @@ data/kb/*
 __pycache__/
 *.egg-info/
 data/sources/
+data/cache/

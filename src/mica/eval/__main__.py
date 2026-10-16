@@ -1,10 +1,12 @@
-"""CLI evaluasi (M-12). Saat ini subperintah annotate, retrieval, dan gate.
+"""CLI evaluasi (M-12). Saat ini subperintah annotate, retrieval, gate, dan generation.
 
 python -m mica.eval annotate export --config <yaml> --dataset <jsonl> --out <pool.csv> [--force]
 python -m mica.eval annotate import --dataset <jsonl> --pool <pool.csv>
 python -m mica.eval retrieval --config <yaml> --dataset <jsonl> --out <folder>
     [--retrievers bm25,dense,hybrid] [--pool <pool.csv>]
 python -m mica.eval gate --config <yaml> --dataset <jsonl> --out <folder>
+python -m mica.eval generation --config <yaml> --dataset <jsonl> --out <folder> [--gate-off]
+    [--no-cache] [--cache-dir data/cache/llm] [--env-file .env]
 """
 
 from __future__ import annotations
@@ -18,6 +20,7 @@ from mica.eval.annotate import POOL_DEPTH, export_pool, import_pool
 from mica.eval.dataset import DatasetError
 from mica.eval.environment import collect_environment, dirty_warning
 from mica.eval.gate import GROUPS, group_stats, run_gate
+from mica.eval.generation import DEFAULT_CACHE_DIR, SWEEP_COLUMNS, run_generation
 from mica.eval.retrieval import MAIN_GROUP, run_retrieval
 from mica.kb.index import DEFAULT_KB_ROOT, KbLoadError, load_kb
 from mica.rag.retriever import EmbedderFactory
@@ -56,6 +59,17 @@ def build_parser() -> argparse.ArgumentParser:
     gate.add_argument("--config", type=Path, required=True)
     gate.add_argument("--dataset", type=Path, required=True)
     gate.add_argument("--out", type=Path, required=True)
+
+    gen = sub.add_parser("generation", help="E-02: jawaban per pertanyaan dan sweep offline")
+    gen.add_argument("--config", type=Path, required=True)
+    gen.add_argument("--dataset", type=Path, required=True)
+    gen.add_argument("--out", type=Path, required=True)
+    gen.add_argument(
+        "--gate-off", action="store_true", help="rag.gate.threshold = null untuk run ini"
+    )
+    gen.add_argument("--no-cache", action="store_true", help="jangan baca cache; panggil ulang LLM")
+    gen.add_argument("--cache-dir", type=Path, default=DEFAULT_CACHE_DIR)
+    gen.add_argument("--env-file", type=Path, default=Path(".env"))
     return parser
 
 
@@ -153,6 +167,35 @@ def cmd_gate(args: argparse.Namespace, embedder_factory: EmbedderFactory | None)
     return 0
 
 
+def cmd_generation(args: argparse.Namespace, embedder_factory: EmbedderFactory | None) -> int:
+    settings = load_settings(args.config, env_file=args.env_file)
+    kb = load_kb(settings.kb.active_id, args.kb_root)
+    embedder = None
+    if embedder_factory is not None:
+        info = kb.manifest["embedder"]
+        embedder = embedder_factory(info["model"], info["revision"])
+    environment = collect_environment()
+    warning = dirty_warning(environment)
+    if warning:
+        print(warning, file=sys.stderr)
+    run_dir, rows, sweep_rows = run_generation(
+        settings,
+        kb,
+        args.dataset,
+        args.out,
+        gate_off=args.gate_off,
+        use_cache=not args.no_cache,
+        cache_dir=args.cache_dir,
+        embedder=embedder,
+        environment=environment,
+    )
+    print(f"KB {kb.kb_id} | {len(rows)} pertanyaan -> {run_dir}")
+    print(" | ".join(SWEEP_COLUMNS))
+    for row in sweep_rows:
+        print(" | ".join(str(row[c]) for c in SWEEP_COLUMNS))
+    return 0
+
+
 def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -162,6 +205,8 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
             return cmd_retrieval(args, embedder_factory)
         if args.command == "gate":
             return cmd_gate(args, embedder_factory)
+        if args.command == "generation":
+            return cmd_generation(args, embedder_factory)
         if args.action == "export":
             return cmd_export(args, embedder_factory)
         return cmd_import(args)
