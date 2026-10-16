@@ -190,3 +190,77 @@ def test_cli_rejects_unknown_retriever(env):
     with pytest.raises(SystemExit):
         eval_cli.main(["--kb-root", str(kb_root), "retrieval", "--config", str(DEV_YAML),
                        "--dataset", str(dataset), "--out", str(tmp), "--retrievers", "bm25,splade"])
+
+
+def _git_repo(path):
+    import subprocess
+
+    def git(*args):
+        subprocess.run(["git", *args], cwd=path, check=True, capture_output=True)
+
+    path.mkdir()
+    git("init", "-q")
+    git("config", "user.email", "tes@example.com")
+    git("config", "user.name", "tes")
+    (path / "kode.py").write_text("x = 1\n", encoding="utf-8")
+    (path / "results").mkdir()
+    (path / "results" / "lama.csv").write_text("a\n", encoding="utf-8")
+    git("add", "-A")
+    git("commit", "-q", "-m", "awal")
+    return path
+
+
+def test_git_dirty_ignores_results(tmp_path):
+    from mica.eval.retrieval import git_commit, git_dirty
+
+    repo = _git_repo(tmp_path / "repo")
+    assert git_dirty(repo) is False
+    assert len(git_commit(repo)) == 40
+    (repo / "results" / "baru.csv").write_text("b\n", encoding="utf-8")
+    (repo / "results" / "lama.csv").write_text("ubah\n", encoding="utf-8")
+    assert git_dirty(repo) is False  # perubahan di results/ tidak dihitung
+    (repo / "kode.py").write_text("x = 2\n", encoding="utf-8")
+    assert git_dirty(repo) is True
+
+
+def test_git_dirty_counts_untracked_files(tmp_path):
+    from mica.eval.retrieval import git_dirty
+
+    repo = _git_repo(tmp_path / "repo")
+    (repo / "baru.py").write_text("", encoding="utf-8")
+    assert git_dirty(repo) is True
+
+
+def test_git_dirty_outside_repo(tmp_path, monkeypatch):
+    from mica.eval.retrieval import git_dirty
+
+    outside = tmp_path / "bukan-repo"
+    outside.mkdir()
+    # GIT_CEILING_DIRECTORIES mencegah git mencari repo di folder induk tmp_path
+    monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path))
+    assert git_dirty(outside) is None
+
+
+def test_run_json_records_environment(env):
+    settings, kb, _, dataset, pool, tmp = env
+    environment = {"git_commit": "a" * 40, "git_dirty": True, "python": "3.x"}
+    runs, _ = run_retrieval(settings, kb, dataset, pool, tmp / "r", ["bm25"],
+                            embedder=FakeEmbedder(), environment=environment)
+    run = json.loads((runs[0].run_dir / "run.json").read_text(encoding="utf-8"))
+    assert run["environment"]["git_dirty"] is True
+    assert run["environment"]["git_commit"] == "a" * 40
+
+
+def test_cli_warns_when_dirty(env, capsys, monkeypatch):
+    from mica.eval import retrieval
+
+    _, _, kb_root, dataset, _, tmp = env
+    monkeypatch.setattr(retrieval, "git_dirty", lambda cwd=None: True)
+    code = eval_cli.main(
+        ["--kb-root", str(kb_root), "retrieval", "--config", str(DEV_YAML),
+         "--dataset", str(dataset), "--out", str(tmp / "out"), "--retrievers", "bm25"],
+    )
+    assert code == 0  # tetap jalan
+    assert "peringatan" in capsys.readouterr().err
+    run_json = next((tmp / "out").glob("*-dev-bm25/run.json"))
+    assert json.loads(run_json.read_text(encoding="utf-8"))["environment"]["git_dirty"] is True

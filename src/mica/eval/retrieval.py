@@ -184,17 +184,39 @@ def summarize(results: list[QuestionResult]) -> dict[str, Any]:
     }
 
 
-def _git_commit() -> str | None:
+def _git(args: list[str], cwd: Path | None = None) -> str | None:
     try:
         out = subprocess.run(
-            ["git", "rev-parse", "HEAD"], capture_output=True, text=True, timeout=5, check=True
+            ["git", *args], cwd=cwd, capture_output=True, text=True, timeout=10, check=True
         )
     except (OSError, subprocess.SubprocessError):
         return None
-    return out.stdout.strip() or None
+    return out.stdout
 
 
-def _environment() -> dict[str, Any]:
+def git_commit(cwd: Path | None = None) -> str | None:
+    out = _git(["rev-parse", "HEAD"], cwd)
+    if out is None:
+        return None
+    return out.strip() or None
+
+
+def git_dirty(cwd: Path | None = None) -> bool | None:
+    """True bila ada perubahan belum di-commit (termasuk file baru) di luar results/.
+
+    None bila bukan repo git atau git tidak tersedia.
+    """
+    top = _git(["rev-parse", "--show-toplevel"], cwd)
+    if top is None:
+        return None
+    status = _git(
+        ["status", "--porcelain", "--untracked-files=normal", "--", ".", ":(exclude)results"],
+        Path(top.strip()),
+    )
+    return None if status is None else bool(status.strip())
+
+
+def collect_environment(cwd: Path | None = None) -> dict[str, Any]:
     return {
         "python": platform.python_version(),
         "torch": torch_version(),
@@ -202,7 +224,8 @@ def _environment() -> dict[str, Any]:
         "platform": platform.platform(),
         "cpu": platform.processor(),
         "cpu_count_logical": os.cpu_count(),
-        "git_commit": _git_commit(),
+        "git_commit": git_commit(cwd),
+        "git_dirty": git_dirty(cwd),
     }
 
 
@@ -244,9 +267,12 @@ def run_retrieval(
     retrievers: list[str],
     embedder: Embedder | None = None,
     started_at: datetime | None = None,
+    environment: dict[str, Any] | None = None,
 ) -> tuple[list[RunResult], Path]:
     """Jalankan E-01 untuk setiap retriever; kembalikan hasil per run dan path summary CSV."""
     started_at = started_at or datetime.now().astimezone()
+    # dicatat sekali sebelum run, supaya semua run.json memuat status repo yang sama
+    environment = environment if environment is not None else collect_environment()
     stamp = started_at.strftime("%Y%m%d-%H%M%S")
     selected = select_questions(load_questions(dataset))
     pool_pairs = read_pool_pairs(pool)
@@ -289,7 +315,7 @@ def run_retrieval(
             "latency": {"repeats": LATENCY_REPEATS, "aggregate": "median", "warmup_queries": 1},
             "n_questions": {group: m["n_questions"] for group, m in metrics.items()},
             "metrics": metrics,
-            "environment": _environment(),
+            "environment": environment,
             "started_at": started_at.isoformat(),
         }
         (run_dir / "run.json").write_text(

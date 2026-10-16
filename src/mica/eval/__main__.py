@@ -15,7 +15,7 @@ from pathlib import Path
 from mica.config import ConfigError, load_settings
 from mica.eval.annotate import POOL_DEPTH, export_pool, import_pool
 from mica.eval.dataset import DatasetError
-from mica.eval.retrieval import MAIN_GROUP, run_retrieval
+from mica.eval.retrieval import MAIN_GROUP, collect_environment, run_retrieval
 from mica.kb.index import DEFAULT_KB_ROOT, KbLoadError, load_kb
 from mica.rag.retriever import EmbedderFactory
 
@@ -93,8 +93,16 @@ def cmd_retrieval(args: argparse.Namespace, embedder_factory: EmbedderFactory | 
     if embedder_factory is not None:
         info = kb.manifest["embedder"]
         embedder = embedder_factory(info["model"], info["revision"])
+    environment = collect_environment()
+    if environment["git_dirty"]:
+        print(
+            "peringatan: ada perubahan belum di-commit di luar results/ "
+            f"(git_commit {environment['git_commit']}); hasil ini tidak terikat ke satu commit",
+            file=sys.stderr,
+        )
     runs, summary = run_retrieval(
-        settings, kb, args.dataset, pool, args.out, retrievers, embedder=embedder
+        settings, kb, args.dataset, pool, args.out, retrievers,
+        embedder=embedder, environment=environment,
     )
     print(f"KB {kb.kb_id} | split dev | {len(runs)} run -> {summary}")
     print("retriever | Recall@5 | MRR | nDCG@10 | p50 ms | p95 ms | unjudged")
