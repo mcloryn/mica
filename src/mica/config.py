@@ -158,11 +158,19 @@ class BoxUpperConfig(_Model):
     side: float | None = Field(default=None, ge=0, le=1)  # dipotong di kiri dan kanan
 
 
+class KeypointTorsoConfig(_Model):
+    # KeypointTorsoRegion (ADR-13); TBD E-08
+    min_kp_conf: float | None = Field(default=None, ge=0, le=1)  # keypoint bahu/pinggul dipakai
+    shrink: float | None = Field(default=None, ge=0, le=1)  # fraksi dipersempit per sisi
+    torso_aspect: PositiveFloat | None = None  # tinggi torso / lebar bahu bila pinggul tak terlihat
+
+
 class VisionConfig(_Model):
     model: Literal["yolo26n", "yolo26n-pose", "yolo11n"]
     tracker: str
     region: Literal["keypoint_torso", "box_upper"]
-    box_upper: BoxUpperConfig
+    box_upper: BoxUpperConfig  # juga cadangan KeypointTorsoRegion
+    keypoint_torso: KeypointTorsoConfig
     color: ColorConfig
     dwell_s: NonNegativeFloat | None = None
     leave_s: NonNegativeFloat | None = None
@@ -288,8 +296,10 @@ def _optional_in_kiosk(settings: Settings) -> set[str]:
         optional.add("audio.stt.threads")
     if not settings.rag.reranker.enabled:
         optional.add("rag.reranker.revision")
-    if settings.vision.region != "box_upper":
-        optional |= {f"vision.box_upper.{k}" for k in ("top", "bottom", "side")}
+    if settings.vision.region != "keypoint_torso":
+        optional |= {
+            f"vision.keypoint_torso.{k}" for k in ("min_kp_conf", "shrink", "torso_aspect")
+        }
     return optional
 
 

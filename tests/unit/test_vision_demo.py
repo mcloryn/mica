@@ -15,7 +15,9 @@ ROOT = Path(__file__).resolve().parents[2]
 DEV_YAML = ROOT / "config" / "dev.yaml"
 # data uji (bukan ambang)
 TEST_ARGS = ["--dwell-s", "1", "--leave-s", "1", "--min-ratio", "0.3", "--fps-busy", "2",
-             "--min-majority", "0.5", "--box-top", "0.2", "--box-bottom", "0.5", "--box-side", "0.2"]  # fmt: skip
+             "--min-majority", "0.5", "--box-top", "0.2", "--box-bottom", "0.5", "--box-side", "0.2",
+             "--kp-conf", "0.5", "--kp-shrink", "0.1", "--torso-aspect", "1.2"]  # fmt: skip
+CAMERA_FPS = 30
 
 
 def write_fake_table(models_dir):
@@ -39,32 +41,44 @@ class FakeClock:
 
 
 class FakeCapture:
-    def __init__(self, frames):
+    """Kamera palsu 30 fps: setiap read memajukan jam 1/30 s."""
+
+    def __init__(self, frames, clock=None):
         self.frames = frames  # dibagi antar-pembukaan ulang: frame tidak berulang
+        self.clock = clock
 
     def isOpened(self):
         return True
 
     def read(self):
-        return (True, self.frames.pop(0)) if self.frames else (False, None)
+        if not self.frames:
+            return False, None
+        if self.clock is not None:
+            self.clock.sleep(1 / CAMERA_FPS)
+        return True, self.frames.pop(0)
 
     def release(self):
         pass
 
 
 class FakeDetector:
-    """Orang setinggi 60% frame dengan track ID 1 pada present_calls panggilan pertama."""
+    """Orang setinggi 60% frame (track ID 1, keypoint bahu dan pinggul) pada present_calls
+    panggilan pertama."""
 
-    def __init__(self, present_calls=10**9):
+    def __init__(self, present_calls=10**9, kp_conf=0.9):
         self.calls = 0
         self.present_calls = present_calls
+        self.kp_conf = kp_conf
 
     def detect_and_track(self, frame):
         self.calls += 1
         if self.calls > self.present_calls:
             return []
         h = frame.shape[0]
-        return [PersonTrack(1, (0.0, h * 0.4, 10.0, float(h)), 0.9)]
+        kp = np.zeros((17, 3), dtype=np.float32)
+        kp[5], kp[6] = (8, 50, self.kp_conf), (2, 50, self.kp_conf)  # bahu, lebar 6 px
+        kp[11], kp[12] = (7, 90, self.kp_conf), (3, 90, self.kp_conf)  # pinggul
+        return [PersonTrack(1, (0.0, h * 0.4, 10.0, float(h)), 0.9, kp)]
 
 
 @pytest.fixture
@@ -90,7 +104,7 @@ def _run_main(argv, clock, frames=20, detector=None):
     frame_list = [np.zeros((100, 80, 3), dtype=np.uint8) for _ in range(frames)]
 
     def camera_factory(source):
-        return Camera(source, open_capture=lambda s: FakeCapture(frame_list), clock=clock)
+        return Camera(source, open_capture=lambda s: FakeCapture(frame_list, clock), clock=clock)
 
     code = cli.main(
         argv,
@@ -106,36 +120,85 @@ def test_demo_headless_writes_no_files(no_disk_writes, capsys):
     clock = FakeClock()
     argv = ["demo", "--config", str(DEV_YAML), "--no-window", "--seconds", "15", *TEST_ARGS]
     before = _files(no_disk_writes)
-    code, detector = _run_main(argv, clock, frames=20, detector=FakeDetector(present_calls=10))
+    # 300 frame = 10 s kamera; orang hadir pada 12 deteksi pertama
+    code, _ = _run_main(argv, clock, frames=300, detector=FakeDetector(present_calls=12))
     out = capsys.readouterr().out
-    assert code == 0 and detector.calls == 20
+    assert code == 0
+    assert "tampilan 299 frame" in out  # 1 frame dipakai pemanasan
     assert _files(no_disk_writes) == before == ["models", "models/color_names_w2c.npy"]
     assert "SUMBER NILAI: argumen CLI (uji coba, nilai coba, bukan E-07/E-08)" in out
     assert "color.min_majority = 0.5 (argumen CLI)" in out and "box_upper.top = 0.2" in out
     assert "PersonArrived track=1 warna=hitam (1.00)" in out  # frame hitam, tabel palsu
-    assert "warna frame: hitam 1.00" in out
+    assert "warna: hitam 1.00 [keypoint]" in out
+    assert "keypoint_torso.min_kp_conf = 0.5 (argumen CLI)" in out
+    assert "sumber area pakaian per deteksi: keypoint" in out
+    assert "lebar bahu 0.075" in out  # 6 px / 80 px
     assert "dwell_s = 1.0 (argumen CLI)" in out and "min_box_height_ratio = 0.3" in out
     assert "tracker bytetrack.yaml | perangkat cpu" in out
     assert "PersonArrived track=1" in out
     assert "PersonLeft track=1" in out  # orang pergi setelah panggilan ke-10
-    assert "rasio box terbesar 0.600" in out
+    assert "tinggi box 0.600" in out
     assert "ID switch: 0" in out
 
 
 def test_demo_rate_limited_by_state(no_disk_writes):
     clock = FakeClock()
     detector = FakeDetector()
-    camera = Camera(
-        0, open_capture=lambda s: FakeCapture([np.zeros((10, 10, 3), np.uint8)] * 100), clock=clock
-    )
+    frames = [np.zeros((10, 10, 3), np.uint8)] * 1000
+    camera = Camera(0, open_capture=lambda s: FakeCapture(frames, clock), clock=clock)
     presence = cli.PresenceTracker(dwell_s=1.0, leave_s=1.0, min_box_height_ratio=0.3)
     stats = cli.run_demo(
         detector, camera, presence, fps_idle=5, fps_busy=2, seconds=5.0, show_window=False,
         clock=clock, sleep=clock.sleep, out=lambda s: None,
     )  # fmt: skip
-    # 0-1 s: 5 fps (CANDIDATE), lalu ENGAGED 2 fps selama 4 s -> 5 + 1 + 4*2 = 14 frame
+    # 0-1 s: 5 fps (CANDIDATE), lalu ENGAGED 2 fps selama 4 s -> 5 + 1 + 4*2 = 14 deteksi
     assert detector.calls == pytest.approx(14, abs=1)
+    assert stats.shown == pytest.approx(5 * CAMERA_FPS, abs=2)  # semua frame kamera dibaca
     assert [type(e).__name__ for _, e in stats.events] == ["CameraStatus", "PersonArrived"]
+
+
+def test_display_rate_separate_from_detection_rate(no_disk_writes):
+    clock = FakeClock()
+    detector = FakeDetector(present_calls=0)  # tidak ada orang: tetap IDLE, fps_idle
+    frames = [np.full((10, 10, 3), i % 256, np.uint8) for i in range(1000)]
+    camera = Camera(0, open_capture=lambda s: FakeCapture(frames, clock), clock=clock)
+    presence = cli.PresenceTracker(dwell_s=1.0, leave_s=1.0, min_box_height_ratio=0.3)
+    drawn = []
+
+    def draw(frame, overlay, display_fps, detect_fps, lines, kp_conf):
+        drawn.append((int(frame[0, 0, 0]), display_fps, detect_fps))
+        return -1
+
+    stats = cli.run_demo(
+        detector, camera, presence, fps_idle=5, fps_busy=2, seconds=3.0, show_window=True,
+        draw=draw, clock=clock, sleep=clock.sleep, out=lambda s: None,
+    )  # fmt: skip
+    assert detector.calls == pytest.approx(3 * 5, abs=1)  # ~5x per detik
+    assert len(drawn) == stats.shown == pytest.approx(3 * CAMERA_FPS, abs=1)  # semua frame
+    assert [d[0] for d in drawn] == list(range(len(drawn)))  # tiap frame baru ditampilkan
+    _, display_fps, detect_fps = drawn[-1]
+    assert display_fps == pytest.approx(30, abs=1.5) and detect_fps == pytest.approx(5, abs=0.5)
+
+
+def test_keypoint_region_needs_pose_model():
+    vision = load_settings(DEV_YAML).vision.model_copy(update={"model": "yolo26n"})
+    values = {"box_upper.top": 0.2, "box_upper.bottom": 0.5, "box_upper.side": 0.2,
+              "keypoint_torso.min_kp_conf": 0.5, "keypoint_torso.shrink": 0.1,
+              "keypoint_torso.torso_aspect": 1.2}  # fmt: skip
+    with pytest.raises(cli.DemoError, match="-pose"):
+        cli.make_region(vision, values)
+    box_vision = vision.model_copy(update={"region": "box_upper"})
+    assert isinstance(cli.make_region(box_vision, values), cli.BoxUpperRegion)
+
+
+def test_demo_low_keypoint_confidence_uses_fallback(no_disk_writes, capsys):
+    clock = FakeClock()
+    argv = ["demo", "--config", str(DEV_YAML), "--no-window", "--seconds", "3", *TEST_ARGS]
+    code, _ = _run_main(argv, clock, frames=90, detector=FakeDetector(kp_conf=0.2))
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "sumber area pakaian per deteksi: fallback" in out and "[fallback]" in out
+    assert "lebar bahu -" in out  # bahu tidak yakin: tidak dicatat
 
 
 def test_demo_missing_values_names_arguments(capsys):
@@ -144,6 +207,7 @@ def test_demo_missing_values_names_arguments(capsys):
     assert code == 2
     assert "--leave-s" in err and "--min-ratio" in err and "--fps-busy" in err
     assert "--min-majority" in err and "--box-top" in err and "--box-side" in err
+    assert "--kp-conf" in err and "--kp-shrink" in err and "--torso-aspect" in err
     assert "--dwell-s" not in err
 
 

@@ -16,7 +16,7 @@ from mica.vision.color import (
     lut_index,
 )
 from mica.vision.presence import PresenceTracker
-from mica.vision.region import BoxUpperRegion, KeypointTorsoRegion
+from mica.vision.region import BoxUpperRegion, KeypointTorsoRegion, shoulder_width_ratio
 from mica.vision.types import PersonTrack
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -124,9 +124,72 @@ def test_box_upper_region_clipped_outside_frame():
     assert region.extract(frame, track((10.0, 150.0, 20.0, 400.0))) is None  # di bawah frame
 
 
-def test_keypoint_torso_stub():
-    with pytest.raises(NotImplementedError, match="yolo26n-pose"):
-        KeypointTorsoRegion().extract(np.zeros((4, 4, 3), np.uint8), track((0.0, 0.0, 4.0, 4.0)))
+# data uji (bukan ambang): conf minimum 0,5, dipersempit 10%, torso 1,2 x lebar bahu
+KP = {"min_kp_conf": 0.5, "shrink": 0.1, "torso_aspect": 1.2}
+FALLBACK = BoxUpperRegion(top=0.3, bottom=0.6, side=0.25)
+
+
+def keypoints(shoulders=((60, 40), (20, 40)), hips=((55, 90), (25, 90)), conf=0.9, hip_conf=None):
+    kp = np.zeros((17, 3), dtype=np.float32)
+    (lsx, lsy), (rsx, rsy) = shoulders
+    (lhx, lhy), (rhx, rhy) = hips
+    kp[5], kp[6] = (lsx, lsy, conf), (rsx, rsy, conf)
+    hc = conf if hip_conf is None else hip_conf
+    kp[11], kp[12] = (lhx, lhy, hc), (rhx, rhy, hc)
+    return kp
+
+
+def pose_track(kp, box=(10.0, 20.0, 70.0, 150.0)):
+    return PersonTrack(1, box, 0.9, kp)
+
+
+def kp_region():
+    return KeypointTorsoRegion(fallback=FALLBACK, **KP)
+
+
+def test_keypoint_torso_from_shoulders_and_hips():
+    frame = np.zeros((200, 100, 3), np.uint8)
+    # bahu x 20..60, y 40; pinggul y 90 -> 40x50, dipersempit 10% per sisi -> 32x40
+    rect, source = kp_region().locate(frame.shape, pose_track(keypoints()))
+    assert (rect, source) == ((24, 45, 56, 85), "keypoint")
+    assert kp_region().extract(frame, pose_track(keypoints())).shape == (40, 32, 3)
+
+
+def test_keypoint_torso_hips_hidden_uses_shoulders_and_box():
+    frame = np.zeros((200, 100, 3), np.uint8)
+    track = pose_track(keypoints(hip_conf=0.1))
+    rect, source = kp_region().locate(frame.shape, track)
+    # bawah = 40 + 1,2 x 40 = 88 (< bawah box 150)
+    assert source == "keypoint+box" and rect == (24, 45, 56, 83)
+    short_box = pose_track(keypoints(hip_conf=0.1), box=(10.0, 20.0, 70.0, 60.0))
+    assert kp_region().locate(frame.shape, short_box)[0][3] == 58  # dibatasi bawah box 60
+
+
+def test_keypoint_torso_low_confidence_falls_back_to_box():
+    frame = np.zeros((200, 100, 3), np.uint8)
+    track = pose_track(keypoints(conf=0.2))
+    rect, source = kp_region().locate(frame.shape, track)
+    assert source == "fallback" and rect == FALLBACK.rect(frame.shape, track)
+
+
+def test_keypoint_torso_without_keypoints_falls_back():
+    frame = np.zeros((200, 100, 3), np.uint8)
+    assert kp_region().locate(frame.shape, pose_track(None))[1] == "fallback"
+
+
+def test_keypoint_torso_outside_frame_is_safe():
+    frame = np.zeros((50, 50, 3), np.uint8)
+    track = PersonTrack(1, (200.0, 200.0, 260.0, 330.0), 0.9, keypoints(
+        shoulders=((250, 240), (210, 240)), hips=((245, 290), (215, 290))))  # fmt: skip
+    assert kp_region().locate(frame.shape, track) is None
+    assert kp_region().extract(frame, track) is None
+
+
+def test_shoulder_width_ratio():
+    track = pose_track(keypoints())
+    assert shoulder_width_ratio(track, 100, 0.5) == pytest.approx(0.4)
+    assert shoulder_width_ratio(pose_track(keypoints(conf=0.2)), 100, 0.5) is None
+    assert shoulder_width_ratio(pose_track(None), 100, 0.5) is None
 
 
 # --- voting lintas frame -----------------------------------------------------------------

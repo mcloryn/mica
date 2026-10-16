@@ -7,7 +7,11 @@ python -m mica.vision demo [--config config/dev.yaml] [--camera 0] [--video <pat
 
 Demo tidak pernah menulis gambar atau video ke disk (N-08). Nilai kehadiran yang TBD di config
 (null) wajib diberikan lewat argumen; tidak ada nilai bawaan di kode. Hal yang sama berlaku
-untuk warna: --min-majority dan, bila vision.region = box_upper, --box-top/--box-bottom/--box-side.
+untuk warna: --min-majority, --box-top/--box-bottom/--box-side (area kotak, juga cadangan
+keypoint), dan bila vision.region = keypoint_torso: --kp-conf/--kp-shrink/--torso-aspect.
+
+Setiap frame kamera dibaca dan ditampilkan (laju penuh kamera); detektor dan PresenceTracker
+hanya berjalan sesuai fps_idle/fps_busy, dan hasil terakhirnya digambar ulang di antara deteksi.
 
 python -m mica.vision demo ... [--countdown N] [--prompt DETIK:TEKS ...] menampilkan instruksi
 berjadwal di jendela (misalnya "10:Berdiri, mundur 4-5 m") untuk uji coba dengan relawan;
@@ -54,7 +58,16 @@ from mica.vision.detector import (
     sha256_file,
 )
 from mica.vision.presence import PresenceState, PresenceTracker, select_target
-from mica.vision.region import BoxUpperRegion, ClothingRegion, KeypointTorsoRegion
+from mica.vision.region import (
+    L_HIP,
+    L_SHOULDER,
+    R_HIP,
+    R_SHOULDER,
+    BoxUpperRegion,
+    ClothingRegion,
+    KeypointTorsoRegion,
+    shoulder_width_ratio,
+)
 from mica.vision.types import CameraStatus, PersonArrived, PersonLeft, PersonTrack, VisionEvent
 
 DEFAULT_CONFIG = Path("config/dev.yaml")
@@ -71,6 +84,12 @@ BOX_ARGS = (
     ("box_upper.bottom", "--box-bottom"),
     ("box_upper.side", "--box-side"),
 )
+KP_ARGS = (
+    ("keypoint_torso.min_kp_conf", "--kp-conf"),
+    ("keypoint_torso.shrink", "--kp-shrink"),
+    ("keypoint_torso.torso_aspect", "--torso-aspect"),
+)
+WINDOW = "MICA vision demo (q = keluar)"
 # Tabel nama warna van de Weijer dkk. 2009 [30]; sha256 tar diukur saat unduhan pertama
 # (16 Okt 2026). Halaman sumber tidak mencantumkan lisensi, jadi tabel tidak di-commit.
 COLORS_URL = "https://lear.inrialpes.fr/people/vandeweijer/code/ColorNaming.tar"
@@ -105,6 +124,11 @@ def build_parser() -> argparse.ArgumentParser:
     demo.add_argument("--box-top", type=float, help="menimpa vision.box_upper.top")
     demo.add_argument("--box-bottom", type=float, help="menimpa vision.box_upper.bottom")
     demo.add_argument("--box-side", type=float, help="menimpa vision.box_upper.side")
+    demo.add_argument("--kp-conf", type=float, help="menimpa vision.keypoint_torso.min_kp_conf")
+    demo.add_argument("--kp-shrink", type=float, help="menimpa vision.keypoint_torso.shrink")
+    demo.add_argument(
+        "--torso-aspect", type=float, help="menimpa vision.keypoint_torso.torso_aspect"
+    )
     demo.add_argument(
         "--prompt",
         type=_prompt,
@@ -264,16 +288,25 @@ def resolve_presence_values(
 
 
 def demo_value_pairs(vision: VisionConfig) -> tuple[tuple[str, str], ...]:
-    box = BOX_ARGS if vision.region == "box_upper" else ()
-    return PRESENCE_ARGS + COLOR_ARGS + box
+    # BoxUpperRegion juga cadangan KeypointTorsoRegion, jadi fraksinya selalu dibutuhkan
+    keypoint = KP_ARGS if vision.region == "keypoint_torso" else ()
+    return PRESENCE_ARGS + COLOR_ARGS + BOX_ARGS + keypoint
 
 
 def make_region(vision: VisionConfig, values: dict[str, float]) -> ClothingRegion:
+    box = BoxUpperRegion(
+        values["box_upper.top"], values["box_upper.bottom"], values["box_upper.side"]
+    )
     if vision.region == "box_upper":
-        return BoxUpperRegion(
-            values["box_upper.top"], values["box_upper.bottom"], values["box_upper.side"]
-        )
-    return KeypointTorsoRegion()
+        return box
+    if not vision.model.endswith("-pose"):
+        raise DemoError(f"vision.region keypoint_torso butuh model -pose, bukan {vision.model}")
+    return KeypointTorsoRegion(
+        values["keypoint_torso.min_kp_conf"],
+        values["keypoint_torso.shrink"],
+        values["keypoint_torso.torso_aspect"],
+        fallback=box,
+    )
 
 
 def make_color_namer(vision: VisionConfig, path: Path, min_majority: float) -> ColorNamer:
@@ -284,17 +317,38 @@ def make_color_namer(vision: VisionConfig, path: Path, min_majority: float) -> C
 
 @dataclass
 class DemoStats:
-    frames: int = 0
+    frames: int = 0  # frame yang dideteksi
+    shown: int = 0  # frame kamera yang dibaca dan ditampilkan
     seconds: float = 0.0
     infer_s: float = 0.0
     events: list[tuple[float, VisionEvent]] = field(default_factory=list)
     id_switches: list[tuple[float, int | None, int]] = field(default_factory=list)
-    color_majorities: list[float] = field(default_factory=list)  # per frame dengan target
+    color_majorities: list[float] = field(default_factory=list)  # per deteksi dengan target
     color_total: np.ndarray = field(default_factory=lambda: np.zeros(len(COLOR_NAMES)))
+    region_sources: dict[str, int] = field(default_factory=dict)
+    shoulder_ratios: list[tuple[float, float]] = field(default_factory=list)  # (detik, rasio)
+    height_ratios: list[tuple[float, float]] = field(default_factory=list)
 
     @property
     def fps(self) -> float:
+        """Laju deteksi."""
         return self.frames / self.seconds if self.seconds > 0 else 0.0
+
+    @property
+    def display_fps(self) -> float:
+        return self.shown / self.seconds if self.seconds > 0 else 0.0
+
+
+@dataclass
+class Overlay:
+    """Hasil deteksi terakhir, digambar ulang di frame terbaru di antara deteksi."""
+
+    tracks: list[PersonTrack] = field(default_factory=list)
+    state: str = PresenceState.IDLE
+    target: int | None = None
+    region_rect: tuple[int, int, int, int] | None = None
+    region_source: str | None = None
+    color: ColorResult | None = None
 
 
 def _wall() -> str:
@@ -356,39 +410,47 @@ def _color_text(result: ColorResult | None) -> str:
     return f"warna {result.top} {result.majority:.2f}" + ("" if result.label else " (ragu)")
 
 
+TORSO_POINTS = (L_SHOULDER, R_SHOULDER, L_HIP, R_HIP)
+
+
 def _draw(
     frame: Any,
-    tracks: list[PersonTrack],
-    state: str,
-    target: int | None,
-    fps: float,
+    overlay: Overlay,
+    display_fps: float,
+    detect_fps: float,
     lines: list[str],
-    region_rect: tuple[int, int, int, int] | None = None,
-    color: ColorResult | None = None,
-):
+    kp_conf: float | None,
+) -> int:
     import cv2
 
     h = frame.shape[0]
-    if region_rect is not None:
-        x1, y1, x2, y2 = region_rect
-        cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 255), 2)
-        cv2.putText(
-            frame, _color_text(color), (x1, min(y2 + 18, h - 4)), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
-            (255, 0, 255), 2,
-        )  # fmt: skip
-    for t in tracks:
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    for t in overlay.tracks:
         x1, y1, x2, y2 = (int(v) for v in t.box_xyxy)
-        color = (0, 200, 0) if t.track_id == target else (200, 200, 0)
+        color = (0, 200, 0) if t.track_id == overlay.target else (200, 200, 0)
         cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
         label = f"id {t.track_id} r={t.height_ratio(h):.2f}"
-        cv2.putText(frame, label, (x1, max(y1 - 6, 12)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
-    cv2.putText(
-        frame, f"{state} | {fps:.1f} fps", (8, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2
-    )
+        cv2.putText(frame, label, (x1, max(y1 - 6, 12)), font, 0.5, color, 1)
+        if t.keypoints is not None:
+            for i in TORSO_POINTS:
+                x, y, c = (float(v) for v in t.keypoints[i][:3])
+                ok = kp_conf is None or c >= kp_conf
+                cv2.circle(frame, (int(x), int(y)), 5, (0, 255, 255) if ok else (0, 0, 160), -1)
+    if overlay.region_rect is not None:
+        x1, y1, x2, y2 = overlay.region_rect
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 255), 2)
+        text = f"{_color_text(overlay.color)} [{overlay.region_source}]"
+        cv2.putText(frame, text, (x1, min(y2 + 18, h - 4)), font, 0.6, (255, 0, 255), 2)
+    status = f"{overlay.state} | tampilan {display_fps:.1f} FPS | deteksi {detect_fps:.1f} FPS"
+    cv2.putText(frame, status, (8, 22), font, 0.6, (0, 0, 255), 2)
     if lines:
         _banner(frame, lines)
-    cv2.imshow("MICA vision demo (q = keluar)", frame)
+    cv2.imshow(WINDOW, frame)
     return cv2.waitKey(1) & 0xFF
+
+
+def _span(values: list[float]) -> str:
+    return f"{values[-1]:.3f} (rentang {min(values):.3f}-{max(values):.3f})" if values else "-"
 
 
 def run_demo(
@@ -405,17 +467,24 @@ def run_demo(
     beep: Callable[[], None] | None = None,
     region: ClothingRegion | None = None,
     namer: ColorNamer | None = None,
+    kp_conf: float | None = None,
+    draw: Callable[..., int] = _draw,
     clock: Callable[[], float] = time.monotonic,
     sleep: Callable[[float], None] = time.sleep,
     out: Callable[[str], None] = print,
 ) -> DemoStats:
+    """Setiap frame kamera dibaca dan ditampilkan; detektor + PresenceTracker hanya berjalan
+    sesuai fps_idle/fps_busy, jadi tracker menerima urutan frame yang dideteksi saja."""
     stats = DemoStats()
     prompts = prompts or []
     shown_prompt: str | None = None
+    overlay = Overlay()
     start = clock()
+    next_detect = start
     report_at = start + 1.0
-    window_ratios: list[float] = []  # rasio box terbesar per frame dalam detik ini
-    window_frames = 0
+    win_heights: list[float] = []  # rasio tinggi box terbesar per deteksi dalam detik ini
+    win_shoulders: list[float] = []
+    win_frames = win_shown = 0
     try:
         while True:
             t0 = clock()
@@ -437,50 +506,23 @@ def run_demo(
                     break
                 sleep(1.0 / fps_idle)
                 continue
+            stats.shown += 1
+            win_shown += 1
 
-            t_infer = clock()
-            tracks = detector.detect_and_track(frame)
-            stats.infer_s += clock() - t_infer
-            frame_h = frame.shape[0]
-            # warna area pakaian target frame ini; piksel hanya di memori (N-08)
-            target = select_target(tracks, frame_h, presence.min_box_height_ratio)
-            frame_color: ColorResult | None = None
-            region_rect = None
-            if target is not None and region is not None and namer is not None:
-                pixels = region.extract(frame, target)
-                if isinstance(region, BoxUpperRegion):
-                    region_rect = region.rect(frame.shape, target)
-                if pixels is not None:
-                    frame_color = namer.name(pixels)
-                    del pixels
-                if frame_color is not None and frame_color.pixels:
-                    stats.color_majorities.append(frame_color.majority)
-                    stats.color_total += np.asarray(frame_color.distribution)
-            before = presence.track_id
-            was_engaged = presence.state == PresenceState.ENGAGED
-            for event in presence.update(tracks, frame_h, t0, color_of=lambda t, c=frame_color: c):
-                stats.events.append((elapsed, event))
-                out(f"[{elapsed:6.2f}s {_wall()}] {_describe(event)}")
-                if isinstance(event, PersonArrived) and presence.voting is not None:
-                    voted = presence.voting.result()
-                    top3 = ", ".join(f"{n} {v:.2f}" for n, v in voted.ranked(3))
-                    out(f"    suara {presence.voting.frames} frame: {top3}")
-            engaged = presence.state == PresenceState.ENGAGED
-            if was_engaged and engaged and presence.track_id != before:
-                assert presence.track_id is not None
-                stats.id_switches.append((elapsed, before, presence.track_id))
-                out(f"[{elapsed:6.2f}s] ID switch {before} -> {presence.track_id}")
-            stats.frames += 1
-            window_frames += 1
-            if tracks:
-                window_ratios.append(max(t.height_ratio(frame_h) for t in tracks))
+            if t0 >= next_detect - 1e-6:  # toleransi pembulatan jam
+                _detect(frame, t0, elapsed, detector, presence, region, namer, kp_conf,
+                        overlay, stats, win_heights, win_shoulders, out)  # fmt: skip
+                win_frames += 1
+                fps = fps_busy if presence.state == PresenceState.ENGAGED else fps_idle
+                # jaga irama tetap (tidak bergeser ke frame kamera berikutnya); bila tertinggal,
+                # mulai lagi dari sekarang
+                next_detect = max(next_detect + 1.0 / fps, t0)
 
             if show_window:
+                now = clock()
+                stats.seconds = now - start
                 lines = _prompt_lines(prompts, elapsed, seconds)
-                key = _draw(
-                    frame, tracks, presence.state, presence.track_id, stats.fps, lines,
-                    region_rect, frame_color,
-                )  # fmt: skip
+                key = draw(frame, overlay, stats.display_fps, stats.fps, lines, kp_conf)
                 if key == ord("q"):
                     break
             del frame  # N-08: frame hanya di memori
@@ -488,28 +530,17 @@ def run_demo(
             now = clock()
             stats.seconds = now - start
             if now >= report_at:
-                if window_ratios:
-                    ratio = (
-                        f"rasio box terbesar {window_ratios[-1]:.3f} "
-                        f"(rentang {min(window_ratios):.3f}-{max(window_ratios):.3f})"
-                    )
-                else:
-                    ratio = "rasio box terbesar - (tidak ada orang)"
                 colors = ""
-                if frame_color is not None and frame_color.pixels:
-                    top3 = ", ".join(f"{n} {v:.2f}" for n, v in frame_color.ranked(3))
-                    colors = f" | warna frame: {top3}"
+                if overlay.color is not None and overlay.color.pixels:
+                    top3 = ", ".join(f"{n} {v:.2f}" for n, v in overlay.color.ranked(3))
+                    colors = f" | warna: {top3} [{overlay.region_source}]"
                 out(
-                    f"[{now - start:6.2f}s] {ratio} | {presence.state} | "
-                    f"{window_frames} frame | fps rata-rata {stats.fps:.1f}{colors}"
+                    f"[{now - start:6.2f}s] tinggi box {_span(win_heights)} | "
+                    f"lebar bahu {_span(win_shoulders)} | {overlay.state} | "
+                    f"tampilan {win_shown} / deteksi {win_frames} frame{colors}"
                 )
-                window_ratios, window_frames = [], 0
+                win_heights, win_shoulders, win_frames, win_shown = [], [], 0, 0
                 report_at = now + 1.0
-
-            fps = fps_busy if presence.state == PresenceState.ENGAGED else fps_idle
-            remaining = 1.0 / fps - (clock() - t0)
-            if remaining > 0:
-                sleep(remaining)
     finally:
         camera.release()
         if show_window:
@@ -518,6 +549,76 @@ def run_demo(
             cv2.destroyAllWindows()
     stats.seconds = clock() - start
     return stats
+
+
+def _detect(
+    frame: np.ndarray,
+    t0: float,
+    elapsed: float,
+    detector: PersonDetector,
+    presence: PresenceTracker,
+    region: ClothingRegion | None,
+    namer: ColorNamer | None,
+    kp_conf: float | None,
+    overlay: Overlay,
+    stats: DemoStats,
+    win_heights: list[float],
+    win_shoulders: list[float],
+    out: Callable[[str], None],
+) -> None:
+    t_infer = time.perf_counter()
+    tracks = detector.detect_and_track(frame)
+    stats.infer_s += time.perf_counter() - t_infer
+    stats.frames += 1
+    frame_h, frame_w = frame.shape[:2]
+
+    # warna area pakaian target; piksel hanya di memori (N-08)
+    target = select_target(tracks, frame_h, presence.min_box_height_ratio)
+    frame_color: ColorResult | None = None
+    located = None
+    if target is not None and region is not None and namer is not None:
+        located = region.locate(frame.shape, target)
+        if located is not None:
+            (x1, y1, x2, y2), source = located
+            stats.region_sources[source] = stats.region_sources.get(source, 0) + 1
+            frame_color = namer.name(frame[y1:y2, x1:x2])
+            if frame_color.pixels:
+                stats.color_majorities.append(frame_color.majority)
+                stats.color_total += np.asarray(frame_color.distribution)
+        else:
+            stats.region_sources["none"] = stats.region_sources.get("none", 0) + 1
+
+    before = presence.track_id
+    was_engaged = presence.state == PresenceState.ENGAGED
+    for event in presence.update(tracks, frame_h, t0, color_of=lambda t, c=frame_color: c):
+        stats.events.append((elapsed, event))
+        out(f"[{elapsed:6.2f}s {_wall()}] {_describe(event)}")
+        if isinstance(event, PersonArrived) and presence.voting is not None:
+            voted = presence.voting.result()
+            top3 = ", ".join(f"{n} {v:.2f}" for n, v in voted.ranked(3))
+            out(f"    suara {presence.voting.frames} frame: {top3}")
+    engaged = presence.state == PresenceState.ENGAGED
+    if was_engaged and engaged and presence.track_id != before:
+        assert presence.track_id is not None
+        stats.id_switches.append((elapsed, before, presence.track_id))
+        out(f"[{elapsed:6.2f}s] ID switch {before} -> {presence.track_id}")
+
+    if tracks:
+        tallest = max(tracks, key=lambda t: t.height)
+        win_heights.append(tallest.height_ratio(frame_h))
+        stats.height_ratios.append((elapsed, win_heights[-1]))
+        if kp_conf is not None:
+            ratio = shoulder_width_ratio(tallest, frame_w, kp_conf)
+            if ratio is not None:  # hanya dicatat; kandidat syarat kehadiran E-07
+                win_shoulders.append(ratio)
+                stats.shoulder_ratios.append((elapsed, ratio))
+
+    overlay.tracks = tracks
+    overlay.state = presence.state
+    overlay.target = target.track_id if target is not None else None
+    overlay.region_rect = located[0] if located is not None else None
+    overlay.region_source = located[1] if located is not None else None
+    overlay.color = frame_color
 
 
 def _beep() -> None:
@@ -542,14 +643,34 @@ def _countdown(camera: Camera, seconds: float, prompts: list[tuple[float, str]])
             continue
         lines = [f"Mulai dalam {left:.0f} s"] + ([f"Siapkan: {first}"] if first else [])
         _banner(frame, lines)
-        cv2.imshow("MICA vision demo (q = keluar)", frame)
+        cv2.imshow(WINDOW, frame)
         del frame  # N-08
-        cv2.waitKey(30)
+        cv2.waitKey(1)
 
 
 def _make_detector(settings: Settings, path: Path) -> PersonDetector:
     v = settings.vision
     return UltralyticsDetector(path, v.tracker, v.conf, v.imgsz)
+
+
+def _summary_by_prompt(
+    series: list[tuple[float, float]], prompts: list[tuple[float, str]]
+) -> list[str]:
+    """Rentang nilai per instruksi (untuk membandingkan kondisi uji)."""
+    lines = []
+    marks = sorted(prompts) or [(0.0, "seluruh run")]
+    for i, (at, text) in enumerate(marks):
+        end = marks[i + 1][0] if i + 1 < len(marks) else float("inf")
+        values = [v for t, v in series if at <= t < end]
+        if values:
+            lines.append(
+                f"    {text} ({at:.0f}-{'' if end == float('inf') else f'{end:.0f}'} s): "
+                f"{min(values):.3f}-{max(values):.3f}, median {float(np.median(values)):.3f}, "
+                f"n={len(values)}"
+            )
+        else:
+            lines.append(f"    {text}: tidak ada data")
+    return lines
 
 
 def cmd_demo(
@@ -567,6 +688,7 @@ def cmd_demo(
     colors_path = Path(args.models_dir) / DEFAULT_COLORS_FILE.name
     namer = make_color_namer(vision, colors_path, values["color.min_majority"])
     region = make_region(vision, values)
+    kp_conf = values.get("keypoint_torso.min_kp_conf")
     detector = detector_factory(settings, path)
 
     sha = sha256_file(path) if path.is_file() else "(file tidak ada)"
@@ -616,26 +738,38 @@ def cmd_demo(
         beep=None if args.no_window else _beep,
         region=region,
         namer=namer,
+        kp_conf=kp_conf,
         clock=clock,
         sleep=sleep,
     )
     infer_ms = stats.infer_s / stats.frames * 1000 if stats.frames else 0.0
     print(
-        f"selesai: {stats.frames} frame dalam {stats.seconds:.1f} s, fps rata-rata {stats.fps:.2f}, "
-        f"inferensi rata-rata {infer_ms:.1f} ms/frame"
+        f"selesai: {stats.seconds:.1f} s | tampilan {stats.shown} frame ({stats.display_fps:.2f} FPS)"
+        f" | deteksi {stats.frames} frame ({stats.fps:.2f} FPS) | inferensi rata-rata "
+        f"{infer_ms:.1f} ms/frame"
     )
     kinds = [_describe(e) for _, e in stats.events if not isinstance(e, CameraStatus)]
     print(f"event: {len(kinds)} ({'; '.join(kinds) or 'tidak ada'})")
     print(f"ID switch: {len(stats.id_switches)}")
+    if stats.region_sources:
+        print("sumber area pakaian per deteksi: " + ", ".join(
+            f"{k} {v}" for k, v in sorted(stats.region_sources.items())))  # fmt: skip
     if stats.color_majorities:
         m = np.asarray(stats.color_majorities)
         share = stats.color_total / stats.color_total.sum()
         top3 = ", ".join(f"{COLOR_NAMES[i]} {share[i]:.2f}" for i in np.argsort(share)[::-1][:3])
         print(
-            f"warna per frame ({m.size} frame dengan target): proporsi terbanyak "
+            f"warna per deteksi ({m.size} frame dengan target): proporsi terbanyak "
             f"min {m.min():.2f} | median {np.median(m):.2f} | maks {m.max():.2f}; "
             f"distribusi rata-rata: {top3}"
         )
+    print("rasio tinggi box terbesar per instruksi:")
+    for line in _summary_by_prompt(stats.height_ratios, args.prompt):
+        print(line)
+    if kp_conf is not None:
+        print("rasio lebar bahu / lebar frame per instruksi (hanya dicatat, kandidat E-07):")
+        for line in _summary_by_prompt(stats.shoulder_ratios, args.prompt):
+            print(line)
     return 0
 
 

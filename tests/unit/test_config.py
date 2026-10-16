@@ -374,12 +374,36 @@ def test_box_upper_required_in_kiosk_when_used(tmp_path):
     assert "vision.box_upper.top" in str(exc.value)
 
 
-def test_box_upper_optional_in_kiosk_for_keypoint_torso(tmp_path):
+def test_box_upper_required_in_kiosk_as_keypoint_fallback(tmp_path):
     raw = _complete_kiosk_raw()
-    raw["vision"]["model"] = "yolo26n-pose"
     raw["vision"]["region"] = "keypoint_torso"
-    raw["vision"]["box_upper"] = {"top": None, "bottom": None, "side": None}
-    assert load_settings(_write(tmp_path, raw)).vision.region == "keypoint_torso"
+    raw["vision"]["box_upper"]["side"] = None
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert "vision.box_upper.side" in str(exc.value)
+
+
+def test_keypoint_torso_required_in_kiosk_when_used(tmp_path):
+    raw = _complete_kiosk_raw()
+    raw["vision"]["region"] = "keypoint_torso"
+    raw["vision"]["keypoint_torso"]["shrink"] = None
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert "vision.keypoint_torso.shrink" in str(exc.value)
+
+
+def test_keypoint_torso_optional_in_kiosk_for_box_upper(tmp_path):
+    raw = _complete_kiosk_raw()
+    raw["vision"]["region"] = "box_upper"
+    raw["vision"]["keypoint_torso"] = {"min_kp_conf": None, "shrink": None, "torso_aspect": None}
+    assert load_settings(_write(tmp_path, raw)).vision.region == "box_upper"
+
+
+def test_dev_yaml_uses_pose_model_and_keypoint_torso():
+    vision = load_settings(DEV_YAML).vision
+    assert (vision.model, vision.region) == ("yolo26n-pose", "keypoint_torso")
+    kp = vision.keypoint_torso
+    assert (kp.min_kp_conf, kp.shrink, kp.torso_aspect) == (None, None, None)
 
 
 def test_dev_yaml_color_values_stay_null():
