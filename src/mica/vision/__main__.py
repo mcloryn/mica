@@ -357,6 +357,98 @@ def make_color_namer(vision: VisionConfig, path: Path, min_majority: float) -> C
     return HsvRuleNamer(min_majority)
 
 
+@dataclass(frozen=True)
+class TrackObs:
+    """Satu track pada satu deteksi (diagnosis E-07; tidak memuat piksel)."""
+
+    t: float
+    track_id: int
+    conf: float
+    height: float  # tinggi box / tinggi frame
+    shoulder: float | None  # lebar bahu / lebar frame tanpa syarat confidence
+    l_conf: float | None
+    r_conf: float | None
+    signal: float | None  # nilai sinyal kehadiran yang dipakai (None = tidak terukur)
+    eligible: bool
+    carried: bool  # memenuhi syarat karena carry-over
+    target: bool
+
+
+def observe_tracks(
+    t: float,
+    tracks: list[PersonTrack],
+    frame_shape: tuple[int, ...],
+    presence: PresenceTracker,
+    target: PersonTrack | None,
+) -> list[TrackObs]:
+    """Dipanggil sebelum presence.update: carry-over dinilai dari state update sebelumnya."""
+    eligible = presence.eligible_tracks(tracks, frame_shape)
+    out = []
+    for tr in tracks:
+        kp = tr.keypoints
+        l_conf = float(kp[L_SHOULDER][2]) if kp is not None else None
+        r_conf = float(kp[R_SHOULDER][2]) if kp is not None else None
+        value = presence.signal.value(tr, frame_shape)
+        out.append(
+            TrackObs(
+                t=t,
+                track_id=tr.track_id,
+                conf=tr.conf,
+                height=tr.height_ratio(frame_shape[0]),
+                shoulder=shoulder_width_ratio(tr, frame_shape[1], 0.0),
+                l_conf=l_conf,
+                r_conf=r_conf,
+                signal=value,
+                eligible=tr.track_id in eligible,
+                carried=value is None and tr.track_id in eligible,
+                target=target is not None and tr.track_id == target.track_id,
+            )
+        )
+    return out
+
+
+def _fmt(v: float | None) -> str:
+    return "-" if v is None else f"{v:.3f}"
+
+
+def _obs_line(o: TrackObs) -> str:
+    flags = [f for f, on in (("syarat", o.eligible), ("carry-over", o.carried),
+                             ("target", o.target)) if on]  # fmt: skip
+    return (
+        f"    track {o.track_id}: conf {o.conf:.2f} | tinggi {o.height:.3f} | bahu {_fmt(o.shoulder)}"
+        f" (conf L {_fmt(o.l_conf)} R {_fmt(o.r_conf)}) | sinyal {_fmt(o.signal)}"
+        + (f" | {', '.join(flags)}" if flags else "")
+    )
+
+
+def track_table(observations: list[TrackObs]) -> list[str]:
+    """Ringkasan per track untuk laporan."""
+
+    def span(values: list[float]) -> str:
+        return f"{min(values):.3f}-{max(values):.3f}" if values else "-"
+
+    lines = [
+        (
+            "| track | muncul-terakhir (s) | n | conf deteksi | tinggi | bahu | conf bahu min L/R "
+            "| syarat | carry-over | target |"
+        ),
+        "|---|---|---|---|---|---|---|---|---|---|",
+    ]
+    for tid in sorted({o.track_id for o in observations}):
+        rows = [o for o in observations if o.track_id == tid]
+        lc = [o.l_conf for o in rows if o.l_conf is not None]
+        rc = [o.r_conf for o in rows if o.r_conf is not None]
+        kp = f"{min(lc):.2f}/{min(rc):.2f}" if lc and rc else "-"
+        lines.append(
+            f"| {tid} | {rows[0].t:.1f}-{rows[-1].t:.1f} | {len(rows)} "
+            f"| {span([o.conf for o in rows])} | {span([o.height for o in rows])} "
+            f"| {span([o.shoulder for o in rows if o.shoulder is not None])} | {kp} "
+            f"| {sum(o.eligible for o in rows)} | {sum(o.carried for o in rows)} "
+            f"| {sum(o.target for o in rows)} |"
+        )
+    return lines
+
+
 @dataclass
 class DemoStats:
     frames: int = 0  # frame yang dideteksi
@@ -370,6 +462,7 @@ class DemoStats:
     region_sources: dict[str, int] = field(default_factory=dict)
     shoulder_ratios: list[tuple[float, float]] = field(default_factory=list)  # (detik, rasio)
     height_ratios: list[tuple[float, float]] = field(default_factory=list)
+    track_obs: list[TrackObs] = field(default_factory=list)
 
     @property
     def fps(self) -> float:
@@ -391,6 +484,7 @@ class Overlay:
     region_rect: tuple[int, int, int, int] | None = None
     region_source: str | None = None
     color: ColorResult | None = None
+    observations: list[TrackObs] = field(default_factory=list)
 
 
 def _wall() -> str:
@@ -581,6 +675,8 @@ def run_demo(
                     f"lebar bahu {_span(win_shoulders)} | {overlay.state} | "
                     f"tampilan {win_shown} / deteksi {win_frames} frame{colors}"
                 )
+                for obs in overlay.observations:  # semua track pada deteksi terakhir
+                    out(_obs_line(obs))
                 win_heights, win_shoulders, win_frames, win_shown = [], [], 0, 0
                 report_at = now + 1.0
     finally:
@@ -630,6 +726,8 @@ def _detect(
         else:
             stats.region_sources["none"] = stats.region_sources.get("none", 0) + 1
 
+    observations = observe_tracks(elapsed, tracks, frame.shape, presence, target)
+    stats.track_obs.extend(observations)
     before = presence.track_id
     was_engaged = presence.state == PresenceState.ENGAGED
     for event in presence.update(tracks, frame.shape, t0, color_of=lambda t, c=frame_color: c):
@@ -661,6 +759,7 @@ def _detect(
     overlay.region_rect = located[0] if located is not None else None
     overlay.region_source = located[1] if located is not None else None
     overlay.color = frame_color
+    overlay.observations = observations
 
 
 def _beep() -> None:
@@ -808,6 +907,10 @@ def cmd_demo(
             f"min {m.min():.2f} | median {np.median(m):.2f} | maks {m.max():.2f}; "
             f"distribusi rata-rata: {top3}"
         )
+    if stats.track_obs:
+        print("per track (semua deteksi):")
+        for line in track_table(stats.track_obs):
+            print(line)
     print("rasio tinggi box terbesar per instruksi:")
     for line in _summary_by_prompt(stats.height_ratios, args.prompt):
         print(line)

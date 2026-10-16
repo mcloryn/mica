@@ -440,3 +440,22 @@ def test_fetch_colors_refused_in_kiosk(monkeypatch, capsys):
     monkeypatch.setattr(cli, "load_settings", lambda path: _kiosk_settings())
     assert cli.main(["fetch-colors"]) == 2
     assert "app.mode: dev" in capsys.readouterr().err
+
+
+def test_track_observations_mark_carry_over():
+    from test_vision import shouldered
+
+    presence = cli.PresenceTracker(2.0, 3.0, 0.22, cli.ShoulderWidthSignal(0.5))
+    frame = (100, 100)
+    presence.update([shouldered(1)], frame, 0.0)  # bahu yakin 0,30 -> memenuhi syarat
+    unsure = shouldered(1, conf=0.1)
+    obs = cli.observe_tracks(0.5, [unsure, shouldered(2, width=10)], frame, presence, unsure)
+    one, two = obs
+    assert (one.track_id, one.signal, one.eligible, one.carried, one.target) == (
+        1, None, True, True, True)  # fmt: skip
+    assert one.shoulder == pytest.approx(0.30) and one.l_conf == pytest.approx(0.1)
+    assert (two.eligible, two.carried, two.signal) == (False, False, pytest.approx(0.10))
+    assert "carry-over" in cli._obs_line(one) and "syarat" not in cli._obs_line(two)
+    table = cli.track_table(obs)
+    assert table[2].startswith("| 1 | 0.5-0.5 | 1 |") and table[2].endswith("| 1 | 1 | 1 |")
+    assert table[3].endswith("| 0 | 0 | 0 |")
