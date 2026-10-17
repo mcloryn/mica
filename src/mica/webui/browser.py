@@ -53,6 +53,16 @@ IDLE_SWITCHES = (
     # kDisableComponentUpdate: menonaktifkan pembaruan komponen (component updater).
     # Bench tahap 1 AC: CPU diam 7,06% -> 4,35%, RAM USS diam 196,9 -> 194,0 MB.
     "--disable-component-update",
+    # Putaran 2 (docs/UI-WEB.md, "Optimasi putaran 2"): gabungan k1+k2 lolos,
+    # results/ADR-19/ui-opt2-combo-20261018-042512 (10 ulangan selang-seling, AC, median):
+    # RAM USS diam 194,5 -> 175,1 MB, CPU diam 5,04% -> 4,10%.
+    # kDisableComponentExtensionsWithBackgroundPages (chrome/common/chrome_switches.h, dicek
+    # 17 Okt 2026): "Disable default component extensions with background pages".
+    "--disable-component-extensions-with-background-pages",
+    # kRendererProcessLimit (https://source.chromium.org/chromium/chromium/src/+/main:content/
+    # public/common/content_switches.cc, dicek 17 Okt 2026): "Overrides the default/calculated
+    # limit to the number of renderer processes". Nilai 1: kiosk hanya punya satu halaman.
+    "--renderer-process-limit=1",
 )
 
 

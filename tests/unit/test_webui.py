@@ -346,7 +346,8 @@ def test_edge_command_flags(tmp_path):
     url = "http://127.0.0.1:5000/"
     assert edge_command(edge, url, tmp_path, True) == [
         "msedge.exe", f"--user-data-dir={tmp_path}", "--no-first-run",
-        "--disable-component-update", "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding",
+        "--disable-component-update", "--disable-component-extensions-with-background-pages",
+        "--renderer-process-limit=1", "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding",
         "--disable-background-timer-throttling",
         "--kiosk", url, "--edge-kiosk-type=fullscreen"]  # fmt: skip
     assert edge_command(edge, url, tmp_path, False)[-1] == url
@@ -367,7 +368,10 @@ def test_rendering_switches_are_only_verified_ones():
     browser.close()
     assert set(RENDERING_SWITCHES) <= set(started[0])
     # Langkah 31: hanya switch yang lolos aturan keputusan (changes.csv)
-    assert IDLE_SWITCHES == ("--disable-component-update",)
+    assert IDLE_SWITCHES == ("--disable-component-update",
+                             "--disable-component-extensions-with-background-pages",
+                             "--renderer-process-limit=1")  # fmt: skip
+    assert set(IDLE_SWITCHES) <= set(started[0])
 
 
 class FakeProc:
