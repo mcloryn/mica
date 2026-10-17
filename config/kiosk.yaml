@@ -77,7 +77,7 @@ session:
   idle_reset_s: null                # E-09
   regreet_cooldown_s: null          # E-07
 ui:
-  backend: pyside6                  # ADR-19: pyside6 | web; bawaan sampai E-09 (docs/UI-WEB.md tahap 2)
+  backend: web                      # ADR-19: web | pyside6; web dipilih pemilik proyek 17 Okt 2026, pyside6 cadangan beku (docs/UI-WEB.md)
   fullscreen: true
   font_scale: 1.0
   topics: [Program studi, Jalur masuk, Biaya, Beasiswa, Fasilitas, Prospek karier]   # F-14, dari topik dataset PRD

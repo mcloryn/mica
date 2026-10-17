@@ -139,9 +139,11 @@ def _models(tmp_path, content, settings):
             c.fetch()
 
 
-def _dev_config(tmp_path):
+def _dev_config(tmp_path, backend=None):
     raw = yaml.safe_load(DEV_YAML.read_text(encoding="utf-8"))
     raw["logging"]["dir"] = str(tmp_path / "logs")
+    if backend is not None:
+        raw["ui"]["backend"] = backend
     path = tmp_path / "dev.yaml"
     path.write_text(yaml.safe_dump(raw, allow_unicode=True), encoding="utf-8")
     return path
@@ -152,16 +154,17 @@ def _run(tmp_path, config, monkeypatch, key=FAKE_KEY, devices=DEVICES, edge_path
         monkeypatch.setenv("GROQ_API_KEY", key)
     else:
         monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    if edge_paths is None:  # Edge palsu: tes tidak bergantung pada Edge di mesin uji
+        fake = tmp_path / "edge-palsu" / "msedge.exe"
+        fake.parent.mkdir(exist_ok=True)
+        fake.write_bytes(b"")
+        edge_paths = (fake,)
     return check.run_check(config, None, tmp_path, ROOT / "data" / "kb", lambda: devices,
                            edge_paths)  # fmt: skip
 
 
 def _web_config(tmp_path):
-    path = _dev_config(tmp_path)
-    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
-    raw["ui"]["backend"] = "web"
-    path.write_text(yaml.safe_dump(raw, allow_unicode=True), encoding="utf-8")
-    return path
+    return _dev_config(tmp_path, backend="web")
 
 
 def test_check_all_ok_in_dev(tmp_path, locked, monkeypatch):
@@ -254,7 +257,7 @@ def test_check_web_backend_with_edge_ok(tmp_path, locked, monkeypatch):
 
 
 def test_check_pyside6_backend_has_no_edge_row(tmp_path, locked, monkeypatch):
-    config = _dev_config(tmp_path)
+    config = _dev_config(tmp_path, backend="pyside6")
     _models(tmp_path, locked, load_settings(config))
     missing = (tmp_path / "tidak-ada" / "msedge.exe",)
     rows, _ = _run(tmp_path, config, monkeypatch, edge_paths=missing)

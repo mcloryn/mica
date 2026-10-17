@@ -138,3 +138,15 @@ jendela Edge tidak di depan.
 - Setelah 20 pertanyaan, RAM web naik dari 196 MB ke 250 MB (median USS, run aiohttp; run Flask:
   197 → 255 MB). Perlu dicek pada sesi panjang di E-09, apakah ini kebocoran atau hanya
   pemanasan.
+
+## Keputusan pemilik proyek (17 Okt 2026)
+
+- UI web (Flask + Edge kiosk) dipilih sebagai UI utama MICA sebelum tahap 2. Dasarnya data
+  tahap 1 (LOLOS, results/ADR-19/ui-bench-20261017-192424) dan preferensi pemilik proyek. Ini
+  penyimpangan dari protokol di atas, yang menetapkan pilihan baru dibuat setelah tahap 2.
+  Penyimpangan ini wajib diungkap di Bab 3. `ui.backend: web` di dev.yaml dan kiosk.yaml.
+- Peran E-09 berubah menjadi verifikasi: anggaran latensi SDD 3.3 dan K-3 harus tetap
+  terpenuhi dengan UI web. Bila gagal, optimasi dulu; PySide6 adalah jalan keluar terakhir.
+- PySide6 dibekukan sebagai cadangan. Kode dan tesnya tetap ada dan tetap harus lulus, tetapi
+  tidak dikembangkan lagi. Keputusan menghapusnya dibuat setelah E-09.
+- Aturan tahap 1 dan tahap 2 di atas tidak diubah.

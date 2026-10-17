@@ -68,14 +68,14 @@ def test_complete_kiosk_config_loads(tmp_path):
     assert settings.app.mode == "kiosk"
 
 
-def test_ui_backend_default_pyside6_and_web_accepted(tmp_path):
-    # ADR-19: pyside6 bawaan di dev dan kiosk sampai E-09
-    assert load_settings(DEV_YAML).ui.backend == "pyside6"
+def test_ui_backend_web_default_and_pyside6_accepted(tmp_path):
+    # ADR-19: web dipilih pemilik proyek (17 Okt 2026); pyside6 tetap bisa dipilih (cadangan beku)
+    assert load_settings(DEV_YAML).ui.backend == "web"
     kiosk = yaml.safe_load(KIOSK_YAML.read_text(encoding="utf-8"))
-    assert kiosk["ui"]["backend"] == "pyside6"
+    assert kiosk["ui"]["backend"] == "web"
     raw = _dev_raw()
-    raw["ui"]["backend"] = "web"
-    assert load_settings(_write(tmp_path, raw)).ui.backend == "web"
+    raw["ui"]["backend"] = "pyside6"
+    assert load_settings(_write(tmp_path, raw)).ui.backend == "pyside6"
 
 
 def test_ui_backend_required(tmp_path):

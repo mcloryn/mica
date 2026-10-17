@@ -214,8 +214,8 @@ class SessionConfig(_Model):
 
 
 class UiConfig(_Model):
-    # ADR-19 (Provisional): pyside6 = bawaan; web = Flask + Edge kiosk (docs/UI-WEB.md).
-    # Pilihan akhir di tahap 2 (E-09).
+    # ADR-19: web = Flask + Edge kiosk, UI utama (keputusan pemilik proyek 17 Okt 2026);
+    # pyside6 = cadangan beku, keputusan hapus setelah E-09 (docs/UI-WEB.md).
     backend: Literal["pyside6", "web"]
     fullscreen: bool
     font_scale: PositiveFloat

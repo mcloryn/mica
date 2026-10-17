@@ -54,9 +54,23 @@ berjalan MICA tidak mengunduh apa pun.
    python -m mica
    ```
 
-   MICA menjalankan `check` lagi; bila ada `GAGAL`, jendela tidak dibuka dan tabelnya dicetak.
+   MICA menjalankan `check` lagi; bila ada `GAGAL`, UI tidak dibuka dan tabelnya dicetak.
+
+   UI kiosk adalah UI web (`ui.backend: web`): MICA menjalankan server lokal di 127.0.0.1
+   lalu membuka Microsoft Edge dalam mode kiosk layar penuh. Edge tidak perlu dibuka sendiri.
+   Untuk menutup kiosk, tekan Alt+F4 di jendela Edge (server dan proses kamera/suara ikut
+   berhenti) atau Ctrl+C di PowerShell (Edge ikut tertutup).
 
 Catatan:
+
+- Microsoft Edge wajib terpasang (bawaan Windows 10/11) di
+  `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe` atau
+  `C:\Program Files\Microsoft\Edge\Application\msedge.exe`. Bila tidak ditemukan, `check`
+  menulis baris `Microsoft Edge  GAGAL` dan kiosk tidak dijalankan. Edge memakai profil
+  sementara sendiri, terpisah dari Edge milik pengguna laptop, dan profil itu dihapus saat
+  kiosk ditutup.
+- UI PySide6 lama masih ada sebagai cadangan (`ui.backend: pyside6`), tetapi tidak
+  dikembangkan lagi; lihat `docs/UI-WEB.md`.
 
 - Tanpa argumen, ketiga perintah memakai `config/kiosk.yaml`. Untuk mode pengembangan pakai
   `--config config/dev.yaml`.

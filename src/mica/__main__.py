@@ -3,7 +3,7 @@
 python -m mica [--config config/kiosk.yaml] [--fake-workers] [--fake-pipeline]
     jalankan check dulu; bila ada GAGAL, cetak tabel dan keluar 1 tanpa membuka jendela.
     Bila OK: proses vision + suara (start_workers), KioskController, dan UI sesuai ui.backend:
-    pyside6 (mica.ui.app, bawaan) atau web (mica.webui.app: server Flask + Edge kiosk).
+    web (mica.webui.app: server Flask + Edge kiosk, UI utama) atau pyside6 (mica.ui.app, cadangan).
     --fake-* hanya boleh di mode dev.
 python -m mica setup [--config ...] [--only <komponen>]   lihat mica/setup.py
 python -m mica check [--config ...]                       lihat mica/check.py
