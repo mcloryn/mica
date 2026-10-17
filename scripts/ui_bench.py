@@ -142,7 +142,7 @@ def child_pyside6(config: Path) -> int:
         driver.tick()
         if driver.done and driver.active:
             driver.active = False
-            emit("done", latencies=latencies, updates=len(latencies))
+            emit("done", latencies=latencies, updates=len(latencies), unacked=len(pending))
 
     timer = QTimer()
     timer.setInterval(50)
@@ -202,7 +202,8 @@ def child_web(config: Path) -> int:
                 while webui.sent_at and time.perf_counter() < deadline:
                     await asyncio.sleep(0.01)
                 lat = webui.ack_latencies_s[start_index:]
-                emit("done", latencies=lat, updates=len(lat))
+                # pembaruan yang tidak pernah di-ack browser (mis. jendela tidak di depan)
+                emit("done", latencies=lat, updates=len(lat), unacked=len(webui.sent_at))
             await asyncio.sleep(0.05)
         await task
 
@@ -302,6 +303,7 @@ def run_once(ui: str, rep: int, config: Path) -> dict[str, Any]:
         "ui": ui, "rep": rep, "startup_s": startup_s, "uss_idle_mb": uss_idle,
         "uss_after_mb": uss_after, "cpu_idle_pct": cpu, "n_processes_idle": n_idle,
         "n_processes_after": n_after, "n_updates": len(lat),
+        "n_unacked": int(done.get("unacked", 0)),
         "lat_p50_ms": 1000 * statistics.median(lat) if lat else None,
         "lat_p95_ms": 1000 * percentile(lat, 95) if lat else None,
         "power_source": (power or {}).get("source"),
@@ -361,9 +363,10 @@ def main(argv: list[str] | None = None) -> int:
             print(f"[{ui} ulangan {rep}] ...", flush=True)
             r = run_once(ui, rep, args.config)
             runs.append(r)
+            p95 = "-" if r["lat_p95_ms"] is None else f"{r['lat_p95_ms']:.1f} ms"
             print(f"  mulai {r['startup_s']:.2f} s | USS diam {r['uss_idle_mb']:.0f} MB | "
-                  f"CPU diam {r['cpu_idle_pct']:.2f}% | p95 {r['lat_p95_ms']:.1f} ms "
-                  f"({r['n_updates']} pembaruan)", flush=True)  # fmt: skip
+                  f"CPU diam {r['cpu_idle_pct']:.2f}% | p95 {p95} "
+                  f"({r['n_updates']} pembaruan, {r['n_unacked']} tanpa ack)", flush=True)  # fmt: skip
 
     stamp = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S")
     out = args.out / f"ui-bench-{stamp}"
@@ -390,6 +393,7 @@ def main(argv: list[str] | None = None) -> int:
             "uss_after_median_mb": statistics.median(r["uss_after_mb"] for r in rs),
             "cpu_idle_median_pct": statistics.median(r["cpu_idle_pct"] for r in rs),
             "lat_p50_s": percentile(lat, 50), "lat_p95_s": percentile(lat, 95),
+            "n_unacked": sum(r["n_unacked"] for r in rs),
         }  # fmt: skip
         summary[ui]["p95x3_s"] = summary[ui]["lat_p95_s"] * FACTOR
     # (a) fungsional: bagian yang dibuktikan tes otomatis dan oleh run ini
@@ -401,6 +405,8 @@ def main(argv: list[str] | None = None) -> int:
                                                                if r["ui"] == "web"),
         "20 pertanyaan terjawab tampil di setiap ulangan": all(r["n_updates"] > 0 for r in runs
                                                                  if r["ui"] == "web"),
+        "setiap pembaruan web di-ack browser (tampil)": all(r["n_unacked"] == 0 for r in runs
+                                                            if r["ui"] == "web"),
     }  # fmt: skip
     verdict, reasons = decide(summary["web"], functional)
     with (out / "summary.csv").open("w", encoding="utf-8-sig", newline="") as f:
