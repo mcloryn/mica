@@ -846,16 +846,6 @@ def cmd_demo(
 # --- bus-demo ---------------------------------------------------------------------------
 
 
-def _rss_mb(pid: int | None = None) -> float | None:
-    """RSS proses dalam MB bila psutil tersedia (terpasang bersama Ultralytics); selain itu None."""
-    try:
-        import psutil
-
-        return psutil.Process(pid).memory_info().rss / 2**20
-    except Exception:  # noqa: BLE001 - pengukuran opsional, tidak boleh menggagalkan demo
-        return None
-
-
 def cmd_bus_demo(
     args: argparse.Namespace,
     settings: Settings,
@@ -869,6 +859,7 @@ def cmd_bus_demo(
     import logging
 
     from mica.core.bus import SetVisionRate, start_workers
+    from mica.core.bus import rss_mb as _rss_mb
     from mica.vision.worker import VisionWorkerConfig
 
     _require_dev(settings, "bus-demo")
@@ -902,7 +893,7 @@ def cmd_bus_demo(
     # ok pertama) ditambah hitung mundur pratinjau; waktu di log relatif terhadap titik itu.
     countdown = args.countdown if args.preview else 0.0
     spawn = time.monotonic()
-    bus = start_workers(settings, cfg)
+    bus = start_workers(settings, cfg, workers=("vision",))
     zero: float | None = None
     reported_pids: set[int] = set()
     killed = False

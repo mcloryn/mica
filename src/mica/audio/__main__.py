@@ -14,6 +14,9 @@ python -m mica.audio say "<teks>" | --file <txt> [--no-play] [--device N] [--lis
     sintesis tiap baris (satu kalimat per baris), cetak teks asli, hasil normalisasi, synth_s,
     durasi audio, RTF, dan first_audio_s, lalu putar lewat sounddevice. --rate meminta nilai di
     terminal setelah tiap baris diputar dan menulis ratings.csv + run.json.
+python -m mica.audio bus-demo <nilai coba seperti listen> [--turns 3] [--kill-after S]
+    [--stop-after S] [--push-to-talk] [--device N] [--output-device N]
+    proses suara di proses anak lewat bus M-13, proses utama meniru M-09; lihat cmd_bus_demo.
 
 Audio tidak pernah ditulis ke disk (N-08); --rate hanya menulis teks dan angka.
 """
@@ -34,6 +37,7 @@ from typing import Any
 
 from mica.audio.listen import (
     DEFAULT_DATASET,
+    ECHO_PREFIX,
     FILTER_ARGS,
     VAD_ARGS,
     Listener,
@@ -48,6 +52,7 @@ from mica.audio.listen import (
     script_summary,
     write_script_results,
 )
+from mica.audio.messages import AudioStatus, ListenMode
 from mica.audio.mic import MicStream, MicUnavailable
 from mica.audio.normalize import normalize_for_speech
 from mica.audio.stt import (
@@ -71,6 +76,7 @@ from mica.audio.tts import (
     voice_path,
 )
 from mica.audio.vad import silero_prob
+from mica.audio.worker import AudioWorkerConfig, AudioWorkerConfigError
 from mica.config import ConfigError, Settings, load_settings
 
 DEFAULT_CONFIG = Path("config/dev.yaml")
@@ -388,22 +394,39 @@ def build_parser() -> argparse.ArgumentParser:
     listen.add_argument("--voices-dir", type=Path, default=DEFAULT_VOICES_DIR)
     listen.add_argument("--device", type=int, help="indeks mikrofon sounddevice")
     listen.add_argument("--list-devices", action="store_true", help="tampilkan perangkat audio")
-    listen.add_argument("--vad-threshold", type=float, help="menimpa audio.vad.threshold")
-    listen.add_argument("--min-silence-ms", type=float, help="menimpa audio.vad.min_silence_ms")
-    listen.add_argument("--max-utterance-s", type=float, help="menimpa audio.max_utterance_s")
-    # nilai coba 250 = bawaan min_speech_duration_ms Silero
-    listen.add_argument("--min-speech-ms", type=float, help="menimpa audio.vad.min_speech_ms")
-    # nilai coba 0.6 = bawaan no_speech_threshold Whisper/faster-whisper
-    listen.add_argument(
-        "--no-speech-threshold", type=float, help="menimpa audio.stt.no_speech_threshold"
-    )
+    _add_trial_args(listen)
     listen.add_argument("--echo", action="store_true", help='ucapkan "Kamu bertanya: <teks>"')
     listen.add_argument("--count", type=int, help="berhenti setelah N ucapan")
     listen.add_argument("--script", action="store_true", help="pilot WER: bacakan N pertanyaan")
     listen.add_argument("--n", type=int, default=10, help="jumlah pertanyaan --script")
     listen.add_argument("--dataset", type=Path, default=DEFAULT_DATASET)
     listen.add_argument("--out", type=Path, help="folder wer.csv dan run.json (dengan --script)")
+
+    demo = sub.add_parser("bus-demo", help="proses suara lewat bus M-13, meniru M-09 (dev saja)")
+    demo.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
+    demo.add_argument("--whisper-dir", type=Path, default=DEFAULT_WHISPER_DIR)
+    demo.add_argument("--voices-dir", type=Path, default=DEFAULT_VOICES_DIR)
+    demo.add_argument("--device", type=int, help="indeks mikrofon sounddevice")
+    demo.add_argument("--output-device", type=int, help="indeks speaker sounddevice")
+    _add_trial_args(demo)
+    demo.add_argument("--turns", type=int, default=3, help="berhenti setelah N pertanyaan")
+    demo.add_argument("--kill-after", type=float, help="bunuh proses suara S detik sejak siap")
+    demo.add_argument("--stop-after", type=float,
+                      help="Speak panjang lalu StopSpeaking S detik setelah dikirim")  # fmt: skip
+    demo.add_argument("--push-to-talk", action="store_true", help="ListenControl(push_to_talk)")
     return parser
+
+
+def _add_trial_args(p: argparse.ArgumentParser) -> None:
+    p.add_argument("--vad-threshold", type=float, help="menimpa audio.vad.threshold")
+    p.add_argument("--min-silence-ms", type=float, help="menimpa audio.vad.min_silence_ms")
+    p.add_argument("--max-utterance-s", type=float, help="menimpa audio.max_utterance_s")
+    # nilai coba 250 = bawaan min_speech_duration_ms Silero
+    p.add_argument("--min-speech-ms", type=float, help="menimpa audio.vad.min_speech_ms")
+    # nilai coba 0.6 = bawaan no_speech_threshold Whisper/faster-whisper
+    p.add_argument(
+        "--no-speech-threshold", type=float, help="menimpa audio.stt.no_speech_threshold"
+    )
 
 
 def _make_stt(
@@ -483,6 +506,306 @@ def cmd_listen(
     return 0
 
 
+# --- bus-demo ---------------------------------------------------------------------------
+
+DEMO_GREETING = "Halo, selamat datang di Universitas Mikroskil. Silakan bertanya."
+DEMO_SORRY = "Maaf, belum terdengar jelas. Silakan ulangi."
+# --stop-after: tiga kalimat dari data/sources/dev/01_profil_universitas.md (Ringkasan), tanda
+# kurung diganti koma supaya dibaca wajar
+DEMO_LONG_TEXT = (
+    "Universitas Mikroskil adalah perguruan tinggi swasta di Medan, Sumatera Utara, dengan "
+    "penekanan pada teknologi informasi dan bisnis. Universitas ini didirikan oleh Yayasan Bina "
+    "Pertiwi Medan dan terbentuk pada tahun 2021 dari penggabungan STMIK Mikroskil, berdiri "
+    "1997, dan STIE Mikroskil, berdiri 2008. Universitas Mikroskil memiliki dua fakultas: "
+    "Fakultas Informatika dan Fakultas Bisnis dan Hukum."
+)
+DEMO_START_TIMEOUT_S = 120.0  # non-ADR: batas tunggu proses suara siap (memuat Whisper + Piper)
+HEAVY_MODULES = ("torch", "ctranslate2", "onnxruntime", "faster_whisper", "piper")
+
+
+def _wall() -> str:
+    from datetime import datetime
+
+    return datetime.now().strftime("%H:%M:%S")
+
+
+def describe_audio_msg(msg: Any) -> str:
+    from mica.audio.messages import AudioStatus, SpeechDone, SpeechStarted, Transcript
+
+    if isinstance(msg, AudioStatus):
+        return (f"AudioStatus mic_ok={msg.mic_ok} speaker_ok={msg.speaker_ok} ready={msg.ready}"
+                f" | {msg.message}")  # fmt: skip
+    if isinstance(msg, SpeechStarted):
+        return f"SpeechStarted session={msg.session_id}"
+    if isinstance(msg, Transcript):
+        text = f" teks: {msg.text}" if msg.ok else ""  # konsol dev saja, tidak di-log (N-09)
+        extra = (" | dipotong max_utterance_s" if msg.cut_by_max else "") + (
+            f" | tersaring {msg.filtered_by}" if msg.filtered_by else ""
+        )
+        return (f"Transcript ok={msg.ok} stt_s {msg.stt_s:.2f} audio_s {msg.audio_s:.2f}{extra}"
+                f"{text}")  # fmt: skip
+    if isinstance(msg, SpeechDone):
+        first = "-" if msg.tts_first_audio_s is None else f"{msg.tts_first_audio_s:.2f}"
+        return (f"SpeechDone {msg.utterance_id} first_audio_s {first} "
+                f"interrupted={msg.interrupted}")  # fmt: skip
+    return repr(msg)
+
+
+@dataclass
+class DemoStats:
+    ready_s: list[float]  # spawn -> AudioStatus(ready) per pid
+    first_audio_s: list[tuple[str, float | None]]
+    started_to_transcript_s: list[float]
+    stt_s: list[float]
+    filtered: dict[str, int]
+    transcripts: int = 0
+    recovered_s: float | None = None  # kill -> ready lagi
+    stop_s: float | None = None  # StopSpeaking dikirim -> SpeechDone(interrupted)
+    stop_interrupted: bool | None = None
+
+
+class BusDemo:
+    """Meniru M-09 untuk proses suara: handle(pesan) mengirim balasan lewat bus.send."""
+
+    def __init__(
+        self,
+        bus: Any,
+        turns: int,
+        push_to_talk: bool = False,
+        stop_after: float | None = None,
+        clock: Callable[[], float] = time.monotonic,
+        out: Callable[[str], None] = print,
+    ) -> None:
+        import uuid
+
+        self.bus = bus
+        self.turns = turns
+        self.listen_mode: ListenMode = "push_to_talk" if push_to_talk else "auto"
+        self.stop_after = stop_after
+        self.clock = clock
+        self.out = out
+        self.session_id = uuid.uuid4().hex[:8]
+        self.next_id = 0
+        self.pending: dict[str, str] = {}  # utterance_id -> jenis
+        self.answered = 0
+        self.greeted = False
+        self.done = False
+        self.ready_at: float | None = None
+        self.killed_at: float | None = None
+        self.started_at: float | None = None  # SpeechStarted terakhir
+        self.stop_due: float | None = None
+        self.stop_sent: float | None = None
+        self.stats = DemoStats([], [], [], [], {"min_speech": 0, "no_speech": 0})
+
+    def elapsed(self) -> float:
+        return self.clock() - self.ready_at if self.ready_at is not None else 0.0
+
+    def _print(self, text: str) -> None:
+        self.out(f"[{self.elapsed():6.2f}s {_wall()}] {text}")
+
+    def speak(self, text: str, kind: str) -> None:
+        from mica.audio.messages import Speak
+
+        self.next_id += 1
+        uid = f"u{self.next_id}"
+        self.pending[uid] = kind
+        self.bus.send("audio", Speak(self.session_id, text, uid))
+        self.out(f"    -> Speak({uid}, {kind})")
+        if kind == "panjang" and self.stop_after is not None:
+            self.stop_due = self.clock() + self.stop_after
+
+    def listen(self) -> None:
+        from mica.audio.messages import ListenControl
+
+        self.bus.send("audio", ListenControl(self.listen_mode, self.session_id))
+        self.out(f"    -> ListenControl({self.listen_mode})")
+
+    def tick(self) -> None:
+        """Dipanggil setiap poll: StopSpeaking yang jatuh tempo."""
+        from mica.audio.messages import StopSpeaking
+
+        if self.stop_due is not None and self.clock() >= self.stop_due:
+            self.stop_due = None
+            self.stop_sent = self.clock()
+            self.bus.send("audio", StopSpeaking(self.session_id))
+            self._print("-> StopSpeaking")
+
+    def handle(self, msg: Any, spawn_s: float | None = None) -> None:
+        from mica.audio.messages import AudioStatus, SpeechDone, SpeechStarted, Transcript
+
+        now = self.clock()
+        if isinstance(msg, AudioStatus) and msg.ready and self.ready_at is None:
+            self.ready_at = now
+        self._print(describe_audio_msg(msg))
+        if isinstance(msg, AudioStatus):
+            if not msg.ready:
+                if "audio" in getattr(self.bus, "dead", ()):
+                    self.out("    proses suara mati permanen; demo berhenti")
+                    self.done = True
+                return
+            if spawn_s is not None:
+                self.stats.ready_s.append(spawn_s)
+                self.out(f"    start proses suara: {spawn_s:.1f} s (spawn -> ready)")
+            if self.killed_at is not None and self.stats.recovered_s is None:
+                self.stats.recovered_s = now - self.killed_at
+                self.out(f"    pulih {self.stats.recovered_s:.1f} s setelah dibunuh; "
+                         "ListenControl dikirim ulang")  # fmt: skip
+                self.pending.clear()  # Speak yang sedang berjalan hilang bersama proses lama
+                self.listen()
+            elif not self.greeted:
+                self.greeted = True
+                if self.stop_after is not None:
+                    self.speak(DEMO_LONG_TEXT, "panjang")
+                else:
+                    self.speak(DEMO_GREETING, "sapaan")
+        elif isinstance(msg, SpeechStarted):
+            self.started_at = now
+        elif isinstance(msg, Transcript):
+            self.stats.transcripts += 1
+            if self.started_at is not None:
+                self.stats.started_to_transcript_s.append(now - self.started_at)
+                self.out(f"    SpeechStarted -> Transcript {now - self.started_at:.2f} s")
+                self.started_at = None
+            if msg.filtered_by is not None:
+                self.stats.filtered[msg.filtered_by] += 1
+                self.out(f"    [tersaring: {msg.filtered_by}] tetap mendengarkan")
+                if self.listen_mode == "push_to_talk":
+                    self.listen()  # mode sudah off setelah satu ucapan
+            elif msg.ok:
+                self.stats.stt_s.append(msg.stt_s)
+                self.speak(ECHO_PREFIX + msg.text, "gema")
+            else:
+                self.speak(DEMO_SORRY, "maaf")
+        elif isinstance(msg, SpeechDone):
+            kind = self.pending.pop(msg.utterance_id, None)
+            if kind is None:
+                return
+            self.stats.first_audio_s.append((kind, msg.tts_first_audio_s))
+            if kind == "panjang":
+                if self.stop_sent is not None:
+                    self.stats.stop_s = now - self.stop_sent
+                    self.out(f"    StopSpeaking -> SpeechDone {self.stats.stop_s:.2f} s")
+                self.stats.stop_interrupted = msg.interrupted
+                self.done = True
+                return
+            if kind == "gema":
+                self.answered += 1
+                if self.answered >= self.turns:
+                    self.done = True
+                    return
+            self.listen()
+
+
+def cmd_bus_demo(
+    args: argparse.Namespace,
+    settings: Settings,
+    factories: dict[str, Any] | None = None,
+    poll_interval_s: float = 0.05,  # SDD 3.3: QTimer 50 ms
+) -> int:
+    """Proses suara di proses anak; proses utama meniru M-09 tanpa UI.
+
+    Alur: AudioStatus(ready) -> Speak(sapaan) -> SpeechDone -> ListenControl(auto) -> setiap
+    Transcript ok: Speak("Kamu bertanya: <teks>") -> SpeechDone -> ListenControl lagi, sampai
+    --turns pertanyaan. Transcript gagal tanpa filtered_by -> Speak(maaf); tersaring -> tetap
+    mendengarkan tanpa Speak. --stop-after S: sapaan diganti Speak panjang, StopSpeaking S detik
+    setelah dikirim, lalu demo selesai (--turns tidak dipakai). --kill-after S: proses suara
+    dibunuh S detik sejak siap; setelah restart ListenControl dikirim ulang.
+    Waktu di konsol relatif terhadap AudioStatus(ready) pertama.
+    """
+    import logging
+
+    from mica.core.bus import rss_mb, start_workers
+
+    _require_dev(settings, "bus-demo")
+    logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(levelname)s %(message)s")
+    values, sources = resolve_vad_values(settings.audio, args)
+    filters, filter_sources = resolve_filter_values(settings.audio, args)
+    if "nilai coba" in [*sources.values(), *filter_sources.values()]:
+        print("SUMBER NILAI: argumen CLI (nilai coba, bukan E-05)")
+    for key, _flag in VAD_ARGS:
+        print(f"  audio.{key} = {values[key]} ({sources[key]})")
+    for key, _flag in FILTER_ARGS:
+        print(f"  audio.{key} = {filters[key]} ({filter_sources[key]})")
+    cfg = AudioWorkerConfig.from_settings(
+        settings,
+        {**values, **filters},
+        whisper_root=args.whisper_dir,
+        voices_dir=args.voices_dir,
+        mic_device=args.device,
+        speaker_device=args.output_device,
+        diagnose=True,
+        **(factories or {}),
+    )
+
+    spawn = time.monotonic()
+    bus = start_workers(settings, audio=cfg)
+    demo = BusDemo(bus, args.turns, args.push_to_talk, args.stop_after)
+    reported_pids: set[int] = set()
+    rss: tuple[float | None, float | None] = (None, None)
+    killed = False
+    try:
+        while not demo.done:
+            if demo.ready_at is None and time.monotonic() - spawn > DEMO_START_TIMEOUT_S:
+                print(f"proses suara tidak siap dalam {DEMO_START_TIMEOUT_S:.0f} s; berhenti")
+                break
+            proc = bus.processes["audio"]
+            if (args.kill_after is not None and not killed and demo.ready_at is not None
+                    and demo.elapsed() >= args.kill_after):  # fmt: skip
+                demo._print(f"--kill-after: membunuh proses suara pid {proc.pid}")
+                proc.kill()
+                demo.killed_at = time.monotonic()
+                killed = True
+            demo.tick()
+            for msg in bus.poll():
+                proc = bus.processes["audio"]
+                spawn_s = None
+                if isinstance(msg, AudioStatus) and msg.ready and proc.pid not in reported_pids:
+                    reported_pids.add(proc.pid)
+                    spawn_s = time.monotonic() - bus.started_at["audio"]
+                    rss = (rss_mb(), rss_mb(proc.pid))
+                demo.handle(msg, spawn_s)
+                if demo.done:
+                    break
+            time.sleep(poll_interval_s)
+        proc = bus.processes["audio"]
+        if proc.is_alive():
+            rss = (rss_mb(), rss_mb(proc.pid))
+    except KeyboardInterrupt:
+        print("berhenti")
+    finally:
+        bus.stop()
+    _print_demo_summary(demo, bus, rss)
+    return 0
+
+
+def _print_demo_summary(demo: BusDemo, bus: Any, rss: tuple[float | None, float | None]) -> None:
+    s = demo.stats
+
+    def fmt(xs: Iterable[float | None]) -> str:
+        return ", ".join("-" if x is None else f"{x:.2f}" for x in xs) or "-"
+
+    print(f"selesai | pertanyaan dijawab {demo.answered} | Transcript {s.transcripts}")
+    print(f"start -> ready (s): {fmt(s.ready_s)}")
+    print("tts_first_audio_s: " + (", ".join(
+        f"{kind} {'-' if v is None else f'{v:.2f}'}" for kind, v in s.first_audio_s) or "-"))  # fmt: skip
+    print(f"SpeechStarted -> Transcript (s): {fmt(s.started_to_transcript_s)}")
+    print(f"stt_s (Transcript ok): {fmt(s.stt_s)}")
+    print(f"tersaring: min_speech {s.filtered['min_speech']} | no_speech {s.filtered['no_speech']}")
+    print(f"restart: {bus.restarts.get('audio', 0)} | mati permanen: {sorted(bus.dead) or 'tidak'}"
+          + (f" | pulih {s.recovered_s:.1f} s" if s.recovered_s is not None else ""))  # fmt: skip
+    if s.stop_interrupted is not None:
+        took = "-" if s.stop_s is None else f"{s.stop_s:.2f} s"
+        print(f"StopSpeaking: interrupted={s.stop_interrupted} | StopSpeaking -> SpeechDone {took}")
+    main_mb, worker_mb = rss
+    if main_mb is not None:
+        worker = "-" if worker_mb is None else f"{worker_mb:.0f} MB"
+        print(f"RAM (RSS): proses utama {main_mb:.0f} MB | proses suara {worker}")
+    loaded = [m for m in HEAVY_MODULES if m in sys.modules]
+    print(f"modul berat di proses utama: {', '.join(loaded) or 'tidak ada'}")
+    alive = [p.pid for p in bus.processes.values() if p.is_alive()]
+    print(f"proses anak tersisa: {alive or 'tidak ada'}")
+
+
 def main(argv: list[str] | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace", line_buffering=True)
@@ -497,6 +820,8 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_fetch_stt_model(settings, args.whisper_dir)
         if args.command == "listen":
             return cmd_listen(args, settings)
+        if args.command == "bus-demo":
+            return cmd_bus_demo(args, settings)
         return cmd_say(args, settings)
     except (
         ConfigError,
@@ -505,6 +830,7 @@ def main(argv: list[str] | None = None) -> int:
         VoiceMissing,
         SttModelMissing,
         MicUnavailable,
+        AudioWorkerConfigError,
     ) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

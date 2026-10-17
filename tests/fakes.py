@@ -157,3 +157,64 @@ class FakeMic:
 def fake_prob():
     """prob ucapan palsu untuk SpeechSegmenter: 1 bila potongan berisi suara, selain itu 0."""
     return lambda chunk: 1.0 if np.abs(chunk).max() > 0 else 0.0
+
+
+class FakePlayer:
+    """Player palsu: start() mencatat clip; wait() memblok selama durasi clip x speed atau sampai
+    stop(). events mencatat urutan "start"/"stop"."""
+
+    def __init__(self, speed: float = 0.0) -> None:
+        import threading
+
+        self.speed = speed
+        self.events: list[str] = []
+        self.started: list[float] = []  # durasi clip yang mulai diputar
+        self.stopped = threading.Event()
+        self.until = 0.0
+
+    def start(self, clip) -> None:
+        self.stopped.clear()
+        self.events.append("start")
+        self.started.append(clip.duration_s)
+        self.until = time.monotonic() + clip.duration_s * self.speed
+
+    def wait(self) -> None:
+        remaining = self.until - time.monotonic()
+        if remaining > 0:
+            self.stopped.wait(remaining)
+        self.until = 0.0
+
+    def stop(self) -> None:
+        self.events.append("stop")
+        self.stopped.set()
+
+
+# Factory proses suara palsu ("tests.fakes:make_fake_..."), hanya diterima worker saat dev.
+
+
+def make_fake_audio_mic(device: int | None, options: dict[str, Any]) -> FakeMic:
+    if options.get("no_mic"):
+        from mica.audio.mic import MicUnavailable
+
+        raise MicUnavailable("tidak ada mikrofon (palsu)")
+    return FakeMic([tuple(p) for p in options.get("mic_pattern", [])])
+
+
+def make_fake_stt(cfg: Any, options: dict[str, Any]) -> FakeStt:
+    return FakeStt(options.get("texts"))
+
+
+def make_fake_tts(cfg: Any, options: dict[str, Any]) -> FakeTts:
+    return FakeTts()
+
+
+def make_fake_player(cfg: Any, options: dict[str, Any]) -> FakePlayer:
+    if options.get("no_speaker"):
+        from mica.audio.player import SpeakerUnavailable
+
+        raise SpeakerUnavailable("tidak ada speaker (palsu)")
+    return FakePlayer(float(options.get("play_speed", 0.0)))
+
+
+def make_fake_prob(options: dict[str, Any]):
+    return fake_prob()

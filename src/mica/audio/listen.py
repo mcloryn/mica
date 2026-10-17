@@ -25,6 +25,7 @@ from mica.audio.stt import (
     WHISPER_REPO,
     WHISPER_REVISION,
     WHISPER_SHA256,
+    SegmentStats,
     SpeechToText,
     Transcript,
     whisper_dir,
@@ -146,27 +147,28 @@ class Listener:
         return self.stt.transcribe(utterance.pcm16k)
 
     def diagnose(self, t: Transcript, u: Utterance) -> list[str]:
-        """Baris diagnosis untuk konsol dev saja (tanpa teks, tidak di-log)."""
-        lines = [
-            (
-                f"    vad: prob maks {u.prob_max:.3f} | rata-rata {u.prob_mean:.3f} | "
-                f"potongan >= ambang {u.n_above} | bicara_s {u.speech_s:.2f} | "
-                f"sejak mic resume {u.start_s:.2f} s"
-            )
-        ]
-        if t.filtered_by == "min_speech":
-            lines.append("    whisper: dilewati")
-        else:
-            segments = getattr(self.stt, "last_segments", None)
-            if segments is not None:
-                stats = "; ".join(
-                    f"no_speech {s.no_speech_prob:.3f} logprob {s.avg_logprob:.3f}"
-                    for s in segments
-                )
-                lines.append(f"    whisper: {len(segments)} segmen | {stats or '-'}")
-        if t.filtered_by is not None:
-            lines.append(f"    [tersaring: {t.filtered_by}]")
-        return lines
+        return diagnose_lines(t, u, getattr(self.stt, "last_segments", None))
+
+
+def diagnose_lines(t: Transcript, u: Utterance, segments: list[SegmentStats] | None) -> list[str]:
+    """Baris diagnosis untuk konsol dev saja (tanpa teks, tidak di-log)."""
+    lines = [
+        (
+            f"    vad: prob maks {u.prob_max:.3f} | rata-rata {u.prob_mean:.3f} | "
+            f"potongan >= ambang {u.n_above} | bicara_s {u.speech_s:.2f} | "
+            f"sejak mic resume {u.start_s:.2f} s"
+        )
+    ]
+    if t.filtered_by == "min_speech":
+        lines.append("    whisper: dilewati")
+    elif segments is not None:
+        stats = "; ".join(
+            f"no_speech {s.no_speech_prob:.3f} logprob {s.avg_logprob:.3f}" for s in segments
+        )
+        lines.append(f"    whisper: {len(segments)} segmen | {stats or '-'}")
+    if t.filtered_by is not None:
+        lines.append(f"    [tersaring: {t.filtered_by}]")
+    return lines
 
 
 def _rtf(t: Transcript) -> float:
