@@ -8,6 +8,9 @@ python -m mica.eval gate --config <yaml> --dataset <jsonl> --out <folder>
 python -m mica.eval generation --config <yaml> --dataset <jsonl> --out <folder> [--gate-off]
     [--no-cache] [--cache-only] [--cache-dir data/cache/llm] [--env-file .env]
     [--model penyedia:id_model] [--experiment E-02]
+python -m mica.eval dataset split --input <file resmi> --out-dir data/eval/official/
+python -m mica.eval dataset lock --dataset data/eval/official/test.jsonl --reason "<teks>"
+python -m mica.eval dataset status          (set resmi, docs/DATASET.md)
 python -m mica.eval latency --logs logs/ --label <label> [--resources <csv>] [--from --to]
     [--out results/E-09] [--tool-test]   (E-09, lihat mica/eval/latency.py)
 """
@@ -33,6 +36,7 @@ from mica.eval.generation import (
     CacheMiss,
     run_generation,
 )
+from mica.eval.official import DEFAULT_LOCK, OFFICIAL_DIR, OfficialDatasetError, SplitRefused
 from mica.eval.retrieval import MAIN_GROUP, run_retrieval, sha256_file
 from mica.kb.index import DEFAULT_KB_ROOT, KbLoadError, load_kb
 from mica.rag.retriever import EmbedderFactory
@@ -41,7 +45,19 @@ from mica.rag.retriever import EmbedderFactory
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m mica.eval")
     parser.add_argument("--kb-root", type=Path, default=DEFAULT_KB_ROOT)
+    parser.add_argument("--lock", type=Path, default=DEFAULT_LOCK, help=argparse.SUPPRESS)
     sub = parser.add_subparsers(dest="command", required=True)
+
+    ds = sub.add_parser("dataset", help="set resmi: split, lock, status (docs/DATASET.md)")
+    ds_sub = ds.add_subparsers(dest="action", required=True)
+    ds_split = ds_sub.add_parser("split", help="bagi set resmi 30/70 berstrata (sekali saja)")
+    ds_split.add_argument("--input", type=Path, required=True)
+    ds_split.add_argument("--out-dir", type=Path, default=OFFICIAL_DIR)
+    ds_lock = ds_sub.add_parser("lock", help="kunci set uji (versi baru di data/eval/LOCK)")
+    ds_lock.add_argument("--dataset", type=Path, required=True)
+    ds_lock.add_argument("--reason", required=True)
+    ds_status = ds_sub.add_parser("status", help="versi kunci dan kecocokan hash")
+    ds_status.add_argument("--official-dir", type=Path, default=OFFICIAL_DIR)
 
     annotate = sub.add_parser("annotate", help="anotasi relevansi chunk")
     annotate_sub = annotate.add_subparsers(dest="action", required=True)
@@ -135,6 +151,31 @@ def build_parser() -> argparse.ArgumentParser:
     lat.add_argument("--tool-test", action="store_true",
                      help="tandai sebagai uji alat (bukan hasil E-09) di run.json dan verdict")  # fmt: skip
     return parser
+
+
+def cmd_dataset(args: argparse.Namespace) -> int:
+    from mica.eval.official import lock_dataset, lock_status, status_lines, write_split
+
+    if args.action == "split":
+        result = write_split(args.input, args.out_dir)
+        print(f"seed {result['seed']} (docs/DATASET.md) | {len(result['dev'])} dev-resmi, "
+              f"{len(result['test'])} uji -> {args.out_dir.as_posix()}")  # fmt: skip
+        print("strata | unit | dev unit | uji unit | dev pertanyaan | uji pertanyaan")
+        for name, c in result["strata"].items():
+            print(f"{name} | {c['units']} | {c['dev_units']} | {c['test_units']} | "
+                  f"{c['dev_questions']} | {c['test_questions']}")  # fmt: skip
+        print("langkah berikutnya: python -m mica.eval dataset lock --dataset "
+              f"{(args.out_dir / 'test.jsonl').as_posix()} --reason \"<alasan>\"")  # fmt: skip
+        return 0
+    if args.action == "lock":
+        version = lock_dataset(args.dataset, args.reason, args.lock, commit=git_commit(),
+                               git_dirty=git_dirty())  # fmt: skip
+        print(f"terkunci: {args.lock.as_posix()} versi {version['version']} "
+              f"sha256 {version['sha256']} ({version['n_questions']} pertanyaan)")  # fmt: skip
+        return 0
+    for line in status_lines(lock_status(args.lock), args.official_dir):
+        print(line)
+    return 0
 
 
 def cmd_latency(args: argparse.Namespace) -> int:
@@ -591,6 +632,8 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
             return cmd_stt(args)
         if args.command == "latency":
             return cmd_latency(args)
+        if args.command == "dataset":
+            return cmd_dataset(args)
         if args.command == "copy":
             return cmd_copy(args, embedder_factory)
         if args.command == "retrieval":
@@ -604,7 +647,7 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
         return cmd_import(args)
     except (ConfigError, KbLoadError, DatasetError, FileExistsError, ValueError, CacheMiss,
             SttEvalError, ManifestError, ListenError, SttModelMissing, RunMismatch,
-            KeyError) as exc:  # fmt: skip
+            KeyError, OfficialDatasetError, SplitRefused) as exc:  # fmt: skip
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
