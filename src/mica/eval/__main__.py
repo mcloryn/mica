@@ -114,7 +114,7 @@ def build_parser() -> argparse.ArgumentParser:
                      help="daftar thread dipisah koma, satu konfigurasi per nilai "
                           "(default audio.stt.threads)")  # fmt: skip
     stt.add_argument("--hotwords", type=Path, help="file kosakata, satu istilah per baris")
-    stt.add_argument("--groq-model", help="wajib untuk --backend groq (dokumentasi Groq)")
+    stt.add_argument("--groq-model", help="menimpa audio.stt.groq_model (untuk --backend groq)")
     stt.add_argument("--questions", type=Path, default=Path("data/eval/questions.jsonl"),
                      help="gold_chunk_ids untuk Recall@5 (rekaman ber-qid)")  # fmt: skip
     stt.add_argument("--whisper-dir", type=Path, default=Path("models/whisper"))
@@ -295,19 +295,25 @@ def stt_candidates(args: argparse.Namespace, settings: Any, no_speech: float | N
     if args.backend == "groq":
         if hotwords is not None:
             raise SttEvalError("--hotwords hanya untuk faster_whisper")
-        if not args.groq_model:
-            raise SttEvalError("--backend groq butuh --groq-model (lihat dokumentasi Groq)")
+        # --groq-model menimpa audio.stt.groq_model
+        model = args.groq_model or settings.audio.stt.groq_model
+        if not model:
+            raise SttEvalError(
+                "--backend groq butuh model Groq: isi audio.stt.groq_model di config atau beri "
+                "--groq-model (pilihan: whisper-large-v3-turbo, whisper-large-v3)"
+            )
         key = settings.api_keys.groq
         if key is None:
             raise SttEvalError("GROQ_API_KEY tidak ada di environment atau .env")
-        stt = GroqWhisperStt(key.get_secret_value(), args.groq_model, no_speech)
+        stt = GroqWhisperStt(key.get_secret_value(), model, no_speech)
         info = {
             "backend": "groq",
-            "model": args.groq_model,
+            "model": model,
+            "model_source": "--groq-model" if args.groq_model else "audio.stt.groq_model",
             "language": "id",
             "response_format": "verbose_json",
         }
-        return [SttCandidate(f"groq-{args.groq_model}", False, stt, info)]
+        return [SttCandidate(f"groq-{model}", False, stt, info)]
     cfg = settings.audio.stt
     root = whisper_dir(cfg.model, args.whisper_dir)
     out = []

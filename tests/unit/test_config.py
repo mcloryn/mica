@@ -266,6 +266,23 @@ def test_stt_threads_required_for_faster_whisper_in_kiosk(tmp_path):
     assert "audio.stt.threads" in str(exc.value)
 
 
+def test_groq_model_required_in_kiosk_only_for_groq_backend(tmp_path):
+    raw = _complete_kiosk_raw()
+    raw["audio"]["stt"]["groq_model"] = None
+    raw["audio"]["stt"]["backend"] = "faster_whisper"
+    assert load_settings(_write(tmp_path, raw)).audio.stt.groq_model is None
+    raw["audio"]["stt"]["backend"] = "groq_whisper"
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert "audio.stt.groq_model" in str(exc.value)
+
+
+def test_groq_model_dev_value_and_kiosk_null():
+    assert load_settings(DEV_YAML).audio.stt.groq_model == "whisper-large-v3-turbo"
+    kiosk = load_settings(KIOSK_YAML, require_complete=False)
+    assert kiosk.audio.stt.groq_model is None
+
+
 def test_stt_threads_optional_for_groq_whisper_in_kiosk(tmp_path):
     raw = _complete_kiosk_raw()
     raw["audio"]["stt"]["backend"] = "groq_whisper"

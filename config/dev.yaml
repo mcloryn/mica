@@ -39,6 +39,7 @@ audio:
     compute_type: int8
     threads: null                   # E-09
     no_speech_threshold: null       # E-05; semua segmen no_speech_prob >= nilai -> tersaring
+    groq_model: whisper-large-v3-turbo   # dev; dari console.groq.com/docs/speech-to-text (dicek 17 Okt 2026); E-05 memilih
   vad:
     threshold: null                 # E-05
     min_silence_ms: null            # E-05

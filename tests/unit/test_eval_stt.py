@@ -319,14 +319,38 @@ def test_eval_stt_refused_in_kiosk_even_when_complete(tmp_path, monkeypatch):
         cli.cmd_stt(args)
 
 
-def test_eval_stt_groq_needs_model_and_key(monkeypatch):
+def _groq_settings(model, key="kunci-palsu"):
+    from pydantic import SecretStr
+
     from mica.config import load_settings
 
-    settings = load_settings(DEV_YAML)
-    args = cli.build_parser().parse_args(["stt", "--config", "x", "--dataset", "y",
-                                          "--backend", "groq", *TRIAL])  # fmt: skip
-    with pytest.raises(cli.SttEvalError, match="--groq-model"):
-        cli.stt_candidates(args, settings, None)
+    s = load_settings(DEV_YAML)
+    stt = s.audio.stt.model_copy(update={"groq_model": model})
+    audio = s.audio.model_copy(update={"stt": stt})
+    keys = s.api_keys.model_copy(update={"groq": SecretStr(key) if key else None})
+    return s.model_copy(update={"audio": audio, "api_keys": keys})
+
+
+def _groq_args(*extra):
+    return cli.build_parser().parse_args(["stt", "--config", "x", "--dataset", "y",
+                                          "--backend", "groq", *extra, *TRIAL])  # fmt: skip
+
+
+def test_eval_stt_groq_model_from_config_or_flag():
+    (cand,) = cli.stt_candidates(_groq_args(), _groq_settings("whisper-large-v3-turbo"), None)
+    assert cand.stt.model == "whisper-large-v3-turbo" and not cand.local
+    assert cand.info["model_source"] == "audio.stt.groq_model"
+    (cand,) = cli.stt_candidates(_groq_args("--groq-model", "whisper-large-v3"),
+                                 _groq_settings("whisper-large-v3-turbo"), None)  # fmt: skip
+    assert cand.stt.model == "whisper-large-v3" and cand.info["model_source"] == "--groq-model"
+    assert "kunci-palsu" not in json.dumps(cand.info)
+
+
+def test_eval_stt_groq_needs_model_and_key():
+    with pytest.raises(cli.SttEvalError, match="audio.stt.groq_model"):
+        cli.stt_candidates(_groq_args(), _groq_settings(None), None)
+    with pytest.raises(cli.SttEvalError, match="GROQ_API_KEY"):
+        cli.stt_candidates(_groq_args(), _groq_settings("whisper-large-v3", key=None), None)
 
 
 def test_eval_stt_end_to_end_with_fakes(tmp_path, capsys):

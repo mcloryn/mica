@@ -129,6 +129,9 @@ class SttConfig(_Model):
     compute_type: str
     threads: PositiveInt | None = None
     no_speech_threshold: float | None = None  # E-05; penyaring no_speech_prob segmen Whisper
+    # ID model Groq Whisper (SDD 13.1, bagian 12); dipilih di E-05, wajib di kiosk hanya bila
+    # backend groq_whisper. Nilai yang dikenal ada di mica.audio.stt.GROQ_STT_MODELS.
+    groq_model: str | None = None
 
 
 class VadConfig(_Model):
@@ -329,6 +332,8 @@ def _optional_in_kiosk(settings: Settings) -> set[str]:
         optional.add("rag.gate.threshold")
     if settings.audio.stt.backend != "faster_whisper":
         optional |= {"audio.stt.threads", "audio.stt.no_speech_threshold"}
+    if settings.audio.stt.backend != "groq_whisper":
+        optional.add("audio.stt.groq_model")
     if not settings.rag.reranker.enabled:
         optional.add("rag.reranker.revision")
     vision = settings.vision
