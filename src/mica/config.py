@@ -128,11 +128,13 @@ class SttConfig(_Model):
     model: str
     compute_type: str
     threads: PositiveInt | None = None
+    no_speech_threshold: float | None = None  # E-05; penyaring no_speech_prob segmen Whisper
 
 
 class VadConfig(_Model):
     threshold: float | None = None
     min_silence_ms: NonNegativeInt | None = None
+    min_speech_ms: NonNegativeInt | None = None  # E-05; ucapan lebih pendek dibuang sebelum STT
 
 
 class TtsConfig(_Model):
@@ -314,7 +316,7 @@ def _optional_in_kiosk(settings: Settings) -> set[str]:
         # bm25 tidak punya sinyal dense untuk gerbang, jadi threshold wajib null
         optional.add("rag.gate.threshold")
     if settings.audio.stt.backend != "faster_whisper":
-        optional.add("audio.stt.threads")
+        optional |= {"audio.stt.threads", "audio.stt.no_speech_threshold"}
     if not settings.rag.reranker.enabled:
         optional.add("rag.reranker.revision")
     vision = settings.vision

@@ -12,16 +12,25 @@ import pytest
 from tests.fakes import FakeMic, FakeStt, FakeTts, fake_prob
 
 import mica.audio.__main__ as cli
-from mica.audio.listen import WER_FIELDS
+from mica.audio.listen import WER_FIELDS, Listener
 from mica.audio.mic import MicStream, MicUnavailable, resample_int16
 from mica.audio.stt import (
     MODEL_FILES,
     FasterWhisperStt,
+    SegmentStats,
     SttModelMissing,
     effective_threads,
+    is_no_speech,
     whisper_dir,
 )
-from mica.audio.vad import CHUNK_SAMPLES, PAD_MS, SpeechSegmenter, SpeechStarted, Utterance
+from mica.audio.vad import (
+    CHUNK_SAMPLES,
+    PAD_MS,
+    SpeechSegmenter,
+    SpeechStarted,
+    Utterance,
+    is_too_short,
+)
 from mica.config import load_settings
 from mica.core.types import ErrorCode
 from mica.eval.wer import corpus_wer, normalize_for_wer, wer
@@ -89,6 +98,53 @@ def test_reset_discards_partial_speech():
     _feed(seg, _chunks(("bicara", 5)))
     seg.reset()
     assert _feed(seg, _chunks(("diam", 10))) == []
+
+
+def test_utterance_diagnostics():
+    events = _feed(_segmenter(), _chunks(("diam", 4), ("bicara", 3), ("diam", 2), ("bicara", 2),
+                                         ("diam", 5)))  # fmt: skip
+    (utt,) = [e for e in events if isinstance(e, Utterance)]
+    assert utt.speech_s == pytest.approx(7 * CHUNK_SAMPLES / 16000)  # tanpa padding dan ekor diam
+    assert utt.start_s == pytest.approx(4 * CHUNK_SAMPLES / 16000)
+    assert utt.n_above == 5 and utt.prob_max == 1.0
+    assert utt.prob_mean == pytest.approx(5 / 12)
+
+
+# --- penyaring min_speech / no_speech (nilai di bawah adalah data uji, bukan ambang) ----------
+
+
+def test_min_speech_filter():
+    short = _feed(_segmenter(), _chunks(("bicara", 3), ("diam", 5)))[-1]  # 96 ms
+    assert is_too_short(short, 100) and not is_too_short(short, 90)
+    assert not is_too_short(short, None)  # null = mati
+
+
+def test_listener_min_speech_skips_stt():
+    stt = FakeStt(["terima kasih"])
+    utt = _feed(_segmenter(), _chunks(("bicara", 3), ("diam", 5)))[-1]
+    t = Listener(FakeMic([]), _segmenter(), stt, min_speech_ms=100).transcribe(utt)
+    assert (t.ok, t.text, t.filtered_by, stt.calls) == (False, "", "min_speech", 0)
+    t = Listener(FakeMic([]), _segmenter(), stt, min_speech_ms=None).transcribe(utt)
+    assert t.ok and t.filtered_by is None and stt.calls == 1
+
+
+def test_is_no_speech():
+    seg = [SegmentStats(0.7, -0.3), SegmentStats(0.5, -0.2)]
+    assert not is_no_speech(seg, 0.6)  # satu segmen di bawah ambang
+    assert is_no_speech(seg, 0.5)  # >= ambang
+    assert not is_no_speech(seg, None) and not is_no_speech([], 0.1)
+
+
+def test_whisper_no_speech_filter(tmp_path):
+    segs = [FakeSegment(" Terima kasih.", no_speech_prob=0.8, avg_logprob=-0.4)]
+    stt = FasterWhisperStt(_model_dir(tmp_path), no_speech_threshold=0.7,
+                           loader=lambda *a: FakeWhisper(segs))  # fmt: skip
+    t = stt.transcribe(np.zeros(16000, dtype=np.int16))
+    assert (t.ok, t.text, t.filtered_by) == (False, "", "no_speech")
+    assert stt.last_segments == [SegmentStats(0.8, -0.4)]
+    stt.no_speech_threshold = None
+    t = stt.transcribe(np.zeros(16000, dtype=np.int16))
+    assert t.ok and t.text == "Terima kasih." and t.filtered_by is None
 
 
 # --- MicStream -------------------------------------------------------------------------
@@ -171,19 +227,22 @@ def test_resample_length():
 
 
 class FakeSegment:
-    def __init__(self, text):
+    def __init__(self, text, no_speech_prob=0.0, avg_logprob=0.0):
         self.text = text
+        self.no_speech_prob = no_speech_prob
+        self.avg_logprob = avg_logprob
 
 
 class FakeWhisper:
     def __init__(self, texts):
-        self.texts = texts
+        self.texts = texts  # str atau FakeSegment
         self.kwargs = None
 
     def transcribe(self, audio, **kwargs):
         self.kwargs = kwargs
         self.audio = audio
-        return iter(FakeSegment(t) for t in self.texts), None
+        segs = [t if isinstance(t, FakeSegment) else FakeSegment(t) for t in self.texts]
+        return iter(segs), None
 
 
 def _model_dir(tmp_path):
@@ -267,7 +326,7 @@ def _listen(argv, mic, stt, answers=(), tts=None, played=None):
         args,
         load_settings(DEV_YAML),
         mic_factory=lambda device: mic,
-        stt_factory=lambda settings, root: stt,
+        stt_factory=lambda settings, root, no_speech: stt,
         prob_factory=fake_prob,
         tts_factory=lambda path, scale: tts or FakeTts(),
         play=lambda clip, device: played.append(clip.duration_s),
@@ -321,6 +380,32 @@ def test_listen_script_writes_wer_csv_and_run_json(tmp_path, monkeypatch, capsys
     assert info["wer_total"] == 0.0 and info["wer_normalization"].startswith("normalize_for_speech")
     assert info["vad"]["sources"]["vad.threshold"] == "nilai coba"
     assert (out / "wer.csv").read_bytes().startswith(b"\xef\xbb\xbf")
+
+
+def test_listen_filtered_utterance_not_echoed(capsys, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    # ucapan 1 pendek (3 potongan = 96 ms) tersaring; ucapan 2 lolos dan diucapkan ulang
+    mic = FakeMic([("diam", 3), ("bicara", 3), ("diam", 6), ("bicara", 8), ("diam", 6)])
+    stt = FakeStt(["biaya kuliah berapa"])
+    played = []
+    argv = ["--echo", "--count", "2", "--min-speech-ms", "100", "--no-speech-threshold", "0.6"]
+    assert _listen(argv, mic, stt, played=played) == 0
+    out = capsys.readouterr().out
+    assert "audio.vad.min_speech_ms = 100.0 (nilai coba)" in out
+    assert "audio.stt.no_speech_threshold = 0.6 (nilai coba)" in out
+    assert out.count("[tersaring: min_speech]") == 1 and "whisper: dilewati" in out
+    assert "sejak mic resume" in out and "potongan >= ambang" in out
+    assert stt.calls == 1 and len(played) == 1 and out.count("[mic pause]") == 1
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_listen_filters_off_when_null(capsys, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    mic = FakeMic([("diam", 3), ("bicara", 3), ("diam", 6)])
+    assert _listen(["--count", "1"], mic, FakeStt(["terima kasih"])) == 0
+    out = capsys.readouterr().out
+    assert "audio.vad.min_speech_ms = None (mati, null TBD E-05)" in out
+    assert "tersaring" not in out
 
 
 def test_listen_script_needs_out():

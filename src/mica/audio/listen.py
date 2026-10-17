@@ -1,7 +1,10 @@
 """python -m mica.audio listen (dev saja): mikrofon -> SpeechSegmenter -> STT.
 
 - Mode biasa: cetak "mendengarkan" saat SpeechStarted, lalu teks, audio_s, stt_s, dan RTF tiap
-  ucapan. Teks hanya dicetak; tidak di-log dan tidak disimpan.
+  ucapan, serta diagnosis (prob VAD maks/rata-rata, potongan >= ambang, awal sejak mic resume,
+  no_speech_prob dan avg_logprob tiap segmen). Teks hanya dicetak; tidak di-log dan tidak disimpan.
+- Penyaring audio.vad.min_speech_ms (sebelum STT) dan audio.stt.no_speech_threshold (sesudah STT);
+  null tanpa argumen = mati. Ucapan tersaring tidak diucapkan ulang.
 - --echo: MICA mengucapkan "Kamu bertanya: <teks>"; mikrofon di-pause selama bicara (K-6).
 - --script --n N --out <folder>: pilot WER E-05 dengan N pertanyaan answerable pertama
   (urutan qid) dari set dev; tulis wer.csv dan run.json saja.
@@ -26,7 +29,7 @@ from mica.audio.stt import (
     Transcript,
     whisper_dir,
 )
-from mica.audio.vad import SpeechSegmenter, SpeechStarted, Utterance, silero_prob
+from mica.audio.vad import SpeechSegmenter, SpeechStarted, Utterance, is_too_short, silero_prob
 from mica.config import AudioConfig, Settings
 from mica.eval.wer import WER_NORMALIZATION, corpus_wer, normalize_for_wer, wer
 
@@ -35,6 +38,10 @@ VAD_ARGS = (
     ("vad.threshold", "--vad-threshold"),
     ("vad.min_silence_ms", "--min-silence-ms"),
     ("max_utterance_s", "--max-utterance-s"),
+)
+FILTER_ARGS = (
+    ("vad.min_speech_ms", "--min-speech-ms"),
+    ("stt.no_speech_threshold", "--no-speech-threshold"),
 )
 WER_FIELDS = (
     "qid", "referensi_norm", "hipotesis_norm", "wer", "audio_s", "stt_s", "rtf", "ulang",
@@ -74,6 +81,23 @@ def resolve_vad_values(
     return values, sources
 
 
+def resolve_filter_values(
+    audio: AudioConfig, args: argparse.Namespace
+) -> tuple[dict[str, float | None], dict[str, str]]:
+    """Seperti resolve_vad_values, tetapi null tanpa argumen berarti penyaring mati."""
+    values: dict[str, float | None] = {}
+    sources: dict[str, str] = {}
+    for key, flag in FILTER_ARGS:
+        arg = getattr(args, flag[2:].replace("-", "_"))
+        if arg is not None:
+            values[key], sources[key] = float(arg), "nilai coba"
+        elif _config_value(audio, key) is not None:
+            values[key], sources[key] = float(_config_value(audio, key)), "config"
+        else:
+            values[key], sources[key] = None, "mati, null TBD E-05"
+    return values, sources
+
+
 def load_script_questions(path: Path, n: int) -> list[dict[str, Any]]:
     rows = [
         json.loads(line) for line in Path(path).read_text(encoding="utf-8").splitlines() if line
@@ -91,11 +115,13 @@ class Listener:
         segmenter: SpeechSegmenter,
         stt: SpeechToText,
         out: Callable[[str], None] = print,
+        min_speech_ms: float | None = None,
     ) -> None:
         self.mic = mic
         self.segmenter = segmenter
         self.stt = stt
         self.out = out
+        self.min_speech_ms = min_speech_ms
 
     def next_utterance(self) -> Utterance | None:
         """Ucapan berikutnya; None bila mikrofon tidak memberi audio lagi."""
@@ -112,6 +138,35 @@ class Listener:
     def restart(self) -> None:
         self.segmenter.reset()
         self.mic.resume()
+
+    def transcribe(self, utterance: Utterance) -> Transcript:
+        """STT dengan penyaring; min_speech dicek dulu sehingga STT tidak dipanggil."""
+        if is_too_short(utterance, self.min_speech_ms):
+            return Transcript("", False, 0.0, utterance.audio_s, filtered_by="min_speech")
+        return self.stt.transcribe(utterance.pcm16k)
+
+    def diagnose(self, t: Transcript, u: Utterance) -> list[str]:
+        """Baris diagnosis untuk konsol dev saja (tanpa teks, tidak di-log)."""
+        lines = [
+            (
+                f"    vad: prob maks {u.prob_max:.3f} | rata-rata {u.prob_mean:.3f} | "
+                f"potongan >= ambang {u.n_above} | bicara_s {u.speech_s:.2f} | "
+                f"sejak mic resume {u.start_s:.2f} s"
+            )
+        ]
+        if t.filtered_by == "min_speech":
+            lines.append("    whisper: dilewati")
+        else:
+            segments = getattr(self.stt, "last_segments", None)
+            if segments is not None:
+                stats = "; ".join(
+                    f"no_speech {s.no_speech_prob:.3f} logprob {s.avg_logprob:.3f}"
+                    for s in segments
+                )
+                lines.append(f"    whisper: {len(segments)} segmen | {stats or '-'}")
+        if t.filtered_by is not None:
+            lines.append(f"    [tersaring: {t.filtered_by}]")
+        return lines
 
 
 def _rtf(t: Transcript) -> float:
@@ -138,9 +193,11 @@ def run_listen(
             out("tidak ada audio dari mikrofon; berhenti")
             break
         heard += 1
-        transcript = listener.stt.transcribe(utterance.pcm16k)
+        transcript = listener.transcribe(utterance)
         out(f"teks: {transcript.text if transcript.ok else '(kosong)'}")
         out(f"    {_describe(transcript, utterance)}")
+        for line in listener.diagnose(transcript, utterance):
+            out(line)
         if speak is not None and transcript.ok:
             listener.mic.pause()
             out("[mic pause]")
@@ -167,10 +224,12 @@ def run_script(
             listener.mic.pause()
             if utterance is None:
                 raise ListenError("tidak ada audio dari mikrofon")
-            t = listener.stt.transcribe(utterance.pcm16k)
+            t = listener.transcribe(utterance)
             score = wer(q["question"], t.text)
             out(f"    hipotesis: {t.text if t.ok else '(kosong)'}")
             out(f"    WER {score:.3f} | {_describe(t, utterance)}")
+            for line in listener.diagnose(t, utterance):
+                out(line)
             if ask("Enter = lanjut, r = ulang > ").strip().lower() == "r":
                 retries += 1
                 continue
@@ -223,6 +282,8 @@ def run_info(
     dataset: Path,
     summary: dict[str, float],
     qids: list[str],
+    filter_values: dict[str, float | None] | None = None,
+    filter_sources: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     from mica.audio.__main__ import sha256_file
     from mica.eval.environment import git_commit, git_dirty, power_plan, power_status
@@ -260,6 +321,7 @@ def run_info(
             "values": vad_values,
             "sources": vad_sources,
         },
+        "filters": {"values": filter_values or {}, "sources": filter_sources or {}},
         "mic": mic_info,
         "dataset": {"path": dataset.as_posix(), "sha256": sha256_file(dataset), "qids": qids},
         "wer_normalization": WER_NORMALIZATION,

@@ -38,9 +38,11 @@ audio:
     model: small
     compute_type: int8
     threads: null                   # E-09
+    no_speech_threshold: null       # E-05; semua segmen no_speech_prob >= nilai -> tersaring
   vad:
     threshold: null                 # E-05
     min_silence_ms: null            # E-05
+    min_speech_ms: null             # E-05; ucapan lebih pendek dibuang sebelum STT
   max_utterance_s: null             # E-05
   tts:
     voice: id_ID-news_tts-medium    # ADR-11 provisional

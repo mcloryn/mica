@@ -5,6 +5,10 @@ dev saja) dan dimuat hanya dari file lokal; file yang hilang memberi STT_MODEL_M
 faster-whisper diimpor lazy supaya ctranslate2 hanya dimuat oleh pemakai STT.
 Parameter: language "id", condition_on_previous_text=False, vad_filter=False (VAD sudah
 dilakukan SpeechSegmenter), beam_size bawaan library. Teks kosong -> ok=False.
+Penyaring audio.stt.no_speech_threshold: bila semua segmen punya no_speech_prob >= nilai itu,
+Transcript(ok=False, text="", filtered_by="no_speech"). Berbeda dari aturan bawaan Whisper
+(no_speech_prob > 0.6 DAN avg_logprob < -1.0), penyaring ini tidak melihat avg_logprob.
+Statistik segmen terakhir ada di last_segments untuk konsol dev saja.
 """
 
 from __future__ import annotations
@@ -14,7 +18,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 
 import numpy as np
 
@@ -39,12 +43,31 @@ WHISPER_SHA256 = {
 }
 
 
+FilteredBy = Literal["min_speech", "no_speech"]
+
+
 @dataclass(frozen=True)
 class Transcript:
     text: str
     ok: bool
     stt_s: float
     audio_s: float
+    # Penyimpangan dari SDD 5.2: penyaring yang membuang ucapan ini, None bila tidak tersaring
+    filtered_by: FilteredBy | None = None
+
+
+@dataclass(frozen=True)
+class SegmentStats:
+    no_speech_prob: float
+    avg_logprob: float
+
+
+def is_no_speech(segments: list[SegmentStats], threshold: float | None) -> bool:
+    """True bila ada segmen dan semuanya no_speech_prob >= threshold; None = penyaring mati.
+    Nilai coba 0.6 = bawaan no_speech_threshold Whisper/faster-whisper."""
+    if threshold is None or not segments:
+        return False
+    return all(s.no_speech_prob >= threshold for s in segments)
 
 
 class SttModelMissing(Exception):
@@ -92,6 +115,7 @@ class FasterWhisperStt:
         model_dir: Path,
         compute_type: str = "int8",
         cpu_threads: int | None = None,
+        no_speech_threshold: float | None = None,
         loader: Callable[[str, str, int], Any] = _load_whisper,
         clock: Callable[[], float] = time.perf_counter,
     ) -> None:
@@ -101,6 +125,8 @@ class FasterWhisperStt:
         self.model_dir = model_dir
         self.cpu_threads = cpu_threads  # None = bawaan library (0)
         self.threads = effective_threads(cpu_threads)
+        self.no_speech_threshold = no_speech_threshold
+        self.last_segments: list[SegmentStats] = []
         self.clock = clock
         self.model = loader(str(model_dir), compute_type, cpu_threads or 0)
 
@@ -111,5 +137,10 @@ class FasterWhisperStt:
         segments, _info = self.model.transcribe(
             audio, language=LANGUAGE, condition_on_previous_text=False, vad_filter=False
         )
-        text = " ".join(s.text.strip() for s in segments).strip()  # generator: dekode di sini
-        return Transcript(text, bool(text), self.clock() - start, audio_s)
+        decoded = list(segments)  # generator: dekode di sini
+        self.last_segments = [SegmentStats(s.no_speech_prob, s.avg_logprob) for s in decoded]
+        stt_s = self.clock() - start
+        if is_no_speech(self.last_segments, self.no_speech_threshold):
+            return Transcript("", False, stt_s, audio_s, filtered_by="no_speech")
+        text = " ".join(s.text.strip() for s in decoded).strip()
+        return Transcript(text, bool(text), stt_s, audio_s)

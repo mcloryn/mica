@@ -6,6 +6,7 @@ python -m mica.audio fetch-voice [--config config/dev.yaml] [--voices-dir models
 python -m mica.audio fetch-stt-model [--config config/dev.yaml] [--whisper-dir models/whisper]
     unduh Systran/faster-whisper-small pada revisi commit yang dikunci, verifikasi sha256.
 python -m mica.audio listen --vad-threshold X --min-silence-ms X --max-utterance-s X [--echo]
+    [--min-speech-ms X] [--no-speech-threshold X]
     [--script --n 10 --out <folder>] [--device N] [--list-devices]
     mikrofon -> Silero VAD -> faster-whisper; lihat mica/audio/listen.py.
 python -m mica.audio say "<teks>" | --file <txt> [--no-play] [--device N] [--list-devices]
@@ -33,11 +34,13 @@ from typing import Any
 
 from mica.audio.listen import (
     DEFAULT_DATASET,
+    FILTER_ARGS,
     VAD_ARGS,
     Listener,
     ListenError,
     load_script_questions,
     make_segmenter,
+    resolve_filter_values,
     resolve_vad_values,
     run_info,
     run_listen,
@@ -388,6 +391,12 @@ def build_parser() -> argparse.ArgumentParser:
     listen.add_argument("--vad-threshold", type=float, help="menimpa audio.vad.threshold")
     listen.add_argument("--min-silence-ms", type=float, help="menimpa audio.vad.min_silence_ms")
     listen.add_argument("--max-utterance-s", type=float, help="menimpa audio.max_utterance_s")
+    # nilai coba 250 = bawaan min_speech_duration_ms Silero
+    listen.add_argument("--min-speech-ms", type=float, help="menimpa audio.vad.min_speech_ms")
+    # nilai coba 0.6 = bawaan no_speech_threshold Whisper/faster-whisper
+    listen.add_argument(
+        "--no-speech-threshold", type=float, help="menimpa audio.stt.no_speech_threshold"
+    )
     listen.add_argument("--echo", action="store_true", help='ucapkan "Kamu bertanya: <teks>"')
     listen.add_argument("--count", type=int, help="berhenti setelah N ucapan")
     listen.add_argument("--script", action="store_true", help="pilot WER: bacakan N pertanyaan")
@@ -397,18 +406,22 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _make_stt(settings: Settings, whisper_root: Path) -> FasterWhisperStt:
+def _make_stt(
+    settings: Settings, whisper_root: Path, no_speech_threshold: float | None
+) -> FasterWhisperStt:
     stt = settings.audio.stt
     if stt.backend != "faster_whisper":
         raise AudioCliError(f"audio.stt.backend {stt.backend} belum dibuat (E-05)")
-    return FasterWhisperStt(whisper_dir(stt.model, whisper_root), stt.compute_type, stt.threads)
+    return FasterWhisperStt(
+        whisper_dir(stt.model, whisper_root), stt.compute_type, stt.threads, no_speech_threshold
+    )
 
 
 def cmd_listen(
     args: argparse.Namespace,
     settings: Settings,
     mic_factory: Callable[[int | None], Any] = MicStream,
-    stt_factory: Callable[[Settings, Path], SpeechToText] = _make_stt,
+    stt_factory: Callable[[Settings, Path, float | None], SpeechToText] = _make_stt,
     prob_factory: Callable[[], Callable[..., float]] = silero_prob,
     tts_factory: Callable[[Path, float | None], TextToSpeech] = PiperTts,
     play: Callable[[AudioClip, int | None], None] = _play,
@@ -426,9 +439,12 @@ def cmd_listen(
         print("SUMBER NILAI VAD: argumen CLI (nilai coba, bukan E-05)")
     for key, _flag in VAD_ARGS:
         print(f"  audio.{key} = {values[key]} ({sources[key]})")
+    filters, filter_sources = resolve_filter_values(settings.audio, args)
+    for key, _flag in FILTER_ARGS:
+        print(f"  audio.{key} = {filters[key]} ({filter_sources[key]})")
     questions = load_script_questions(args.dataset, args.n) if args.script else []
 
-    stt = stt_factory(settings, args.whisper_dir)
+    stt = stt_factory(settings, args.whisper_dir, filters["stt.no_speech_threshold"])
     threads = getattr(stt, "threads", None)
     print(f"STT {settings.audio.stt.backend}/{settings.audio.stt.model} | thread efektif {threads}")
     tts = None
@@ -440,7 +456,8 @@ def cmd_listen(
     resampled = bool(getattr(mic, "resampled", False))
     print(f"mikrofon {args.device if args.device is not None else 'bawaan'} | laju {rate} Hz"
           + (" -> resample ke 16000 Hz" if resampled else ""))  # fmt: skip
-    listener = Listener(mic, make_segmenter(values, prob_factory), stt)
+    listener = Listener(mic, make_segmenter(values, prob_factory), stt,
+                        min_speech_ms=filters["vad.min_speech_ms"])  # fmt: skip
     try:
         if args.script:
             rows = run_script(listener, questions, ask)
@@ -448,7 +465,8 @@ def cmd_listen(
             print(f"WER total {summary['wer_total']:.4f} | rata-rata {summary['wer_mean']:.4f}")
             info = run_info(settings, threads or 0, values, sources,
                             {"device": args.device, "input_rate": rate, "resampled": resampled},
-                            Path(args.dataset), summary, [q["qid"] for q in questions])  # fmt: skip
+                            Path(args.dataset), summary, [q["qid"] for q in questions],
+                            filters, filter_sources)  # fmt: skip
             write_script_results(Path(args.out), rows, info)
             print(f"tersimpan: {(Path(args.out) / 'wer.csv').as_posix()}, run.json")
         else:

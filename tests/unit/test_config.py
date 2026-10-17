@@ -270,8 +270,14 @@ def test_stt_threads_optional_for_groq_whisper_in_kiosk(tmp_path):
     raw = _complete_kiosk_raw()
     raw["audio"]["stt"]["backend"] = "groq_whisper"
     raw["audio"]["stt"]["threads"] = None
+    raw["audio"]["stt"]["no_speech_threshold"] = None
     settings = load_settings(_write(tmp_path, raw))
-    assert settings.audio.stt.threads is None
+    assert settings.audio.stt.threads is None and settings.audio.stt.no_speech_threshold is None
+
+
+def test_stt_filters_null_in_dev():
+    audio = load_settings(DEV_YAML).audio
+    assert audio.vad.min_speech_ms is None and audio.stt.no_speech_threshold is None
 
 
 def test_environment_variable_wins_over_env_file(tmp_path, monkeypatch):
