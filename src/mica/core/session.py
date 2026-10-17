@@ -9,6 +9,8 @@ Aturan di luar baris tabel 7.1 (keputusan 17 Okt 2026 dan Langkah 22):
 - Pesan pekerja (SpeechStarted, Transcript, SpeechDone) dan AnswerReady dengan session_id
   bukan milik kunjungan aktif dibuang.
 - Transcript dengan filtered_by (penyaring min_speech/no_speech) diabaikan, tanpa Speak.
+- Mengetik (TextSubmitted/TopicTapped) boleh saat GREETING (sapaan dihentikan) dan LISTENING
+  (mikrofon off); teks adalah jalur cadangan N-10.
 - Restart vision: CameraStatus(ok=True) setelah status tidak ok -> SetVisionRate sesuai state
   (IDLE -> fps_idle, lainnya -> fps_busy). Bila state bukan IDLE, sesi lanjut dan PersonArrived
   diabaikan sampai sesi berakhir.
@@ -320,6 +322,14 @@ class Session:
             if isinstance(event, SpeechDone) and event.utterance_id == self.greeting_uid:
                 self.state = VisitState.READY
                 return [self._listen("auto"), self._show(message=texts.PLEASE_ASK)]
+            if isinstance(event, (TopicTapped, TextSubmitted)):
+                # teks jalur cadangan N-10: sapaan dipotong; SpeechDone-nya nanti diabaikan
+                question = _question(event)
+                if not question:
+                    return self._ignore(event, "teks kosong")
+                self.greeting_uid = None
+                stop = [StopSpeaking(self.session_id), self._listen("off")]
+                return [*stop, *self._think(question, "text")]
         elif s == VisitState.READY:
             if isinstance(event, SpeechStarted):
                 self.state = VisitState.LISTENING
@@ -341,6 +351,12 @@ class Session:
                             self._listen("off"), speak, self._run(text, "voice")]  # fmt: skip
                 self.state = VisitState.READY
                 return [self._show(message=texts.NOT_HEARD)]
+            if isinstance(event, (TopicTapped, TextSubmitted)):
+                question = _question(event)
+                if not question:
+                    return self._ignore(event, "teks kosong")
+                # Transcript yang datang belakangan diabaikan karena state sudah THINKING
+                return [self._listen("off"), *self._think(question, "text")]
         elif s == VisitState.THINKING:
             if isinstance(event, AnswerReady):
                 answer = event.answer
@@ -449,6 +465,12 @@ TRANSITIONS: tuple[Transition, ...] = (
     Transition("T15", NON_IDLE, "Tick (IdleTimeout)", "now - interaksi terakhir > idle_reset_s",
                ("StopSpeaking", "ClearScreen", "ListenControl", "SetVisionRate", "ShowView"),
                "IDLE", "SDD 7.1 + ListenControl(off)"),
+    Transition("T18", "GREETING", "TopicTapped / TextSubmitted", "Teks tidak kosong",
+               ("StopSpeaking", "ListenControl", "ShowView", "RunPipeline"), "THINKING",
+               "Keputusan 17 Okt (N-10)"),
+    Transition("T19", "LISTENING", "TopicTapped / TextSubmitted", "Teks tidak kosong",
+               ("ListenControl", "ShowView", "RunPipeline"), "THINKING",
+               "Keputusan 17 Okt (N-10)"),
     Transition("T16", "Semua", "SpeechStarted / Transcript / SpeechDone / AnswerReady",
                "session_id lama", ("Ignored",), "Tetap", "SDD 3.3, 5.2"),
     Transition("T17", "Semua", "Event lain", "-", ("Ignored",), "Tetap", "SDD 7.1"),
