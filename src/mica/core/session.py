@@ -86,6 +86,11 @@ class StopTapped:
 
 
 @dataclass(frozen=True)
+class TalkTapped:
+    """Tombol bicara (push-to-talk, SDD M-08 Perilaku)."""
+
+
+@dataclass(frozen=True)
 class Tick:
     now: float
 
@@ -102,6 +107,7 @@ Event = (
     | TopicTapped
     | TextSubmitted
     | StopTapped
+    | TalkTapped
     | Tick
 )
 
@@ -334,6 +340,9 @@ class Session:
             if isinstance(event, SpeechStarted):
                 self.state = VisitState.LISTENING
                 return [self._show(message="mendengarkan")]  # F-20
+            if isinstance(event, TalkTapped):
+                # satu ucapan berikutnya; proses suara kembali off setelahnya
+                return [self._listen("push_to_talk"), self._show(message=texts.TALK_NOW)]
             if isinstance(event, (TopicTapped, TextSubmitted)):
                 question = _question(event)
                 if not question:
@@ -471,6 +480,8 @@ TRANSITIONS: tuple[Transition, ...] = (
     Transition("T19", "LISTENING", "TopicTapped / TextSubmitted", "Teks tidak kosong",
                ("ListenControl", "ShowView", "RunPipeline"), "THINKING",
                "Keputusan 17 Okt (N-10)"),
+    Transition("T20", "READY", "TalkTapped", "-", ("ListenControl", "ShowView"), "READY",
+               "Langkah 24 (push-to-talk, M-08)"),
     Transition("T16", "Semua", "SpeechStarted / Transcript / SpeechDone / AnswerReady",
                "session_id lama", ("Ignored",), "Tetap", "SDD 3.3, 5.2"),
     Transition("T17", "Semua", "Event lain", "-", ("Ignored",), "Tetap", "SDD 7.1"),

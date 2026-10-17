@@ -21,6 +21,7 @@ import queue
 import time
 from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor
+from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import Any, Literal, Protocol
 
@@ -66,6 +67,19 @@ def _now_local() -> datetime:
     return datetime.now().astimezone()
 
 
+@dataclass(frozen=True)
+class DebugInfo:
+    """Isi panel debug M-10 (dev saja). Pertanyaan tidak ikut; hanya angka dan status."""
+
+    state: VisitState
+    camera_fps: float | None = None
+    final_status: str | None = None
+    gate: dict[str, Any] | None = None  # passed, score, threshold
+    top_hits: tuple[tuple[str, float], ...] = ()  # (chunk_id, skor) teratas
+    llm_provider: str | None = None
+    timings: dict[str, float] | None = None
+
+
 class KioskController:
     def __init__(
         self,
@@ -76,7 +90,10 @@ class KioskController:
         clock: Callable[[], float] = time.monotonic,
         interaction_log: EventLog | None = None,
         wall_clock: Callable[[], datetime] = _now_local,
+        debug: Callable[[DebugInfo], None] | None = None,
     ) -> None:
+        """debug (dev saja): menerima DebugInfo; bila pipeline punya run(), baris log M-06
+        (gerbang, skor, penyedia) dipakai untuk panel debug."""
         self.bus = bus
         self.session = session
         self.pipeline = pipeline
@@ -84,8 +101,10 @@ class KioskController:
         self.clock = clock
         self.interaction_log = interaction_log
         self.wall_clock = wall_clock
+        self.debug = debug
+        self.debug_info = DebugInfo(session.state)
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="mica-pipeline")
-        self.answers: queue.Queue[AnswerReady] = queue.Queue()
+        self.answers: queue.Queue[tuple[AnswerReady, Any]] = queue.Queue()
         self.pending: list[Future[None]] = []
 
     # --- masukan ------------------------------------------------------------------------
@@ -96,10 +115,12 @@ class KioskController:
             self.dispatch(msg, now)
         while True:
             try:
-                ready = self.answers.get_nowait()
+                ready, record = self.answers.get_nowait()
             except queue.Empty:
                 break
             self.dispatch(ready, now)
+            if record is not None or self.debug is not None:
+                self._update_debug(final=ready.answer, record=record)
         self.dispatch(Tick(now), now)
         self.pending = [f for f in self.pending if not f.done()]
 
@@ -115,6 +136,27 @@ class KioskController:
         for action in actions:
             self._execute(action)
         self._log_visit(event, actions, before_state, before_id, before_view)
+        if self.debug is not None:
+            fps = event.fps if isinstance(event, CameraStatus) else self.debug_info.camera_fps
+            self._update_debug(state=self.session.state, camera_fps=fps)
+
+    def _update_debug(self, final: FinalAnswer | None = None, record: Any = None,
+                      **changes: Any) -> None:  # fmt: skip
+        if self.debug is None:
+            return
+        if final is not None:
+            changes.update(final_status=final.status, timings=dict(final.timings))
+        if record is not None:
+            hits = sorted(record.retrieved, key=lambda h: h["score"], reverse=True)
+            changes.update(
+                gate=dict(record.gate),
+                top_hits=tuple((h["chunk_id"], float(h["score"])) for h in hits[:3]),
+                llm_provider=record.llm_provider,
+            )
+        info = replace(self.debug_info, **changes)
+        if info != self.debug_info:
+            self.debug_info = info
+            self.debug(info)
 
     # --- aksi ---------------------------------------------------------------------------
 
@@ -141,14 +183,20 @@ class KioskController:
     def _run(self, action: RunPipeline) -> None:
         """Di thread pipeline; hasil dikirim ke Session lewat antrean pada step() berikutnya."""
         question = scrub_pii(action.question)  # N-09: sebelum pipeline (API, log)
+        record = None
         try:
             # history sudah berisi pertanyaan yang di-scrub (Session)
-            answer = self.pipeline.answer(question, action.history, action.session_id,
-                                          input_mode=action.input_mode)  # fmt: skip
+            run = getattr(self.pipeline, "run", None)
+            if self.debug is not None and run is not None:
+                answer, record = run(question, action.history, action.session_id,
+                                     input_mode=action.input_mode)  # fmt: skip
+            else:
+                answer = self.pipeline.answer(question, action.history, action.session_id,
+                                              input_mode=action.input_mode)  # fmt: skip
         except Exception as exc:  # noqa: BLE001 - pipeline tidak boleh mematikan kiosk
             log.warning("%s: pipeline gagal (%s)", ErrorCode.LLM_UNAVAILABLE, type(exc).__name__)
             answer = FinalAnswer("unavailable", UNAVAILABLE, (), {})
-        self.answers.put(AnswerReady(action.session_id, answer))
+        self.answers.put((AnswerReady(action.session_id, answer), record))
 
     # --- log kunjungan M-11 -------------------------------------------------------------
 

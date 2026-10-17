@@ -275,6 +275,16 @@ def test_stt_threads_optional_for_groq_whisper_in_kiosk(tmp_path):
     assert settings.audio.stt.threads is None and settings.audio.stt.no_speech_threshold is None
 
 
+def test_ui_suggestions_empty_and_must_match_topics(tmp_path):
+    assert load_settings(DEV_YAML).ui.suggestions == {}
+    raw = _dev_raw()
+    raw["ui"]["suggestions"] = {"Biaya": ["Biaya kuliah berapa?"]}
+    assert load_settings(_write(tmp_path, raw)).ui.suggestions["Biaya"] == ("Biaya kuliah berapa?",)
+    raw["ui"]["suggestions"] = {"Topik lain": ["x"]}
+    with pytest.raises(ConfigError, match="ui.suggestions"):
+        load_settings(_write(tmp_path, raw))
+
+
 def test_stt_filters_null_in_dev():
     audio = load_settings(DEV_YAML).audio
     assert audio.vad.min_speech_ms is None and audio.stt.no_speech_threshold is None

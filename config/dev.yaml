@@ -79,6 +79,7 @@ ui:
   fullscreen: true
   font_scale: 1.0
   topics: [Program studi, Jalur masuk, Biaya, Beasiswa, Fasilitas, Prospek karier]   # F-14, dari topik dataset PRD
+  suggestions: {}                   # F-14; topik -> daftar saran pertanyaan, diisi pengembang
 logging:
   dir: logs/
 eval:

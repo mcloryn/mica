@@ -6,7 +6,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 import yaml
 from pydantic import (
@@ -214,6 +214,18 @@ class UiConfig(_Model):
     fullscreen: bool
     font_scale: PositiveFloat
     topics: tuple[str, ...] = Field(strict=False)
+    # saran pertanyaan per topik (F-14); kosong = tombol topik mengirim nama topik sebagai
+    # pertanyaan. Diisi pengembang, bukan dikarang kode.
+    suggestions: dict[str, Annotated[tuple[str, ...], Field(strict=False)]] = Field(
+        default_factory=dict
+    )
+
+    @model_validator(mode="after")
+    def _suggestions_match_topics(self) -> UiConfig:
+        unknown = sorted(set(self.suggestions) - set(self.topics))
+        if unknown:
+            raise ValueError(f"ui.suggestions punya topik di luar ui.topics: {unknown}")
+        return self
 
 
 class LoggingConfig(_Model):

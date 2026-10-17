@@ -14,5 +14,30 @@ CAMERA_DOWN = "Kamera tidak tersedia; silakan bertanya lewat sentuhan atau ketik
 MIC_DOWN = "Mikrofon tidak tersedia; silakan ketik pertanyaan."
 
 
+TALK_NOW = "Silakan bicara"
+
+# M-10: pemberitahuan permanen (N-08) dan label UI
+NOTICE_CAMERA = "Kamera aktif untuk mendeteksi pengunjung. Gambar tidak disimpan."
+NOTICE_AI = "Pertanyaanmu diproses oleh layanan AI pihak ketiga."
+STATUS_LABELS = {
+    "IDLE": "Selamat datang",
+    "GREETING": "Menyapa",
+    "READY": "Siap",
+    "LISTENING": "Mendengarkan",
+    "THINKING": "Berpikir",
+    "SPEAKING": "Berbicara",
+}
+CAMERA_ON, CAMERA_OFF = "Kamera: aktif", "Kamera: tidak tersedia"
+MIC_ON, MIC_OFF = "Mikrofon: aktif", "Mikrofon: tidak tersedia"
+HOME_TITLE = "Pilih topik atau ketik pertanyaanmu"
+INPUT_PLACEHOLDER = "Ketik pertanyaan di sini"
+SEND, TALK, STOP, RESEND = "Kirim", "Bicara", "Berhenti", "Kirim ulang"
+TRANSCRIPT_LABEL = "Transkripsi (bisa diedit):"
+SOURCES_LABEL = "Sumber:"
+VISITOR, MICA = "Kamu", "MICA"
+MONTHS = ("Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus",
+          "September", "Oktober", "November", "Desember")  # fmt: skip
+
+
 def greeting(color: str | None) -> str:
     return GREETING_COLOR.format(warna=color) if color else GREETING

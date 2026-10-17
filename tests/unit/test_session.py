@@ -30,6 +30,7 @@ from mica.core.session import (
     Session,
     ShowView,
     StopTapped,
+    TalkTapped,
     TextSubmitted,
     Tick,
     TopicTapped,
@@ -160,6 +161,7 @@ CASES = {
             (at(V.GREETING), lambda s: TopicTapped("Biaya", "Biaya kuliah berapa?"), 0.5)],
     "T19": [(at(V.LISTENING), lambda s: TextSubmitted("Jalur masuk apa saja?"), 2.5),
             (at(V.LISTENING), lambda s: TopicTapped("Jalur", "Jalur masuk apa saja?"), 2.5)],
+    "T20": [(at(V.READY), lambda s: TalkTapped(), 2.0)],
     "T16": [(at(V.LISTENING), lambda s: Transcript("lama", "x", True, 0.1, 0.1), 3.0),
             (at(V.READY), lambda s: SpeechStarted("lama", 2.0), 2.0),
             (at(V.SPEAKING), lambda s: SpeechDone("lama", s.answer_uid, 0.1), 5.0),
@@ -167,6 +169,8 @@ CASES = {
     "T17": [(at(V.IDLE), lambda s: StopTapped(), 0.0),
             (at(V.IDLE), lambda s: PersonLeft(1, 0.0, 1.0), 0.0),
             (at(V.GREETING), lambda s: StopTapped(), 0.5),
+            (at(V.IDLE), lambda s: TalkTapped(), 0.0),
+            (at(V.SPEAKING), lambda s: TalkTapped(), 5.0),
             (at(V.GREETING), lambda s: TextSubmitted("  "), 0.5),
             (at(V.LISTENING), lambda s: TopicTapped("Biaya", ""), 2.5),
             (at(V.READY), lambda s: SpeechDone(s.session_id, s.greeting_uid, 0.1), 2.0),
@@ -422,11 +426,20 @@ def test_typing_while_listening_ignores_late_transcript():
     assert names(late) == ("Ignored",) and s.state == V.THINKING and not of(late, Speak)
 
 
+def test_talk_tapped_sends_push_to_talk_once():
+    s = drive(V.READY)
+    listen, view = s.handle(TalkTapped(), 2.0)
+    assert listen == ListenControl("push_to_talk", s.session_id)
+    assert view.message == texts.TALK_NOW and s.state == V.READY
+    s.handle(SpeechStarted(s.session_id, 2.5), 2.5)
+    assert s.state == V.LISTENING
+
+
 def test_transitions_markdown_export(tmp_path):
     import runpy
 
     md = transitions_markdown()
-    assert md.count("\n| T") == 19 and md.count("\n| R0") == 6 and md.count("\n| D0") == 2
+    assert md.count("\n| T") == 20 and md.count("\n| R0") == 6 and md.count("\n| D0") == 2
     out = tmp_path / "transitions.md"
     mod = runpy.run_path(str(ROOT / "scripts" / "session_table.py"))
     assert mod["main"](["--out", str(out)]) == 0

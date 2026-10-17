@@ -22,6 +22,7 @@ ShowView adalah potret tampilan; Ignored = dicatat di log debug oleh M-10.
 | T15 | Semua kecuali IDLE | Tick (IdleTimeout) | now - interaksi terakhir > idle_reset_s | StopSpeaking, ClearScreen, ListenControl, SetVisionRate, ShowView | IDLE | SDD 7.1 + ListenControl(off) |
 | T18 | GREETING | TopicTapped / TextSubmitted | Teks tidak kosong | StopSpeaking, ListenControl, ShowView, RunPipeline | THINKING | Keputusan 17 Okt (N-10) |
 | T19 | LISTENING | TopicTapped / TextSubmitted | Teks tidak kosong | ListenControl, ShowView, RunPipeline | THINKING | Keputusan 17 Okt (N-10) |
+| T20 | READY | TalkTapped | - | ListenControl, ShowView | READY | Langkah 24 (push-to-talk, M-08) |
 | T16 | Semua | SpeechStarted / Transcript / SpeechDone / AnswerReady | session_id lama | Ignored | Tetap | SDD 3.3, 5.2 |
 | T17 | Semua | Event lain | - | Ignored | Tetap | SDD 7.1 |
 | R01 | IDLE | CameraStatus(ok=True) | Sebelumnya ok=False (restart) | SetVisionRate, ShowView | IDLE | Keputusan 17 Okt |
