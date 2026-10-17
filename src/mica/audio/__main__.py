@@ -519,6 +519,17 @@ DEMO_LONG_TEXT = (
     "1997, dan STIE Mikroskil, berdiri 2008. Universitas Mikroskil memiliki dua fakultas: "
     "Fakultas Informatika dan Fakultas Bisnis dan Hukum."
 )
+DEMO_FALLBACK_QUESTION = "Biaya kuliah Sistem Informasi kelas pagi berapa setahun?"
+
+
+def _demo_examples(n: int) -> tuple[str, ...]:
+    """Contoh pertanyaan untuk penguji: n pertanyaan answerable pertama set dev (E-01)."""
+    try:
+        return tuple(q["question"] for q in load_script_questions(DEFAULT_DATASET, max(n, 1)))
+    except (OSError, ValueError, KeyError, ListenError):
+        return (DEMO_FALLBACK_QUESTION,)
+
+
 DEMO_START_TIMEOUT_S = 120.0  # non-ADR: batas tunggu proses suara siap (memuat Whisper + Piper)
 HEAVY_MODULES = ("torch", "ctranslate2", "onnxruntime", "faster_whisper", "piper")
 
@@ -575,6 +586,7 @@ class BusDemo:
         stop_after: float | None = None,
         clock: Callable[[], float] = time.monotonic,
         out: Callable[[str], None] = print,
+        examples: tuple[str, ...] = (),
     ) -> None:
         import uuid
 
@@ -596,6 +608,12 @@ class BusDemo:
         self.stop_due: float | None = None
         self.stop_sent: float | None = None
         self.stats = DemoStats([], [], [], [], {"min_speech": 0, "no_speech": 0})
+        self.examples = examples or (DEMO_FALLBACK_QUESTION,)
+        self.retry = False  # giliran berikutnya adalah ulangan setelah "maaf"
+
+    def guide(self, text: str) -> None:
+        """Petunjuk untuk penguji di terminal (dev saja)."""
+        self.out(f">>> {text}")
 
     def elapsed(self) -> float:
         return self.clock() - self.ready_at if self.ready_at is not None else 0.0
@@ -619,6 +637,11 @@ class BusDemo:
 
         self.bus.send("audio", ListenControl(self.listen_mode, self.session_id))
         self.out(f"    -> ListenControl({self.listen_mode})")
+        n = self.answered + 1
+        example = self.examples[(n - 1) % len(self.examples)]
+        what = "ulangi lebih jelas pertanyaan" if self.retry else "ucapkan pertanyaan"
+        self.guide(f'GILIRAN KAMU: {what} {n} dari {self.turns}, misalnya: "{example}"')
+        self.retry = False
 
     def tick(self) -> None:
         """Dipanggil setiap poll: StopSpeaking yang jatuh tempo."""
@@ -651,13 +674,17 @@ class BusDemo:
                 self.out(f"    pulih {self.stats.recovered_s:.1f} s setelah dibunuh; "
                          "ListenControl dikirim ulang")  # fmt: skip
                 self.pending.clear()  # Speak yang sedang berjalan hilang bersama proses lama
+                self.guide("MICA sudah hidup lagi.")
                 self.listen()
             elif not self.greeted:
                 self.greeted = True
                 if self.stop_after is not None:
                     self.speak(DEMO_LONG_TEXT, "panjang")
+                    self.guide(f"DIAM SAJA. MICA membaca teks panjang dan akan dipotong otomatis "
+                               f"{self.stop_after:g} detik kemudian.")  # fmt: skip
                 else:
                     self.speak(DEMO_GREETING, "sapaan")
+                    self.guide("Dengarkan sapaan MICA dulu, jangan bicara.")
         elif isinstance(msg, SpeechStarted):
             self.started_at = now
         elif isinstance(msg, Transcript):
@@ -674,8 +701,11 @@ class BusDemo:
             elif msg.ok:
                 self.stats.stt_s.append(msg.stt_s)
                 self.speak(ECHO_PREFIX + msg.text, "gema")
+                self.guide("Terdengar. Dengarkan MICA mengulang pertanyaanmu, jangan bicara.")
             else:
                 self.speak(DEMO_SORRY, "maaf")
+                self.retry = True
+                self.guide("Tidak terdengar jelas. Dengarkan MICA dulu, lalu ulangi.")
         elif isinstance(msg, SpeechDone):
             kind = self.pending.pop(msg.utterance_id, None)
             if kind is None:
@@ -687,11 +717,13 @@ class BusDemo:
                     self.out(f"    StopSpeaking -> SpeechDone {self.stats.stop_s:.2f} s")
                 self.stats.stop_interrupted = msg.interrupted
                 self.done = True
+                self.guide("SELESAI. Salin baris ringkasan di bawah.")
                 return
             if kind == "gema":
                 self.answered += 1
                 if self.answered >= self.turns:
                     self.done = True
+                    self.guide("SELESAI. Salin baris ringkasan di bawah.")
                     return
             self.listen()
 
@@ -739,7 +771,9 @@ def cmd_bus_demo(
 
     spawn = time.monotonic()
     bus = start_workers(settings, audio=cfg)
-    demo = BusDemo(bus, args.turns, args.push_to_talk, args.stop_after)
+    demo = BusDemo(bus, args.turns, args.push_to_talk, args.stop_after,
+                   examples=_demo_examples(args.turns))  # fmt: skip
+    demo.guide("Memuat model suara, tunggu sebentar ...")
     reported_pids: set[int] = set()
     rss: tuple[float | None, float | None] = (None, None)
     killed = False
@@ -755,6 +789,8 @@ def cmd_bus_demo(
                 proc.kill()
                 demo.killed_at = time.monotonic()
                 killed = True
+                demo.guide("Proses suara sengaja dimatikan (uji restart). Jangan bicara; tunggu "
+                           "sampai muncul GILIRAN KAMU lagi.")  # fmt: skip
             demo.tick()
             for msg in bus.poll():
                 proc = bus.processes["audio"]

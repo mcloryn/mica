@@ -173,6 +173,8 @@ def test_bus_demo_one_turn(workdir, capsys):
     assert "-> Speak(u1, sapaan)" in out and "-> ListenControl(auto)" in out
     assert "[tersaring: min_speech]" in out and "teks: jalur masuk apa saja" in out
     assert "-> Speak(u2, gema)" in out and "pertanyaan dijawab 1" in out
+    assert '>>> GILIRAN KAMU: ucapkan pertanyaan 1 dari 1, misalnya: "' in out
+    assert ">>> SELESAI" in out
     assert "tersaring: min_speech 1 | no_speech 0" in out
     assert "modul berat di proses utama: tidak ada" in out
     assert "proses anak tersisa: tidak ada" in out and _audio_files(workdir) == []
@@ -183,3 +185,4 @@ def test_bus_demo_stop_after_interrupts(workdir, capsys):
     out = capsys.readouterr().out
     assert "-> Speak(u1, panjang)" in out and "-> StopSpeaking" in out
     assert "StopSpeaking: interrupted=True" in out
+    assert ">>> DIAM SAJA" in out and "GILIRAN KAMU" not in out
