@@ -1,0 +1,11 @@
+﻿qid,referensi_norm,hipotesis_norm,wer,audio_s,stt_s,rtf,ulang,cut_by_max
+d001,biaya kuliah sistem informasi kelas pagi berapa setahun,biaya kuliah sistem informasi kelas pagi berapa setahun,0.0000,3.516,1.923,0.547,0,0
+d002,kalau ambil akuntansi kelas sore bayarnya berapa,kalau ambil akutan si kelasore bayarnya berapa,0.4286,4.636,1.860,0.401,2,0
+d003,pendaftaran es satu gelombang satu sampai kapan,pendaftaran es satu gelombang satu sampai kapan,0.0000,3.900,1.892,0.485,0,0
+d004,jalur masuk es satu ada apa aja,jalur masuk es satu ada apa aja,0.0000,3.324,1.847,0.556,1,0
+d005,daftarnya gimana sih langkahnya apa aja,daftarnya gimana sih langkanya apa aja,0.1667,2.620,1.884,0.719,0,0
+d006,nomor wa admisi berapa ya,nomor wa atmisi berapa ya,0.2000,3.036,1.800,0.593,1,0
+d007,admisi buka hari sabtu nggak,atmisi buka hari sap tu ga,0.8000,1.884,1.898,1.008,1,0
+d008,bedanya teknik informatika sama teknologi informasi apa,bedanya teknik informatika sama teknologi informasi apa,0.0000,4.348,1.835,0.422,0,0
+d009,di fakultas bisnis ada prodi apa aja,di fakultas bisnis ada pro di apa aja,0.2857,2.620,1.833,0.700,0,0
+d010,akreditasi prodi teknologi informasi apa,akreditasi pro di teknologi informasi apa,0.4000,3.004,1.822,0.607,0,0

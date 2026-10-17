@@ -1,0 +1,82 @@
+{
+ "experiment": "E-05",
+ "component": "stt",
+ "git_commit": "d1acfd9953191354fdeaf96c80c2201598decc8c",
+ "git_dirty": false,
+ "packages": {
+  "faster-whisper": "1.2.1",
+  "ctranslate2": "4.8.3",
+  "pysilero-vad": "3.4.0",
+  "jiwer": "4.0.0",
+  "sounddevice": "0.5.6"
+ },
+ "stt": {
+  "backend": "faster_whisper",
+  "model": "small",
+  "compute_type": "int8",
+  "hf_repo": "Systran/faster-whisper-small",
+  "hf_revision": "536b0662742c02347bc0e980a01041f333bce120",
+  "sha256": {
+   "config.json": "b55496ac7940a7ae47d2c01eab40edfd8701feec1229d9cce3b40014383fb828",
+   "model.bin": "3e305921506d8872816023e4c273e75d2419fb89b24da97b4fe7bce14170d671",
+   "tokenizer.json": "fb7b63191e9bb045082c79fd742a3106a12c99513ab30df4a0d47fa6cb6fd0ab",
+   "vocabulary.txt": "34ce3fe1c5041027b3f8d42912270993f986dbc4bb34cf27f951e34a1e453913"
+  },
+  "threads_config": null,
+  "threads_effective": 4,
+  "language": "id",
+  "condition_on_previous_text": false,
+  "vad_filter": false,
+  "beam_size": "bawaan library"
+ },
+ "vad": {
+  "silero_model": "ggml-silero-v6.2.0.bin",
+  "values": {
+   "vad.threshold": 0.5,
+   "vad.min_silence_ms": 500.0,
+   "max_utterance_s": 15.0
+  },
+  "sources": {
+   "vad.threshold": "nilai coba",
+   "vad.min_silence_ms": "nilai coba",
+   "max_utterance_s": "nilai coba"
+  }
+ },
+ "mic": {
+  "device": null,
+  "input_rate": 16000,
+  "resampled": false
+ },
+ "dataset": {
+  "path": "data/eval/questions.jsonl",
+  "sha256": "9dc9c399ea0124088c4affa6cd41a23516a8458255b0726a6deda34dfd69627a",
+  "qids": [
+   "d001",
+   "d002",
+   "d003",
+   "d004",
+   "d005",
+   "d006",
+   "d007",
+   "d008",
+   "d009",
+   "d010"
+  ]
+ },
+ "wer_normalization": "normalize_for_speech -> huruf kecil -> buang tanda baca (selain huruf, angka, spasi) -> rapikan spasi; lalu jiwer.wer",
+ "wer_total": 0.203125,
+ "wer_mean": 0.22810000000000002,
+ "python": "3.13.7",
+ "platform": "Windows-11-10.0.26200-SP0",
+ "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+ "power": {
+  "source": "battery",
+  "battery_percent": 69,
+  "battery_saver": false
+ },
+ "power_plan": {
+  "guid": "bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b",
+  "name": "ASUS Recommended",
+  "raw": "Power Scheme GUID: bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b  (ASUS Recommended)"
+ }
+}
