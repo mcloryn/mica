@@ -42,6 +42,9 @@ dev = [
     "pytest",
     "pytest-qt==4.5.0",
     "ruff",
+    # scripts/ui_bench.py dan EdgeBrowser.close (pohon proses Edge); BSD-3-Clause.
+    # Sebelumnya hanya terpasang sebagai dependensi ultralytics
+    "psutil==7.2.2",
 ]
 
 [tool.setuptools.packages.find]
