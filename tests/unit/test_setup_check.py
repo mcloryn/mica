@@ -4,6 +4,7 @@ File model dibuat palsu di tmp_path dan sha256 terkunci dipalsukan lewat monkeyp
 """
 
 import hashlib
+import json
 from pathlib import Path
 
 import pytest
@@ -331,3 +332,47 @@ def test_main_dispatches_subcommands(monkeypatch):
     monkeypatch.setattr(check_mod, "main", lambda argv: 12)
     assert entry.main(["setup", "--only", "yolo26n"]) == 11
     assert entry.main(["check"]) == 12
+
+
+def _test_set(path, questions):
+    rows = [{"qid": f"o-test-{i:03d}", "question": q, "type": "answerable", "prev_qid": None,
+             "gold_refs": [], "split": "test"} for i, q in enumerate(questions, 1)]  # fmt: skip
+    path.write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
+    return path
+
+
+def _with_suggestions(tmp_path, suggestions):
+    path = _dev_config(tmp_path)
+    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    raw["ui"]["suggestions"] = suggestions
+    path.write_text(yaml.safe_dump(raw, allow_unicode=True), encoding="utf-8")
+    return path
+
+
+def test_check_catches_test_question_in_suggestions(tmp_path, locked, monkeypatch):
+    config = _with_suggestions(tmp_path, {"Biaya": ["Biaya kuliah S1 berapa per tahun?"]})
+    _models(tmp_path, locked, load_settings(config))
+    test_set = _test_set(tmp_path / "test.jsonl", ["biaya KULIAH s1, berapa per tahun",
+                                                   "Ada asrama?"])  # fmt: skip
+    monkeypatch.setenv("GROQ_API_KEY", FAKE_KEY)
+    rows, _ = check.run_check(config, None, tmp_path, ROOT / "data" / "kb", lambda: DEVICES,
+                              (tmp_path / "msedge.exe",), test_set=test_set)  # fmt: skip
+    leak = {r.item: r for r in rows}["kebocoran set uji"]
+    assert leak.status == "GAGAL" and "o-test-001" in leak.message
+    assert "o-test-002" not in leak.message and check.failed(rows)
+
+
+def test_check_no_leak_ok_and_no_row_without_test_set(tmp_path, locked, monkeypatch):
+    config = _with_suggestions(tmp_path, {"Biaya": ["Biaya kuliah S1 berapa per tahun?"]})
+    _models(tmp_path, locked, load_settings(config))
+    test_set = _test_set(tmp_path / "test.jsonl", ["Jalur beasiswa apa saja?"])
+    (tmp_path / "msedge.exe").write_bytes(b"")
+    monkeypatch.setenv("GROQ_API_KEY", FAKE_KEY)
+
+    def run(path):
+        return check.run_check(config, None, tmp_path, ROOT / "data" / "kb", lambda: DEVICES,
+                               (tmp_path / "msedge.exe",), test_set=path)[0]  # fmt: skip
+
+    leak = {r.item: r for r in run(test_set)}["kebocoran set uji"]
+    assert leak.status == "OK" and "1 pertanyaan uji" in leak.message
+    assert "kebocoran set uji" not in {r.item for r in run(tmp_path / "tidak-ada.jsonl")}

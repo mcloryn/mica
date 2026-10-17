@@ -4,8 +4,9 @@ Tidak membuka kamera, mikrofon, atau speaker dan tidak memanggil Groq. Memeriksa
 config (M-01; di kiosk semua null wajib terisi), file model dan sha256, KB aktif dan
 embedder-nya, keberadaan GROQ_API_KEY (nilainya tidak pernah dicetak), daftar perangkat
 audio dari sounddevice.query_devices() (tanpa membuka stream), kamera (hanya "diperiksa saat
-start"), folder log bisa ditulis, dan bila ui.backend: web, msedge.exe ditemukan (Edge tidak
-dijalankan). Kode keluar 0 bila semua OK, 1 bila ada GAGAL.
+start"), folder log bisa ditulis, bila ui.backend: web, msedge.exe ditemukan (Edge tidak
+dijalankan), dan bila data/eval/official/test.jsonl ada, tidak ada pertanyaan uji yang sama
+dengan isi ui.suggestions (docs/DATASET.md, larangan bocor). Kode keluar 0 bila semua OK, 1 bila ada GAGAL.
 """
 
 from __future__ import annotations
@@ -135,6 +136,27 @@ def _check_browser(edge_paths: tuple[Path, ...]) -> CheckRow:
         return CheckRow("Microsoft Edge", "GAGAL", f"{exc}; ui.backend: web butuh Edge")
 
 
+def _check_test_leak(settings: Settings, test_set: Path) -> CheckRow | None:
+    """Pertanyaan set uji resmi tidak boleh muncul di ui.suggestions (setelah normalisasi)."""
+    if not test_set.is_file():
+        return None
+    from mica.eval.dataset import DatasetError, load_questions
+    from mica.eval.official import normalize_question
+
+    item = "kebocoran set uji"
+    try:
+        questions = load_questions(test_set)
+    except DatasetError as exc:
+        return CheckRow(item, "GAGAL", f"{test_set.as_posix()} tidak terbaca ({exc})")
+    test = {normalize_question(q["question"]): q["qid"] for q in questions}
+    leaked = sorted({test[n] for hints in settings.ui.suggestions.values() for hint in hints
+                     if (n := normalize_question(hint)) in test})  # fmt: skip
+    if leaked:
+        return CheckRow(item, "GAGAL", f"{len(leaked)} pertanyaan uji ada di ui.suggestions: "
+                        + ", ".join(leaked) + " (hapus dari config)")  # fmt: skip
+    return CheckRow(item, "OK", f"{len(test)} pertanyaan uji tidak ada di ui.suggestions")
+
+
 def run_check(
     config: Path = DEFAULT_CONFIG,
     env_file: Path | None = DEFAULT_ENV,
@@ -142,6 +164,7 @@ def run_check(
     kb_root: Path = Path("data/kb"),
     query_devices: Callable[[], Any] = _query_devices,
     edge_paths: tuple[Path, ...] | None = None,
+    test_set: Path = Path("data/eval/official/test.jsonl"),
 ) -> tuple[list[CheckRow], Settings | None]:
     """Settings dikembalikan bila semua OK (dipakai python -m mica), selain itu tetap
     dikembalikan bila terbaca supaya pemanggil bisa menampilkan detail."""
@@ -162,6 +185,9 @@ def run_check(
             from mica.webui.browser import EDGE_PATHS
 
             rows.append(_check_browser(EDGE_PATHS if edge_paths is None else edge_paths))
+        leak = _check_test_leak(settings, Path(test_set))
+        if leak is not None:
+            rows.append(leak)
     return rows, settings
 
 
