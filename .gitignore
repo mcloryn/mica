@@ -14,3 +14,6 @@ data/eval/speech/*
 !data/eval/speech/contoh/
 data/eval/speech/contoh/*
 !data/eval/speech/contoh/manifest.jsonl
+
+# ringkasan tugas untuk pemilik proyek, tidak di-commit
+RINGKASAN.md
