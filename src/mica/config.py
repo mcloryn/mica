@@ -214,6 +214,9 @@ class SessionConfig(_Model):
 
 
 class UiConfig(_Model):
+    # ADR-19 (Provisional): pyside6 = bawaan; web = Flask + Edge kiosk (docs/UI-WEB.md).
+    # Pilihan akhir di tahap 2 (E-09).
+    backend: Literal["pyside6", "web"]
     fullscreen: bool
     font_scale: PositiveFloat
     topics: tuple[str, ...] = Field(strict=False)

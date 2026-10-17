@@ -147,12 +147,21 @@ def _dev_config(tmp_path):
     return path
 
 
-def _run(tmp_path, config, monkeypatch, key=FAKE_KEY, devices=DEVICES):
+def _run(tmp_path, config, monkeypatch, key=FAKE_KEY, devices=DEVICES, edge_paths=None):
     if key:
         monkeypatch.setenv("GROQ_API_KEY", key)
     else:
         monkeypatch.delenv("GROQ_API_KEY", raising=False)
-    return check.run_check(config, None, tmp_path, ROOT / "data" / "kb", lambda: devices)
+    return check.run_check(config, None, tmp_path, ROOT / "data" / "kb", lambda: devices,
+                           edge_paths)  # fmt: skip
+
+
+def _web_config(tmp_path):
+    path = _dev_config(tmp_path)
+    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    raw["ui"]["backend"] = "web"
+    path.write_text(yaml.safe_dump(raw, allow_unicode=True), encoding="utf-8")
+    return path
 
 
 def test_check_all_ok_in_dev(tmp_path, locked, monkeypatch):
@@ -222,6 +231,36 @@ def test_check_key_value_never_printed(tmp_path, locked, monkeypatch, capsys):
     assert FAKE_KEY not in out.out + out.err
 
 
+def test_check_web_backend_without_edge_fails(tmp_path, locked, monkeypatch):
+    config = _web_config(tmp_path)
+    _models(tmp_path, locked, load_settings(config))
+    missing = (tmp_path / "tidak-ada" / "msedge.exe",)
+    rows, _ = _run(tmp_path, config, monkeypatch, edge_paths=missing)
+    edge = {r.item: r for r in rows}["Microsoft Edge"]
+    assert edge.status == "GAGAL" and "tidak ditemukan" in edge.message
+    assert check.failed(rows) and "ADA GAGAL" in check.format_table(rows)
+
+
+def test_check_web_backend_with_edge_ok(tmp_path, locked, monkeypatch):
+    config = _web_config(tmp_path)
+    _models(tmp_path, locked, load_settings(config))
+    fake_edge = tmp_path / "msedge.exe"
+    fake_edge.write_bytes(b"")
+    rows, _ = _run(tmp_path, config, monkeypatch,
+                   edge_paths=(tmp_path / "tidak-ada.exe", fake_edge))  # fmt: skip
+    edge = {r.item: r for r in rows}["Microsoft Edge"]
+    assert edge.status == "OK" and str(fake_edge) in edge.message
+    assert not check.failed(rows), check.format_table(rows)
+
+
+def test_check_pyside6_backend_has_no_edge_row(tmp_path, locked, monkeypatch):
+    config = _dev_config(tmp_path)
+    _models(tmp_path, locked, load_settings(config))
+    missing = (tmp_path / "tidak-ada" / "msedge.exe",)
+    rows, _ = _run(tmp_path, config, monkeypatch, edge_paths=missing)
+    assert "Microsoft Edge" not in {r.item for r in rows} and not check.failed(rows)
+
+
 def test_check_logs_not_writable(tmp_path, locked, monkeypatch):
     blocker = tmp_path / "bukan-folder"
     blocker.write_text("x", encoding="utf-8")
@@ -257,6 +296,19 @@ def test_main_check_ok_launches_with_default_kiosk_config():
     code = entry.main([], check=fake_check, launch=lambda s, a: seen.setdefault("s", s) and 0)
     assert code == 0 and seen["s"] is settings
     assert seen["config"] == Path("config/kiosk.yaml")
+
+
+@pytest.mark.parametrize("backend", ["pyside6", "web"])
+def test_main_launches_ui_by_backend(monkeypatch, backend):
+    s = load_settings(DEV_YAML)
+    settings = s.model_copy(update={"ui": s.ui.model_copy(update={"backend": backend})})
+    calls = []
+    for name in ("pyside6", "web"):
+        monkeypatch.setitem(entry.LAUNCHERS, name,
+                            lambda st, a, name=name: calls.append((name, a.fake_pipeline)) or 0)  # fmt: skip
+    ok = [check.CheckRow("config", "OK", "ok")]
+    assert entry.main(["--fake-pipeline"], check=lambda c, e: (ok, settings)) == 0
+    assert calls == [(backend, True)]
 
 
 def test_main_rejects_fake_flags_in_kiosk():

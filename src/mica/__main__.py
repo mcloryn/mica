@@ -2,7 +2,8 @@
 
 python -m mica [--config config/kiosk.yaml] [--fake-workers] [--fake-pipeline]
     jalankan check dulu; bila ada GAGAL, cetak tabel dan keluar 1 tanpa membuka jendela.
-    Bila OK: proses vision + suara (start_workers), KioskController, dan UI (mica.ui.app).
+    Bila OK: proses vision + suara (start_workers), KioskController, dan UI sesuai ui.backend:
+    pyside6 (mica.ui.app, bawaan) atau web (mica.webui.app: server Flask + Edge kiosk).
     --fake-* hanya boleh di mode dev.
 python -m mica setup [--config ...] [--only <komponen>]   lihat mica/setup.py
 python -m mica check [--config ...]                       lihat mica/check.py
@@ -20,7 +21,7 @@ from mica.check import DEFAULT_CONFIG, DEFAULT_ENV, failed, format_table, run_ch
 from mica.config import Settings
 
 
-def _launch(settings: Settings, args: argparse.Namespace) -> int:
+def _launch_pyside6(settings: Settings, args: argparse.Namespace) -> int:
     from PySide6.QtWidgets import QApplication
 
     from mica.ui.app import apply_ui_settings, build
@@ -30,6 +31,23 @@ def _launch(settings: Settings, args: argparse.Namespace) -> int:
     apply_ui_settings(app, kiosk.window, settings)  # type: ignore[arg-type]
     kiosk.timer.start()
     return app.exec()
+
+
+def _launch_web(settings: Settings, args: argparse.Namespace) -> int:
+    from mica.webui.app import run
+
+    return run(settings, fake_workers=args.fake_workers, fake_pipeline=args.fake_pipeline)
+
+
+# ui.backend -> peluncur UI (ADR-19, Provisional; pilihan akhir di E-09)
+LAUNCHERS: dict[str, Callable[[Settings, argparse.Namespace], int]] = {
+    "pyside6": _launch_pyside6,
+    "web": _launch_web,
+}
+
+
+def _launch(settings: Settings, args: argparse.Namespace) -> int:
+    return LAUNCHERS[settings.ui.backend](settings, args)
 
 
 def main(

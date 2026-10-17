@@ -68,6 +68,24 @@ def test_complete_kiosk_config_loads(tmp_path):
     assert settings.app.mode == "kiosk"
 
 
+def test_ui_backend_default_pyside6_and_web_accepted(tmp_path):
+    # ADR-19: pyside6 bawaan di dev dan kiosk sampai E-09
+    assert load_settings(DEV_YAML).ui.backend == "pyside6"
+    kiosk = yaml.safe_load(KIOSK_YAML.read_text(encoding="utf-8"))
+    assert kiosk["ui"]["backend"] == "pyside6"
+    raw = _dev_raw()
+    raw["ui"]["backend"] = "web"
+    assert load_settings(_write(tmp_path, raw)).ui.backend == "web"
+
+
+def test_ui_backend_required(tmp_path):
+    raw = _dev_raw()
+    del raw["ui"]["backend"]
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert "ui.backend" in str(exc.value)
+
+
 def test_unknown_field_rejected(tmp_path):
     raw = _dev_raw()
     raw["rag"]["topk"] = 5
@@ -84,6 +102,9 @@ def test_unknown_field_rejected(tmp_path):
         ("rag", "top_k", "5"),
         ("rag", "retriever", "vector"),
         ("ui", "fullscreen", "ya"),
+        ("ui", "backend", "qt"),
+        ("ui", "backend", "Web"),
+        ("ui", "backend", None),
     ],
 )
 def test_wrong_type_rejected(tmp_path, section, field, value):

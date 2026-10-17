@@ -4,7 +4,8 @@ Tidak membuka kamera, mikrofon, atau speaker dan tidak memanggil Groq. Memeriksa
 config (M-01; di kiosk semua null wajib terisi), file model dan sha256, KB aktif dan
 embedder-nya, keberadaan GROQ_API_KEY (nilainya tidak pernah dicetak), daftar perangkat
 audio dari sounddevice.query_devices() (tanpa membuka stream), kamera (hanya "diperiksa saat
-start"), dan folder log bisa ditulis. Kode keluar 0 bila semua OK, 1 bila ada GAGAL.
+start"), folder log bisa ditulis, dan bila ui.backend: web, msedge.exe ditemukan (Edge tidak
+dijalankan). Kode keluar 0 bila semua OK, 1 bila ada GAGAL.
 """
 
 from __future__ import annotations
@@ -124,12 +125,23 @@ def _check_logs(settings: Settings) -> CheckRow:
     return CheckRow("folder log", "OK", f"{folder.as_posix()} bisa ditulis")
 
 
+def _check_browser(edge_paths: tuple[Path, ...]) -> CheckRow:
+    """Hanya untuk ui.backend: web; Edge tidak dijalankan, hanya dicari file-nya."""
+    from mica.webui.browser import EdgeMissing, find_edge
+
+    try:
+        return CheckRow("Microsoft Edge", "OK", f"{find_edge(edge_paths)} (ui.backend: web)")
+    except EdgeMissing as exc:
+        return CheckRow("Microsoft Edge", "GAGAL", f"{exc}; ui.backend: web butuh Edge")
+
+
 def run_check(
     config: Path = DEFAULT_CONFIG,
     env_file: Path | None = DEFAULT_ENV,
     models_dir: Path = Path("models"),
     kb_root: Path = Path("data/kb"),
     query_devices: Callable[[], Any] = _query_devices,
+    edge_paths: tuple[Path, ...] | None = None,
 ) -> tuple[list[CheckRow], Settings | None]:
     """Settings dikembalikan bila semua OK (dipakai python -m mica), selain itu tetap
     dikembalikan bila terbaca supaya pemanggil bisa menampilkan detail."""
@@ -146,6 +158,10 @@ def run_check(
     rows.append(CheckRow("kamera", "INFO", "diperiksa saat start (tidak dibuka oleh check)"))
     if settings is not None:
         rows.append(_check_logs(settings))
+        if settings.ui.backend == "web":
+            from mica.webui.browser import EDGE_PATHS
+
+            rows.append(_check_browser(EDGE_PATHS if edge_paths is None else edge_paths))
     return rows, settings
 
 

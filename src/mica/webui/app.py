@@ -107,9 +107,28 @@ def serve(
         stop_server(server)
 
 
-def main(argv: list[str] | None = None) -> int:
+def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool = False,
+        no_browser: bool = False, port: int = 0) -> int:  # fmt: skip
+    """Rakit lalu jalankan sampai Edge ditutup atau Ctrl+C (dipakai python -m mica dan main)."""
     from mica.webui.browser import EdgeBrowser, EdgeMissing
 
+    try:
+        webui = WebUi(settings.ui, dev=settings.app.mode == "dev")
+        browser = None if no_browser else EdgeBrowser(settings.ui.fullscreen)
+        controller = build_controller(settings, webui, fake_workers=fake_workers,
+                                      fake_pipeline=fake_pipeline)  # fmt: skip
+    except (WebUiError, EdgeMissing) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    try:
+        serve(webui, controller, browser, port,
+              on_ready=lambda url: print(f"MICA web: {url}", flush=True))  # fmt: skip
+    except KeyboardInterrupt:
+        print("berhenti")
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m mica.webui")
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--fake-workers", action="store_true", help="bus palsu (dev saja)")
@@ -119,16 +138,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         settings = load_settings(args.config, Path(".env"))
-        webui = WebUi(settings.ui, dev=settings.app.mode == "dev")
-        browser = None if args.no_browser else EdgeBrowser(settings.ui.fullscreen)
-        controller = build_controller(settings, webui, fake_workers=args.fake_workers,
-                                      fake_pipeline=args.fake_pipeline)  # fmt: skip
-    except (ConfigError, WebUiError, EdgeMissing) as exc:
+    except ConfigError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
-    try:
-        serve(webui, controller, browser, args.port,
-              on_ready=lambda url: print(f"MICA web: {url}", flush=True))  # fmt: skip
-    except KeyboardInterrupt:
-        print("berhenti")
-    return 0
+    return run(settings, fake_workers=args.fake_workers, fake_pipeline=args.fake_pipeline,
+               no_browser=args.no_browser, port=args.port)  # fmt: skip

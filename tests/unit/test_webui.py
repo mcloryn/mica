@@ -465,3 +465,12 @@ def test_webui_imports_no_qt_or_heavy_modules():
     out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True,
                          check=True, cwd=ROOT)  # fmt: skip
     assert out.stdout.strip() == "[]"
+
+
+def test_run_refuses_fakes_in_kiosk(capsys):
+    from mica.webui.app import run
+
+    s = load_settings(DEV_YAML)
+    kiosk = s.model_copy(update={"app": s.app.model_copy(update={"mode": "kiosk"})})
+    assert run(kiosk, fake_workers=True, no_browser=True) == 2
+    assert "kiosk" in capsys.readouterr().err
