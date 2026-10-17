@@ -1,0 +1,24 @@
+{
+ "note": "sintetis, bukan hasil E-05",
+ "voice": "id_ID-news_tts-medium",
+ "questions": [
+  "d001",
+  "d002",
+  "d003",
+  "d004",
+  "d005"
+ ],
+ "resample": "mica.audio.mic.resample_int16 dari laju suara Piper ke 16000 Hz",
+ "lead_silence_s": 0.5,
+ "silent": {
+  "n": 3,
+  "seconds": 3.0,
+  "white_noise_std_lsb": 1.0
+ },
+ "noisy": {
+  "n": 2,
+  "seconds": 3.0,
+  "white_noise_std_lsb": 3277.0
+ },
+ "seed": 0
+}

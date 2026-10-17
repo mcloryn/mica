@@ -1,0 +1,124 @@
+{
+ "experiment": "E-05",
+ "note": "sintetis, bukan hasil E-05",
+ "dataset": {
+  "manifest": "C:/Users/asusn/AppData/Local/Temp/mica-e05-zsnwd7uu/manifest.jsonl",
+  "sha256": "a59d2186f3dd8c4e15aceed7aae9f290b1674925ddd4bb17d9e40193e3cf63d1",
+  "audio_sha256": {
+   "sint-d001": "37540d578417c50dd2115e14eab4b723fb6db0cc3b3d7ab791d4a7834a8a0c5d",
+   "sint-d002": "3d5f0f9cbf5fe991deb530bafca3b1daac7fc1cbab694b88bda4706e705aa6e5",
+   "sint-d003": "cd0508f644662441e66f81494bce403971ad2a98a8870031f95a7a18745705a4",
+   "sint-d004": "0eca3787c9ae6bbcaac3974dec6b507d0bdce0d542f5088b5554f47e67f6a3a4",
+   "sint-d005": "c7131673802469192773ebe32b1e30e3d79372e293439721a1fca547edfd8c1c",
+   "sint-diam1": "35bccb23e4c1bed2e8a564ed1eb813b8d74ce34a06ae3bd5a5b958638327d121",
+   "sint-diam2": "214b63230697ebbec3ab4c1b1e90b34bf3cba08201ce06d3751213241e12048f",
+   "sint-diam3": "8bb3ec8582f7debedc5e86abc0844a06b5b8d60114ea1354ccb75171cc2c513b",
+   "sint-bising1": "a2ab9a72f3b916e5c6869a9f1f8f19d6ce81d15da2c8e6c9b4064f426f6696a7",
+   "sint-bising2": "97b2f661b9887e2f820c0ceedae31b0db93912ef5d1914f2d3a4acd1355df85a"
+  },
+  "counts": {
+   "pertanyaan": 5,
+   "diam": 3,
+   "bising": 2
+  },
+  "speakers": [
+   "SINTETIS",
+   "SINTETIS-PIPER"
+  ]
+ },
+ "vad": {
+  "silero_model": "ggml-silero-v6.2.0.bin",
+  "values": {
+   "vad.threshold": 0.5,
+   "vad.min_silence_ms": 500.0,
+   "max_utterance_s": 15.0
+  },
+  "sources": {
+   "vad.threshold": "nilai coba",
+   "vad.min_silence_ms": "nilai coba",
+   "max_utterance_s": "nilai coba"
+  }
+ },
+ "filters": {
+  "values": {
+   "vad.min_speech_ms": 250.0,
+   "stt.no_speech_threshold": 0.6
+  },
+  "sources": {
+   "vad.min_speech_ms": "nilai coba",
+   "stt.no_speech_threshold": "nilai coba"
+  }
+ },
+ "end_of_file": "diam sepanjang min_silence_ms ditambahkan agar VAD menutup ucapan",
+ "wer_normalization": "normalize_for_speech -> huruf kecil -> buang tanda baca (selain huruf, angka, spasi) -> rapikan spasi; lalu jiwer.wer",
+ "cer_normalization": "sama dengan WER (normalize_for_wer); lalu jiwer.cer",
+ "retrieval": {
+  "retriever": "hybrid",
+  "kb_id": "dev-2026-10-15-v2",
+  "embedder": "BAAI/bge-m3",
+  "embedder_revision": "9a0624b896d81da7492a910ffa53731274b6cf3d",
+  "k": 5,
+  "questions": "data/eval/questions.jsonl"
+ },
+ "rule": "Aturan E-05 ditetapkan sebelum data: syarat p95 waktu sampai transkripsi tampil paling lama 3 detik di laptop kiosk; pemenang WER terkecil; seri dimenangkan STT lokal.",
+ "packages": {
+  "faster-whisper": "1.2.1",
+  "ctranslate2": "4.8.3",
+  "pysilero-vad": "3.4.0",
+  "jiwer": "4.0.0",
+  "httpx": "0.28.1",
+  "piper-tts": "1.8.0"
+ },
+ "environment": {
+  "python": "3.13.7",
+  "torch": "2.14.1+cpu",
+  "torch_num_threads": 4,
+  "sentence_transformers": "6.1.0",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+  "cpu_count_logical": 20,
+  "power": {
+   "source": "ac",
+   "battery_percent": 100,
+   "battery_saver": false
+  },
+  "power_plan": {
+   "guid": "bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b",
+   "name": "ASUS Recommended",
+   "raw": "Power Scheme GUID: bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b  (ASUS Recommended)"
+  },
+  "git_commit": "5c5c6294a1886df21f21366ab2d8fc19411b07fc",
+  "git_dirty": false
+ },
+ "started_at": "20261017-182404",
+ "stt": {
+  "backend": "faster_whisper",
+  "model": "small",
+  "compute_type": "int8",
+  "hf_repo": "Systran/faster-whisper-small",
+  "hf_revision": "536b0662742c02347bc0e980a01041f333bce120",
+  "threads_arg": null,
+  "threads_effective": 4,
+  "hotwords": null,
+  "language": "id",
+  "condition_on_previous_text": false,
+  "vad_filter": false,
+  "beam_size": "bawaan library"
+ },
+ "summary": {
+  "konfigurasi": "faster_whisper-small-t4",
+  "lokal": 1,
+  "n_pertanyaan": 5,
+  "n_diam_bising": 5,
+  "wer_total": "0.1429",
+  "cer_total": "0.0591",
+  "waktu_sampai_teks_p50_s": "3.0467",
+  "waktu_sampai_teks_p95_s": "3.3961",
+  "n_waktu": 5,
+  "laju_transkripsi_palsu": "0.0000",
+  "n_palsu": 0,
+  "recall5_transkripsi": "1.0000",
+  "recall5_referensi": "1.0000",
+  "n_retrieval": 5
+ }
+}
