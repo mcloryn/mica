@@ -127,6 +127,10 @@ Bagian ini mencatat keputusan desain yang diambil selama implementasi MS0 dan MS
 | M-09 (Langkah 22) | Session dibuat sebagai fungsi murni di core/session.py (commit 1f89b2b, ekspor tabel bac4184). Konfigurasi memakai nama SDD session.idle\_reset\_s dan session.regreet\_cooldown\_s, keduanya null di dev dan kiosk (kiosk wajib diisi). vision.fps\_busy null berarti SetVisionRate untuk busy tidak dikirim. Field tambahan: RunPipeline.input\_mode, ShowView.send\_enabled, camera\_ok, mic\_ok. Bus.poll() melaporkan CameraStatus(ok=False) atau AudioStatus(ready=False) bersama WORKER\_RESTART sebelum proses baru dimulai. | Logika bisa diuji tanpa perangkat (854 tes). Tanpa laporan status mati, restart kamera tidak terlihat karena CameraStatus(ok=True) dikirim berkala. |
 | M-10 (Langkah 23) | KioskController ada di core/controller.py, bukan ui/. Pipeline jalan di ThreadPoolExecutor(max\_workers=1) sebagai pengganti QThreadPool 1 thread; hasil masuk antrean internal sebagai AnswerReady. Konstruktor menerima wall\_clock untuk waktu log. log\_event M-11 untuk greeted, person\_left, idle\_reset, camera\_down, mic\_down (latency\_s masih null). Pertanyaan melewati scrub\_pii sebelum pipeline dan log; exception pipeline menjadi status unavailable dengan teks baku. | Seluruh alur kunjungan bisa diuji ujung ke ujung tanpa Qt (873 tes, 8 skenario integrasi). |
 | M-10 (Langkah 24) | Widget PySide6 hanya merender ViewModel murni (commit f47f4ec). Config baru ui.suggestions (topik ke saran), kosong di dev dan kiosk; tanpa saran, tombol topik mengirim nama topik sebagai pertanyaan. Panel debug hanya di dev, memakai TurnRecord dari AnswerPipeline.run(). ui/devfakes.py hanya untuk dev. Teks pemberitahuan N-08 di core/texts.py. Rencana Langkah 25: ganti PySide6 penuh dengan PySide6-Essentials. Uji jendela nyata tertunda: tiga syarat ADR-19, keterbacaan font dan tata letak, gulir otomatis, keyboard layar sentuh. | Saran harus berasal dari pertanyaan nyata staf PMB, bukan dari set evaluasi, supaya data uji tidak bocor ke aplikasi. |
+| M-10, 3.4 (Langkah 25) | PySide6-Essentials 6.12.0 menggantikan paket PySide6 penuh (commit 197dd98; .venv turun dari 2.309 menjadi 1.871 MB). Perintah python -m mica setup, python -m mica check, dan entry point python -m mica; panduan pemasangan di docs/KIOSK.md (2da9bb2). mica check: mic atau speaker tidak ada = PERINGATAN, bukan gagal; kunci null di mode kiosk dilaporkan (36 kunci, dipetakan ke eksperimen di bagian 12). | Paket penuh ikut menarik WebEngine dan Pdf yang tidak dipakai. Kiosk tetap bisa dipakai lewat teks bila perangkat suara hilang (N-10). |
+| M-07 (Langkah 26, bobot YOLO) | Bobot YOLO diunduh dari tag rilis ultralytics/assets v8.4.0, bukan rilis terbaru, dengan SHA-256 dikunci; digest cocok dengan digest rilis di GitHub (597ac13). | Unduhan rilis terbaru bisa berubah tanpa pemberitahuan, sehingga hasil tidak bisa diulang. |
+| M-08, M-12 (Langkah 26 dan 27, eval stt untuk E-05), 6.3 | python -m mica.eval stt membaca manifest.jsonl (6.3) dan menghitung WER, CER, waktu sampai transkripsi, laju transkripsi palsu, serta Recall@5 retrieval atas transkripsi dibanding referensi (5c5c629). Pengukuran dua fase: seluruh STT dulu, retriever sesudahnya. collect\_environment() memuat torch, jadi dipanggil setelah fase 1; waktu STT uji asap sintetis turun dari 2,4-2,9 menjadi 1,48-1,64 detik (Langkah 27). --hotwords diteruskan ke parameter hotwords faster-whisper. GroqWhisperStt memakai endpoint dari dokumentasi Groq (URL dan tanggal cek di komentar kode), ID model dari audio.stt.groq\_model, dan belum dipanggil. Uji asap memakai suara sintetis Piper (c12dcd3) dan bukan hasil E-05; protokol relawan di docs/E-05.md. | E-05 mengukur STT sendiri; perebutan CPU dengan BGE-M3 dan torch diukur di E-09. |
+| M-12 (Langkah 27, eval copy untuk E-03) | python -m mica.eval copy menghitung extractive fragment coverage dan density (Grusky dkk. \[43\]) secara offline dari run eval generation, terhadap dua sumber: potongan yang dikutip dan seluruh potongan konteks. Tokenisasi sama dengan mica.kb.index.tokenize. Konteks direkonstruksi dari cache (--cache-only, tanpa panggilan API); jawaban yang ditolak tidak dihitung. Uji alat pada run E-04 dev (results/E-03/copy-dev-20261017-183657): density kutip rata-rata 120b 3,32 dan 20b 4,36. Ini uji alat, bukan hasil E-03. | Ladhak dkk. \[42\]: tingkat menyalin dilaporkan bersama hallucination rate, tidak sendirian. Tidak ada ambang mutlak. |
 
 ## 3. Arsitektur
 
@@ -460,7 +464,7 @@ Yang tidak pernah dicatat: gambar, audio, embedding wajah, nama warna pakaian, a
 | `data/eval/questions.jsonl` | `qid`, `question`, `type` (`answerable`, `out_of_kb`, `false_premise`, `followup`), `topic`, `gold_chunk_ids`, `reference_answer`, `split` (`dev` atau `test`), `prev_qid` untuk pertanyaan lanjutan |
 | `data/eval/annotations/<run_id>.csv` | `qid`, `claim_index`, `claim`, `supported` (ya, tidak, bertentangan), `annotator` (A atau B), `note` |
 | `data/eval/vision/` | Frame relawan berlabel kotak dalam format YOLO, beserta `colors.csv` (`frame`, `track`, `color_label`) |
-| `data/eval/speech/` | WAV per ucapan dan `transcripts.csv` (`file`, `speaker_id`, `reference_text`) |
+| `data/eval/speech/<nama>/manifest.jsonl` | Satu baris JSON per rekaman: `id`, `file` (WAV di folder yang sama), `jenis` (`pertanyaan`, `diam`, `bising`), `referensi` (teks yang diucapkan; kosong untuk diam dan bising), `qid` (pertanyaan set eval yang dibacakan, bila ada), `penutur`, `persetujuan` (formulir di `docs/E-05.md`). Rekaman di-gitignore, hanya disimpan di laptop dev, ditolak di mode kiosk, dan dihapus setelah skripsi selesai. |
 
 Set `test` dikunci dengan SHA-256 yang dicatat di `data/eval/LOCK` sebelum eksperimen pertama; skrip evaluasi menolak berjalan pada `test` bila hash-nya berubah.
 
@@ -705,13 +709,17 @@ Untuk menjawab kriteria F-13 dan metrik PRD "turun signifikan dibanding LLM tanp
 | --- | --- | --- | --- | --- |
 | E-01 | `eval retrieval` | `rag.retriever`, `rag.reranker.enabled`, `kb.chunker`, `kb.chunk_tokens`, `rag.top_k` | Recall@5, MRR, nDCG@10, latensi per kueri | MS1 dengan KB dev; diulang dengan KB resmi |
 | E-02 | `eval generation` | `rag.gate.threshold`, `rag.fact_check.enabled`, `rag.followup_mode` | Status per pertanyaan, salah tolak, hallucination rate | MS1 dan MS5 |
-| E-03 | `eval generation` + `eval copy` | `rag.prompt_variant` | Coverage, density, hallucination rate | MS5 |
+| E-03 | `eval generation` + `eval copy` | `rag.prompt_variant` | Coverage, density (Grusky asli dan tanpa entitas), hallucination rate; aturan keputusan di bawah tabel | MS5 |
 | E-04 | `eval generation` | `llm.chain` (120b, 20b, qwen3.8-27b, Gemini hanya di mode dev) | Hallucination rate, jawaban benar, latensi | MS1 |
 | E-05 | `eval stt` | `audio.stt.backend` | WER, latensi p95 | MS2 |
 | E-06 | `eval tts` | `audio.tts.voice` | Kecepatan sintesis; skor pendengar dari formulir | MS2 |
 | E-07 | `eval vision` + skenario kunjungan | `vision.model`, `vision.dwell_s`, `session.regreet_cooldown_s` | mAP, IoU, FPS, waktu sapaan, sapaan ganda | MS3 |
 | E-08 | `eval color` | `vision.region`, `vision.color.method` | Akurasi per warna, confusion matrix | MS3 |
 | E-09 | `eval latency` + black-box + SUS | `vision.fps_busy`, jumlah thread | Latensi per tahap, hasil uji | MS4 dan MS5 |
+
+**Aturan pra-registrasi E-03 (ditetapkan 17 Oktober 2026, sebelum data E-03).** Metrik utama adalah coverage dan density Grusky dkk. \[43\] tanpa perubahan. Metrik sekunder adalah density tanpa entitas: token jawaban yang berasal dari span email, URL, atau kata yang mengandung digit tidak boleh masuk fragmen, dan penyebutnya |S| − |E| (E = token yang di-mask). Nama orang dan istilah tidak di-mask karena membutuhkan model NER; ini dicatat sebagai keterbatasan.
+
+Keputusan `paraphrase` vs `plain` dibuat pada set uji secara berpasangan, hanya atas pertanyaan yang dijawab (bukan ditolak) oleh kedua varian: (1) varian dengan halusinasi lebih sedikit menang; (2) bila seri, varian dengan density kutip rata-rata (Grusky asli) lebih rendah menang; (3) bila masih seri, `paraphrase`. Coverage dan density tanpa entitas dilaporkan, tetapi tidak menentukan keputusan.
 
 **Membekukan konfigurasi.** Sebelum set `test` dipakai, konfigurasi C2 disimpan sebagai `config/frozen-<tanggal>.yaml` beserta `config_hash`, `kb_id`, dan hash dataset. Hasil uji akhir hanya sah bila ketiga nilai itu cocok dengan `run.json`.
 
@@ -859,6 +867,7 @@ F-18 tidak punya ADR karena tidak melibatkan pilihan metode; desainnya keputusan
 | `audio.vad.min_silence_ms` | E-05 | Nilai coba 500 (anggaran deteksi akhir ucapan 0,5 detik, 3.3) | TBD |
 | `audio.vad.min_speech_ms` | E-05 | Nilai coba 250 (bawaan min\_speech\_duration\_ms Silero) | TBD |
 | `audio.stt.no_speech_threshold` | E-05 | Nilai coba 0,6 (bawaan no\_speech\_threshold Whisper) | TBD |
+| `audio.stt.groq_model` | E-05 | Dev: ID model dari dokumentasi Groq; kiosk null. E-05 memilih whisper-large-v3 atau whisper-large-v3-turbo (hanya dipakai bila audio.stt.backend = groq\_whisper) | TBD |
 | `audio.max_utterance_s` | E-05 | Nilai coba 15 (tanpa sumber, perlu ditetapkan di E-05) | TBD |
 | `audio.tts.voice` | E-06 | id\_ID-news\_tts-medium | Provisional |
 | `vision.model`, `vision.conf`, `vision.imgsz` | E-07 | yolo26n-pose; 0,1 dan 640 (bawaan Ultralytics) | Provisional dev |
@@ -926,6 +935,7 @@ audio:
     backend: faster_whisper         # ADR-09; faster_whisper | groq_whisper (E-05)
     model: small
     compute_type: int8
+    groq_model: null                # E-05; whisper-large-v3 | whisper-large-v3-turbo
     threads: null                   # E-09
   vad:
     threshold: null                 # E-05
@@ -1008,3 +1018,4 @@ mica/
 | 17 Oktober 2026 (sore) | Bagian 2.4 ditambah tiga baris MS2 (STT dan VAD beserta aturan E-05, penyaring transkripsi palsu, proses suara lewat bus); baris TTS Langkah 19 diperbarui dengan hasil pilot. Aturan restart di 7.1 diganti keputusan 17 Oktober: sesi bukan IDLE selalu dilanjutkan saat kamera restart, plus aturan restart proses suara. Tabel bukti menjadi 51 sumber. |
 | 17 Oktober 2026 (malam) | 7.1: baris tambahan dari implementasi M-09 (T09, T16, T18 sampai T20, StopTapped, reset, Ignored). 2.4: baris M-09, KioskController, dan UI PySide6 (Langkah 22 sampai 24), termasuk ui.suggestions dan uji jendela yang tertunda. |
 | 17 Oktober 2026 (malam, lanjutan) | Tabel nilai TBD di bagian 12 dilengkapi untuk 36 kunci kiosk dari mica check: eksperimen, nilai dev atau nilai coba beserta sumbernya, dan status. |
+| 17 Oktober 2026 (malam, Langkah 25 sampai 27) | 6.3: dataset suara memakai manifest.jsonl, menggantikan transcripts.csv. 13.1 dan bagian 12: kunci audio.stt.groq\_model. 2.4: empat baris Langkah 25 sampai 27 (setup/check dan PySide6-Essentials, tag rilis YOLO, eval stt dua fase, eval copy). 9.5: aturan pra-registrasi E-03 (density tanpa entitas sebagai metrik sekunder dan aturan keputusan paraphrase vs plain). |
