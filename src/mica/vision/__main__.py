@@ -15,6 +15,9 @@ Sinyal kehadiran: --presence-signal box_height|shoulder_width dengan ambang --mi
 Setiap frame kamera dibaca dan ditampilkan (laju penuh kamera); detektor dan PresenceTracker
 hanya berjalan sesuai fps_idle/fps_busy, dan hasil terakhirnya digambar ulang di antara deteksi.
 
+python -m mica.vision bus-demo [--seconds 30] [--kill-after N] <nilai coba seperti demo>
+    menjalankan vision worker di proses anak lewat bus M-13; proses utama hanya mencetak pesan.
+
 python -m mica.vision demo ... [--countdown N] [--prompt DETIK:TEKS ...] menampilkan instruksi
 berjadwal di jendela (misalnya "10:Berdiri, mundur 4-5 m") untuk uji coba dengan relawan;
 --countdown memberi waktu bersiap sebelum waktu demo dihitung.
@@ -43,11 +46,9 @@ from mica.vision.color import (
     DEFAULT_COLORS_FILE,
     TABLE_ROWS,
     ColorNamer,
-    ColorNamesLut,
     ColorResult,
     ColorsMissing,
     ColorVoting,
-    HsvRuleNamer,
 )
 from mica.vision.detector import (
     DEFAULT_MODELS_DIR,
@@ -60,23 +61,19 @@ from mica.vision.detector import (
     sha256_file,
 )
 from mica.vision.presence import (
-    BoxHeightSignal,
-    PresenceSignal,
     PresenceState,
     PresenceTracker,
-    ShoulderWidthSignal,
 )
 from mica.vision.region import (
     L_HIP,
     L_SHOULDER,
     R_HIP,
     R_SHOULDER,
-    BoxUpperRegion,
     ClothingRegion,
-    KeypointTorsoRegion,
     shoulder_width_ratio,
 )
 from mica.vision.types import CameraStatus, PersonArrived, PersonLeft, PersonTrack, VisionEvent
+from mica.vision.worker import WorkerConfigError, make_color_namer, make_region, make_signal
 
 DEFAULT_CONFIG = Path("config/dev.yaml")
 # kunci config -> argumen CLI demo
@@ -109,6 +106,25 @@ COLORS_TAR_SHA256 = "4abad5c8ad4b4d2adf44a4b47cd7d6d3c97f453183e4258f26dd162e566
 COLORS_MEMBER = "ColorNaming/w2c.txt"
 
 
+def _add_value_args(p: argparse.ArgumentParser) -> None:
+    """Argumen nilai coba yang menimpa kunci vision.* (dipakai demo dan bus-demo)."""
+    p.add_argument("--dwell-s", type=float, help="menimpa vision.dwell_s")
+    p.add_argument("--leave-s", type=float, help="menimpa vision.leave_s")
+    p.add_argument(
+        "--presence-signal", choices=PRESENCE_SIGNALS, help="menimpa vision.presence_signal"
+    )
+    p.add_argument("--min-ratio", type=float, help="menimpa vision.min_box_height_ratio")
+    p.add_argument("--min-shoulder-ratio", type=float, help="menimpa vision.min_shoulder_ratio")
+    p.add_argument("--fps-busy", type=float, help="menimpa vision.fps_busy")
+    p.add_argument("--min-majority", type=float, help="menimpa vision.color.min_majority")
+    p.add_argument("--box-top", type=float, help="menimpa vision.box_upper.top")
+    p.add_argument("--box-bottom", type=float, help="menimpa vision.box_upper.bottom")
+    p.add_argument("--box-side", type=float, help="menimpa vision.box_upper.side")
+    p.add_argument("--kp-conf", type=float, help="menimpa vision.keypoint_torso.min_kp_conf")
+    p.add_argument("--kp-shrink", type=float, help="menimpa vision.keypoint_torso.shrink")
+    p.add_argument("--torso-aspect", type=float, help="menimpa vision.keypoint_torso.torso_aspect")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m mica.vision")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -128,23 +144,7 @@ def build_parser() -> argparse.ArgumentParser:
     demo.add_argument("--video", type=Path, help="baca file video, bukan webcam")
     demo.add_argument("--no-window", action="store_true", help="tanpa jendela OpenCV")
     demo.add_argument("--seconds", type=float, help="berhenti setelah N detik")
-    demo.add_argument("--dwell-s", type=float, help="menimpa vision.dwell_s")
-    demo.add_argument("--leave-s", type=float, help="menimpa vision.leave_s")
-    demo.add_argument(
-        "--presence-signal", choices=PRESENCE_SIGNALS, help="menimpa vision.presence_signal"
-    )
-    demo.add_argument("--min-ratio", type=float, help="menimpa vision.min_box_height_ratio")
-    demo.add_argument("--min-shoulder-ratio", type=float, help="menimpa vision.min_shoulder_ratio")
-    demo.add_argument("--fps-busy", type=float, help="menimpa vision.fps_busy")
-    demo.add_argument("--min-majority", type=float, help="menimpa vision.color.min_majority")
-    demo.add_argument("--box-top", type=float, help="menimpa vision.box_upper.top")
-    demo.add_argument("--box-bottom", type=float, help="menimpa vision.box_upper.bottom")
-    demo.add_argument("--box-side", type=float, help="menimpa vision.box_upper.side")
-    demo.add_argument("--kp-conf", type=float, help="menimpa vision.keypoint_torso.min_kp_conf")
-    demo.add_argument("--kp-shrink", type=float, help="menimpa vision.keypoint_torso.shrink")
-    demo.add_argument(
-        "--torso-aspect", type=float, help="menimpa vision.keypoint_torso.torso_aspect"
-    )
+    _add_value_args(demo)
     demo.add_argument(
         "--prompt",
         type=_prompt,
@@ -159,6 +159,18 @@ def build_parser() -> argparse.ArgumentParser:
         default=0.0,
         help="hitung mundur N detik di jendela sebelum mulai",
     )
+
+    bus = sub.add_parser(
+        "bus-demo", help="vision worker di proses anak lewat bus M-13, cetak pesan (dev saja)"
+    )
+    bus.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
+    bus.add_argument("--models-dir", type=Path, default=DEFAULT_MODELS_DIR)
+    bus.add_argument("--camera", type=int, default=0)
+    bus.add_argument("--seconds", type=float, default=30.0, help="berhenti setelah N detik")
+    bus.add_argument(
+        "--kill-after", type=float, help="bunuh proses vision sekali setelah N detik (uji 8.1)"
+    )
+    _add_value_args(bus)
     return parser
 
 
@@ -331,32 +343,6 @@ def demo_value_pairs(vision: VisionConfig, signal: str) -> tuple[tuple[str, str]
     return presence_pairs(signal) + COLOR_ARGS + BOX_ARGS + keypoint
 
 
-def make_signal(signal: str, values: dict[str, float]) -> PresenceSignal:
-    if signal == "shoulder_width":
-        return ShoulderWidthSignal(values["keypoint_torso.min_kp_conf"])
-    return BoxHeightSignal()
-
-
-def make_region(vision: VisionConfig, values: dict[str, float]) -> ClothingRegion:
-    box = BoxUpperRegion(
-        values["box_upper.top"], values["box_upper.bottom"], values["box_upper.side"]
-    )
-    if vision.region == "box_upper":
-        return box
-    return KeypointTorsoRegion(  # model -pose dijamin validasi config
-        values["keypoint_torso.min_kp_conf"],
-        values["keypoint_torso.shrink"],
-        values["keypoint_torso.torso_aspect"],
-        fallback=box,
-    )
-
-
-def make_color_namer(vision: VisionConfig, path: Path, min_majority: float) -> ColorNamer:
-    if vision.color.method == "color_names_lut":
-        return ColorNamesLut.load(path, min_majority)
-    return HsvRuleNamer(min_majority)
-
-
 @dataclass(frozen=True)
 class TrackObs:
     """Satu track pada satu deteksi (diagnosis E-07; tidak memuat piksel)."""
@@ -502,7 +488,8 @@ def _describe(event: VisionEvent) -> str:
     if isinstance(event, PersonLeft):
         return f"PersonLeft track={event.track_id} durasi={event.duration_s:.1f}s"
     if isinstance(event, CameraStatus):
-        return f"CameraStatus ok={event.ok} ({event.message})"
+        fps = "" if event.fps is None else f" fps={event.fps:.2f}"
+        return f"CameraStatus ok={event.ok} ({event.message}){fps}"
     return repr(event)
 
 
@@ -832,8 +819,8 @@ def cmd_demo(
     values, sources = resolve_values(vision, args, demo_value_pairs(vision, signal))
     path = model_path(vision.model, args.models_dir)
     colors_path = Path(args.models_dir) / DEFAULT_COLORS_FILE.name
-    namer = make_color_namer(vision, colors_path, values["color.min_majority"])
-    region = make_region(vision, values)
+    namer = make_color_namer(vision.color.method, colors_path, values["color.min_majority"])
+    region = make_region(vision.region, values)
     kp_conf = values.get("keypoint_torso.min_kp_conf")
     detector = detector_factory(settings, path)
 
@@ -925,6 +912,108 @@ def cmd_demo(
     return 0
 
 
+# --- bus-demo ---------------------------------------------------------------------------
+
+
+def _rss_mb(pid: int | None = None) -> float | None:
+    """RSS proses dalam MB bila psutil tersedia (terpasang bersama Ultralytics); selain itu None."""
+    try:
+        import psutil
+
+        return psutil.Process(pid).memory_info().rss / 2**20
+    except Exception:  # noqa: BLE001 - pengukuran opsional, tidak boleh menggagalkan demo
+        return None
+
+
+def cmd_bus_demo(
+    args: argparse.Namespace,
+    settings: Settings,
+    camera_factory: str | None = None,
+    detector_factory: str | None = None,
+    factory_options: dict[str, Any] | None = None,
+    poll_interval_s: float = 0.05,  # SDD 3.3: QTimer 50 ms
+) -> int:
+    """Vision worker di proses anak; proses utama hanya mencetak pesan bus (tanpa jendela).
+    Meniru M-09 untuk laju: PersonArrived -> SetVisionRate(fps_busy), PersonLeft -> fps_idle."""
+    import logging
+
+    from mica.core.bus import SetVisionRate, start_workers
+    from mica.vision.worker import VisionWorkerConfig
+
+    _require_dev(settings, "bus-demo")
+    logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(levelname)s %(message)s")
+    vision = settings.vision
+    signal, signal_source = resolve_signal(vision, args)
+    values, sources = resolve_values(vision, args, demo_value_pairs(vision, signal))
+    if "argumen CLI" in [*sources.values(), signal_source]:
+        print("SUMBER NILAI: argumen CLI (uji coba, nilai coba, bukan E-07/E-08)")
+    print(f"  presence_signal = {signal} ({signal_source})")
+    for key, _flag in demo_value_pairs(vision, signal):
+        print(f"  {key} = {values[key]} ({sources[key]})")
+    print(f"  fps_idle = {vision.fps_idle} (config)")
+    overrides: dict[str, float | str] = {"presence_signal": signal}
+    overrides.update({k: v for k, v in values.items() if k != "fps_busy"})
+    cfg = VisionWorkerConfig.from_settings(
+        settings,
+        overrides,
+        models_dir=args.models_dir,
+        camera_source=args.camera,
+        camera_factory=camera_factory,
+        detector_factory=detector_factory,
+        factory_options=factory_options,
+    )
+
+    start = time.monotonic()
+    bus = start_workers(settings, cfg)
+    reported_pids: set[int] = set()
+    killed = False
+    counts: dict[str, int] = {}
+    rss: tuple[float | None, float | None] = (None, None)
+    try:
+        while (elapsed := time.monotonic() - start) < args.seconds:
+            proc = bus.processes["vision"]
+            if args.kill_after is not None and not killed and elapsed >= args.kill_after:
+                print(
+                    f"[{elapsed:6.2f}s {_wall()}] --kill-after: membunuh proses vision pid {proc.pid}"
+                )
+                proc.kill()
+                killed = True
+            for msg in bus.poll():
+                elapsed = time.monotonic() - start
+                name = type(msg).__name__
+                counts[name] = counts.get(name, 0) + 1
+                print(f"[{elapsed:6.2f}s {_wall()}] {_describe(msg)}")
+                proc = bus.processes["vision"]
+                if isinstance(msg, CameraStatus) and msg.ok and proc.pid not in reported_pids:
+                    reported_pids.add(proc.pid)
+                    took = time.monotonic() - bus.started_at["vision"]
+                    print(f"    start proses kamera pid {proc.pid}: {took:.1f} s (spawn -> ok)")
+                    rss = (_rss_mb(), _rss_mb(proc.pid))
+                if isinstance(msg, PersonArrived):
+                    bus.send("vision", SetVisionRate(values["fps_busy"]))
+                    print(f"    -> SetVisionRate({values['fps_busy']})")
+                elif isinstance(msg, PersonLeft):
+                    bus.send("vision", SetVisionRate(vision.fps_idle))
+                    print(f"    -> SetVisionRate({vision.fps_idle})")
+            time.sleep(poll_interval_s)
+        proc = bus.processes["vision"]
+        if proc.is_alive():
+            rss = (_rss_mb(), _rss_mb(proc.pid))
+    finally:
+        bus.stop()
+    alive = [p.pid for p in bus.processes.values() if p.is_alive()]
+    summary = ", ".join(f"{k} {v}" for k, v in sorted(counts.items())) or "tidak ada"
+    print(f"selesai {args.seconds:.0f} s | pesan: {summary}")
+    print(f"restart: {bus.restarts['vision']} | mati permanen: {sorted(bus.dead) or 'tidak'}")
+    main_mb, worker_mb = rss
+    if main_mb is not None:
+        worker = "-" if worker_mb is None else f"{worker_mb:.0f} MB"
+        print(f"RAM (RSS): proses utama {main_mb:.0f} MB | proses kamera {worker}")
+    print(f"torch di proses utama: {'ya' if 'torch' in sys.modules else 'tidak'}")
+    print(f"proses anak tersisa: {alive or 'tidak ada'}")
+    return 0
+
+
 def main(
     argv: list[str] | None = None,
     detector_factory: Callable[[Settings, Path], PersonDetector] = _make_detector,
@@ -941,8 +1030,10 @@ def main(
             return cmd_fetch_model(args, settings)
         if args.command == "fetch-colors":
             return cmd_fetch_colors(args, settings)
+        if args.command == "bus-demo":
+            return cmd_bus_demo(args, settings)
         return cmd_demo(args, settings, detector_factory, camera_factory, clock, sleep)
-    except (ConfigError, DemoError, ModelMissing, ColorsMissing) as exc:
+    except (ConfigError, DemoError, ModelMissing, ColorsMissing, WorkerConfigError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 

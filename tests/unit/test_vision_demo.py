@@ -9,6 +9,7 @@ import mica.vision.__main__ as cli
 from mica.config import load_settings
 from mica.vision.camera import Camera
 from mica.vision.detector import UltralyticsDetector, model_path
+from mica.vision.presence import BoxHeightSignal, ShoulderWidthSignal
 from mica.vision.types import PersonTrack
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -146,7 +147,7 @@ def test_demo_rate_limited_by_state(no_disk_writes):
     detector = FakeDetector()
     frames = [np.zeros((10, 10, 3), np.uint8)] * 1000
     camera = Camera(0, open_capture=lambda s: FakeCapture(frames, clock), clock=clock)
-    presence = cli.PresenceTracker(1.0, 1.0, 0.3, cli.BoxHeightSignal())
+    presence = cli.PresenceTracker(1.0, 1.0, 0.3, BoxHeightSignal())
     stats = cli.run_demo(
         detector, camera, presence, fps_idle=5, fps_busy=2, seconds=5.0, show_window=False,
         clock=clock, sleep=clock.sleep, out=lambda s: None,
@@ -162,7 +163,7 @@ def test_display_rate_separate_from_detection_rate(no_disk_writes):
     detector = FakeDetector(present_calls=0)  # tidak ada orang: tetap IDLE, fps_idle
     frames = [np.full((10, 10, 3), i % 256, np.uint8) for i in range(1000)]
     camera = Camera(0, open_capture=lambda s: FakeCapture(frames, clock), clock=clock)
-    presence = cli.PresenceTracker(1.0, 1.0, 0.3, cli.BoxHeightSignal())
+    presence = cli.PresenceTracker(1.0, 1.0, 0.3, BoxHeightSignal())
     drawn = []
 
     def draw(frame, overlay, display_fps, detect_fps, lines, kp_conf):
@@ -377,7 +378,7 @@ def test_run_demo_announces_prompt_changes(no_disk_writes):
     camera = Camera(
         0, open_capture=lambda s: FakeCapture([np.zeros((10, 10, 3), np.uint8)] * 50), clock=clock
     )
-    presence = cli.PresenceTracker(1.0, 1.0, 0.3, cli.BoxHeightSignal())
+    presence = cli.PresenceTracker(1.0, 1.0, 0.3, BoxHeightSignal())
     cli.run_demo(
         FakeDetector(), camera, presence, fps_idle=5, fps_busy=2, seconds=4.0, show_window=False,
         prompts=[(0.0, "Duduk"), (2.0, "Mundur")], beep=lambda: beeps.append(1),
@@ -445,7 +446,7 @@ def test_fetch_colors_refused_in_kiosk(monkeypatch, capsys):
 def test_track_observations_mark_carry_over():
     from test_vision import shouldered
 
-    presence = cli.PresenceTracker(2.0, 3.0, 0.22, cli.ShoulderWidthSignal(0.5))
+    presence = cli.PresenceTracker(2.0, 3.0, 0.22, ShoulderWidthSignal(0.5))
     frame = (100, 100)
     presence.update([shouldered(1)], frame, 0.0)  # bahu yakin 0,30 -> memenuhi syarat
     unsure = shouldered(1, conf=0.1)

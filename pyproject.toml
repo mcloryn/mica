@@ -33,6 +33,8 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# akar repo di sys.path supaya factory palsu "tests.fakes:..." bisa diimpor proses anak (spawn)
+pythonpath = ["."]
 markers = ["slow: memakai bobot model asli di models/ (dilewati bila belum diunduh)"]
 
 [tool.ruff]
