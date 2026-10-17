@@ -38,6 +38,9 @@ COLOR_NAMES = (
 )
 TABLE_ROWS = 32 * 32 * 32
 DEFAULT_COLORS_FILE = Path("models/color_names_w2c.npy")
+# sha256 tabel .npy hasil fetch-colors (np.save dari tar ber-sha256 COLORS_TAR_SHA256), diukur
+# dari file di laptop dev 16 Okt 2026
+COLORS_NPY_SHA256 = "ad16540fe280bb07abec27db5d66df2b97e03cd9f02297d8633a0d0e54120011"
 
 
 class ColorsMissing(Exception):

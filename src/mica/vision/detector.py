@@ -19,6 +19,12 @@ from mica.vision.types import PersonTrack
 
 DEFAULT_MODELS_DIR = Path("models")
 PERSON_CLASS = 0  # COCO "person"
+# sha256 bobot yang diunduh fetch-model dari rilis ultralytics/assets (16 Okt 2026), diukur dari
+# file di laptop dev; Ultralytics tidak menerbitkan checksum, jadi ini kunci reproduksi (N-14)
+MODEL_SHA256 = {
+    "yolo26n": "9b09cc8bf347f0fc8a5f7657480587f25db09b34bf33b0652110fb03a8ad4fef",
+    "yolo26n-pose": "eb3bb8268828aeaf515cec23a4bfafd793944a86fe9af94ba7823609c14522a9",
+}
 DEVICE = "cpu"  # N-02: laptop tanpa GPU
 
 

@@ -121,7 +121,7 @@ def main(argv: list[str] | None = None) -> int:
     startup_errors = (ConfigError, UiError, WorkerConfigError, AudioWorkerConfigError,
                       ModelMissing, ColorsMissing, SttModelMissing, VoiceMissing)  # fmt: skip
     try:
-        settings = load_settings(args.config)
+        settings = load_settings(args.config, Path(".env"))
         app = QApplication.instance() or QApplication(sys.argv[:1])
         kiosk = build(settings, fake_workers=args.fake_workers, fake_pipeline=args.fake_pipeline)
     except startup_errors as exc:

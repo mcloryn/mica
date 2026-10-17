@@ -366,7 +366,16 @@ def _missing_kiosk_fields(settings: Settings) -> list[str]:
     return missing
 
 
-def load_settings(path: Path, env_file: Path | None = None) -> Settings:
+def missing_kiosk_fields(settings: Settings) -> list[str]:
+    """Kunci yang masih null/placeholder dan wajib diisi di mode kiosk (untuk python -m mica check)."""
+    return _missing_kiosk_fields(settings)
+
+
+def load_settings(
+    path: Path, env_file: Path | None = None, *, require_complete: bool = True
+) -> Settings:
+    """require_complete False: lewati cek null mode kiosk (hanya untuk check, yang melaporkan
+    daftar kuncinya sendiri lewat missing_kiosk_fields)."""
     try:
         raw = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
     except (OSError, yaml.YAMLError) as exc:
@@ -384,7 +393,7 @@ def load_settings(path: Path, env_file: Path | None = None) -> Settings:
     except ValidationError as exc:
         raise ConfigError(CFG_INVALID, _format_validation_error(exc)) from None
 
-    if settings.app.mode == "kiosk":
+    if settings.app.mode == "kiosk" and require_complete:
         missing = _missing_kiosk_fields(settings)
         if missing:
             raise ConfigError(

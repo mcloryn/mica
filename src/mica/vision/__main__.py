@@ -240,17 +240,28 @@ def cmd_fetch_model(
     disable_sync: Callable[[], None] = disable_ultralytics_sync,
 ) -> int:
     _require_dev(settings, "fetch-model")
-    path = model_path(settings.vision.model, args.models_dir)
-    if path.is_file():
-        print(f"sudah ada: {path.as_posix()}")
-    else:
-        disable_sync()
-        got = download(path)
-        if not path.is_file() or got.resolve() != path.resolve():
-            raise DemoError(f"unduhan tidak berakhir di {path.as_posix()} (didapat {got})")
+    path = fetch_model(settings.vision.model, args.models_dir, download, disable_sync)
     print(f"model {settings.vision.model}: {path.as_posix()} ({path.stat().st_size} byte)")
     print(f"sha256 {sha256_file(path)}")
     return 0
+
+
+def fetch_model(
+    name: str,
+    models_dir: Path,
+    download: Callable[[Path], Path] = _download_asset,
+    disable_sync: Callable[[], None] = disable_ultralytics_sync,
+) -> Path:
+    """Unduh bobot <name>.pt ke models_dir bila belum ada (dipakai fetch-model dan setup)."""
+    path = model_path(name, models_dir)
+    if path.is_file():
+        print(f"sudah ada: {path.as_posix()}")
+        return path
+    disable_sync()
+    got = download(path)
+    if not path.is_file() or got.resolve() != path.resolve():
+        raise DemoError(f"unduhan tidak berakhir di {path.as_posix()} (didapat {got})")
+    return path
 
 
 # --- fetch-colors -----------------------------------------------------------------------
@@ -283,24 +294,30 @@ def extract_w2c(tar_bytes: bytes) -> np.ndarray:
     return probs.astype(np.float32)
 
 
+def fetch_colors(models_dir: Path, download: Callable[[str], bytes] = _download_bytes) -> Path:
+    """Unduh tar, cek sha256, simpan tabel .npy bila belum ada (dipakai fetch-colors dan setup)."""
+    path = Path(models_dir) / DEFAULT_COLORS_FILE.name
+    if path.is_file():
+        print(f"sudah ada: {path.as_posix()}")
+        return path
+    tar_bytes = download(COLORS_URL)
+    tar_sha = hashlib.sha256(tar_bytes).hexdigest()
+    print(f"{COLORS_URL} sha256 {tar_sha}")
+    if tar_sha != COLORS_TAR_SHA256:
+        raise DemoError(f"sha256 tar berbeda dari yang dicatat ({COLORS_TAR_SHA256})")
+    table = extract_w2c(tar_bytes)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    np.save(path, table, allow_pickle=False)
+    return path
+
+
 def cmd_fetch_colors(
     args: argparse.Namespace,
     settings: Settings,
     download: Callable[[str], bytes] = _download_bytes,
 ) -> int:
     _require_dev(settings, "fetch-colors")
-    path = Path(args.models_dir) / DEFAULT_COLORS_FILE.name
-    if path.is_file():
-        print(f"sudah ada: {path.as_posix()}")
-    else:
-        tar_bytes = download(COLORS_URL)
-        tar_sha = hashlib.sha256(tar_bytes).hexdigest()
-        print(f"{COLORS_URL} sha256 {tar_sha}")
-        if tar_sha != COLORS_TAR_SHA256:
-            raise DemoError(f"sha256 tar berbeda dari yang dicatat ({COLORS_TAR_SHA256})")
-        table = extract_w2c(tar_bytes)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        np.save(path, table, allow_pickle=False)
+    path = fetch_colors(Path(args.models_dir), download)
     print(f"tabel warna: {path.as_posix()} ({path.stat().st_size} byte)")
     print(f"sha256 {sha256_file(path)}")
     return 0
