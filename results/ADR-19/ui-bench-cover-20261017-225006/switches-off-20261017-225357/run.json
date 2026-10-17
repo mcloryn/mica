@@ -1,0 +1,167 @@
+{
+ "experiment": "ADR-19 tahap 1",
+ "protocol": "docs/UI-WEB.md (pra-registrasi 17 Okt 2026)",
+ "cover_window": true,
+ "edge_switches": "off",
+ "cover_details": [
+  {
+   "ui": "web",
+   "rep": 1,
+   "opened": true,
+   "notepad_rect": [
+    -7,
+    -7,
+    1543,
+    823
+   ],
+   "notepad_foreground": false,
+   "ui_rects": [
+    [
+     0,
+     32,
+     344,
+     238
+    ],
+    [
+     0,
+     0,
+     1536,
+     864
+    ]
+   ],
+   "ui_coverage_pct": [
+    100.0,
+    95.25462962962963
+   ]
+  },
+  {
+   "ui": "web",
+   "rep": 2,
+   "opened": true,
+   "notepad_rect": [
+    -7,
+    -7,
+    1543,
+    823
+   ],
+   "notepad_foreground": false,
+   "ui_rects": [
+    [
+     0,
+     32,
+     344,
+     238
+    ],
+    [
+     0,
+     0,
+     1536,
+     864
+    ]
+   ],
+   "ui_coverage_pct": [
+    100.0,
+    95.25462962962963
+   ]
+  },
+  {
+   "ui": "web",
+   "rep": 3,
+   "opened": true,
+   "notepad_rect": [
+    -7,
+    -7,
+    1543,
+    823
+   ],
+   "notepad_foreground": false,
+   "ui_rects": [
+    [
+     0,
+     32,
+     344,
+     238
+    ],
+    [
+     0,
+     0,
+     1536,
+     864
+    ]
+   ],
+   "ui_coverage_pct": [
+    100.0,
+    95.25462962962963
+   ]
+  }
+ ],
+ "config": "config/dev.yaml",
+ "uis": [
+  "web"
+ ],
+ "web_server": "Flask + flask-sock (server Werkzeug, threaded)",
+ "fullscreen": true,
+ "font_scale": 1.0,
+ "workers": "palsu (mica.ui.devfakes.FakeWorkerBus)",
+ "pipeline": "palsu (mica.ui.devfakes.FakePipeline)",
+ "reps": 3,
+ "idle_s": 60.0,
+ "n_questions": 20,
+ "question_template": "pertanyaan uji {n}",
+ "factor": 3.0,
+ "limit_s": 1.0,
+ "latency_definition": {
+  "web": "kirim JSON -> ack browser setelah requestAnimationFrame berikutnya (jam Python)",
+  "pyside6": "show_item pertama sejak paint terakhir -> event Paint berikutnya jendela; bench memanggil window.update() agar setiap pembaruan memicu Paint"
+ },
+ "functional_checks": {
+  "tes UI web lulus (event sama dengan PySide6, tampilan ViewModel, tanpa aset internet, Origin, 127.0.0.1)": true,
+  "Edge kiosk layar penuh (--kiosk --edge-kiosk-type=fullscreen)": true,
+  "layar pertama tampil di Edge di setiap ulangan": true,
+  "20 pertanyaan terjawab tampil di setiap ulangan": false,
+  "setiap pembaruan web di-ack browser (tampil)": false
+ },
+ "functional_by_tests": {
+  "command": "pytest -q tests/unit/test_webui.py",
+  "result": "31 passed in 11.07s",
+  "returncode": 0
+ },
+ "decision": {
+  "verdict": "BATAL",
+  "reasons": [
+   "(a) gagal: 20 pertanyaan terjawab tampil di setiap ulangan",
+   "(a) gagal: setiap pembaruan web di-ack browser (tampil)",
+   "(b) lolos: p95 x 3 = 0.034 s <= 1.0 s"
+  ]
+ },
+ "versions": {
+  "PySide6-Essentials": "6.12.0",
+  "Flask": "3.1.3",
+  "flask-sock": "0.7.0",
+  "Werkzeug": "3.1.9",
+  "psutil": "7.2.2",
+  "edge": "155.0.4283.45"
+ },
+ "environment": {
+  "python": "3.13.7",
+  "torch": "2.14.1+cpu",
+  "torch_num_threads": 14,
+  "sentence_transformers": "6.1.0",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+  "cpu_count_logical": 20,
+  "power": {
+   "source": "battery",
+   "battery_percent": 66,
+   "battery_saver": false
+  },
+  "power_plan": {
+   "guid": "bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b",
+   "name": "ASUS Recommended",
+   "raw": "Power Scheme GUID: bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b  (ASUS Recommended)"
+  },
+  "git_commit": "809b81adf56bfdde2b724b05d699f74ed5e31fd6",
+  "git_dirty": true
+ },
+ "python": "3.13.7"
+}

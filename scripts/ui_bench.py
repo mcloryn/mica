@@ -2,6 +2,7 @@
 
 python scripts/ui_bench.py [--config config/dev.yaml] [--reps 3] [--out results/ADR-19]
                            [--ui both|pyside6|web] [--name ui-bench]
+                           [--cover-window] [--edge-switches on|off]
 
 Per UI dan ulangan, proses anak menjalankan UI dengan pekerja palsu + pipeline palsu, lalu:
 1. waktu mulai = peluncuran proses anak -> layar pertama digambar (jam dinding kedua proses);
@@ -17,6 +18,12 @@ Per UI dan ulangan, proses anak menjalankan UI dengan pekerja palsu + pipeline p
 Hasil: results/ADR-19/<--name>-<cap waktu>/ (per_run.csv, latencies.csv, summary.csv, run.json).
 Aturan tahap 1 diterapkan mekanis: LOLOS bila (a) dan (b), dengan (b) = p95 jeda tampil x 3 <= 1,0 s.
 Kode aplikasi (mica.ui, mica.webui) tidak diubah untuk pengukuran; kait hanya di skrip ini.
+
+--cover-window (uji Edge berhenti menggambar, Langkah 30 bagian D): setelah layar pertama
+tampil, skrip membuka Notepad lewat subprocess, memaksimalkan dan membawanya ke depan, lalu
+menjalankan masa diam dan 20 pertanyaan, dan menutup Notepad. Persen luas jendela Edge yang
+tertutup Notepad dicatat. --edge-switches off meluncurkan Edge tanpa RENDERING_SWITCHES
+(mica.webui.browser) sebagai pembanding.
 """
 
 from __future__ import annotations
@@ -157,7 +164,7 @@ def child_pyside6(config: Path) -> int:
 # --- proses anak: web -------------------------------------------------------------------
 
 
-def child_web(config: Path) -> int:
+def child_web(config: Path, keep_rendering: bool = True) -> int:
     from mica.config import load_settings
     from mica.webui.app import build_controller, serve
     from mica.webui.browser import EdgeBrowser
@@ -181,7 +188,7 @@ def child_web(config: Path) -> int:
     settings = load_settings(config)
     webui = BenchWebUi(settings.ui, dev=True)
     controller = build_controller(settings, webui, fake_workers=True, fake_pipeline=True)
-    browser = EdgeBrowser(settings.ui.fullscreen)
+    browser = EdgeBrowser(settings.ui.fullscreen, keep_rendering=keep_rendering)
     commands = stdin_commands()
     driver = Driver(controller, webui.vm)
     stop = threading.Event()
@@ -214,6 +221,102 @@ def child_web(config: Path) -> int:
             emit("done", latencies=lat, updates=len(lat), unacked=unacked)
     server.join()
     return 0
+
+
+# --- penutup jendela (--cover-window) ---------------------------------------------------
+
+
+def _top_windows(pids: set[int]) -> list[int]:
+    """HWND jendela tingkat atas yang terlihat dan berjudul milik pids (Windows, ctypes)."""
+    import ctypes
+    from ctypes import wintypes
+
+    user32 = ctypes.windll.user32
+    found: list[int] = []
+
+    @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+    def visit(hwnd: int, _lparam: int) -> bool:
+        pid = wintypes.DWORD()
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+        visible = user32.IsWindowVisible(hwnd) and user32.GetWindowTextLengthW(hwnd) > 0
+        if pid.value in pids and visible:
+            found.append(hwnd)
+        return True
+
+    user32.EnumWindows(visit, 0)
+    return found
+
+
+def _rect(hwnd: int) -> tuple[int, int, int, int]:
+    import ctypes
+    from ctypes import wintypes
+
+    r = wintypes.RECT()
+    ctypes.windll.user32.GetWindowRect(hwnd, ctypes.byref(r))
+    return r.left, r.top, r.right, r.bottom
+
+
+def _overlap_pct(inner: tuple[int, ...], outer: tuple[int, ...]) -> float:
+    """Persen luas `outer` (jendela Edge) yang tertutup `inner` (Notepad)."""
+    w = max(0, min(inner[2], outer[2]) - max(inner[0], outer[0]))
+    h = max(0, min(inner[3], outer[3]) - max(inner[1], outer[1]))
+    area = max(1, (outer[2] - outer[0]) * (outer[3] - outer[1]))
+    return 100.0 * w * h / area
+
+
+class Cover:
+    """Notepad dimaksimalkan di depan jendela Edge; ditutup lagi di close()."""
+
+    def __init__(self, ui_root_pid: int) -> None:
+        self.ui_root_pid = ui_root_pid
+        self.pids: set[int] = set()
+
+    @staticmethod
+    def _notepads() -> set[int]:
+        import psutil
+
+        out = set()
+        for p in psutil.process_iter(["name"]):
+            if (p.info["name"] or "").lower() == "notepad.exe":
+                out.add(p.pid)
+        return out
+
+    def open(self) -> dict[str, Any]:
+        import ctypes
+
+        before = self._notepads()
+        subprocess.Popen(["notepad.exe"])  # Notepad Windows 11 bisa berpindah proses (stub)
+        deadline = time.time() + 15
+        hwnds: list[int] = []
+        while time.time() < deadline and not hwnds:
+            time.sleep(0.2)
+            self.pids = self._notepads() - before
+            hwnds = _top_windows(self.pids)
+        if not hwnds:
+            return {"opened": False, "reason": "jendela Notepad baru tidak ditemukan"}
+        user32 = ctypes.windll.user32
+        hwnd = hwnds[0]
+        user32.ShowWindow(hwnd, 3)  # SW_MAXIMIZE
+        user32.SetForegroundWindow(hwnd)
+        time.sleep(1.0)
+        ui_windows = _top_windows({p.pid for p in tree(self.ui_root_pid)})
+        note = _rect(hwnd)
+        return {
+            "opened": True, "notepad_rect": note,
+            "notepad_foreground": user32.GetForegroundWindow() == hwnd,
+            "ui_rects": [_rect(w) for w in ui_windows],
+            "ui_coverage_pct": [_overlap_pct(note, _rect(w)) for w in ui_windows],
+        }  # fmt: skip
+
+    def close(self) -> None:
+        import psutil
+
+        for pid in self.pids:
+            try:
+                psutil.Process(pid).terminate()
+            except psutil.NoSuchProcess:
+                pass
+        self.pids = set()
 
 
 # --- proses induk -----------------------------------------------------------------------
@@ -278,17 +381,24 @@ def read_event(proc: subprocess.Popen, name: str, timeout_s: float = CHILD_TIMEO
     raise TimeoutError(f"tidak ada '{name}' dalam {timeout_s} s")
 
 
-def run_once(ui: str, rep: int, config: Path) -> dict[str, Any]:
+def run_once(ui: str, rep: int, config: Path, cover_window: bool = False,
+             edge_switches: bool = True) -> dict[str, Any]:  # fmt: skip
     from mica.eval.environment import power_status
 
     power = power_status()
+    child = [sys.executable, __file__, "--child", ui, "--config", str(config),
+             "--edge-switches", "on" if edge_switches else "off"]  # fmt: skip
+    cover = Cover(0) if cover_window else None
+    cover_info: dict[str, Any] = {}
     t0 = time.time()
-    proc = subprocess.Popen([sys.executable, __file__, "--child", ui, "--config", str(config)],
-                            stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+    proc = subprocess.Popen(child, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                             stderr=subprocess.DEVNULL, text=True, encoding="utf-8")  # fmt: skip
     try:
         painted = read_event(proc, "painted")
         startup_s = painted["wall"] - t0
+        if cover is not None:
+            cover.ui_root_pid = proc.pid
+            cover_info = cover.open()
         cpu = cpu_idle_pct(proc.pid, IDLE_S)
         uss_idle, n_idle = uss_mb(proc.pid)
         assert proc.stdin is not None
@@ -296,10 +406,14 @@ def run_once(ui: str, rep: int, config: Path) -> dict[str, Any]:
         proc.stdin.flush()
         done = read_event(proc, "done")
         uss_after, n_after = uss_mb(proc.pid)
+        if cover is not None:
+            cover.close()
         proc.stdin.write("quit\n")
         proc.stdin.flush()
         proc.wait(timeout=30)
     finally:
+        if cover is not None:
+            cover.close()
         if proc.poll() is None:
             for p in reversed(tree(proc.pid)):
                 p.kill()
@@ -313,7 +427,11 @@ def run_once(ui: str, rep: int, config: Path) -> dict[str, Any]:
         "lat_p95_ms": 1000 * percentile(lat, 95) if lat else None,
         "power_source": (power or {}).get("source"),
         "battery_percent": (power or {}).get("battery_percent"),
-        "_latencies": lat,
+        "cover_window": cover_window, "edge_switches": edge_switches,
+        "cover_opened": cover_info.get("opened"),
+        "cover_foreground": cover_info.get("notepad_foreground"),
+        "cover_ui_pct": max(cover_info.get("ui_coverage_pct") or [0.0]) if cover_info else None,
+        "_latencies": lat, "_cover": cover_info,
     }  # fmt: skip
 
 
@@ -348,12 +466,16 @@ def main(argv: list[str] | None = None) -> int:
         help="UI yang diukur (both = PySide6 sebagai pembanding + web)",
     )
     parser.add_argument("--name", default="ui-bench", help="awalan folder hasil")
+    parser.add_argument("--cover-window", action="store_true",
+                        help="tutup jendela UI dengan Notepad selama diam + 20 pertanyaan")  # fmt: skip
+    parser.add_argument("--edge-switches", choices=("on", "off"), default="on",
+                        help="off = Edge tanpa RENDERING_SWITCHES (pembanding uji)")  # fmt: skip
     parser.add_argument("--child", choices=("pyside6", "web"))
     args = parser.parse_args(argv)
     if args.child == "pyside6":
         return child_pyside6(args.config)
     if args.child == "web":
-        return child_web(args.config)
+        return child_web(args.config, keep_rendering=args.edge_switches == "on")
 
     from mica.config import load_settings
     from mica.eval.environment import collect_environment
@@ -374,12 +496,14 @@ def main(argv: list[str] | None = None) -> int:
     for rep in range(1, args.reps + 1):
         for ui in uis:
             print(f"[{ui} ulangan {rep}] ...", flush=True)
-            r = run_once(ui, rep, args.config)
+            r = run_once(ui, rep, args.config, args.cover_window, args.edge_switches == "on")
             runs.append(r)
             p95 = "-" if r["lat_p95_ms"] is None else f"{r['lat_p95_ms']:.1f} ms"
             print(f"  mulai {r['startup_s']:.2f} s | USS diam {r['uss_idle_mb']:.0f} MB | "
                   f"CPU diam {r['cpu_idle_pct']:.2f}% | p95 {p95} "
                   f"({r['n_updates']} pembaruan, {r['n_unacked']} tanpa ack)", flush=True)  # fmt: skip
+            if r["_cover"]:
+                print(f"  penutup: {r['_cover']}", flush=True)
 
     stamp = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S")
     out = args.out / f"{args.name}-{stamp}"
@@ -433,6 +557,9 @@ def main(argv: list[str] | None = None) -> int:
                         "alasan": "; ".join(reasons)})  # fmt: skip
     info = {
         "experiment": "ADR-19 tahap 1", "protocol": "docs/UI-WEB.md (pra-registrasi 17 Okt 2026)",
+        "cover_window": args.cover_window, "edge_switches": args.edge_switches,
+        "cover_details": [{"ui": r["ui"], "rep": r["rep"], **r["_cover"]} for r in runs
+                          if r["_cover"]],
         "config": args.config.as_posix(), "uis": list(uis), "web_server": "Flask + flask-sock "
         "(server Werkzeug, threaded)", "fullscreen": settings.ui.fullscreen,
         "font_scale": settings.ui.font_scale, "workers": "palsu (mica.ui.devfakes.FakeWorkerBus)",

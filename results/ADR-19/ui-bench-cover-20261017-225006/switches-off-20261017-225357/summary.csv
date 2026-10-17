@@ -1,0 +1,2 @@
+﻿ui,n_runs,n_updates,startup_median_s,uss_idle_median_mb,uss_after_median_mb,cpu_idle_median_pct,lat_p50_s,lat_p95_s,n_unacked,p95x3_s,keputusan_tahap1,alasan
+web,3,118,2.7124178409576416,204.73828125,254.0859375,4.583218584817312,0.002573099991423078,0.011382164988026484,59,0.034146494964079455,BATAL,(a) gagal: 20 pertanyaan terjawab tampil di setiap ulangan; (a) gagal: setiap pembaruan web di-ack browser (tampil); (b) lolos: p95 x 3 = 0.034 s <= 1.0 s
