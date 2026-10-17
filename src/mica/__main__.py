@@ -1,10 +1,12 @@
 """Entry point kiosk.
 
 python -m mica [--config config/kiosk.yaml] [--fake-workers] [--fake-pipeline]
+               [--record-resources <folder> [--resource-interval 5] [--e09]]
     jalankan check dulu; bila ada GAGAL, cetak tabel dan keluar 1 tanpa membuka jendela.
     Bila OK: proses vision + suara (start_workers), KioskController, dan UI sesuai ui.backend:
     web (mica.webui.app: server Flask + Edge kiosk, UI utama) atau pyside6 (mica.ui.app, cadangan).
-    --fake-* hanya boleh di mode dev.
+    --fake-* hanya boleh di mode dev. --record-resources (perekam E-09, mica.eval.resources)
+    hanya di mode dev kecuali dengan --e09, dan hanya untuk ui.backend web (PySide6 dibekukan).
 python -m mica setup [--config ...] [--only <komponen>]   lihat mica/setup.py
 python -m mica check [--config ...]                       lihat mica/check.py
 """
@@ -36,7 +38,10 @@ def _launch_pyside6(settings: Settings, args: argparse.Namespace) -> int:
 def _launch_web(settings: Settings, args: argparse.Namespace) -> int:
     from mica.webui.app import run
 
-    return run(settings, fake_workers=args.fake_workers, fake_pipeline=args.fake_pipeline)
+    return run(settings, fake_workers=args.fake_workers, fake_pipeline=args.fake_pipeline,
+               record_resources=getattr(args, "record_resources", None),
+               resource_interval=getattr(args, "resource_interval", 5.0),
+               e09=getattr(args, "e09", False))  # fmt: skip
 
 
 # ui.backend -> peluncur UI (ADR-19, Provisional; pilihan akhir di E-09)
@@ -72,6 +77,9 @@ def main(
     parser.add_argument("--env-file", type=Path, default=DEFAULT_ENV)
     parser.add_argument("--fake-workers", action="store_true", help="bus palsu (dev saja)")
     parser.add_argument("--fake-pipeline", action="store_true", help="jawaban palsu (dev saja)")
+    from mica.eval.resources import add_arguments
+
+    add_arguments(parser)
     args = parser.parse_args(argv)
 
     rows, settings = check(args.config, args.env_file)
@@ -83,6 +91,17 @@ def main(
         print("error: --fake-workers/--fake-pipeline hanya boleh saat app.mode: dev",
               file=sys.stderr)  # fmt: skip
         return 2
+    if args.record_resources is not None:
+        from mica.eval.resources import RecorderRefused, check_allowed
+
+        try:
+            check_allowed(settings.app.mode, args.e09)
+        except RecorderRefused as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        if settings.ui.backend != "web":
+            print("error: --record-resources hanya untuk ui.backend: web", file=sys.stderr)
+            return 2
     return launch(settings, args)
 
 

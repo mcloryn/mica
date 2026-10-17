@@ -1,9 +1,11 @@
 """UI web (ADR-19, opsi ui.backend: web): rakit KioskController + server Flask + Edge, tanpa Qt.
 
 python -m mica.webui --config <yaml> [--fake-workers] [--fake-pipeline] [--no-browser] [--port N]
+    [--record-resources <folder> [--resource-interval 5] [--e09]]
 - Rakitan bus/pipeline/controller sama dengan mica.ui.app.build; --fake-* hanya di mode dev.
 - Edge ditutup -> server, controller, dan pekerja berhenti rapi; server berhenti -> Edge ditutup.
 - --no-browser: hanya server (URL dicetak), berhenti dengan Ctrl+C.
+- --record-resources: perekam sumber daya E-09 (mica.eval.resources); hanya dev, kecuali --e09.
 """
 
 from __future__ import annotations
@@ -108,23 +110,39 @@ def serve(
 
 
 def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool = False,
-        no_browser: bool = False, port: int = 0) -> int:  # fmt: skip
+        no_browser: bool = False, port: int = 0, record_resources: Path | None = None,
+        resource_interval: float = 5.0, e09: bool = False) -> int:  # fmt: skip
     """Rakit lalu jalankan sampai Edge ditutup atau Ctrl+C (dipakai python -m mica dan main)."""
+    from mica.eval.resources import RecorderRefused, check_allowed
     from mica.webui.browser import EdgeBrowser, EdgeMissing
 
     try:
+        if record_resources is not None:
+            check_allowed(settings.app.mode, e09)  # ditolak sebelum pekerja dimulai
         webui = WebUi(settings.ui, dev=settings.app.mode == "dev")
         browser = None if no_browser else EdgeBrowser(settings.ui.fullscreen)
         controller = build_controller(settings, webui, fake_workers=fake_workers,
                                       fake_pipeline=fake_pipeline)  # fmt: skip
-    except (WebUiError, EdgeMissing) as exc:
+    except (WebUiError, EdgeMissing, RecorderRefused) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
+    recorder = None
+    if record_resources is not None:
+        from mica.eval.resources import bus_roots, make_recorder
+
+        recorder = make_recorder(record_resources, settings.app.mode, e09,
+                                 lambda: bus_roots(controller.bus, browser), resource_interval,
+                                 {"ui_backend": "web", "fake_workers": fake_workers,
+                                  "fake_pipeline": fake_pipeline})  # fmt: skip
+        recorder.start()
     try:
         serve(webui, controller, browser, port,
               on_ready=lambda url: print(f"MICA web: {url}", flush=True))  # fmt: skip
     except KeyboardInterrupt:
         print("berhenti")
+    finally:
+        if recorder is not None:
+            recorder.stop()
     return 0
 
 
@@ -135,6 +153,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--fake-pipeline", action="store_true", help="jawaban palsu (dev saja)")
     parser.add_argument("--no-browser", action="store_true", help="jangan luncurkan Edge")
     parser.add_argument("--port", type=int, default=0, help="0 = port acak bebas")
+    from mica.eval.resources import add_arguments
+
+    add_arguments(parser)
     args = parser.parse_args(argv)
     try:
         settings = load_settings(args.config, Path(".env"))
@@ -142,4 +163,6 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     return run(settings, fake_workers=args.fake_workers, fake_pipeline=args.fake_pipeline,
-               no_browser=args.no_browser, port=args.port)  # fmt: skip
+               no_browser=args.no_browser, port=args.port,
+               record_resources=args.record_resources,
+               resource_interval=args.resource_interval, e09=args.e09)  # fmt: skip
