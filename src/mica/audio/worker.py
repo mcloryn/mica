@@ -342,7 +342,7 @@ class AudioLoop:
                             self.mode = "off"  # tepat satu ucapan
                         self.mic.pause()
                         self.mic_open = False
-                    self.tasks.put(("stt", event, session))
+                    self.tasks.put(("stt", event, session, self.clock()))
                     break
 
     # --- thread kerja -------------------------------------------------------------------
@@ -353,18 +353,19 @@ class AudioLoop:
             if task is None:
                 return
             if task[0] == "stt":
-                self._transcribe(task[1], task[2])
+                self._transcribe(task[1], task[2], task[3])
             else:
                 self._speak(task[1], task[2], task[3])
 
-    def _transcribe(self, utt: Utterance, session: str | None) -> None:
+    def _transcribe(self, utt: Utterance, session: str | None, ended: float | None = None) -> None:
         try:
             if is_too_short(utt, self.cfg.filters["vad.min_speech_ms"]):
                 t = SttTranscript("", False, 0.0, utt.audio_s, filtered_by="min_speech")
             else:
                 t = self.stt.transcribe(utt.pcm16k)
             self._send(Transcript(session, t.text if t.ok else "", t.ok, t.stt_s, t.audio_s,
-                                  utt.cut_by_max, t.filtered_by))  # fmt: skip
+                                  utt.cut_by_max, t.filtered_by, utt.trailing_silence_s,
+                                  ended))  # fmt: skip
             if self.cfg.diagnose:
                 from mica.audio.listen import diagnose_lines
 
@@ -378,7 +379,8 @@ class AudioLoop:
 
     def _speak(self, msg: Speak, epoch: int, received: float) -> None:
         def done(first: float | None, interrupted: bool) -> None:
-            self._send(SpeechDone(msg.session_id, msg.utterance_id, first, interrupted))
+            first_t = None if first is None else received + first
+            self._send(SpeechDone(msg.session_id, msg.utterance_id, first, interrupted, first_t))
 
         if epoch != self.epoch:
             done(None, True)  # StopSpeaking datang sebelum Speak ini mulai

@@ -64,7 +64,7 @@ def build_controller(
             else:
                 from mica.rag.pipeline import make_pipeline
 
-                pipeline = make_pipeline(settings, log=log)
+                pipeline = make_pipeline(settings)  # baris giliran ditulis controller
     except Exception:
         stop = getattr(bus, "stop", None)
         if stop is not None:

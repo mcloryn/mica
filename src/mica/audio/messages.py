@@ -6,7 +6,9 @@ audio/vad.py (event segmenter) dan audio/stt.py (hasil SpeechToText) tidak memba
 worker mengubahnya menjadi pesan di sini.
 
 Penyimpangan dari SDD 5.2 (field tambahan): SpeechStarted.t, Transcript.cut_by_max,
-Transcript.filtered_by, SpeechDone.interrupted, AudioStatus.ready, AudioStatus.message.
+Transcript.filtered_by, Transcript.vad_s, Transcript.ended_t, SpeechDone.interrupted,
+SpeechDone.first_audio_t, AudioStatus.ready, AudioStatus.message. Waktu *_t memakai
+time.monotonic proses suara; jam ini sama untuk semua proses di satu mesin (E-09, docs/E-09.md).
 """
 
 from __future__ import annotations
@@ -33,6 +35,8 @@ class Transcript:
     audio_s: float
     cut_by_max: bool = False
     filtered_by: FilteredBy | None = None  # None = tidak tersaring
+    vad_s: float | None = None  # diam di ujung ucapan sampai VAD menyatakan selesai (timings.vad)
+    ended_t: float | None = None  # monotonic saat VAD menyatakan ucapan selesai
 
 
 @dataclass(frozen=True)
@@ -53,6 +57,7 @@ class SpeechDone:
     utterance_id: str
     tts_first_audio_s: float | None  # Speak diterima -> clip pertama mulai diputar; None = tidak
     interrupted: bool = False
+    first_audio_t: float | None = None  # monotonic saat clip pertama mulai diputar; None = tidak
 
 
 @dataclass(frozen=True)

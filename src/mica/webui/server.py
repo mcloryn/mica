@@ -44,10 +44,14 @@ CSP = "default-src 'self'; connect-src 'self'; img-src 'self'; style-src 'self';
 
 class WebUi:
     def __init__(self, ui: UiConfig, dev: bool,
-                 clock: Callable[[], float] = time.perf_counter) -> None:  # fmt: skip
+                 clock: Callable[[], float] = time.perf_counter,
+                 render_clock: Callable[[], float] = time.monotonic) -> None:  # fmt: skip
         self.ui = ui
         self.dev = dev
         self.clock = clock
+        # K-3 (E-09): jam yang sama dengan controller dan pekerja (monotonic), bukan perf_counter
+        self.render_clock = render_clock
+        self.sent_views: dict[int, tuple[str, bool]] = {}  # seq -> (status, ada transkripsi)
         self.vm = ViewModel()
         self.controller: Any = None
         self.port: int | None = None
@@ -137,11 +141,16 @@ class WebUi:
         now = self.clock()
         with self.lock:
             if kind == "ack":
-                sent = self.sent_at.pop(int(data.get("seq", -1)), None)
+                seq = int(data.get("seq", -1))
+                sent = self.sent_at.pop(seq, None)
+                view = self.sent_views.pop(seq, None)
                 if sent is not None:
                     self.ack_latencies_s.append(now - sent)
                     if self.first_render_at is None:
                         self.first_render_at = now
+                rendered = getattr(self.controller, "view_rendered", None)
+                if view is not None and rendered is not None:
+                    rendered(view[0], view[1], self.render_clock())  # respons pertama K-3
                 return
             event = event_from_message(data, self.vm, self.ui)
         if event is not None and self.controller is not None:
@@ -159,6 +168,7 @@ class WebUi:
         self.seq += 1
         payload = {"type": "view", "seq": self.seq, "view": view_json(self.vm)}
         self.sent_at[self.seq] = self.clock()
+        self.sent_views[self.seq] = (self.vm.status.value, self.vm.last_transcript is not None)
         for ws in targets:
             self._send(ws, payload)
 

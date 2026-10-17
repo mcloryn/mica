@@ -432,3 +432,11 @@ def test_audio_modules_do_not_import_torch():
         [sys.executable, "-c", code], capture_output=True, text=True, check=True, cwd=ROOT
     )
     assert result.stdout.strip() == "False"
+
+
+def test_utterance_trailing_silence_is_vad_delay():
+    events = _feed(_segmenter(), _chunks(("diam", 2), ("bicara", 6), ("diam", 5)))
+    (utt,) = [e for e in events if isinstance(e, Utterance)]
+    assert utt.trailing_silence_s == pytest.approx(5 * CHUNK_SAMPLES / 16000)  # timings.vad
+    cut = _feed(_segmenter(max_utterance_s=0.32), _chunks(("bicara", 12)))
+    assert next(e.trailing_silence_s for e in cut if isinstance(e, Utterance)) == 0.0

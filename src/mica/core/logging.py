@@ -44,7 +44,7 @@ class TurnRecord:
     answer: str
     sources: tuple[str, ...]  # chunk_id sumber
     fact_check: dict[str, Any]  # angka yang dicek dan yang gagal
-    timings: dict[str, float]
+    timings: dict[str, float | None]  # null = tidak berlaku (mis. vad/stt untuk input ketik)
     kb_id: str
     config_hash: str
     app_version: str

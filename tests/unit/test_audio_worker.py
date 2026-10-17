@@ -420,3 +420,22 @@ def test_bus_demo_refused_in_kiosk():
     args = cli.build_parser().parse_args(["bus-demo"])
     with pytest.raises(cli.AudioCliError, match="app.mode: dev"):
         cli.cmd_bus_demo(args, _settings("kiosk"))
+
+
+def test_transcript_and_speech_done_carry_e09_times():
+    """E-09: Transcript.vad_s/ended_t dan SpeechDone.first_audio_t (jam monotonic yang sama)."""
+    mic = GatedMic(SPEECH)
+    mic.gate.set()
+    ticks = iter(range(1000, 100000))
+    with Harness(mic=mic, clock=lambda: float(next(ticks))) as h:
+        h.send(ListenControl("auto", "s1"))
+        h.collect(_has(Transcript))
+        h.send(Speak("s1", "Halo.", "u1"))
+        h.collect(_has(SpeechDone))
+    (t,) = h.of(Transcript)
+    # min_silence 160 ms = 5 potongan diam 32 ms sebelum VAD menyatakan ucapan selesai
+    assert t.vad_s == pytest.approx(5 * 512 / 16000)
+    assert t.ended_t is not None and t.ended_t >= 1000
+    (done,) = h.of(SpeechDone)
+    assert done.first_audio_t is not None and done.first_audio_t > t.ended_t
+    assert done.tts_first_audio_s is not None and done.tts_first_audio_s > 0

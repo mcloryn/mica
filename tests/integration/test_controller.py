@@ -248,7 +248,9 @@ def test_h_no_raw_pii_in_logs(tmp_path, caplog):
     r.step(PersonLeft(1, r.clock.t, 5.0))
     text = r.log_text() + caplog.text
     assert PHONE not in text and EMAIL not in text
-    events = [json.loads(line)["event"] for line in r.log_text().splitlines()]
+    # sejak E-09 controller juga menulis turns-*.jsonl; urutan event dibaca dari events-*.jsonl
+    lines = "".join(p.read_text(encoding="utf-8") for p in r.log_dir.glob("events-*.jsonl"))
+    events = [json.loads(line)["event"] for line in lines.splitlines()]
     assert events == ["greeted", "camera_down", "mic_down", "person_left"]
     assert all(PHONE not in c[0] and EMAIL not in c[0] for c in r.pipeline.calls)
 

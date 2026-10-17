@@ -43,6 +43,8 @@ class Utterance:
     prob_max: float = 0.0
     prob_mean: float = 0.0  # rata-rata prob semua potongan dalam ucapan
     n_above: int = 0  # jumlah potongan dengan prob >= threshold
+    # diam di ujung ucapan saat VAD menyatakan selesai (timings.vad, SDD 6.2); 0 bila cut_by_max
+    trailing_silence_s: float = 0.0
 
 
 VadEvent = SpeechStarted | Utterance
@@ -96,6 +98,7 @@ class SpeechSegmenter:
     def _finish(self, cut_by_max: bool) -> Utterance:
         pcm = np.concatenate(self.speech) if self.speech else np.zeros(0, dtype=np.int16)
         speech_s = (self.length - self.pre_len - self.silence) / self.sample_rate
+        trailing_s = 0.0 if cut_by_max else self.silence / self.sample_rate
         if not cut_by_max:
             # buang diam di ujung, sisakan padding akhir
             pcm = pcm[: len(pcm) - max(self.silence - self.pad, 0)]
@@ -111,6 +114,7 @@ class SpeechSegmenter:
             prob_max=max(probs),
             prob_mean=sum(probs) / len(probs),
             n_above=sum(p >= self.threshold for p in probs),
+            trailing_silence_s=trailing_s,
         )
 
     def feed(self, chunk: np.ndarray) -> list[VadEvent]:

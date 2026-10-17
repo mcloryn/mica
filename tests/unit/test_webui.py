@@ -498,3 +498,22 @@ def test_run_refuses_fakes_in_kiosk(capsys):
     kiosk = s.model_copy(update={"app": s.app.model_copy(update={"mode": "kiosk"})})
     assert run(kiosk, fake_workers=True, no_browser=True) == 2
     assert "kiosk" in capsys.readouterr().err
+
+
+def test_ack_reports_rendered_view_to_controller_for_k3():
+    class Ctrl(FakeController):
+        def __init__(self) -> None:
+            super().__init__()
+            self.rendered: list = []
+
+        def view_rendered(self, status, has_transcript, t) -> None:
+            self.rendered.append((status, has_transcript, t))
+
+    webui = WebUi(_ui(), dev=False, render_clock=lambda: 42.0)
+    webui.controller = Ctrl()
+    webui.show_item(ShowView(V.THINKING, message="berpikir", transcript="Biaya?",
+                             send_enabled=False))  # fmt: skip
+    webui._send_view([])
+    webui.handle_message({"type": "ack", "seq": webui.seq})
+    webui.handle_message({"type": "ack", "seq": webui.seq})  # ack ganda: sekali saja
+    assert webui.controller.rendered == [("THINKING", True, 42.0)]
