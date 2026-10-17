@@ -32,11 +32,19 @@ from mica.eval.gate import GROUPS, group_stats, run_gate
 from mica.eval.generation import (
     DEFAULT_CACHE_DIR,
     EXPERIMENT,
+    PROMPT_VARIANTS,
     SWEEP_COLUMNS,
     CacheMiss,
     run_generation,
 )
-from mica.eval.official import DEFAULT_LOCK, OFFICIAL_DIR, OfficialDatasetError, SplitRefused
+from mica.eval.official import (
+    DEFAULT_LOCK,
+    OFFICIAL_DIR,
+    SPLITS,
+    OfficialDatasetError,
+    SplitRefused,
+    check_split,
+)
 from mica.eval.retrieval import MAIN_GROUP, run_retrieval, sha256_file
 from mica.kb.index import DEFAULT_KB_ROOT, KbLoadError, load_kb
 from mica.rag.retriever import EmbedderFactory
@@ -82,6 +90,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="daftar dipisah koma, misalnya bm25,dense,hybrid (default: rag.retriever)",
     )
     ret.add_argument("--pool", type=Path, help="default: pool.csv di folder dataset")
+    ret.add_argument("--split", choices=SPLITS, default="dev",
+                     help="dev (bawaan) atau test (butuh LOCK cocok dan KB official)")  # fmt: skip
 
     gate = sub.add_parser("gate", help="E-02: skor gerbang M-04 dan sweep ambang")
     gate.add_argument("--config", type=Path, required=True)
@@ -113,12 +123,18 @@ def build_parser() -> argparse.ArgumentParser:
         default=EXPERIMENT,
         help="label eksperimen di run.json dan nama folder run (default E-02)",
     )
+    gen.add_argument("--split", choices=SPLITS, default="dev",
+                     help="dev (bawaan) atau test (butuh LOCK cocok dan KB official)")  # fmt: skip
+    gen.add_argument("--prompt-variant", choices=PROMPT_VARIANTS,
+                     help="menimpa rag.prompt_variant untuk run ini (tercatat di run.json)")  # fmt: skip
 
     cp = sub.add_parser("copy", help="E-03: coverage dan density (Grusky dkk. 2018)")
     cp.add_argument("--config", type=Path, required=True)
     cp.add_argument("--runs", type=Path, nargs="+", required=True, help="folder run generation")
     cp.add_argument("--out", type=Path, default=Path("results/E-03"))
     cp.add_argument("--cache-dir", type=Path, default=DEFAULT_CACHE_DIR)
+    cp.add_argument("--split", choices=SPLITS, default="dev",
+                     help="dev (bawaan) atau test (butuh LOCK cocok dan KB official)")  # fmt: skip
     cp.add_argument("--env-file", type=Path, default=Path(".env"))
 
     from mica.audio.__main__ import add_trial_args
@@ -139,6 +155,8 @@ def build_parser() -> argparse.ArgumentParser:
     stt.add_argument("--whisper-dir", type=Path, default=Path("models/whisper"))
     stt.add_argument("--env-file", type=Path, default=Path(".env"))
     stt.add_argument("--note", help="catatan di run.json, mis. 'sintetis, bukan hasil E-05'")
+    stt.add_argument("--split", choices=SPLITS, default="dev",
+                     help="dev (bawaan) atau test (butuh LOCK cocok dan KB official)")  # fmt: skip
     add_trial_args(stt)
 
     lat = sub.add_parser("latency", help="E-09: latensi per tahap dari log 6.2 dan verdict")
@@ -148,6 +166,9 @@ def build_parser() -> argparse.ArgumentParser:
     lat.add_argument("--from", dest="start", type=date.fromisoformat, help="YYYY-MM-DD")
     lat.add_argument("--to", dest="end", type=date.fromisoformat, help="YYYY-MM-DD")
     lat.add_argument("--out", type=Path, default=Path("results/E-09"))
+    lat.add_argument("--split", choices=SPLITS, default="dev",
+                     help="dev (bawaan) atau test (butuh LOCK cocok dan KB official)")  # fmt: skip
+    lat.add_argument("--config", type=Path, help="wajib untuk --split test (cek KB official)")
     lat.add_argument("--tool-test", action="store_true",
                      help="tandai sebagai uji alat (bukan hasil E-09) di run.json dan verdict")  # fmt: skip
     return parser
@@ -185,8 +206,18 @@ def cmd_latency(args: argparse.Namespace) -> int:
     warning = dirty_warning(environment)
     if warning:
         print(warning, file=sys.stderr)
+    kb_type = None
+    if args.config is not None:
+        from mica.kb.index import read_manifest
+
+        settings = load_settings(args.config)
+        kb_type = read_manifest(Path(args.kb_root) / settings.kb.active_id).get("source_type")
+    elif args.split == "test":
+        raise SplitRefused("--split test butuh --config (untuk cek KB official)")
+    split_info = check_split(args.split, None, kb_type, args.lock)
     run_dir, overall = run_latency(args.logs, args.out, args.label, args.resources, args.start,
-                                   args.end, args.tool_test, environment)  # fmt: skip
+                                   args.end, args.tool_test, environment,
+                                   split_info=split_info)  # fmt: skip
     print((run_dir / "verdict.md").read_text(encoding="utf-8"))
     print(f"keseluruhan: {overall}")
     print(f"tersimpan: {run_dir.as_posix()}")
@@ -241,6 +272,7 @@ def cmd_retrieval(args: argparse.Namespace, embedder_factory: EmbedderFactory | 
     kb = load_kb(settings.kb.active_id, args.kb_root)
     retrievers = args.retrievers or [settings.rag.retriever]
     pool = args.pool or args.dataset.parent / "pool.csv"
+    split_info = check_split(args.split, args.dataset, kb.manifest.get("source_type"), args.lock)
     embedder = None
     if embedder_factory is not None:
         info = kb.manifest["embedder"]
@@ -258,8 +290,10 @@ def cmd_retrieval(args: argparse.Namespace, embedder_factory: EmbedderFactory | 
         retrievers,
         embedder=embedder,
         environment=environment,
+        split=args.split,
+        split_info=split_info,
     )
-    print(f"KB {kb.kb_id} | split dev | {len(runs)} run -> {summary}")
+    print(f"KB {kb.kb_id} | split {args.split} | {len(runs)} run -> {summary}")
     print("retriever | Recall@5 | MRR | nDCG@10 | p50 ms | p95 ms | unjudged")
     for run in runs:
         m = run.metrics[MAIN_GROUP]
@@ -300,6 +334,7 @@ def cmd_gate(args: argparse.Namespace, embedder_factory: EmbedderFactory | None)
 def cmd_generation(args: argparse.Namespace, embedder_factory: EmbedderFactory | None) -> int:
     settings = load_settings(args.config, env_file=args.env_file)
     kb = load_kb(settings.kb.active_id, args.kb_root)
+    split_info = check_split(args.split, args.dataset, kb.manifest.get("source_type"), args.lock)
     embedder = None
     if embedder_factory is not None:
         info = kb.manifest["embedder"]
@@ -308,6 +343,9 @@ def cmd_generation(args: argparse.Namespace, embedder_factory: EmbedderFactory |
     warning = dirty_warning(environment)
     if warning:
         print(warning, file=sys.stderr)
+    if args.prompt_variant is not None:
+        print(f"prompt_variant efektif: {args.prompt_variant} (config: "
+              f"{settings.rag.prompt_variant})", flush=True)  # fmt: skip
     if args.model is not None:
         print(f"chain efektif: [{args.model}] (llm.chain di config diabaikan)", flush=True)
     run_dir, rows, sweep_rows = run_generation(
@@ -323,6 +361,9 @@ def cmd_generation(args: argparse.Namespace, embedder_factory: EmbedderFactory |
         environment=environment,
         model=args.model,
         experiment=args.experiment,
+        split=args.split,
+        split_info=split_info,
+        prompt_variant=args.prompt_variant,
     )
     print(f"KB {kb.kb_id} | {len(rows)} pertanyaan -> {run_dir}")
     print(" | ".join(SWEEP_COLUMNS))
@@ -477,6 +518,7 @@ def cmd_stt(
         print(f"  audio.{key} = {filters[key]} ({filter_sources[key]})")
     cands = candidates(args, settings, filters["stt.no_speech_threshold"])
     with_qid = any(i.qid for i in items)
+    split_info = _stt_split(args, settings, with_qid)
     if with_qid and retrieval is _retrieval:
         _check_qids(args, items)  # gagal cepat sebelum STT, tanpa memuat retriever
     # cek repo tanpa collect_environment: fungsi itu memuat torch (versi dan thread torch)
@@ -489,6 +531,8 @@ def cmd_stt(
     info = {
         "experiment": EXPERIMENT,
         "note": args.note,
+        "split": args.split,
+        "lock": split_info["lock"],
         "dataset": {
             "manifest": args.dataset.as_posix(),
             "sha256": sha256_file(args.dataset),
@@ -542,6 +586,34 @@ def cmd_stt(
     return 0
 
 
+def _copy_split(args: argparse.Namespace, kb: Any) -> dict[str, Any]:
+    """Run generation sumber harus ber-split sama dengan --split; test diperiksa ke LOCK."""
+    import json
+
+    info: dict[str, Any] = {"split": args.split, "lock": None}
+    for run_dir in args.runs:
+        run = json.loads((Path(run_dir) / "run.json").read_text(encoding="utf-8"))
+        if run.get("split", "dev") != args.split:
+            raise SplitRefused(f"{run_dir}: run ber-split {run.get('split', 'dev')}, "
+                               f"bukan {args.split}")  # fmt: skip
+        dataset = Path(run["dataset"]["path"])
+        info = check_split(args.split, dataset if dataset.exists() else None,
+                           kb.manifest.get("source_type"), args.lock)  # fmt: skip
+        if info["lock"] is not None and run["dataset"]["sha256"] != info["lock"]["sha256"]:
+            raise SplitRefused(f"{run_dir}: dataset run tidak sama dengan set uji terkunci")
+    return info
+
+
+def _stt_split(args: argparse.Namespace, settings: Any, with_qid: bool) -> dict[str, Any]:
+    """--questions (Recall@5) adalah dataset yang diperiksa; test butuh KB official."""
+    from mica.kb.index import read_manifest
+
+    kb_type = None
+    if args.split == "test":
+        kb_type = read_manifest(Path(args.kb_root) / settings.kb.active_id).get("source_type")
+    return check_split(args.split, args.questions if with_qid else None, kb_type, args.lock)
+
+
 def cmd_copy(args: argparse.Namespace, embedder_factory: EmbedderFactory | None = None) -> int:
     """Tingkat salin per model dari run generation yang sudah ada; tanpa panggilan LLM."""
     from datetime import datetime
@@ -565,6 +637,7 @@ def cmd_copy(args: argparse.Namespace, embedder_factory: EmbedderFactory | None 
     embedder = (embedder_factory(info["model"], info["revision"]) if embedder_factory
                 else embedder_for_kb(kb))  # fmt: skip
     texts = {c.chunk_id: c.text for c in kb.chunks}
+    split_info = _copy_split(args, kb)
     environment = collect_environment()
     warning = dirty_warning(environment)
     if warning:
@@ -582,7 +655,7 @@ def cmd_copy(args: argparse.Namespace, embedder_factory: EmbedderFactory | None 
         print(f"{model}: {len(scored)} jawaban dihitung, {excluded} dikecualikan "
               f"({run_dir.name}, rekonstruksi konteks cocok dengan cache)")  # fmt: skip
     stamp = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S")
-    run_dir = Path(args.out) / f"copy-dev-{stamp}"
+    run_dir = Path(args.out) / f"copy-{args.split}-{stamp}"
     write_outputs(run_dir, scored_all, summaries, {
         "experiment": EXPERIMENT, "metric": "coverage dan density extractive fragments "
         "(Grusky dkk. 2018 [43]; Ladhak dkk. 2022 [42])", "tokenization": TOKENIZATION,
@@ -591,6 +664,7 @@ def cmd_copy(args: argparse.Namespace, embedder_factory: EmbedderFactory | None 
                     "konteks": "semua potongan yang dikirim ke LLM (top-k retriever)"},
         "boundary": "potongan digabung dengan pemisah yang tidak pernah cocok",
         "kb_id": kb.kb_id, "source_runs": sources, "environment": environment,
+        "split": args.split, "lock": split_info["lock"],
         "threshold": "tidak ada ambang bagus/buruk",
         "companion_metric": "coverage/density tanpa entitas (SDD 9.5): token dari span email, "
         "URL (http://, https://, www.), atau kata berdigit tidak boleh masuk fragmen; penyebut "

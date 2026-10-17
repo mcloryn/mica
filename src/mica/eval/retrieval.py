@@ -103,12 +103,12 @@ def read_pool_pairs(pool: Path) -> set[tuple[str, str]]:
         return {(row["qid"], row["chunk_id"]) for row in csv.DictReader(f)}
 
 
-def select_questions(questions: list[Question]) -> list[tuple[str, Question]]:
-    """(grup, pertanyaan) untuk split dev: answerable (utama) dan followup (terpisah)."""
+def select_questions(questions: list[Question], split: str = SPLIT) -> list[tuple[str, Question]]:
+    """(grup, pertanyaan) untuk split: answerable (utama) dan followup (terpisah)."""
     selected: list[tuple[str, Question]] = []
     missing_gold: list[str] = []
     for q in questions:
-        if q.get("split") != SPLIT:
+        if q.get("split") != split:
             continue
         if q["type"] == "answerable":
             if not q.get("gold_chunk_ids"):
@@ -122,7 +122,7 @@ def select_questions(questions: list[Question]) -> list[tuple[str, Question]]:
             + ", ".join(missing_gold)
         )
     if not any(group == MAIN_GROUP for group, _ in selected):
-        raise DatasetError(f"tidak ada pertanyaan answerable di split {SPLIT}")
+        raise DatasetError(f"tidak ada pertanyaan answerable di split {split}")
     return selected
 
 
@@ -221,13 +221,15 @@ def run_retrieval(
     embedder: Embedder | None = None,
     started_at: datetime | None = None,
     environment: dict[str, Any] | None = None,
+    split: str = SPLIT,
+    split_info: dict[str, Any] | None = None,
 ) -> tuple[list[RunResult], Path]:
     """Jalankan E-01 untuk setiap retriever; kembalikan hasil per run dan path summary CSV."""
     started_at = started_at or datetime.now().astimezone()
     # dicatat sekali sebelum run, supaya semua run.json memuat status repo yang sama
     environment = environment if environment is not None else collect_environment()
     stamp = started_at.strftime("%Y%m%d-%H%M%S")
-    selected = select_questions(load_questions(dataset))
+    selected = select_questions(load_questions(dataset), split)
     pool_pairs = read_pool_pairs(pool)
     dataset_sha, pool_sha = sha256_file(dataset), sha256_file(pool)
 
@@ -248,13 +250,14 @@ def run_retrieval(
             MAIN_GROUP: summarize([r for r in results if r.group == MAIN_GROUP]),
             FOLLOWUP_GROUP: summarize([r for r in results if r.group == FOLLOWUP_GROUP]),
         }
-        run_dir = out_root / f"{stamp}-{SPLIT}-{kind}"
+        run_dir = out_root / f"{stamp}-{split}-{kind}"
         run_dir.mkdir(parents=True, exist_ok=False)
         _write_per_question(run_dir / "per_question.csv", results)
         info = kb.manifest["embedder"]
         run = {
             "experiment": EXPERIMENT,
-            "split": SPLIT,
+            "split": split,
+            "lock": (split_info or {}).get("lock"),
             "retriever": kind,
             "reranker_enabled": effective.rag.reranker.enabled,
             "config_hash": effective.config_hash(),
@@ -276,7 +279,7 @@ def run_retrieval(
         )
         runs.append(RunResult(kind, run_dir, run["config_hash"], metrics, tuple(results)))
 
-    summary = out_root / f"summary-{SPLIT}-{stamp}.csv"
+    summary = out_root / f"summary-{split}-{stamp}.csv"
     with summary.open("w", encoding="utf-8-sig", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=SUMMARY_COLUMNS)
         writer.writeheader()

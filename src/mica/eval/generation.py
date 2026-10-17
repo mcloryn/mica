@@ -52,6 +52,7 @@ from mica.rag.retriever import embedder_for_kb, make_retriever
 
 EXPERIMENT = "E-02"
 SPLIT = "dev"
+PROMPT_VARIANTS = ("paraphrase", "plain")  # RagConfig.prompt_variant (ADR-07, E-03)
 DEFAULT_CACHE_DIR = Path("data/cache/llm")
 TPM_LIMIT = 6000
 FIRST_ESTIMATE_TOKENS = 2500
@@ -326,15 +327,22 @@ class GenerationRow:
         return self.oos_level if self.type == "out_of_kb" and self.oos_level else self.type
 
 
-def effective_settings(settings: Settings, gate_off: bool, model: str | None = None) -> Settings:
+def effective_settings(settings: Settings, gate_off: bool, model: str | None = None,
+                       prompt_variant: str | None = None) -> Settings:  # fmt: skip
     """Konfigurasi run ini: cek angka selalu menyala (status 'off' dihitung offline).
 
     model ("penyedia:id_model") mengganti llm.chain menjadi satu model itu saja.
+    prompt_variant (--prompt-variant) menimpa rag.prompt_variant.
     """
     rag = settings.rag
     gate = rag.gate.model_copy(update={"threshold": None}) if gate_off else rag.gate
     fact_check = rag.fact_check.model_copy(update={"enabled": True})
-    rag = rag.model_copy(update={"gate": gate, "fact_check": fact_check})
+    rag_update: dict[str, Any] = {"gate": gate, "fact_check": fact_check}
+    if prompt_variant is not None:
+        if prompt_variant not in PROMPT_VARIANTS:
+            raise ValueError(f"--prompt-variant harus salah satu dari {PROMPT_VARIANTS}")
+        rag_update["prompt_variant"] = prompt_variant
+    rag = rag.model_copy(update=rag_update)
     update: dict[str, Any] = {"rag": rag}
     if model is not None:
         data = settings.llm.model_dump()
@@ -351,8 +359,8 @@ def model_slug(model: str) -> str:
     return model.partition(":")[2].rsplit("/", 1)[-1].replace(":", "-")
 
 
-def dev_questions(questions: list[Question]) -> list[Question]:
-    return sorted((q for q in questions if q.get("split") == SPLIT), key=lambda q: q["qid"])
+def dev_questions(questions: list[Question], split: str = SPLIT) -> list[Question]:
+    return sorted((q for q in questions if q.get("split") == split), key=lambda q: q["qid"])
 
 
 def answer_questions(
@@ -373,7 +381,7 @@ def answer_questions(
         prev_id = q.get("prev_qid")
         if q.get("type") == "followup" and prev_id:
             if prev_id not in by_qid:
-                raise ValueError(f"{q['qid']}: prev_qid {prev_id} tidak ada di split {SPLIT}")
+                raise ValueError(f"{q['qid']}: prev_qid {prev_id} tidak ada di split ini")
             prev = run(by_qid[prev_id])
             history = [
                 Turn(question=scrub_pii(by_qid[prev_id]["question"]), answer=prev.final_text)
@@ -603,14 +611,17 @@ def run_generation(
     cache_only: bool = False,
     model: str | None = None,
     experiment: str = EXPERIMENT,
+    split: str = SPLIT,
+    split_info: dict[str, Any] | None = None,
+    prompt_variant: str | None = None,
 ) -> tuple[Path, list[GenerationRow], list[dict[str, Any]]]:
     if not re.fullmatch(r"E-\d{2}", experiment):
         raise ValueError(f"--experiment {experiment!r} harus berformat E-NN, misalnya E-04")
     started_at = started_at or datetime.now().astimezone()
     clock_start = time.perf_counter()
     environment = environment if environment is not None else collect_environment()
-    eff = effective_settings(settings, gate_off, model)
-    questions = dev_questions(load_questions(dataset))
+    eff = effective_settings(settings, gate_off, model, prompt_variant)
+    questions = dev_questions(load_questions(dataset), split)
 
     if provider is None:
         providers = make_llm(eff).providers
@@ -643,7 +654,7 @@ def run_generation(
     suffix = (f"-{model_slug(model)}" if model is not None else "") + (
         "-gateoff" if gate_off else ""
     )
-    run_dir = Path(out_root) / f"{stamp}-{experiment}-{SPLIT}-{eff.rag.retriever}{suffix}"
+    run_dir = Path(out_root) / f"{stamp}-{experiment}-{split}-{eff.rag.retriever}{suffix}"
     run_dir.mkdir(parents=True, exist_ok=False)
     _write_csv(
         run_dir / "per_question.csv", PER_QUESTION_COLUMNS, [_per_question_row(r) for r in rows]
@@ -657,7 +668,8 @@ def run_generation(
     run = {
         "experiment": experiment,
         "component": "generation",
-        "split": SPLIT,
+        "split": split,
+        "lock": (split_info or {}).get("lock"),
         "retriever": eff.rag.retriever,
         "top_k": eff.rag.top_k,
         "gate_off": gate_off,
@@ -667,6 +679,8 @@ def run_generation(
         "followup_mode": eff.rag.followup_mode,
         "history_turns": eff.rag.history_turns,
         "prompt_variant": eff.rag.prompt_variant,
+        "prompt_variant_config": settings.rag.prompt_variant,
+        "prompt_variant_source": "--prompt-variant" if prompt_variant is not None else "config",
         "prompt_version": PROMPT_VERSION,
         "config_hash": eff.config_hash(),
         "config_hash_file": settings.config_hash(),

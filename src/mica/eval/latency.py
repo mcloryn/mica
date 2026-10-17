@@ -256,6 +256,7 @@ def run_latency(
     tool_test: bool = False,
     environment: dict[str, Any] | None = None,
     stamp: str | None = None,
+    split_info: dict[str, Any] | None = None,
 ) -> tuple[Path, str]:
     turn_files = _files(log_dir, "turns", start, end)
     event_files = _files(log_dir, "events", start, end)
@@ -281,6 +282,8 @@ def run_latency(
         "experiment": "E-09 latency", "protocol": "docs/E-09.md (pra-registrasi 18 Okt 2026)",
         "label": label,
         "tool_test": tool_test,
+        "split": (split_info or {}).get("split", "dev"),
+        "lock": (split_info or {}).get("lock"),
         "note": "uji alat, bukan hasil E-09" if tool_test else None,
         "log_dir": Path(log_dir).as_posix(),
         "date_range": [start.isoformat() if start else None, end.isoformat() if end else None],
