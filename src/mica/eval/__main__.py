@@ -95,6 +95,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="label eksperimen di run.json dan nama folder run (default E-02)",
     )
 
+    cp = sub.add_parser("copy", help="E-03: coverage dan density (Grusky dkk. 2018)")
+    cp.add_argument("--config", type=Path, required=True)
+    cp.add_argument("--runs", type=Path, nargs="+", required=True, help="folder run generation")
+    cp.add_argument("--out", type=Path, default=Path("results/E-03"))
+    cp.add_argument("--cache-dir", type=Path, default=DEFAULT_CACHE_DIR)
+    cp.add_argument("--env-file", type=Path, default=Path(".env"))
+
     from mica.audio.__main__ import add_trial_args
 
     stt = sub.add_parser("stt", help="E-05: WER, CER, waktu sampai teks, transkripsi palsu")
@@ -460,17 +467,82 @@ def cmd_stt(
     return 0
 
 
+def cmd_copy(args: argparse.Namespace, embedder_factory: EmbedderFactory | None = None) -> int:
+    """Tingkat salin per model dari run generation yang sudah ada; tanpa panggilan LLM."""
+    from datetime import datetime
+
+    from mica.eval.copy_rate import (
+        COUNTED_STATUSES,
+        EXPERIMENT,
+        TOKENIZATION,
+        load_run,
+        score_items,
+        summary_rows,
+        top_density,
+        write_outputs,
+    )
+    from mica.rag.retriever import embedder_for_kb
+
+    settings = load_settings(args.config, env_file=args.env_file)
+    kb = load_kb(settings.kb.active_id, args.kb_root)
+    info = kb.manifest["embedder"]
+    embedder = (embedder_factory(info["model"], info["revision"]) if embedder_factory
+                else embedder_for_kb(kb))  # fmt: skip
+    texts = {c.chunk_id: c.text for c in kb.chunks}
+    environment = collect_environment()
+    warning = dirty_warning(environment)
+    if warning:
+        print(warning, file=sys.stderr)
+    scored_all, summaries, sources, examples = [], [], [], {}
+    for run_dir in args.runs:
+        model, items, run_info = load_run(run_dir, settings, kb, args.cache_dir, embedder)
+        scored, excluded = score_items(items, texts)
+        run_info["n_excluded"] = excluded
+        sources.append(run_info)
+        scored_all += scored
+        summaries += summary_rows(model, scored, excluded)
+        examples[model] = top_density(scored)
+        print(f"{model}: {len(scored)} jawaban dihitung, {excluded} dikecualikan "
+              f"({run_dir.name}, rekonstruksi konteks cocok dengan cache)")  # fmt: skip
+    stamp = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S")
+    run_dir = Path(args.out) / f"copy-dev-{stamp}"
+    write_outputs(run_dir, scored_all, summaries, {
+        "experiment": EXPERIMENT, "metric": "coverage dan density extractive fragments "
+        "(Grusky dkk. 2018 [43]; Ladhak dkk. 2022 [42])", "tokenization": TOKENIZATION,
+        "counted_llm_status": list(COUNTED_STATUSES),
+        "sources": {"kutip": "potongan di citations jawaban",
+                    "konteks": "semua potongan yang dikirim ke LLM (top-k retriever)"},
+        "boundary": "potongan digabung dengan pemisah yang tidak pernah cocok",
+        "kb_id": kb.kb_id, "source_runs": sources, "environment": environment,
+        "threshold": "tidak ada ambang bagus/buruk",
+    })  # fmt: skip
+    print("model | sumber | n | coverage mean/median/p90 | density mean/median/p90")
+    for r in summaries:
+        print(f"{r['model']} | {r['sumber']} | {r['n']} | {r['coverage_mean']}/"
+              f"{r['coverage_median']}/{r['coverage_p90']} | {r['density_mean']}/"
+              f"{r['density_median']}/{r['density_p90']}")  # fmt: skip
+    for model, lines in examples.items():
+        print(f"density kutip tertinggi, {model}:")
+        for line in lines:
+            print(f"  {line}")
+    print(f"tersimpan: {run_dir.as_posix()}")
+    return 0
+
+
 def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     args = build_parser().parse_args(argv)
     from mica.audio.listen import ListenError
     from mica.audio.stt import SttModelMissing
+    from mica.eval.copy_rate import RunMismatch
     from mica.eval.stt import ManifestError
 
     try:
         if args.command == "stt":
             return cmd_stt(args)
+        if args.command == "copy":
+            return cmd_copy(args, embedder_factory)
         if args.command == "retrieval":
             return cmd_retrieval(args, embedder_factory)
         if args.command == "gate":
@@ -481,7 +553,8 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
             return cmd_export(args, embedder_factory)
         return cmd_import(args)
     except (ConfigError, KbLoadError, DatasetError, FileExistsError, ValueError, CacheMiss,
-            SttEvalError, ManifestError, ListenError, SttModelMissing) as exc:  # fmt: skip
+            SttEvalError, ManifestError, ListenError, SttModelMissing, RunMismatch,
+            KeyError) as exc:  # fmt: skip
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
