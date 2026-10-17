@@ -56,7 +56,7 @@ Komponen berstatus Provisional atau Terbuka selalu ditaruh di balik antarmuka da
 | 16 | Recall@5, MRR, nDCG@10 | Diadopsi | Skrip evaluasi retrieval | M-12 | - |
 | 17 | Hallucination rate + 4 metrik pendukung | Diadopsi | Skrip evaluasi generation dan lembar anotasi | M-12 | - |
 | 18 | Penilaian manusia per klaim; LLM pelengkap | Provisional | Ekspor lembar anotasi, penilai LLM opsional | M-12 | `eval.judge.enabled` |
-| 19 | PySide6 | Provisional | Seluruh UI di M-10, logika di luar widget | M-10 | - |
+| 19 | UI web lokal: Flask 3.1.3 + flask-sock 0.7.0 (server Werkzeug threaded, hanya 127.0.0.1, debugger dan reloader mati), ditampilkan di Microsoft Edge mode kiosk \[52\] \[53\]. PySide6 dibekukan sebagai cadangan | Diadopsi (keputusan pemilik proyek 17 Oktober 2026 setelah tahap 1 LOLOS; anggaran diverifikasi di E-09) | Seluruh UI di M-10 (src/mica/webui), logika di luar tampilan | M-10 | - |
 | 20 | Tiga proses lokal, pipeline modular | Diadopsi | Bus pesan antarproses, pengaturan laju vision | M-13 | `vision.fps_idle`, `vision.fps_busy` |
 
 ### 2.2 Konflik antara PRD dan laporan keputusan
@@ -72,7 +72,7 @@ Komponen berstatus Provisional atau Terbuka selalu ditaruh di balik antarmuka da
 
 ### 2.3 Asumsi
 
-- Laptop kiosk: Windows 10/11 64-bit, CPU x86-64 tanpa GPU, minimal 8 GB RAM, webcam, mikrofon, speaker, dan internet. Spesifikasi sebenarnya belum diketahui (pertanyaan terbuka PRD), sehingga asumsi ini konservatif dan dicek di E-09.
+- Laptop kiosk: Windows 10/11 64-bit, CPU x86-64 tanpa GPU, minimal 8 GB RAM, webcam, mikrofon, speaker, dan internet. Spesifikasi sebenarnya belum diketahui (pertanyaan terbuka PRD), sehingga asumsi ini konservatif dan dicek di E-09. Microsoft Edge (bawaan Windows 10/11) wajib ada karena UI berbasis web.
 - Python 3.11 atau lebih baru (PySide6 6.12 mendukung 3.10 sampai 3.15 \[41\]).
 - Model BGE-M3, YOLO, Whisper, Silero VAD, dan suara Piper diunduh sekali saat instalasi lalu dipakai offline.
 - Satu kiosk, satu pengunjung dalam satu waktu, sesuai Bab 1.
@@ -131,6 +131,9 @@ Bagian ini mencatat keputusan desain yang diambil selama implementasi MS0 dan MS
 | M-07 (Langkah 26, bobot YOLO) | Bobot YOLO diunduh dari tag rilis ultralytics/assets v8.4.0, bukan rilis terbaru, dengan SHA-256 dikunci; digest cocok dengan digest rilis di GitHub (597ac13). | Unduhan rilis terbaru bisa berubah tanpa pemberitahuan, sehingga hasil tidak bisa diulang. |
 | M-08, M-12 (Langkah 26 dan 27, eval stt untuk E-05), 6.3 | python -m mica.eval stt membaca manifest.jsonl (6.3) dan menghitung WER, CER, waktu sampai transkripsi, laju transkripsi palsu, serta Recall@5 retrieval atas transkripsi dibanding referensi (5c5c629). Pengukuran dua fase: seluruh STT dulu, retriever sesudahnya. collect\_environment() memuat torch, jadi dipanggil setelah fase 1; waktu STT uji asap sintetis turun dari 2,4-2,9 menjadi 1,48-1,64 detik (Langkah 27). --hotwords diteruskan ke parameter hotwords faster-whisper. GroqWhisperStt memakai endpoint dari dokumentasi Groq (URL dan tanggal cek di komentar kode), ID model dari audio.stt.groq\_model, dan belum dipanggil. Uji asap memakai suara sintetis Piper (c12dcd3) dan bukan hasil E-05; protokol relawan di docs/E-05.md. | E-05 mengukur STT sendiri; perebutan CPU dengan BGE-M3 dan torch diukur di E-09. |
 | M-12 (Langkah 27, eval copy untuk E-03) | python -m mica.eval copy menghitung extractive fragment coverage dan density (Grusky dkk. \[43\]) secara offline dari run eval generation, terhadap dua sumber: potongan yang dikutip dan seluruh potongan konteks. Tokenisasi sama dengan mica.kb.index.tokenize. Konteks direkonstruksi dari cache (--cache-only, tanpa panggilan API); jawaban yang ditolak tidak dihitung. Uji alat pada run E-04 dev (results/E-03/copy-dev-20261017-183657): density kutip rata-rata 120b 3,32 dan 20b 4,36. Ini uji alat, bukan hasil E-03. | Ladhak dkk. \[42\]: tingkat menyalin dilaporkan bersama hallucination rate, tidak sendirian. Tidak ada ambang mutlak. |
+| M-10, ADR-19 (Langkah 29, tahap 1) | UI web dibandingkan dengan PySide6 memakai protokol docs/UI-WEB.md yang ditetapkan sebelum mengukur (results/ADR-19, median 3 ulangan, pekerja dan pipeline palsu, daya AC). PySide6: RAM USS 66 MB diam dan 68 MB setelah 20 pertanyaan, CPU diam 0,55% satu inti, mulai 0,80 detik, p95 jeda tampil 6,7 ms. Web (server aiohttp): 196 dan 250 MB, 6,98%, 1,98 detik, p95 5,2 ms. Tahap 1 LOLOS: fungsional lengkap dan p95 × 3 jauh di bawah 1 detik \[52\]. | ADR-19 berstatus Provisional dan butuh bukti terukur. Faktor × 3 adalah perkiraan kasar pemilik proyek untuk laptop kiosk (sepertiga laptop dev). |
+| M-10 (Langkah 30) | Server web diganti dari aiohttp ke Flask 3.1.3 + flask-sock 0.7.0 atas preferensi pemilik proyek. flask-sock hanya mendukung Werkzeug, Gunicorn, Eventlet, dan Gevent; di Windows dipakai server bawaan Werkzeug (threaded, 127.0.0.1, debugger dan reloader mati). Kunci ui.backend ditambahkan. Uji --cover-window (Notepad di depan Edge): tanpa switch anti-throttling 1 dari 3 ulangan mendapat 0 ack, dengan switch 3 dari 3 normal; hasil indikatif dan dicek ulang di E-09. | Pemilik proyek lebih menguasai Flask sehingga bisa menjelaskan kodenya. Peringatan Werkzeug bukan untuk produksi berlaku untuk server publik; di MICA server hanya melayani satu klien lokal, dan ini ditulis sebagai keterbatasan. |
+| M-10, ADR-19 (Langkah 31) | Pemilik proyek memilih UI web sebelum tahap 2; ui.backend = web di dev dan kiosk, PySide6 dibekukan sebagai cadangan. Diagnosis di daya AC: CPU diam terbesar di proses browser Edge (sekitar 3,7% dari total sekitar 5,3%); frontend tanpa animasi atau timer berulang. Dari switch yang diuji, hanya --disable-component-update lolos aturan optimasi. Web akhir: RAM diam 194 MB, CPU diam 4,45%, mulai 2,44 detik, p95 2,9 ms. Uji 200 pertanyaan: kemiringan RAM +14,8 MB per 100 pertanyaan tanpa GC paksa dan +1,1 MB dengan GC paksa, jadi kenaikan berasal dari sampah yang belum dikumpulkan, bukan kebocoran. Perilaku berjam-jam dicek di E-09. | Penyimpangan protokol: UI dipilih sebelum tahap 2 dan wajib diungkap di Bab 3. E-09 berubah menjadi verifikasi anggaran 3.3 dan K-3 dengan UI web; bila gagal, optimasi dulu, PySide6 sebagai jalan keluar terakhir. |
 
 ## 3. Arsitektur
 
@@ -156,8 +159,10 @@ Arah dependensi: M-10 hanya bergantung pada M-09; M-09 memanggil M-06; M-06 mema
 
 | Tempat | Menjalankan | Pemilik state | Komunikasi |
 | --- | --- | --- | --- |
-| Proses utama, thread GUI | M-10 dan M-09; menerima pesan bus lewat `QTimer` setiap 50 ms (non-ADR: cara paling sederhana menggabungkan antrean antarproses dengan event loop Qt) | M-09 satu-satunya pemilik state kunjungan | Sinyal Qt ke widget |
-| Proses utama, `QThreadPool` (1 thread) | M-06 untuk satu pertanyaan pada satu waktu | Tidak menyimpan state; hasil membawa `session_id` | Sinyal `answer_ready` ke thread GUI |
+| Proses utama, thread latar controller | M-09 lewat `KioskController` (tanpa Qt sejak Langkah 23); mem-poll bus dan antrean internal setiap 50 ms | M-09 satu-satunya pemilik state kunjungan | ViewModel baru disiarkan ke koneksi WebSocket aktif (dengan lock) |
+| Proses utama, `ThreadPoolExecutor` (1 thread) | M-06 untuk satu pertanyaan pada satu waktu | Tidak menyimpan state; hasil membawa `session_id` | `AnswerReady` lewat antrean internal controller |
+| Proses utama, server Flask (Werkzeug threaded) | M-10: halaman, file static, dan WebSocket; hanya 127.0.0.1 | Tidak menyimpan state kunjungan | Event input ke controller; JSON ViewModel ke Edge |
+| Proses Microsoft Edge (terpisah) | Menampilkan UI web dalam mode kiosk | Hanya tampilan (DOM sesi aktif) | WebSocket ke server Flask lokal |
 | Proses utama, thread penulis log | M-11 | File log | Antrean di dalam proses |
 | Proses vision | Loop kamera, deteksi, tracking, warna | State tracker | `bus.to_main` dan `bus.to_vision` |
 | Proses suara, thread rekam | Mikrofon dan Silero VAD | Buffer audio | Antrean di dalam proses |
@@ -182,7 +187,7 @@ Arah dependensi: M-10 hanya bergantung pada M-09; M-09 memanggil M-06; M-06 mema
 
 | Aspek | Isi |
 | --- | --- |
-| Perangkat | Laptop kiosk sesuai asumsi 2.3, layar dalam mode layar penuh, webcam menghadap area berdiri pengunjung |
+| Perangkat | Laptop kiosk sesuai asumsi 2.3, layar dalam mode layar penuh, webcam menghadap area berdiri pengunjung; UI tampil di Microsoft Edge mode kiosk, dan mica check GAGAL bila msedge.exe tidak ditemukan saat ui.backend = web |
 | Runtime | Python 3.11+ dalam virtual environment; dependensi dikunci di `requirements.lock` |
 | Model lokal | BGE-M3 \[1\], YOLO26n atau YOLO26n-pose \[27\], faster-whisper small int8 \[26\], Silero VAD \[39\], suara Piper id\_ID \[25\]; diunduh sekali oleh `mica setup` ke folder `models/` |
 | Data | `data/kb/<kb_id>/` (KB aktif dipilih `kb.active_id`), `logs/` |
@@ -292,10 +297,10 @@ Semua path relatif terhadap `src/mica/`. Tipe data yang disebut di sini didefini
 
 ### M-10: UI (`ui/`)
 
-- **Tanggung jawab:** jendela layar penuh PySide6: layar awal dengan tombol topik dan saran pertanyaan, area percakapan, teks transkripsi yang bisa diulang atau diedit, sumber di bawah tiap jawaban, indikator status, pemberitahuan kamera, dan tombol bicara.
-- **Kebutuhan:** F-05 sampai F-07, F-09, F-14, F-15, F-20, N-08 (pemberitahuan), US-02, US-03. **ADR:** ADR-19 (Provisional).
-- **Struktur:** `KioskController` menjalankan proses vision dan suara, memompa bus, meneruskan event ke M-09, dan mengeksekusi `Action`. Widget hanya menampilkan `ViewModel` dan memancarkan sinyal; tidak ada logika bisnis di widget.
-- **Konfigurasi:** `ui.topics` (daftar topik dan saran pertanyaan), `ui.fullscreen`, `ui.font_scale`.
+- **Tanggung jawab:** UI web layar penuh di Microsoft Edge mode kiosk, disajikan server Flask lokal: layar awal dengan tombol topik dan saran pertanyaan, area percakapan, teks transkripsi yang bisa diulang atau diedit, sumber di bawah tiap jawaban, indikator status, pemberitahuan kamera, dan tombol bicara. Kode di src/mica/webui (server.py, app.py, browser.py, state.py) dengan HTML, CSS, dan JavaScript polos tanpa CDN. PySide6 (src/mica/ui) dibekukan sebagai cadangan.
+- **Kebutuhan:** F-05 sampai F-07, F-09, F-14, F-15, F-20, N-08 (pemberitahuan), US-02, US-03. **ADR:** ADR-19 (Diadopsi: UI web, 17 Oktober 2026).
+- **Struktur:** `KioskController` menjalankan proses vision dan suara, memompa bus, meneruskan event ke M-09, dan mengeksekusi `Action`. Server mengirim `ViewModel` sebagai JSON lewat WebSocket hanya saat berubah; browser membalas ack setelah `requestAnimationFrame`. WebSocket menolak Origin selain alamat server sendiri. Halaman hanya menampilkan `ViewModel` dan mengirim event input; tidak ada logika bisnis di halaman.
+- **Konfigurasi:** `ui.backend` (`web` | `pyside6`; dev dan kiosk = `web`), `ui.topics` (daftar topik dan saran pertanyaan), `ui.fullscreen`, `ui.font_scale`. Edge diluncurkan dengan `--kiosk <url> --edge-kiosk-type=fullscreen --no-first-run`, `--user-data-dir` sementara, tiga switch anti-throttling `--disable-backgrounding-occluded-windows`, `--disable-renderer-backgrounding`, `--disable-background-timer-throttling` (content\_switches.cc Chromium), dan `--disable-component-update`.
 - **Selesai bila:** prototipe pertama membuktikan tiga syarat ADR-19 (layar penuh, tampilan tetap responsif saat vision dan STT berjalan, audio TTS terdengar), dan skenario black-box F-05 sampai F-20 lolos.
 
 ### M-11: InteractionLog (`core/logging.py`)
@@ -960,6 +965,7 @@ session:
   idle_reset_s: null                # E-09
   regreet_cooldown_s: null          # E-07
 ui:
+  backend: web                      # ADR-19; web | pyside6 (cadangan)
   fullscreen: true
   font_scale: 1.0
   topics: [Program studi, Jalur masuk, Biaya, Beasiswa, Fasilitas, Prospek karier]   # F-14, dari topik dataset PRD
@@ -988,13 +994,15 @@ mica/
       types.py                 # tipe data 5.1
       bus.py                   # M-13
       session.py               # M-09
+      controller.py            # M-10: KioskController
       logging.py               # M-11
     kb/                        # M-02: parsers.py, chunker.py, embedder.py, index.py, __main__.py
     rag/                       # M-03 sampai M-06: retriever.py, rerank.py, gate.py, checker.py,
                                #   llm.py, prompts.py, pii.py, pipeline.py
     audio/                     # M-08: worker.py, vad.py, stt.py, tts.py, normalize.py
     vision/                    # M-07: worker.py, detector.py, region.py, color.py, presence.py
-    ui/                        # M-10: controller.py, main_window.py, widgets.py
+    ui/                        # M-10 cadangan (dibekukan): main_window.py, widgets.py
+    webui/                     # M-10 utama: server.py, app.py, browser.py, state.py, static/
     eval/                      # M-12: satu file per subperintah
   data/
     kb/<kb_id>/                # 6.1
@@ -1019,3 +1027,4 @@ mica/
 | 17 Oktober 2026 (malam) | 7.1: baris tambahan dari implementasi M-09 (T09, T16, T18 sampai T20, StopTapped, reset, Ignored). 2.4: baris M-09, KioskController, dan UI PySide6 (Langkah 22 sampai 24), termasuk ui.suggestions dan uji jendela yang tertunda. |
 | 17 Oktober 2026 (malam, lanjutan) | Tabel nilai TBD di bagian 12 dilengkapi untuk 36 kunci kiosk dari mica check: eksperimen, nilai dev atau nilai coba beserta sumbernya, dan status. |
 | 17 Oktober 2026 (malam, Langkah 25 sampai 27) | 6.3: dataset suara memakai manifest.jsonl, menggantikan transcripts.csv. 13.1 dan bagian 12: kunci audio.stt.groq\_model. 2.4: empat baris Langkah 25 sampai 27 (setup/check dan PySide6-Essentials, tag rilis YOLO, eval stt dua fase, eval copy). 9.5: aturan pra-registrasi E-03 (density tanpa entitas sebagai metrik sekunder dan aturan keputusan paraphrase vs plain). |
+| 17 Oktober 2026 (malam, Langkah 29 sampai 31) | ADR-19 menjadi UI web (Flask + flask-sock, Microsoft Edge mode kiosk), PySide6 dibekukan sebagai cadangan. M-10, tabel proses dan thread, asumsi 2.3, deployment 3.4, config 13.1 (ui.backend), dan struktur repo (webui/) diperbarui. 2.4: tiga baris Langkah 29 sampai 31 (pengukuran tahap 1, Flask dan switch Edge, optimasi dan uji sesi panjang). |
