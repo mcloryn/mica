@@ -95,3 +95,65 @@ class FakeTts:
         from mica.audio.tts import concat
 
         return concat(list(self.stream(text)))
+
+
+class FakeStt:
+    """SpeechToText palsu: mengembalikan teks dari daftar secara berurutan."""
+
+    def __init__(self, texts=None, threads=4) -> None:
+        self.texts = list(texts or [])
+        self.threads = threads
+        self.calls = 0
+
+    def transcribe(self, pcm16k):
+        from mica.audio.stt import Transcript
+
+        self.calls += 1
+        text = self.texts.pop(0) if self.texts else ""
+        audio_s = len(pcm16k) / 16000
+        return Transcript(text, bool(text), 0.1 * audio_s, audio_s)
+
+
+class FakeMic:
+    """Mikrofon palsu: memutar pola potongan 512 sampel (ucapan = amplitudo 1000, diam = 0).
+
+    pattern berisi jumlah potongan per segmen, mis. [("diam", 5), ("bicara", 10), ...]. Setelah
+    pola habis, read_chunk mengembalikan None. pause() membuang sisa buffer (K-6): potongan yang
+    dibaca saat pause tidak pernah sampai ke pemanggil.
+    """
+
+    def __init__(self, pattern, loop=False) -> None:
+        self.chunks = []
+        for kind, n in pattern:
+            value = 1000 if kind == "bicara" else 0
+            self.chunks += [np.full(512, value, dtype=np.int16)] * n
+        self.loop = loop
+        self.pos = 0
+        self.paused = False
+        self.events: list[str] = []
+        self.input_rate = 16000
+        self.resampled = False
+        self.closed = False
+
+    def read_chunk(self, timeout_s=1.0):
+        if self.pos >= len(self.chunks):
+            return None
+        chunk = self.chunks[self.pos]
+        self.pos += 1
+        return chunk
+
+    def pause(self) -> None:
+        self.paused = True
+        self.events.append("pause")
+
+    def resume(self) -> None:
+        self.paused = False
+        self.events.append("resume")
+
+    def close(self) -> None:
+        self.closed = True
+
+
+def fake_prob():
+    """prob ucapan palsu untuk SpeechSegmenter: 1 bila potongan berisi suara, selain itu 0."""
+    return lambda chunk: 1.0 if np.abs(chunk).max() > 0 else 0.0

@@ -24,6 +24,10 @@ dependencies = [
     "piper-tts==1.8.0",
     "num2words==0.5.14",
     "sounddevice==0.5.6",
+    # M-08 STT (ADR-09, ADR-10) dan WER (E-05): MIT, MIT, Apache-2.0
+    "faster-whisper==1.2.1",
+    "pysilero-vad==3.4.0",
+    "jiwer==4.0.0",
 ]
 
 [project.optional-dependencies]
