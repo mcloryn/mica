@@ -8,6 +8,8 @@ python -m mica.eval gate --config <yaml> --dataset <jsonl> --out <folder>
 python -m mica.eval generation --config <yaml> --dataset <jsonl> --out <folder> [--gate-off]
     [--no-cache] [--cache-only] [--cache-dir data/cache/llm] [--env-file .env]
     [--model penyedia:id_model] [--experiment E-02]
+python -m mica.eval latency --logs logs/ --label <label> [--resources <csv>] [--from --to]
+    [--out results/E-09] [--tool-test]   (E-09, lihat mica/eval/latency.py)
 """
 
 from __future__ import annotations
@@ -15,6 +17,7 @@ from __future__ import annotations
 import argparse
 import sys
 from collections.abc import Callable
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -121,7 +124,32 @@ def build_parser() -> argparse.ArgumentParser:
     stt.add_argument("--env-file", type=Path, default=Path(".env"))
     stt.add_argument("--note", help="catatan di run.json, mis. 'sintetis, bukan hasil E-05'")
     add_trial_args(stt)
+
+    lat = sub.add_parser("latency", help="E-09: latensi per tahap dari log 6.2 dan verdict")
+    lat.add_argument("--logs", type=Path, default=Path("logs"))
+    lat.add_argument("--label", required=True, help="nama run, mis. kiosk-fps2-t1")
+    lat.add_argument("--resources", type=Path, help="resources.csv dari --record-resources")
+    lat.add_argument("--from", dest="start", type=date.fromisoformat, help="YYYY-MM-DD")
+    lat.add_argument("--to", dest="end", type=date.fromisoformat, help="YYYY-MM-DD")
+    lat.add_argument("--out", type=Path, default=Path("results/E-09"))
+    lat.add_argument("--tool-test", action="store_true",
+                     help="tandai sebagai uji alat (bukan hasil E-09) di run.json dan verdict")  # fmt: skip
     return parser
+
+
+def cmd_latency(args: argparse.Namespace) -> int:
+    from mica.eval.latency import run_latency
+
+    environment = collect_environment()
+    warning = dirty_warning(environment)
+    if warning:
+        print(warning, file=sys.stderr)
+    run_dir, overall = run_latency(args.logs, args.out, args.label, args.resources, args.start,
+                                   args.end, args.tool_test, environment)  # fmt: skip
+    print((run_dir / "verdict.md").read_text(encoding="utf-8"))
+    print(f"keseluruhan: {overall}")
+    print(f"tersimpan: {run_dir.as_posix()}")
+    return 0
 
 
 def _threads_list(value: str) -> list[int]:
@@ -561,6 +589,8 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
     try:
         if args.command == "stt":
             return cmd_stt(args)
+        if args.command == "latency":
+            return cmd_latency(args)
         if args.command == "copy":
             return cmd_copy(args, embedder_factory)
         if args.command == "retrieval":
