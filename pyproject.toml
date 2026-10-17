@@ -31,6 +31,8 @@ dependencies = [
     # M-10 UI (ADR-19): LGPL-3.0-only OR GPL-2.0-only; hanya QtCore/QtGui/QtWidgets (+QtTest
     # untuk pytest-qt), jadi cukup paket Essentials tanpa Addons/WebEngine/Pdf
     "PySide6-Essentials==6.12.0",
+    # percobaan UI web (branch coba-ui-web saja, ADR-19): HTTP + WebSocket satu port, Apache-2.0
+    "aiohttp==3.14.5",
 ]
 
 [project.optional-dependencies]
@@ -42,6 +44,9 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"mica.webui" = ["static/*"]  # percobaan UI web (branch coba-ui-web)
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

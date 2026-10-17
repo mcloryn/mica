@@ -1,0 +1,135 @@
+"""UI web (percobaan ADR-19): rakit KioskController + server + Edge, tanpa Qt.
+
+python -m mica.webui --config <yaml> [--fake-workers] [--fake-pipeline] [--no-browser] [--port N]
+- Rakitan bus/pipeline/controller sama dengan mica.ui.app.build; --fake-* hanya di mode dev.
+- Edge ditutup -> server, controller, dan pekerja berhenti rapi; server berhenti -> Edge ditutup.
+- --no-browser: hanya server (URL dicetak), berhenti dengan Ctrl+C.
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import sys
+import time
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any
+
+from mica.config import ConfigError, Settings, load_settings
+from mica.core.controller import KioskController
+from mica.core.logging import InteractionLog
+from mica.core.session import Session
+from mica.webui.server import HOST, WebUi, start_site
+
+DEFAULT_CONFIG = Path("config/dev.yaml")
+WATCH_INTERVAL_S = 0.25  # non-ADR: cek berkala apakah jendela Edge sudah ditutup
+
+
+class WebUiError(Exception):
+    pass
+
+
+def build_controller(
+    settings: Settings,
+    webui: WebUi,
+    *,
+    fake_workers: bool = False,
+    fake_pipeline: bool = False,
+    bus: Any = None,
+    pipeline: Any = None,
+    clock: Callable[[], float] = time.monotonic,
+) -> KioskController:
+    dev = settings.app.mode == "dev"
+    if not dev and (fake_workers or fake_pipeline or bus is not None or pipeline is not None):
+        raise WebUiError("pekerja/pipeline palsu hanya boleh saat app.mode: dev (ditolak di kiosk)")
+    log = InteractionLog(Path(settings.logging.dir))
+    if bus is None:
+        if fake_workers:
+            from mica.ui.devfakes import FakeWorkerBus
+
+            bus = FakeWorkerBus()
+        else:
+            from mica.core.bus import start_workers
+
+            bus = start_workers(settings)
+    try:
+        if pipeline is None:
+            if fake_pipeline:
+                from mica.ui.devfakes import FakePipeline
+
+                pipeline = FakePipeline()
+            else:
+                from mica.rag.pipeline import make_pipeline
+
+                pipeline = make_pipeline(settings, log=log)
+    except Exception:
+        stop = getattr(bus, "stop", None)
+        if stop is not None:
+            stop()
+        raise
+    controller = KioskController(bus, Session.from_settings(settings), pipeline, webui.show_item,
+                                 clock, log, debug=webui.show_debug if dev else None)  # fmt: skip
+    webui.controller = controller
+    return controller
+
+
+async def serve(
+    webui: WebUi,
+    controller: KioskController,
+    browser: Any | None,
+    port: int = 0,
+    stop: asyncio.Event | None = None,
+    on_ready: Callable[[str], None] = print,
+) -> None:
+    """Server + loop poll 50 ms sampai stop di-set atau jendela Edge ditutup; lalu bersih-bersih."""
+    stop = stop or asyncio.Event()
+    runner = await start_site(webui, port)
+    url = f"http://{HOST}:{webui.port}/"
+    poll = asyncio.create_task(webui.poll_loop(stop))
+    try:
+        if browser is not None:
+            browser.start(url)
+        on_ready(url)
+        while not stop.is_set():
+            if browser is not None and not browser.alive():
+                break  # jendela Edge ditutup
+            try:
+                await asyncio.wait_for(stop.wait(), WATCH_INTERVAL_S)
+            except TimeoutError:
+                pass
+    finally:
+        stop.set()
+        await poll
+        await webui.close_sockets()
+        controller.shutdown()
+        if browser is not None:
+            browser.close()
+        await runner.cleanup()
+
+
+def main(argv: list[str] | None = None) -> int:
+    from mica.webui.browser import EdgeBrowser, EdgeMissing
+
+    parser = argparse.ArgumentParser(prog="python -m mica.webui")
+    parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
+    parser.add_argument("--fake-workers", action="store_true", help="bus palsu (dev saja)")
+    parser.add_argument("--fake-pipeline", action="store_true", help="jawaban palsu (dev saja)")
+    parser.add_argument("--no-browser", action="store_true", help="jangan luncurkan Edge")
+    parser.add_argument("--port", type=int, default=0, help="0 = port acak bebas")
+    args = parser.parse_args(argv)
+    try:
+        settings = load_settings(args.config, Path(".env"))
+        webui = WebUi(settings.ui, dev=settings.app.mode == "dev")
+        browser = None if args.no_browser else EdgeBrowser(settings.ui.fullscreen)
+        controller = build_controller(settings, webui, fake_workers=args.fake_workers,
+                                      fake_pipeline=args.fake_pipeline)  # fmt: skip
+    except (ConfigError, WebUiError, EdgeMissing) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    try:
+        asyncio.run(serve(webui, controller, browser, args.port,
+                          on_ready=lambda url: print(f"MICA web: {url}", flush=True)))  # fmt: skip
+    except KeyboardInterrupt:
+        print("berhenti")
+    return 0
