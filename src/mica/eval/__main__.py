@@ -479,6 +479,7 @@ def cmd_copy(args: argparse.Namespace, embedder_factory: EmbedderFactory | None 
         score_items,
         summary_rows,
         top_density,
+        top_density_masked,
         write_outputs,
     )
     from mica.rag.retriever import embedder_for_kb
@@ -493,7 +494,7 @@ def cmd_copy(args: argparse.Namespace, embedder_factory: EmbedderFactory | None 
     warning = dirty_warning(environment)
     if warning:
         print(warning, file=sys.stderr)
-    scored_all, summaries, sources, examples = [], [], [], {}
+    scored_all, summaries, sources, examples, examples_masked = [], [], [], {}, {}
     for run_dir in args.runs:
         model, items, run_info = load_run(run_dir, settings, kb, args.cache_dir, embedder)
         scored, excluded = score_items(items, texts)
@@ -502,6 +503,7 @@ def cmd_copy(args: argparse.Namespace, embedder_factory: EmbedderFactory | None 
         scored_all += scored
         summaries += summary_rows(model, scored, excluded)
         examples[model] = top_density(scored)
+        examples_masked[model] = top_density_masked(scored)
         print(f"{model}: {len(scored)} jawaban dihitung, {excluded} dikecualikan "
               f"({run_dir.name}, rekonstruksi konteks cocok dengan cache)")  # fmt: skip
     stamp = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S")
@@ -515,6 +517,9 @@ def cmd_copy(args: argparse.Namespace, embedder_factory: EmbedderFactory | None 
         "boundary": "potongan digabung dengan pemisah yang tidak pernah cocok",
         "kb_id": kb.kb_id, "source_runs": sources, "environment": environment,
         "threshold": "tidak ada ambang bagus/buruk",
+        "companion_metric": "coverage/density tanpa entitas (SDD 9.5): token dari span email, "
+        "URL (http://, https://, www.), atau kata berdigit tidak boleh masuk fragmen; penyebut "
+        "|S| - |E|; |S| - |E| = 0 -> kosong, dikeluarkan dari rata-rata. Nama tidak di-mask.",
     })  # fmt: skip
     print("model | sumber | n | coverage mean/median/p90 | density mean/median/p90")
     for r in summaries:
@@ -523,6 +528,15 @@ def cmd_copy(args: argparse.Namespace, embedder_factory: EmbedderFactory | None 
               f"{r['density_median']}/{r['density_p90']}")  # fmt: skip
     for model, lines in examples.items():
         print(f"density kutip tertinggi, {model}:")
+        for line in lines:
+            print(f"  {line}")
+    print("model | sumber | n | kosong | coverage_tanpa_entitas mean | density_tanpa_entitas mean")
+    for r in summaries:
+        print(f"{r['model']} | {r['sumber']} | {r['n_tanpa_entitas']} | "
+              f"{r['n_kosong_tanpa_entitas']} | {r['coverage_tanpa_entitas_mean']} | "
+              f"{r['density_tanpa_entitas_mean']}")  # fmt: skip
+    for model, lines in examples_masked.items():
+        print(f"density_tanpa_entitas kutip tertinggi, {model}:")
         for line in lines:
             print(f"  {line}")
     print(f"tersimpan: {run_dir.as_posix()}")

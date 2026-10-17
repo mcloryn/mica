@@ -118,3 +118,85 @@ def test_load_run_rejects_changed_dataset(tmp_path):
         cr.load_run(run, None, SimpleNamespace(kb_id="kb1"), tmp_path, None)
     with pytest.raises(cr.RunMismatch, match="kb_id"):
         cr.load_run(run, None, SimpleNamespace(kb_id="kb2"), tmp_path, None)
+
+
+# --- metrik pendamping tanpa entitas (SDD 9.5) -------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Biaya S1 Rp4.500.000 per semester (2026/2027), hubungi (061) 4573767.",
+        "Email: fin@mikroskil.ac.id atau https://www.mikroskil.ac.id/pmb?x=1",
+        "İstanbul ÇEK dan ẞtraße ke-3",  # huruf yang berubah panjang saat lower()
+        "",
+    ],
+)
+def test_tokenize_with_offsets_equals_tokenize(text):
+    from mica.kb.index import tokenize
+
+    with_offsets = cr.tokenize_with_offsets(text)
+    assert [t for t, _, _ in with_offsets] == tokenize(text)
+    for token, start, end in with_offsets:
+        assert token in text[start:end].lower()  # İ -> i + titik gabung; tokenize ambil 'i'
+
+
+def _masked(text):
+    tokens, mask = cr.entity_mask(text)
+    return [t for t, m in zip(tokens, mask, strict=True) if m]
+
+
+def test_email_url_and_digit_words_are_entities():
+    assert _masked("email fin@mikroskil.ac.id ya") == ["fin", "mikroskil", "ac", "id"]
+    assert _masked("lihat https://pmb.mikroskil.ac.id/biaya sekarang") == [
+        "https", "pmb", "mikroskil", "ac", "id", "biaya"]  # fmt: skip
+    assert _masked("lihat www.mikroskil.ac.id sekarang") == ["www", "mikroskil", "ac", "id"]
+    assert _masked("tahun 2026/2027 telepon (061) total 4.500.000") == [
+        "2026", "2027", "061", "4", "500", "000"]  # fmt: skip
+    # kata campur: seluruh kata yang mengandung digit, termasuk "rp"
+    assert _masked("biaya Rp4.500.000 per tahun") == ["rp4", "500", "000"]
+    assert _masked("Biaya kuliah per tahun") == []
+
+
+def test_all_entity_answer_gives_empty():
+    m = cr.copy_score_masked("Rp4.500.000 fin@mikroskil.ac.id", ["rp4 500 000 fin mikroskil"])
+    assert m.n_tokens == m.n_entity == 7 and m.coverage is None and m.density is None
+    assert m.fragments == ()
+
+
+def test_no_entity_equals_original_grusky():
+    answer, source = "Biaya kuliah kelas pagi adalah mahal sekali", "biaya kuliah kelas pagi"
+    g, m = cr.copy_score(answer, [source]), cr.copy_score_masked(answer, [source])
+    assert m.n_entity == 0 and m.coverage == g.coverage and m.density == g.density
+    assert m.fragments == g.fragments
+
+
+def test_fragment_broken_exactly_at_entity_token():
+    source = "biaya kuliah rp14 000 000 per tahun untuk kelas pagi"
+    answer = "Biaya kuliah Rp14.000.000 per tahun untuk kelas pagi"
+    g = cr.copy_score(answer, [source])
+    assert g.fragments == (tuple(cr.tokenize(answer)),)  # Grusky asli: satu fragmen 10 token
+    m = cr.copy_score_masked(answer, [source])
+    # rp14 000 000 di-mask: fragmen [biaya kuliah] dan [per tahun untuk kelas pagi]
+    assert m.fragments == (("biaya", "kuliah"), ("per", "tahun", "untuk", "kelas", "pagi"))
+    assert m.n_tokens == 10 and m.n_entity == 3
+    assert m.coverage == pytest.approx(7 / 7)
+    assert m.density == pytest.approx((2**2 + 5**2) / 7)
+
+
+def test_masked_columns_and_summary_empty_rows():
+    items = [
+        _item("q1", "answered", "biaya kuliah rp14 000 000 per tahun"),
+        _item("q2", "answered", "Rp14.000.000"),  # seluruhnya entitas -> kosong
+    ]
+    scored, _ = cr.score_items(items, TEXTS)
+    row = cr.item_row(scored[1])
+    assert row["n_token"] == 3 and row["n_token_entitas"] == 3
+    assert row["coverage_tanpa_entitas_kutip"] == "" and row["density_tanpa_entitas_konteks"] == ""
+    assert row["coverage_kutip"] == "1.0000"  # Grusky asli tetap terisi
+    kutip = cr.summary_rows("m", scored, 0)[0]
+    assert kutip["n_tanpa_entitas"] == 1 and kutip["n_kosong_tanpa_entitas"] == 1
+    assert kutip["n_token_total"] == 10 and kutip["n_token_entitas_total"] == 6  # q1: rp14 000 000
+    assert kutip["coverage_tanpa_entitas_mean"] == "1.0000"
+    lines = cr.top_density_masked(scored)
+    assert len(lines) == 1 and lines[0].startswith("q1 density_tanpa_entitas")
