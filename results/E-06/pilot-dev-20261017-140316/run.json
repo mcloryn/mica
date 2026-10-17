@@ -1,0 +1,30 @@
+{
+ "component": "tts",
+ "experiment": "E-06",
+ "git_commit": "1491c07a97a2972f7ec3c9bb443f3aad35e87d59",
+ "git_dirty": false,
+ "piper_tts": "1.8.0",
+ "onnxruntime": "1.31.0",
+ "num2words": "0.5.14",
+ "sounddevice": "0.5.6",
+ "voice": {
+  "name": "id_ID-news_tts-medium",
+  "hf_repo": "rhasspy/piper-voices",
+  "hf_revision": "c10ece1aade47bb51c153c893d14e5bf8e5b7117",
+  "onnx_sha256": "ed8f02aa593f7af6b19acbdb8142e0da0dd72f46194eb33d38e0eb10a52597e8",
+  "onnx_json_sha256": "1ef677072668a5e172e0759b1d3871f129009d1167f093325a17607f7add5ad7"
+ },
+ "python": "3.13.7",
+ "platform": "Windows-11-10.0.26200-SP0",
+ "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+ "power": {
+  "source": "battery",
+  "battery_percent": 88,
+  "battery_saver": false
+ },
+ "power_plan": {
+  "guid": "bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b",
+  "name": "ASUS Recommended",
+  "raw": "Power Scheme GUID: bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b  (ASUS Recommended)"
+ }
+}

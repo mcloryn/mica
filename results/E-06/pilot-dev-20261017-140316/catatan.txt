@@ -1,0 +1,3 @@
+Catatan pendengar (hasa, 17 Okt 2026, setelah rating):
+"ada yang agak aneh ketika dia sebut PMB, normalnya kan akan di baca PE EM BE, dia bacanya PE M BE"
+Kalimat 12 tetap dinilai 1 di ratings.csv. Teks normal: "pe em be".
