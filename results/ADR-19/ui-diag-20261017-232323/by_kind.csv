@@ -1,0 +1,10 @@
+﻿kind,n_processes_median,cpu_pct_median,uss_mb_median
+edge: browser,1,3.697901135482021,56.8046875
+edge: crashpad-handler,1,0.026041496789310156,1.8046875
+edge: gpu-process,1,0.7552051614716804,54.5234375
+edge: renderer,2,0.02604155729212691,21.53125
+edge: utility (network.mojom.NetworkService),1,0.41666491667403055,10.6953125
+edge: utility (storage.mojom.StorageService),1,0.02604147205006156,3.34375
+python: Flask + controller,1,0.4427064739661574,47.7578125
+python: peluncur venv,1,0.0,0.578125
+TOTAL,9,5.39060235947027,197.04296875

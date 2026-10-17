@@ -183,7 +183,14 @@ def child_web(config: Path, keep_rendering: bool = True) -> int:
             # Driver memanggil controller.submit, jadi harus di thread poll (pemilik controller)
             if driver is not None:
                 driver.tick()
+            sent["_ticks"] = sent.get("_ticks", 0) + 1
             super().tick()
+
+        def _send(self, ws: Any, payload: dict[str, Any]) -> None:
+            sent[payload.get("type", "?")] = sent.get(payload.get("type", "?"), 0) + 1
+            super()._send(ws, payload)
+
+    sent: dict[str, int] = {}  # pesan server -> browser per jenis (diagnosis: kirim saat diam?)
 
     settings = load_settings(config)
     webui = BenchWebUi(settings.ui, dev=True)
@@ -208,6 +215,9 @@ def child_web(config: Path, keep_rendering: bool = True) -> int:
             driver.active = True
         elif cmd == "quit":
             stop.set()
+        elif cmd == "stats":
+            with webui.lock:
+                emit("stats", sent=dict(sent), seq=webui.seq, ticks=sent.get("_ticks", 0))
         if driver.done and driver.active:
             driver.active = False
             # tunggu ack pembaruan terakhir (paling lama 5 s)
@@ -381,11 +391,23 @@ def read_event(proc: subprocess.Popen, name: str, timeout_s: float = CHILD_TIMEO
     raise TimeoutError(f"tidak ada '{name}' dalam {timeout_s} s")
 
 
-def run_once(ui: str, rep: int, config: Path, cover_window: bool = False,
-             edge_switches: bool = True) -> dict[str, Any]:  # fmt: skip
+class NotOnAc(Exception):
+    """Langkah 31: semua bench wajib di daya AC; di baterai bench berhenti."""
+
+
+def require_ac() -> dict[str, Any] | None:
     from mica.eval.environment import power_status
 
     power = power_status()
+    source = (power or {}).get("source")
+    if source != "ac":
+        raise NotOnAc(f"sumber daya terbaca '{source}', bukan AC: colok charger lalu ulangi")
+    return power
+
+
+def run_once(ui: str, rep: int, config: Path, cover_window: bool = False,
+             edge_switches: bool = True) -> dict[str, Any]:  # fmt: skip
+    power = require_ac()  # dicek sebelum setiap ulangan
     child = [sys.executable, __file__, "--child", ui, "--config", str(config),
              "--edge-switches", "on" if edge_switches else "off"]  # fmt: skip
     cover = Cover(0) if cover_window else None
@@ -486,6 +508,16 @@ def main(argv: list[str] | None = None) -> int:
     if settings.app.mode != "dev":
         print("error: ui_bench hanya untuk mode dev (pekerja dan pipeline palsu)", file=sys.stderr)
         return 2
+    try:
+        require_ac()
+        return _bench(args, settings, collect_environment, package_version, find_edge)
+    except NotOnAc as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 3
+
+
+def _bench(args: argparse.Namespace, settings: Any, collect_environment: Any,
+           package_version: Any, find_edge: Any) -> int:  # fmt: skip
     environment = collect_environment()
     tests = subprocess.run([sys.executable, "-m", "pytest", "-q", "tests/unit/test_webui.py"],
                            check=False, capture_output=True, text=True)  # fmt: skip

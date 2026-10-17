@@ -1,0 +1,68 @@
+{
+ "experiment": "ADR-19 Langkah 31 bagian B: diagnosis CPU/RAM diam per proses",
+ "config": "config/dev.yaml",
+ "reps": 3,
+ "idle_s": 60.0,
+ "workers": "palsu",
+ "pipeline": "palsu",
+ "cpu_definition": "rata-rata persen satu inti selama masa diam (cpu_times user+system)",
+ "ram_definition": "USS di akhir masa diam",
+ "runs": [
+  {
+   "rep": 1,
+   "messages_sent_during_idle": {
+    "view": 0
+   },
+   "poll_ticks_during_idle": 1009,
+   "power_source": "ac",
+   "battery_percent": 75
+  },
+  {
+   "rep": 2,
+   "messages_sent_during_idle": {
+    "view": 0
+   },
+   "poll_ticks_during_idle": 1002,
+   "power_source": "ac",
+   "battery_percent": 77
+  },
+  {
+   "rep": 3,
+   "messages_sent_during_idle": {
+    "view": 0
+   },
+   "poll_ticks_during_idle": 1009,
+   "power_source": "ac",
+   "battery_percent": 78
+  }
+ ],
+ "frontend": {
+  "css_animation": false,
+  "css_transition": false,
+  "js_setInterval": false,
+  "js_setTimeout": false,
+  "js_requestAnimationFrame_calls": 1,
+  "catatan": "requestAnimationFrame hanya dipanggil sekali per pesan view (ack), tidak berulang; tanpa pesan, tidak ada rAF"
+ },
+ "environment": {
+  "python": "3.13.7",
+  "torch": "2.14.1+cpu",
+  "torch_num_threads": 14,
+  "sentence_transformers": "6.1.0",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+  "cpu_count_logical": 20,
+  "power": {
+   "source": "ac",
+   "battery_percent": 75,
+   "battery_saver": false
+  },
+  "power_plan": {
+   "guid": "bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b",
+   "name": "ASUS Recommended",
+   "raw": "Power Scheme GUID: bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b  (ASUS Recommended)"
+  },
+  "git_commit": "558efdd3606583b6f0363225bd41c3d77cb37873",
+  "git_dirty": true
+ }
+}
