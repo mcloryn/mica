@@ -106,14 +106,17 @@ def test_resources_summary_slope_and_cpu(tmp_path):
             w.writerow(["x", t, "utama", 1, [0, 10, 20][i], 100 + 10 * i])
             w.writerow(["x", t, "edge", 9, [0, 4, 6][i], 200])
             w.writerow(["x", t, "vision", 0, 0, 0])
+        w.writerow(["x", 3700, "utama", 1, 5, 125])  # Edge sudah ditutup
+        w.writerow(["x", 3700, "edge", 0, 0, 0])
     rows = {r["group"]: r for r in resources_summary(path)}
-    assert rows["utama"]["n_samples"] == 4
+    assert rows["utama"]["n_samples"] == 5
     assert rows["edge"]["n_samples"] == 3 and rows["edge"]["cpu_mean_pct"] == 5.0
     assert rows["edge"]["uss_start_mb"] == 200.0  # sampel tanpa proses tidak dipakai
     assert rows["edge"]["uss_slope_mb_per_hour"] == pytest.approx(0.0)
     assert rows["vision"]["n_samples"] == 0 and rows["vision"]["uss_start_mb"] is None
     total = rows["TOTAL"]
-    assert total["n_samples"] == 3 and total["uss_start_mb"] == 300.0  # mulai saat Edge ada
+    # hanya saat Edge ada: tanpa sampel -60 (belum diluncurkan) dan 3700 (sudah ditutup)
+    assert total["n_samples"] == 3 and total["uss_start_mb"] == 300.0
     assert total["uss_end_mb"] == 320.0 and total["duration_s"] == 3600.0
     assert total["uss_slope_mb_per_hour"] == pytest.approx(20.0)
 

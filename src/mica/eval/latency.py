@@ -17,8 +17,8 @@ python -m mica.eval latency --logs logs/ [--from YYYY-MM-DD --to YYYY-MM-DD]
   tanpa data; selain itu LULUS.
 - Opsional CSV perekam sumber daya (mica.eval.resources): per kelompok rata-rata dan p95 CPU,
   RAM awal/akhir/kemiringan (MB per jam). Sampel tanpa proses tidak dipakai; sampel pertama tiap
-  kelompok tidak dipakai untuk CPU (CPU butuh dua sampel); TOTAL dimulai saat semua kelompok
-  yang pernah aktif sudah punya proses.
+  kelompok tidak dipakai untuk CPU (CPU butuh dua sampel); TOTAL hanya dari sampel saat semua
+  kelompok yang pernah aktif punya proses (sebelum Edge diluncurkan dan setelah ditutup tidak).
 Hasil: <out>/<label>-<cap waktu>/ per_turn.csv, summary.csv, resources_summary.csv, verdict.md,
 run.json.
 """
@@ -186,11 +186,9 @@ def resources_summary(path: Path) -> list[dict[str, Any]]:
                 present[s["t"]].add(group)
             for k in ("cpu", "uss", "n"):
                 totals[s["t"]][k] += s[k]
-    complete = sorted(t for t in totals if active and present[t] >= active)
-    start_t = complete[0] if complete else None
+    complete = {t for t in totals if active and present[t] >= active}
     groups = {g: [s for s in samples if s["n"] > 0] for g, samples in by.items()}
-    groups["TOTAL"] = [{"t": t, **v} for t, v in sorted(totals.items())
-                       if start_t is not None and t >= start_t]  # fmt: skip
+    groups["TOTAL"] = [{"t": t, **v} for t, v in sorted(totals.items()) if t in complete]
     out = []
     for group, samples in groups.items():
         samples = sorted(samples, key=lambda s: s["t"])
