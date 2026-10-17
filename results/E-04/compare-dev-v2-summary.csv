@@ -1,0 +1,5 @@
+model,threshold,fact_check,salah_tolak,salah_tolak_rate,tolak_benar,tolak_benar_jauh,tolak_benar_dekat,premis_terbaik,premis_aman,premis_gagal,gagal_skema,unavailable,llm_dipanggil,prompt_tokens,completion_tokens,total_tokens,llm_latency_p50_s,llm_latency_p95_s
+20b,null,on,0/25,0.0000,16/17,6/6,10/11,1,1,1,0,0,45,94233,4515,98748,0.764,1.398
+20b,0.55,on,2/25,0.0800,16/17,6/6,10/11,1,1,1,0,0,34,70931,3900,74831,0.827,1.587
+120b,null,on,0/25,0.0000,16/17,6/6,10/11,2,1,0,0,0,45,94231,4896,99127,0.817,1.204
+120b,0.55,on,2/25,0.0800,16/17,6/6,10/11,2,1,0,0,0,34,70929,4142,75071,0.833,1.172
