@@ -841,16 +841,37 @@ F-18 tidak punya ADR karena tidak melibatkan pilihan metode; desainnya keputusan
 
 **Nilai yang masih TBD** (semua dikalibrasi lewat eksperimen, bukan ditebak)
 
-| Parameter | Eksperimen |
-| --- | --- |
-| `kb.chunk_tokens`, `kb.overlap_tokens`, `rag.rrf_k`, kandidat per retriever, `rag.reranker.enabled` | E-01 |
-| `rag.gate.threshold`, `rag.followup_mode` | E-02 |
-| `rag.prompt_variant` | E-03 |
-| `llm.chain` final, `llm.timeout_s` | E-04 |
-| `audio.stt.backend`, `audio.vad.*`, `audio.max_utterance_s` | E-05 |
-| `vision.model`, `vision.dwell_s`, `leave_s`, `vision.min_box_height_ratio`, `session.regreet_cooldown_s` | E-07 |
-| `vision.region`, `vision.color.method`, `vision.color.min_majority` | E-08 |
-| `vision.fps_busy`, jumlah thread, `session.idle_reset_s`, batas kata jawaban | E-09 |
+| Parameter | Eksperimen | Nilai dev atau nilai coba saat ini (sumber) | Status |
+| --- | --- | --- | --- |
+| `kb.active_id` | Dokumen resmi (build KB resmi, MS5) | Dev: `dev-2026-10-15-v2`, KB scraping yang tidak dievaluasi | TBD |
+| `kb.chunk_tokens`, `kb.overlap_tokens` | E-01 | 400 dan 50 (hipotesis awal PRD, 2.4) | Provisional dev |
+| `kb.embedder.revision` | Keputusan rekayasa (N-14), dikonfirmasi saat build KB resmi | Revisi 9a0624b8 BAAI/bge-m3 (2.4) | Provisional dev |
+| `rag.retriever`, `rag.reranker.enabled` | E-01 | hybrid, reranker mati (E-01 dev) | Provisional dev |
+| `rag.rrf_k`, `rag.candidates_per_retriever` | E-01 | 60 (Cormack dkk. 2009) dan 20 (2.4) | Provisional dev |
+| `rag.gate.threshold` | E-02 | 0,50 (E-02/E-04 dev prompt v2; aturan seri ditambah setelah melihat data, 2.4) | Provisional dev |
+| `rag.followup_mode` | E-02 | `llm_rewrite` belum diimplementasikan (2.4) | TBD |
+| `rag.prompt_variant` | E-03 | Prompt v2 | TBD |
+| `llm.chain[0]`, `llm.chain[1]` | E-04 | gpt-oss-120b, cadangan gpt-oss-20b (final menunggu anotasi halusinasi) | Provisional dev |
+| `llm.timeout_s`, `llm.temperature`, `llm.reasoning_effort` | E-04 | 10 detik, 0,2, low (nilai dev provisional, 2.4) | Provisional dev |
+| `audio.stt.backend` | E-05 | faster\_whisper (ADR-09 masih Terbuka) | TBD |
+| `audio.stt.threads` | E-05 dan E-09 | null = bawaan library (4 thread di laptop dev) | TBD |
+| `audio.vad.threshold` | E-05 | Nilai coba 0,5 (bawaan Silero) | TBD |
+| `audio.vad.min_silence_ms` | E-05 | Nilai coba 500 (anggaran deteksi akhir ucapan 0,5 detik, 3.3) | TBD |
+| `audio.vad.min_speech_ms` | E-05 | Nilai coba 250 (bawaan min\_speech\_duration\_ms Silero) | TBD |
+| `audio.stt.no_speech_threshold` | E-05 | Nilai coba 0,6 (bawaan no\_speech\_threshold Whisper) | TBD |
+| `audio.max_utterance_s` | E-05 | Nilai coba 15 (tanpa sumber, perlu ditetapkan di E-05) | TBD |
+| `audio.tts.voice` | E-06 | id\_ID-news\_tts-medium | Provisional |
+| `vision.model`, `vision.conf`, `vision.imgsz` | E-07 | yolo26n-pose; 0,1 dan 640 (bawaan Ultralytics) | Provisional dev |
+| `vision.presence_signal`, `vision.min_shoulder_ratio`, `vision.min_box_height_ratio` | E-07 | shoulder\_width; nilai coba rasio bahu 0,22 (kalibrasi dev) | TBD |
+| `vision.dwell_s`, `vision.leave_s` | E-07 | Nilai coba 2 dan 3 detik | TBD |
+| `session.regreet_cooldown_s` | E-07 | null = tanpa jeda | TBD |
+| `vision.region`, `vision.box_upper.top/bottom/side`, `vision.keypoint_torso.min_kp_conf/shrink/torso_aspect` | E-08 | keypoint\_torso; nilai coba kotak 0,35/0,65/0,25 dan keypoint 0,5/0,15/1,2 | TBD |
+| `vision.color.method`, `vision.color.min_majority` | E-08 | Tabel color names; nilai coba 0,6 | TBD |
+| `vision.fps_busy`, `vision.threads` | E-09 | Nilai coba fps\_busy 2; thread vision perlu ditetapkan | TBD |
+| `session.idle_reset_s` | E-09 dan uji pengguna | null = tidak pernah timeout | TBD |
+| Batas kata jawaban | E-09 | Belum ada nilai | TBD |
+
+Tabel ini mencakup ke-36 kunci yang dilaporkan `python -m mica check` sebagai belum terisi di mode kiosk (17 Oktober 2026). Nilai coba hanya untuk dev dan demo; config kiosk baru diisi dari hasil eksperimen.
 
 **Risiko desain**
 
@@ -986,3 +1007,4 @@ mica/
 | 17 Oktober 2026 | Bagian 2.4 ditambah 16 baris: keputusan vision MS3 (kamera, model, area baju, kehadiran, warna, konfigurasi, proses kamera dan bus), perbaikan spasi Unicode, prompt v2, CLI eval, hasil E-02 dan E-04 dev, definisi halusinasi, dan rencana TTS Langkah 19. Riwayat ambang gerbang dev (kini 0,50) diperbarui. Aturan restart kamera untuk M-09 ditambahkan di 7.1. Tabel bukti menjadi 49 sumber. |
 | 17 Oktober 2026 (sore) | Bagian 2.4 ditambah tiga baris MS2 (STT dan VAD beserta aturan E-05, penyaring transkripsi palsu, proses suara lewat bus); baris TTS Langkah 19 diperbarui dengan hasil pilot. Aturan restart di 7.1 diganti keputusan 17 Oktober: sesi bukan IDLE selalu dilanjutkan saat kamera restart, plus aturan restart proses suara. Tabel bukti menjadi 51 sumber. |
 | 17 Oktober 2026 (malam) | 7.1: baris tambahan dari implementasi M-09 (T09, T16, T18 sampai T20, StopTapped, reset, Ignored). 2.4: baris M-09, KioskController, dan UI PySide6 (Langkah 22 sampai 24), termasuk ui.suggestions dan uji jendela yang tertunda. |
+| 17 Oktober 2026 (malam, lanjutan) | Tabel nilai TBD di bagian 12 dilengkapi untuk 36 kunci kiosk dari mica check: eksperimen, nilai dev atau nilai coba beserta sumbernya, dan status. |
