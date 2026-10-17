@@ -21,7 +21,7 @@ from typing import Any
 from mica.config import ConfigError, load_settings
 from mica.eval.annotate import POOL_DEPTH, export_pool, import_pool
 from mica.eval.dataset import DatasetError
-from mica.eval.environment import collect_environment, dirty_warning
+from mica.eval.environment import collect_environment, dirty_warning, git_commit, git_dirty
 from mica.eval.gate import GROUPS, group_stats, run_gate
 from mica.eval.generation import (
     DEFAULT_CACHE_DIR,
@@ -325,19 +325,26 @@ def stt_candidates(args: argparse.Namespace, settings: Any, no_speech: float | N
     return out
 
 
-def _retrieval(args: argparse.Namespace, settings: Any, items: list[Any]) -> tuple[Any, Any]:
-    """search(teks) -> chunk_id 5 teratas dengan retriever aktif (tanpa LLM), dan gold per qid."""
+def _check_qids(args: argparse.Namespace, items: list[Any]) -> dict[str, Any]:
+    """gold_chunk_ids per qid dari set dev; qid yang tidak dikenal ditolak (ringan, tanpa torch)."""
     from mica.eval.dataset import load_questions
+
+    gold = {q["qid"]: q.get("gold_chunk_ids") or [] for q in load_questions(args.questions)}
+    unknown = sorted({i.qid for i in items if i.qid} - set(gold))
+    if unknown:
+        raise SttEvalError(f"qid tidak ada di {args.questions}: {unknown}")
+    return gold
+
+
+def _retrieval(args: argparse.Namespace, settings: Any, items: list[Any]) -> tuple[Any, Any]:
+    """Fase 2 eval stt: search(teks) -> chunk_id 5 teratas dengan retriever aktif (tanpa LLM),
+    dan gold per qid. Memuat KB dan embedder (torch), jadi dipanggil setelah semua STT."""
     from mica.eval.stt import TOP_K
     from mica.rag.retriever import make_retriever
 
-    qids = {i.qid for i in items if i.qid}
-    if not qids:
+    if not any(i.qid for i in items):
         return None, None
-    gold = {q["qid"]: q.get("gold_chunk_ids") or [] for q in load_questions(args.questions)}
-    unknown = sorted(qids - set(gold))
-    if unknown:
-        raise SttEvalError(f"qid tidak ada di {args.questions}: {unknown}")
+    gold = _check_qids(args, items)
     kb = load_kb(settings.kb.active_id, args.kb_root)
     retriever = make_retriever(settings, kb)
     return (lambda text: [h.chunk.chunk_id for h in retriever.search(text, TOP_K)]), gold
@@ -365,6 +372,7 @@ def cmd_stt(
         E05_RULE,
         EXPERIMENT,
         format_table,
+        heavy_modules_loaded,
         load_manifest,
         read_wav,
         run_eval,
@@ -386,9 +394,11 @@ def cmd_stt(
     for key, _flag in FILTER_ARGS:
         print(f"  audio.{key} = {filters[key]} ({filter_sources[key]})")
     cands = candidates(args, settings, filters["stt.no_speech_threshold"])
-    search, gold = retrieval(args, settings, items)
-    environment = collect_environment()
-    warning = dirty_warning(environment)
+    with_qid = any(i.qid for i in items)
+    if with_qid and retrieval is _retrieval:
+        _check_qids(args, items)  # gagal cepat sebelum STT, tanpa memuat retriever
+    # cek repo tanpa collect_environment: fungsi itu memuat torch (versi dan thread torch)
+    warning = dirty_warning({"git_dirty": git_dirty(), "git_commit": git_commit()})
     if warning:
         print(warning, file=sys.stderr)
     stamp = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S")
@@ -410,7 +420,7 @@ def cmd_stt(
         "wer_normalization": WER_NORMALIZATION,
         "cer_normalization": CER_NORMALIZATION,
         "retrieval": None
-        if search is None
+        if not with_qid
         else {
             "retriever": settings.rag.retriever,
             "kb_id": settings.kb.active_id,
@@ -431,12 +441,20 @@ def cmd_stt(
                 "piper-tts",
             )
         },
-        "environment": environment,
         "started_at": stamp,
     }
-    summaries = run_eval(items, audio, cands,
-                         lambda: make_segmenter(values, prob_factory or silero_prob),
-                         filters["vad.min_speech_ms"], run_dir, info, search, gold)  # fmt: skip
+    summaries = run_eval(
+        items,
+        audio,
+        cands,
+        lambda: make_segmenter(values, prob_factory or silero_prob),
+        filters["vad.min_speech_ms"],
+        run_dir,
+        info,
+        retrieval=(lambda: retrieval(args, settings, items)) if with_qid else None,
+        loaded_modules=heavy_modules_loaded,
+        late_info=lambda: {"environment": collect_environment()},
+    )
     print(format_table(summaries))
     print(f"tersimpan: {run_dir.as_posix()}")
     return 0

@@ -204,6 +204,34 @@ def test_run_eval_writes_csv_without_audio_and_scrubs(tmp_path):
     assert summaries[0].n_questions == 1 and summaries[0].wer_total > 1
 
 
+def test_run_eval_loads_retriever_only_after_all_stt(tmp_path):
+    order = []
+
+    class LoggingStt(FakeStt):
+        def transcribe(self, pcm16k):
+            order.append("stt")
+            return super().transcribe(pcm16k)
+
+    def retrieval():
+        order.append("retriever")
+        return (lambda text: ["c1"]), {"d001": ["c1"]}
+
+    items = [_item(qid="d001"), e05.SpeechItem("y", Path("y.wav"), "pertanyaan", "biaya", "d001",
+                                               "P02")]  # fmt: skip
+    audio = {i.id: _pcm(("bicara", 10), ("diam", 6)) for i in items}
+    cands = [e05.SttCandidate(f"k{n}", True, LoggingStt(["biaya"] * 2), {}) for n in (1, 2)]
+    summaries = e05.run_eval(items, audio, cands, _segmenter, None, tmp_path / "run", {},
+                             retrieval=retrieval, progress=lambda s: None,
+                             loaded_modules=list,
+                             late_info=lambda: {"environment": {"x": 1}})  # fmt: skip
+    assert order == ["stt"] * 4 + ["retriever"]
+    assert all(s.recall5_hyp == 1.0 for s in summaries)
+    info = json.loads((tmp_path / "run" / "k1" / "run.json").read_text(encoding="utf-8"))
+    assert info["timing"]["retriever_loaded_during_stt"] is False
+    assert info["timing"]["heavy_modules_loaded_after_stt"] == []
+    assert info["environment"] == {"x": 1}
+
+
 def test_format_table_follows_rule_and_picks_no_winner():
     s = e05.Summary("a", True, 1, 2, 0.2, 0.1, 1.0, 3.5, 1, 0.5, 1, 1.0, 1.0, 1)
     table = e05.format_table([s])

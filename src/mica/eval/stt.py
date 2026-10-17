@@ -352,16 +352,25 @@ def run_eval(
     min_speech_ms: float | None,
     run_dir: Path,
     info: dict[str, Any],
-    search: Callable[[str], list[str]] | None = None,
-    gold: dict[str, Sequence[str]] | None = None,
+    retrieval: Callable[
+        [], tuple[Callable[[str], list[str]] | None, dict[str, Sequence[str]] | None]
+    ]
+    | None = None,
     progress: Callable[[str], None] = print,
+    loaded_modules: Callable[[], list[str]] | None = None,
+    late_info: Callable[[], dict[str, Any]] | None = None,
 ) -> list[Summary]:
-    """Evaluasi setiap kandidat pada semua rekaman; tulis <run_dir>/<label>/ dan summary.csv."""
+    """Dua fase supaya waktu STT tidak terganggu retriever (Langkah 27):
+    fase 1 = VAD + STT semua kandidat dan rekaman (waktu diukur, retriever/torch belum dimuat);
+    fase 2 = retrieval() baru dipanggil (memuat retriever) untuk Recall@5.
+    late_info: info run.json yang baru dikumpulkan setelah fase 1, misalnya lingkungan
+    (collect_environment memuat torch untuk versi dan jumlah thread-nya).
+    Tulis <run_dir>/<label>/ dan summary.csv."""
     run_dir = Path(run_dir)
     run_dir.mkdir(parents=True, exist_ok=False)
-    summaries: list[Summary] = []
+    phase1: list[tuple[SttCandidate, list[ItemResult]]] = []
     for cand in candidates:
-        progress(f"--- {cand.label} ---")
+        progress(f"--- fase 1 (VAD + STT): {cand.label} ---")
         segmenter = make_segmenter()
         results = []
         for item in items:
@@ -369,10 +378,35 @@ def run_eval(
             results.append(r)
             progress(f"  {item.id} ({item.kind}): ucapan {r.n_utterances}, "
                      f"tersaring {list(r.filtered_by) or '-'}")  # fmt: skip
+        phase1.append((cand, results))
+    timing = {
+        "phases": "fase 1 VAD + STT (waktu diukur) lalu fase 2 retriever untuk Recall@5",
+        "retriever_loaded_during_stt": False,
+        "heavy_modules_loaded_after_stt": loaded_modules() if loaded_modules else None,
+    }
+    if late_info is not None:
+        info = {**info, **late_info()}
+    search = gold = None
+    if retrieval is not None:
+        progress("--- fase 2: memuat retriever untuk Recall@5 ---")
+        search, gold = retrieval()
+    summaries: list[Summary] = []
+    for cand, results in phase1:
         if search is not None and gold:
             add_retrieval(results, search, gold)
         summary = summarize(cand.label, cand.local, results)
-        write_config(run_dir / cand.label, results, summary, {**info, "stt": cand.info})
+        write_config(run_dir / cand.label, results, summary,
+                     {**info, "timing": timing, "stt": cand.info})  # fmt: skip
         summaries.append(summary)
     write_summary(run_dir, summaries)
     return summaries
+
+
+HEAVY_MODULES = ("torch", "sentence_transformers", "transformers")
+
+
+def heavy_modules_loaded() -> list[str]:
+    """Modul berat yang sudah dimuat di proses ini (bukti fase 1 tanpa torch)."""
+    import sys
+
+    return [m for m in HEAVY_MODULES if m in sys.modules]
