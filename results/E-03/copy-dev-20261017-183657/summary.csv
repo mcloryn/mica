@@ -1,0 +1,5 @@
+﻿model,sumber,n,n_tanpa_kutipan,n_dikecualikan,coverage_mean,coverage_median,coverage_p90,density_mean,density_median,density_p90
+groq:openai/gpt-oss-20b,kutip,28,0,17,0.8385,0.8500,0.9770,4.3602,3.8667,7.5838
+groq:openai/gpt-oss-20b,konteks,28,,17,0.9137,0.9122,1.0000,4.5847,4.1487,7.5887
+groq:openai/gpt-oss-120b,kutip,27,1,17,0.8082,0.8136,0.9413,3.3221,2.9231,5.2131
+groq:openai/gpt-oss-120b,konteks,28,,17,0.8791,0.9045,1.0000,3.3766,3.0714,5.2490

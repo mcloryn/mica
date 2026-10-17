@@ -1,0 +1,57 @@
+﻿qid,model,status,n_token_jawaban,coverage_kutip,density_kutip,coverage_konteks,density_konteks,n_fragmen,fragmen_terpanjang,n_fragmen_konteks,fragmen_terpanjang_konteks
+d001,groq:openai/gpt-oss-20b,answered,12,0.9167,3.2500,1.0000,5.1667,4,rp14 000 000 per tahun,3,kelas pagi rp14 000 000 per tahun
+d002,groq:openai/gpt-oss-20b,answered,12,0.8333,2.8333,0.9167,3.2500,4,rp13 500 000 per tahun,4,rp13 500 000 per tahun
+d003,groq:openai/gpt-oss-20b,answered,13,0.7692,4.1538,0.8462,4.2308,3,17 september 2026 sampai 31 mei 2027,4,17 september 2026 sampai 31 mei 2027
+d004,groq:openai/gpt-oss-20b,answered,15,0.8667,4.0667,0.8667,4.0667,5,tiga jalur prestasi minat bakat dan reguler,5,tiga jalur prestasi minat bakat dan reguler
+d005,groq:openai/gpt-oss-20b,answered,61,0.9672,7.8852,0.9836,7.9016,13,dengan membayar daftar ulang dan melengkapi data lanjutan 6 daftar berhasil dan resmi menjadi mahasiswa baru,14,dengan membayar daftar ulang dan melengkapi data lanjutan 6 daftar berhasil dan resmi menjadi mahasiswa baru
+d006,groq:openai/gpt-oss-20b,answered,9,0.7778,2.1111,0.8889,2.0000,3,whatsapp konsultasi pendaftaran,4,0811 602 5151
+d007,groq:openai/gpt-oss-20b,answered,23,0.6522,2.1304,0.7826,2.2609,8,09 00 sampai 17 00 wib,11,09 00 sampai 17 00 wib
+d008,groq:openai/gpt-oss-20b,answered,26,0.8846,5.7308,0.8846,5.7308,4,pada pengembangan perangkat lunak berbasis ai dan berskala besar,4,pada pengembangan perangkat lunak berbasis ai dan berskala besar
+d009,groq:openai/gpt-oss-20b,answered,16,0.8125,2.5625,0.9375,2.9375,5,fakultas bisnis dan hukum,6,fakultas bisnis dan hukum
+d010,groq:openai/gpt-oss-20b,answered,10,0.7000,2.5000,0.9000,2.7000,2,prodi s1 teknologi informasi,4,prodi s1 teknologi informasi
+d011,groq:openai/gpt-oss-20b,answered,34,0.8824,4.7059,0.9118,4.7353,7,program studi asal minimal baik b terakreditasi,8,program studi asal minimal baik b terakreditasi
+d012,groq:openai/gpt-oss-20b,answered,9,1.0000,3.6667,1.0000,3.6667,3,skor toefl minimal 475,3,skor toefl minimal 475
+d013,groq:openai/gpt-oss-20b,answered,11,0.8182,3.0000,0.9091,3.0909,3,kelas eksekutif s2 manajemen,4,kelas eksekutif s2 manajemen
+d014,groq:openai/gpt-oss-20b,answered,43,0.6977,3.0698,0.8140,3.3721,12,beasiswa akademik beasiswa minat bakat dan kip kuliah,14,beasiswa akademik beasiswa minat bakat dan kip kuliah
+d015,groq:openai/gpt-oss-20b,answered,17,0.9412,11.7647,0.9412,11.7647,2,pada tahun 2021 dari penggabungan stmik mikroskil berdiri 1997 dan stie mikroskil berdiri 2008,2,pada tahun 2021 dari penggabungan stmik mikroskil berdiri 1997 dan stie mikroskil berdiri 2008
+d016,groq:openai/gpt-oss-20b,answered,11,0.8182,4.6364,1.0000,5.3636,3,hardy s kom m sc ph d,3,hardy s kom m sc ph d
+d017,groq:openai/gpt-oss-20b,answered,10,0.8000,1.6000,0.9000,1.7000,5,mikroskil futsal club,6,mikroskil futsal club
+d018,groq:openai/gpt-oss-20b,answered,10,1.0000,10.0000,1.0000,10.0000,1,email bagian keuangan universitas mikroskil adalah fin mikroskil ac id,1,email bagian keuangan universitas mikroskil adalah fin mikroskil ac id
+d019,groq:openai/gpt-oss-20b,answered,11,0.9091,6.1818,0.9091,6.1818,2,di kampus a lantai 2 3 dan 4,2,di kampus a lantai 2 3 dan 4
+d020,groq:openai/gpt-oss-20b,answered,14,0.7857,5.9286,1.0000,6.2857,3,culinary business management cbm dan international business management ibm,5,culinary business management cbm dan international business management ibm
+d021,groq:openai/gpt-oss-20b,answered,22,0.9091,7.4545,0.9091,7.4545,5,erp consultant business analyst business process analyst system analyst digital transformation specialist,5,erp consultant business analyst business process analyst system analyst digital transformation specialist
+d022,groq:openai/gpt-oss-20b,answered,11,1.0000,6.2727,1.0000,6.2727,3,sudah bekerja kurang dari 6 bulan setelah lulus,3,sudah bekerja kurang dari 6 bulan setelah lulus
+d023,groq:openai/gpt-oss-20b,answered,15,0.7333,1.2667,0.7333,1.5333,8,5 maret 2027,6,5 maret 2027
+d029,groq:openai/gpt-oss-20b,false_premise,35,0.4571,0.7429,0.7714,1.8000,11,program studi,19,teknik informatika sistem informasi teknologi informasi
+d030,groq:openai/gpt-oss-20b,answered,10,0.9000,2.1000,1.0000,2.4000,6,program studi teknik informatika,6,program studi teknik informatika
+d032,groq:openai/gpt-oss-20b,answered,12,0.8333,3.1667,0.9167,3.2500,3,rp15 000 000 per tahun,4,rp15 000 000 per tahun
+d033,groq:openai/gpt-oss-20b,answered,40,0.9000,4.4500,0.9500,4.4000,12,komputer teknik ekonomi mipa atau bidang lainnya,12,di bidang komputer teknik ekonomi mipa atau
+d040,groq:openai/gpt-oss-20b,answered,103,0.9126,4.8544,0.9126,4.8544,33,rp14 000 000 per tahun dan kelas sore rp15 000 000 per tahun,33,rp14 000 000 per tahun dan kelas sore rp15 000 000 per tahun
+d001,groq:openai/gpt-oss-120b,answered,14,0.7143,2.7143,0.9286,3.0714,3,rp14 000 000 per tahun,5,rp14 000 000 per tahun
+d002,groq:openai/gpt-oss-120b,answered,13,0.9231,3.0769,0.9231,3.0769,5,rp13 500 000 per tahun,5,rp13 500 000 per tahun
+d003,groq:openai/gpt-oss-120b,answered,13,0.8462,2.0769,0.8462,2.0769,5,17 september 2026,5,17 september 2026
+d004,groq:openai/gpt-oss-120b,answered,18,0.8333,1.6111,0.8333,1.6111,9,minat bakat dan,9,minat bakat dan
+d005,groq:openai/gpt-oss-120b,answered,59,0.8136,3.4915,0.8136,3.4915,17,pilih jalur lengkapi data pribadi dan unggah dokumen,17,pilih jalur lengkapi data pribadi dan unggah dokumen
+d006,groq:openai/gpt-oss-120b,answered,9,0.7778,1.4444,0.8889,1.7778,5,0811 602 5151,5,0811 602 5151
+d007,groq:openai/gpt-oss-120b,answered,13,0.6154,2.9231,0.7692,3.0769,3,09 00 sampai 17 00 wib,5,09 00 sampai 17 00 wib
+d008,groq:openai/gpt-oss-120b,answered,28,0.7143,1.7857,0.7143,1.7857,9,pada pengembangan perangkat lunak,9,pada pengembangan perangkat lunak
+d009,groq:openai/gpt-oss-120b,answered,16,0.8125,2.5625,0.9375,3.0625,5,fakultas bisnis dan hukum,5,fakultas bisnis dan hukum
+d010,groq:openai/gpt-oss-120b,answered,8,0.7500,4.5000,1.0000,5.0000,1,s1 teknologi informasi terakreditasi baik sekali,2,s1 teknologi informasi terakreditasi baik sekali
+d011,groq:openai/gpt-oss-120b,answered,35,0.8857,2.9429,0.9429,3.0000,12,wajib mengikuti ujian saring masuk,14,wajib mengikuti ujian saring masuk
+d012,groq:openai/gpt-oss-120b,answered,10,0.9000,2.7000,0.9000,2.7000,4,masuk magister teknologi informasi,4,masuk magister teknologi informasi
+d013,groq:openai/gpt-oss-120b,answered,14,0.7143,2.0000,0.8571,2.1429,5,kelas eksekutif s2 manajemen,7,kelas eksekutif s2 manajemen
+d014,groq:openai/gpt-oss-120b,answered,39,0.8462,3.0513,0.8718,3.3846,14,bagian kemahasiswaan sa office mikroskil ac id,14,bagian kemahasiswaan sa office mikroskil ac id
+d015,groq:openai/gpt-oss-120b,answered,6,1.0000,3.3333,1.0000,3.3333,2,terbentuk pada tahun 2021,2,terbentuk pada tahun 2021
+d016,groq:openai/gpt-oss-120b,answered,9,0.7778,5.4444,0.8889,5.5556,1,hardy s kom m sc ph d,2,hardy s kom m sc ph d
+d017,groq:openai/gpt-oss-120b,answered,5,0.6000,1.8000,1.0000,2.2000,1,mikroskil futsal club,3,mikroskil futsal club
+d018,groq:openai/gpt-oss-120b,answered,10,1.0000,10.0000,1.0000,10.0000,1,email bagian keuangan universitas mikroskil adalah fin mikroskil ac id,1,email bagian keuangan universitas mikroskil adalah fin mikroskil ac id
+d019,groq:openai/gpt-oss-120b,answered,13,0.8462,2.5385,0.8462,2.3846,4,2 3 dan 4,4,di kampus a
+d020,groq:openai/gpt-oss-120b,answered,17,0.7059,5.0588,0.7647,5.1176,3,culinary business management cbm dan international business management ibm,4,culinary business management cbm dan international business management ibm
+d021,groq:openai/gpt-oss-120b,answered,23,0.8696,7.1304,0.9130,7.1739,5,erp consultant business analyst business process analyst system analyst digital transformation specialist,6,erp consultant business analyst business process analyst system analyst digital transformation specialist
+d022,groq:openai/gpt-oss-120b,answered,16,0.8750,3.2500,0.9375,3.4375,5,tracer study 2025 88 lulusan,5,tracer study 2025 88 lulusan
+d023,groq:openai/gpt-oss-120b,answered,11,0.7273,1.4545,0.9091,1.8182,5,5 maret 2027,6,5 maret 2027
+d030,groq:openai/gpt-oss-120b,false_premise,13,0.6923,1.6154,0.8462,2.0769,6,program studi teknik informatika,6,program studi teknik informatika
+d031,groq:openai/gpt-oss-120b,false_premise,32,0.9688,4.6562,0.9688,4.6562,14,berlangsung 17 september 2026 sampai 31 mei 2027,14,berlangsung 17 september 2026 sampai 31 mei 2027
+d032,groq:openai/gpt-oss-120b,answered,14,0.7143,2.7143,0.9286,3.0714,3,rp15 000 000 per tahun,5,rp15 000 000 per tahun
+d033,groq:openai/gpt-oss-120b,answered,39,0.8974,3.8205,0.9231,3.8462,11,di bidang komputer teknik ekonomi mipa atau,12,di bidang komputer teknik ekonomi mipa atau
+d040,groq:openai/gpt-oss-120b,false_premise,26,,,0.4615,0.6154,,,10,biaya kuliah
