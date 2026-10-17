@@ -1,0 +1,30 @@
+{
+ "tool": "mica.eval.resources (perekam sumber daya E-09)",
+ "interval_s": 1.0,
+ "groups": [
+  "utama",
+  "vision",
+  "suara",
+  "edge",
+  "lain"
+ ],
+ "fields": [
+  "ts",
+  "elapsed_s",
+  "group",
+  "n_processes",
+  "cpu_pct",
+  "uss_mb"
+ ],
+ "cpu_definition": "persen satu inti; selisih cpu_times user+system antar-sampel",
+ "ram_definition": "USS (psutil memory_full_info)",
+ "content": "hanya angka proses (N-08)",
+ "started_at": "2026-10-18T05:20:30.482626+07:00",
+ "n_samples": 8,
+ "app_mode": "dev",
+ "e09": false,
+ "ui_backend": "web",
+ "fake_workers": true,
+ "fake_pipeline": true,
+ "stopped_at": "2026-10-18T05:20:38.387378+07:00"
+}

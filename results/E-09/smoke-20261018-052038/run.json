@@ -1,0 +1,123 @@
+{
+ "experiment": "E-09 latency",
+ "protocol": "docs/E-09.md (pra-registrasi 18 Okt 2026)",
+ "label": "smoke",
+ "tool_test": true,
+ "note": "uji alat, bukan hasil E-09",
+ "log_dir": "folder sementara (log uji tidak di-commit)",
+ "date_range": [
+  null,
+  null
+ ],
+ "inputs": {
+  "turns-2026-10-18.jsonl": "bbd1548775ed47bed0c043993faa352d62ed0b331851325f922ff2552365706f",
+  "events-2026-10-18.jsonl": "5a35c4d7808ce6d61478b5beb168df79c1ade0066e0a7bb5f34fc4a1241ee02f"
+ },
+ "resources": {
+  "path": "resources/resources.csv",
+  "sha256": "d7396eb3c1c8f5d4f84791d28f1d2e597ba41d48e0903bfcd4f1458222653ef2"
+ },
+ "n_turns": 10,
+ "n_turns_voice": 0,
+ "n_turns_text": 10,
+ "n_greetings": 0,
+ "percentile_method": "interpolasi linear (numpy.percentile bawaan), mica.eval.metrics.percentile",
+ "verdict": {
+  "overall": "TIDAK LENGKAP",
+  "items": [
+   {
+    "measure": "vad",
+    "input_mode": "voice",
+    "n": 0,
+    "p95": null,
+    "limit_s": 0.5,
+    "source": "SDD 3.3 deteksi akhir ucapan",
+    "kind": "tahap",
+    "status": "tidak ada data"
+   },
+   {
+    "measure": "stt",
+    "input_mode": "voice",
+    "n": 0,
+    "p95": null,
+    "limit_s": 1.5,
+    "source": "SDD 3.3 STT ucapan 5 detik",
+    "kind": "tahap",
+    "status": "tidak ada data"
+   },
+   {
+    "measure": "retrieval_gate",
+    "input_mode": "voice",
+    "n": 0,
+    "p95": null,
+    "limit_s": 0.5,
+    "source": "SDD 3.3 retrieval dan gerbang",
+    "kind": "tahap",
+    "status": "tidak ada data"
+   },
+   {
+    "measure": "llm",
+    "input_mode": "voice",
+    "n": 0,
+    "p95": null,
+    "limit_s": 4.0,
+    "source": "SDD 3.3 LLM sampai jawaban lengkap",
+    "kind": "tahap",
+    "status": "tidak ada data"
+   },
+   {
+    "measure": "check_tts",
+    "input_mode": "voice",
+    "n": 0,
+    "p95": null,
+    "limit_s": 1.0,
+    "source": "SDD 3.3 cek fakta dan TTS kalimat pertama",
+    "kind": "tahap",
+    "status": "tidak ada data"
+   },
+   {
+    "measure": "total",
+    "input_mode": "voice",
+    "n": 0,
+    "p95": null,
+    "limit_s": 10.0,
+    "source": "N-05",
+    "kind": "utama",
+    "status": "tidak ada data"
+   },
+   {
+    "measure": "first_response",
+    "input_mode": "voice",
+    "n": 0,
+    "p95": null,
+    "limit_s": 3.0,
+    "source": "K-3",
+    "kind": "utama",
+    "status": "tidak ada data"
+   },
+   {
+    "measure": "greeting",
+    "input_mode": "event",
+    "n": 0,
+    "p95": null,
+    "limit_s": 3.0,
+    "source": "N-06 (latency_s event greeted)",
+    "kind": "utama",
+    "status": "tidak ada data"
+   }
+  ]
+ },
+ "environment": null,
+ "smoke": {
+  "command": "python.exe -m mica.webui --config <folder sementara>\\config.yaml --fake-workers --fake-pipeline --record-resources <folder sementara>\\resources --resource-interval 1.0",
+  "questions_requested": 10,
+  "questions_answered": 10,
+  "driver": "scripts/e09_smoke.py (WebSocket seperti browser)",
+  "power": {
+   "source": "ac",
+   "battery_percent": 100,
+   "battery_saver": false
+  },
+  "exit_code_webui": 0
+ }
+}
