@@ -99,15 +99,23 @@ def test_resources_summary_slope_and_cpu(tmp_path):
     with path.open("w", encoding="utf-8", newline="") as f:
         w = csv.writer(f)
         w.writerow(["ts", "elapsed_s", "group", "n_processes", "cpu_pct", "uss_mb"])
+        w.writerow(["x", -60, "utama", 1, 0, 90])
+        w.writerow(["x", -60, "edge", 0, 0, 0])  # Edge belum diluncurkan
+        w.writerow(["x", -60, "vision", 0, 0, 0])  # pekerja tidak pernah ada
         for i, t in enumerate([0, 1800, 3600]):
             w.writerow(["x", t, "utama", 1, [0, 10, 20][i], 100 + 10 * i])
             w.writerow(["x", t, "edge", 9, [0, 4, 6][i], 200])
+            w.writerow(["x", t, "vision", 0, 0, 0])
     rows = {r["group"]: r for r in resources_summary(path)}
-    assert rows["utama"]["cpu_mean_pct"] == 15.0  # sampel pertama tidak dipakai
-    assert rows["utama"]["uss_slope_mb_per_hour"] == pytest.approx(20.0)
-    assert (rows["utama"]["uss_start_mb"], rows["utama"]["uss_end_mb"]) == (100.0, 120.0)
+    assert rows["utama"]["n_samples"] == 4
+    assert rows["edge"]["n_samples"] == 3 and rows["edge"]["cpu_mean_pct"] == 5.0
+    assert rows["edge"]["uss_start_mb"] == 200.0  # sampel tanpa proses tidak dipakai
     assert rows["edge"]["uss_slope_mb_per_hour"] == pytest.approx(0.0)
-    assert rows["TOTAL"]["uss_end_mb"] == 320.0 and rows["TOTAL"]["duration_s"] == 3600.0
+    assert rows["vision"]["n_samples"] == 0 and rows["vision"]["uss_start_mb"] is None
+    total = rows["TOTAL"]
+    assert total["n_samples"] == 3 and total["uss_start_mb"] == 300.0  # mulai saat Edge ada
+    assert total["uss_end_mb"] == 320.0 and total["duration_s"] == 3600.0
+    assert total["uss_slope_mb_per_hour"] == pytest.approx(20.0)
 
 
 def test_run_latency_writes_outputs(tmp_path):

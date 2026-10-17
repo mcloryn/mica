@@ -16,8 +16,9 @@ python -m mica.eval latency --logs logs/ [--from YYYY-MM-DD --to YYYY-MM-DD]
   Keseluruhan: GAGAL bila salah satu ukuran utama gagal; TIDAK LENGKAP bila ada ukuran utama
   tanpa data; selain itu LULUS.
 - Opsional CSV perekam sumber daya (mica.eval.resources): per kelompok rata-rata dan p95 CPU,
-  RAM awal/akhir/kemiringan (MB per jam). Sampel pertama tiap kelompok tidak dipakai untuk CPU
-  (CPU butuh dua sampel).
+  RAM awal/akhir/kemiringan (MB per jam). Sampel tanpa proses tidak dipakai; sampel pertama tiap
+  kelompok tidak dipakai untuk CPU (CPU butuh dua sampel); TOTAL dimulai saat semua kelompok
+  yang pernah aktif sudah punya proses.
 Hasil: <out>/<label>-<cap waktu>/ per_turn.csv, summary.csv, resources_summary.csv, verdict.md,
 run.json.
 """
@@ -174,15 +175,30 @@ def resources_summary(path: Path) -> list[dict[str, Any]]:
             by[row["group"]].append({"t": float(row["elapsed_s"]), "cpu": float(row["cpu_pct"]),
                                      "uss": float(row["uss_mb"]),
                                      "n": float(row["n_processes"])})  # fmt: skip
+    # sampel tanpa proses (mis. Edge belum diluncurkan, pekerja tidak dimulai) tidak dipakai;
+    # TOTAL dimulai saat semua kelompok yang pernah aktif sudah punya proses
+    active = {g for g, samples in by.items() if any(s["n"] > 0 for s in samples)}
+    present: dict[float, set[str]] = defaultdict(set)
     totals: dict[float, dict[str, float]] = defaultdict(lambda: {"cpu": 0.0, "uss": 0.0, "n": 0.0})
-    for samples in by.values():
+    for group, samples in by.items():
         for s in samples:
+            if s["n"] > 0:
+                present[s["t"]].add(group)
             for k in ("cpu", "uss", "n"):
                 totals[s["t"]][k] += s[k]
-    by["TOTAL"] = [{"t": t, **v} for t, v in sorted(totals.items())]
+    complete = sorted(t for t in totals if active and present[t] >= active)
+    start_t = complete[0] if complete else None
+    groups = {g: [s for s in samples if s["n"] > 0] for g, samples in by.items()}
+    groups["TOTAL"] = [{"t": t, **v} for t, v in sorted(totals.items())
+                       if start_t is not None and t >= start_t]  # fmt: skip
     out = []
-    for group, samples in by.items():
+    for group, samples in groups.items():
         samples = sorted(samples, key=lambda s: s["t"])
+        if not samples:
+            out.append({"group": group, "n_samples": 0, "duration_s": None,
+                        "cpu_mean_pct": None, "cpu_p95_pct": None, "uss_start_mb": None,
+                        "uss_end_mb": None, "uss_slope_mb_per_hour": None})  # fmt: skip
+            continue
         cpu = [s["cpu"] for s in samples[1:]]  # sampel pertama: CPU belum terukur
         xs, ys = [s["t"] / 3600 for s in samples], [s["uss"] for s in samples]
         slope = statistics.linear_regression(xs, ys).slope if len(set(xs)) > 1 else None
