@@ -1,0 +1,226 @@
+﻿asked,kind,n_processes,uss_mb
+0,edge: browser,1,34.37
+0,edge: crashpad-handler,1,1.55
+0,edge: gpu-process,1,50.13
+0,edge: renderer,1,11.59
+0,edge: utility (network.mojom.NetworkService),1,7.71
+0,edge: utility (storage.mojom.StorageService),1,3.05
+0,python: Flask + controller,1,48.64
+0,python: peluncur venv,1,0.59
+10,edge: browser,1,51.27
+10,edge: crashpad-handler,1,1.59
+10,edge: gpu-process,1,106.32
+10,edge: renderer,1,14.21
+10,edge: utility (edge_collections.mojom.CollectionsDataManager),1,2.61
+10,edge: utility (entity_extraction_service.mojom.Extractor),1,3.20
+10,edge: utility (network.mojom.NetworkService),1,8.60
+10,edge: utility (storage.mojom.StorageService),1,3.07
+10,lain: identity_helper.exe,1,4.53
+10,python: Flask + controller,1,48.76
+10,python: peluncur venv,1,0.59
+20,edge: browser,1,47.04
+20,edge: crashpad-handler,1,1.59
+20,edge: gpu-process,1,109.55
+20,edge: renderer,1,15.79
+20,edge: utility (edge_collections.mojom.CollectionsDataManager),1,2.62
+20,edge: utility (entity_extraction_service.mojom.Extractor),1,3.24
+20,edge: utility (network.mojom.NetworkService),1,8.72
+20,edge: utility (storage.mojom.StorageService),1,3.07
+20,lain: identity_helper.exe,1,4.40
+20,python: Flask + controller,1,48.77
+20,python: peluncur venv,1,0.59
+30,edge: browser,1,48.49
+30,edge: crashpad-handler,1,1.59
+30,edge: gpu-process,1,109.62
+30,edge: renderer,1,17.13
+30,edge: utility (edge_collections.mojom.CollectionsDataManager),1,2.62
+30,edge: utility (entity_extraction_service.mojom.Extractor),1,3.24
+30,edge: utility (network.mojom.NetworkService),1,8.75
+30,edge: utility (storage.mojom.StorageService),1,3.07
+30,edge: utility (unzip.mojom.Unzipper),1,3.00
+30,lain: identity_helper.exe,1,4.40
+30,python: Flask + controller,1,48.77
+30,python: peluncur venv,1,0.59
+40,edge: browser,1,49.13
+40,edge: crashpad-handler,1,1.59
+40,edge: gpu-process,1,109.37
+40,edge: renderer,1,18.59
+40,edge: renderer (ekstensi),1,12.34
+40,edge: utility (edge_collections.mojom.CollectionsDataManager),1,2.62
+40,edge: utility (entity_extraction_service.mojom.Extractor),1,3.24
+40,edge: utility (network.mojom.NetworkService),1,8.78
+40,edge: utility (storage.mojom.StorageService),1,3.07
+40,lain: identity_helper.exe,1,4.40
+40,python: Flask + controller,1,48.77
+40,python: peluncur venv,1,0.59
+50,edge: browser,1,49.06
+50,edge: crashpad-handler,1,1.59
+50,edge: gpu-process,1,109.13
+50,edge: renderer,1,20.01
+50,edge: renderer (ekstensi),1,24.58
+50,edge: utility (edge_collections.mojom.CollectionsDataManager),1,2.62
+50,edge: utility (entity_extraction_service.mojom.Extractor),1,3.24
+50,edge: utility (network.mojom.NetworkService),1,8.79
+50,edge: utility (storage.mojom.StorageService),1,3.07
+50,lain: identity_helper.exe,1,4.40
+50,python: Flask + controller,1,48.77
+50,python: peluncur venv,1,0.59
+60,edge: browser,1,49.04
+60,edge: crashpad-handler,1,1.59
+60,edge: gpu-process,1,107.23
+60,edge: renderer,1,21.38
+60,edge: renderer (ekstensi),1,24.58
+60,edge: utility (edge_collections.mojom.CollectionsDataManager),1,2.62
+60,edge: utility (entity_extraction_service.mojom.Extractor),1,3.24
+60,edge: utility (network.mojom.NetworkService),1,8.79
+60,edge: utility (storage.mojom.StorageService),1,3.07
+60,lain: identity_helper.exe,1,4.40
+60,python: Flask + controller,1,48.77
+60,python: peluncur venv,1,0.59
+70,edge: browser,1,49.36
+70,edge: crashpad-handler,1,1.59
+70,edge: gpu-process,1,103.24
+70,edge: renderer,1,22.69
+70,edge: renderer (ekstensi),1,24.61
+70,edge: utility (edge_collections.mojom.CollectionsDataManager),1,2.62
+70,edge: utility (entity_extraction_service.mojom.Extractor),1,3.24
+70,edge: utility (network.mojom.NetworkService),1,8.79
+70,edge: utility (storage.mojom.StorageService),1,3.07
+70,python: Flask + controller,1,48.77
+70,python: peluncur venv,1,0.59
+80,edge: browser,1,49.36
+80,edge: crashpad-handler,1,1.59
+80,edge: gpu-process,1,101.48
+80,edge: renderer,1,24.14
+80,edge: renderer (ekstensi),1,24.61
+80,edge: utility (edge_collections.mojom.CollectionsDataManager),1,2.62
+80,edge: utility (entity_extraction_service.mojom.Extractor),1,3.24
+80,edge: utility (network.mojom.NetworkService),1,8.79
+80,edge: utility (storage.mojom.StorageService),1,3.07
+80,python: Flask + controller,1,48.77
+80,python: peluncur venv,1,0.59
+90,edge: browser,1,49.36
+90,edge: crashpad-handler,1,1.59
+90,edge: gpu-process,1,101.47
+90,edge: renderer,1,25.53
+90,edge: renderer (ekstensi),1,24.61
+90,edge: utility (edge_collections.mojom.CollectionsDataManager),1,2.62
+90,edge: utility (entity_extraction_service.mojom.Extractor),1,3.24
+90,edge: utility (network.mojom.NetworkService),1,8.79
+90,edge: utility (storage.mojom.StorageService),1,3.07
+90,python: Flask + controller,1,48.77
+90,python: peluncur venv,1,0.59
+100,edge: browser,1,49.47
+100,edge: crashpad-handler,1,1.59
+100,edge: gpu-process,1,99.48
+100,edge: renderer,1,27.01
+100,edge: renderer (ekstensi),1,23.46
+100,edge: utility (edge_collections.mojom.CollectionsDataManager),1,2.62
+100,edge: utility (entity_extraction_service.mojom.Extractor),1,3.24
+100,edge: utility (network.mojom.NetworkService),1,8.79
+100,edge: utility (storage.mojom.StorageService),1,3.07
+100,python: Flask + controller,1,48.77
+100,python: peluncur venv,1,0.59
+110,edge: browser,1,49.35
+110,edge: crashpad-handler,1,1.59
+110,edge: gpu-process,1,99.50
+110,edge: renderer,1,28.40
+110,edge: renderer (ekstensi),1,23.46
+110,edge: utility (edge_collections.mojom.CollectionsDataManager),1,2.62
+110,edge: utility (entity_extraction_service.mojom.Extractor),1,3.24
+110,edge: utility (network.mojom.NetworkService),1,8.79
+110,edge: utility (storage.mojom.StorageService),1,3.07
+110,python: Flask + controller,1,48.77
+110,python: peluncur venv,1,0.59
+120,edge: browser,1,49.38
+120,edge: crashpad-handler,1,1.59
+120,edge: gpu-process,1,97.86
+120,edge: renderer,1,29.95
+120,edge: renderer (ekstensi),1,23.46
+120,edge: utility (edge_collections.mojom.CollectionsDataManager),1,2.62
+120,edge: utility (entity_extraction_service.mojom.Extractor),1,3.24
+120,edge: utility (network.mojom.NetworkService),1,8.79
+120,edge: utility (storage.mojom.StorageService),1,3.07
+120,python: Flask + controller,1,48.77
+120,python: peluncur venv,1,0.59
+130,edge: browser,1,49.38
+130,edge: crashpad-handler,1,1.59
+130,edge: gpu-process,1,97.87
+130,edge: renderer,1,31.46
+130,edge: renderer (ekstensi),1,23.46
+130,edge: utility (edge_collections.mojom.CollectionsDataManager),1,2.62
+130,edge: utility (entity_extraction_service.mojom.Extractor),1,3.24
+130,edge: utility (network.mojom.NetworkService),1,8.79
+130,edge: utility (storage.mojom.StorageService),1,3.07
+130,python: Flask + controller,1,48.77
+130,python: peluncur venv,1,0.59
+140,edge: browser,1,49.38
+140,edge: crashpad-handler,1,1.59
+140,edge: gpu-process,1,97.86
+140,edge: renderer,1,33.60
+140,edge: renderer (ekstensi),1,23.46
+140,edge: utility (edge_collections.mojom.CollectionsDataManager),1,2.62
+140,edge: utility (entity_extraction_service.mojom.Extractor),1,3.24
+140,edge: utility (network.mojom.NetworkService),1,8.79
+140,edge: utility (storage.mojom.StorageService),1,3.07
+140,python: Flask + controller,1,48.77
+140,python: peluncur venv,1,0.59
+150,edge: browser,1,49.39
+150,edge: crashpad-handler,1,1.59
+150,edge: gpu-process,1,97.87
+150,edge: renderer,1,34.88
+150,edge: renderer (ekstensi),1,23.46
+150,edge: utility (edge_collections.mojom.CollectionsDataManager),1,2.62
+150,edge: utility (entity_extraction_service.mojom.Extractor),1,3.24
+150,edge: utility (network.mojom.NetworkService),1,8.79
+150,edge: utility (storage.mojom.StorageService),1,3.07
+150,python: Flask + controller,1,48.77
+150,python: peluncur venv,1,0.59
+160,edge: browser,1,49.59
+160,edge: crashpad-handler,1,2.05
+160,edge: gpu-process,1,97.87
+160,edge: renderer,1,36.59
+160,edge: renderer (ekstensi),1,23.46
+160,edge: utility (edge_collections.mojom.CollectionsDataManager),1,2.62
+160,edge: utility (entity_extraction_service.mojom.Extractor),1,3.24
+160,edge: utility (network.mojom.NetworkService),1,8.80
+160,edge: utility (storage.mojom.StorageService),1,3.07
+160,python: Flask + controller,1,48.91
+160,python: peluncur venv,1,0.58
+170,edge: browser,1,48.91
+170,edge: crashpad-handler,1,2.04
+170,edge: gpu-process,1,97.89
+170,edge: renderer,1,38.05
+170,edge: renderer (ekstensi),1,23.46
+170,edge: utility (entity_extraction_service.mojom.Extractor),1,3.24
+170,edge: utility (network.mojom.NetworkService),1,8.72
+170,edge: utility (storage.mojom.StorageService),1,3.07
+170,python: Flask + controller,1,48.91
+170,python: peluncur venv,1,0.58
+180,edge: browser,1,48.83
+180,edge: crashpad-handler,1,2.04
+180,edge: gpu-process,1,97.89
+180,edge: renderer,1,39.57
+180,edge: renderer (ekstensi),1,23.46
+180,edge: utility (network.mojom.NetworkService),1,8.74
+180,edge: utility (storage.mojom.StorageService),1,3.07
+180,python: Flask + controller,1,48.91
+180,python: peluncur venv,1,0.58
+190,edge: browser,1,48.83
+190,edge: crashpad-handler,1,2.04
+190,edge: gpu-process,1,97.89
+190,edge: renderer,1,40.82
+190,edge: renderer (ekstensi),1,23.46
+190,edge: utility (network.mojom.NetworkService),1,8.74
+190,edge: utility (storage.mojom.StorageService),1,3.07
+190,python: Flask + controller,1,48.91
+190,python: peluncur venv,1,0.58
+200,edge: browser,1,48.83
+200,edge: crashpad-handler,1,2.04
+200,edge: gpu-process,1,97.88
+200,edge: renderer,1,42.45
+200,edge: renderer (ekstensi),1,23.46
+200,edge: utility (network.mojom.NetworkService),1,8.74
+200,edge: utility (storage.mojom.StorageService),1,3.07
+200,python: Flask + controller,1,48.91
+200,python: peluncur venv,1,0.58
