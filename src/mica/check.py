@@ -20,7 +20,7 @@ from mica.config import ConfigError, Settings, load_settings, missing_kiosk_fiel
 
 DEFAULT_CONFIG = Path("config/kiosk.yaml")
 DEFAULT_ENV = Path(".env")
-Status = Literal["OK", "GAGAL", "INFO"]
+Status = Literal["OK", "GAGAL", "PERINGATAN", "INFO"]  # PERINGATAN tidak menggagalkan check
 SETUP_HINT = "jalankan: python -m mica setup"
 
 
@@ -108,7 +108,8 @@ def _check_audio(query: Callable[[], Any]) -> CheckRow:
     message = f"input {len(inputs)}, output {len(outputs)}"
     if not inputs or not outputs:
         lack = " dan ".join(n for n, xs in (("mikrofon", inputs), ("speaker", outputs)) if not xs)
-        return CheckRow("perangkat audio", "GAGAL", f"{message}; {lack} tidak ditemukan")
+        return CheckRow("perangkat audio", "PERINGATAN",
+                        f"{message}; {lack} tidak ditemukan, kiosk tetap bisa dipakai lewat teks")  # fmt: skip
     return CheckRow("perangkat audio", "OK", message)
 
 
@@ -154,10 +155,14 @@ def failed(rows: list[CheckRow]) -> bool:
 
 def format_table(rows: list[CheckRow]) -> str:
     width = max(len(r.item) for r in rows)
-    lines = [f"{'pemeriksaan'.ljust(width)}  status  keterangan"]
-    lines += [f"{r.item.ljust(width)}  {r.status.ljust(6)}  {r.message}" for r in rows]
-    verdict = ("SEMUA OK: kiosk siap dijalankan (python -m mica)" if not failed(rows)
-               else "ADA GAGAL: perbaiki baris GAGAL sebelum menjalankan kiosk")  # fmt: skip
+    lines = [f"{'pemeriksaan'.ljust(width)}  {'status'.ljust(10)}  keterangan"]
+    lines += [f"{r.item.ljust(width)}  {r.status.ljust(10)}  {r.message}" for r in rows]
+    if failed(rows):
+        verdict = "ADA GAGAL: perbaiki baris GAGAL sebelum menjalankan kiosk"
+    elif any(r.status == "PERINGATAN" for r in rows):
+        verdict = "SIAP DENGAN PERINGATAN: kiosk bisa dijalankan (python -m mica); baca PERINGATAN"
+    else:
+        verdict = "SEMUA OK: kiosk siap dijalankan (python -m mica)"
     return "\n".join([*lines, "", verdict])
 
 

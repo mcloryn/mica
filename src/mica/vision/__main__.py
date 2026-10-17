@@ -53,10 +53,12 @@ from mica.vision.color import (
 from mica.vision.detector import (
     DEFAULT_MODELS_DIR,
     DEVICE,
+    MODEL_SHA256,
+    YOLO_ASSETS_REPO,
+    YOLO_RELEASE_TAG,
     ModelMissing,
     PersonDetector,
     UltralyticsDetector,
-    disable_ultralytics_sync,
     model_path,
     sha256_file,
 )
@@ -224,23 +226,32 @@ def _require_dev(settings: Settings, command: str) -> None:
 # --- fetch-model ------------------------------------------------------------------------
 
 
-def _download_asset(path: Path) -> Path:
-    # attempt_download_asset mengunduh rilis GitHub ultralytics/assets ke path yang diberikan
-    # (safe_download membuat folder induknya), kecuali file sudah ada di path itu atau di
-    # SETTINGS["weights_dir"]; kasus kedua ditolak oleh cmd_fetch_model.
-    from ultralytics.utils.downloads import attempt_download_asset
+def yolo_url(name: str) -> str:
+    return f"https://github.com/{YOLO_ASSETS_REPO}/releases/download/{YOLO_RELEASE_TAG}/{name}"
 
-    return Path(attempt_download_asset(path))
+
+def _download_asset(path: Path) -> Path:
+    """Unduh <path.name> dari rilis ultralytics/assets bertag terkunci ke path (lewat .part)."""
+    import httpx
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    part = path.with_name(path.name + ".part")
+    with httpx.stream("GET", yolo_url(path.name), follow_redirects=True, timeout=120) as r:
+        r.raise_for_status()
+        with part.open("wb") as f:
+            for block in r.iter_bytes(1 << 20):
+                f.write(block)
+    part.replace(path)
+    return path
 
 
 def cmd_fetch_model(
     args: argparse.Namespace,
     settings: Settings,
     download: Callable[[Path], Path] = _download_asset,
-    disable_sync: Callable[[], None] = disable_ultralytics_sync,
 ) -> int:
     _require_dev(settings, "fetch-model")
-    path = fetch_model(settings.vision.model, args.models_dir, download, disable_sync)
+    path = fetch_model(settings.vision.model, args.models_dir, download)
     print(f"model {settings.vision.model}: {path.as_posix()} ({path.stat().st_size} byte)")
     print(f"sha256 {sha256_file(path)}")
     return 0
@@ -250,17 +261,21 @@ def fetch_model(
     name: str,
     models_dir: Path,
     download: Callable[[Path], Path] = _download_asset,
-    disable_sync: Callable[[], None] = disable_ultralytics_sync,
 ) -> Path:
-    """Unduh bobot <name>.pt ke models_dir bila belum ada (dipakai fetch-model dan setup)."""
+    """Unduh bobot <name>.pt ke models_dir bila belum ada (dipakai fetch-model dan setup);
+    sha256 hasil unduhan harus sama dengan MODEL_SHA256, bila tidak file dihapus."""
     path = model_path(name, models_dir)
     if path.is_file():
         print(f"sudah ada: {path.as_posix()}")
         return path
-    disable_sync()
     got = download(path)
     if not path.is_file() or got.resolve() != path.resolve():
         raise DemoError(f"unduhan tidak berakhir di {path.as_posix()} (didapat {got})")
+    expected = MODEL_SHA256.get(name)
+    actual = sha256_file(path)
+    if expected is not None and actual != expected:
+        path.unlink()
+        raise DemoError(f"sha256 {path.name} tidak cocok: {actual} (harus {expected})")
     return path
 
 

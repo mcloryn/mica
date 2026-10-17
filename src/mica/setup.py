@@ -64,12 +64,6 @@ def _embedder(model: str, revision: str, cache_dir: Path) -> None:
     BgeM3Embedder(model, revision=revision, cache_dir=cache_dir).load()
 
 
-def _disable_sync() -> None:
-    from mica.vision.detector import disable_ultralytics_sync
-
-    disable_ultralytics_sync()
-
-
 @dataclass(frozen=True)
 class Downloaders:
     """Pengunduh yang bisa diganti di tes (tanpa jaringan)."""
@@ -78,7 +72,6 @@ class Downloaders:
     url_bytes: Callable[[str], bytes] = _bytes
     url_file: Callable[[str, Path], None] = _file
     embedder: Callable[[str, str, Path], None] = _embedder
-    disable_sync: Callable[[], None] = _disable_sync
 
 
 @dataclass(frozen=True)
@@ -115,7 +108,7 @@ def components(
         out.append(Component(
             name,
             ((model_path(name, models_dir), MODEL_SHA256[name]),),
-            lambda n=name: fetch_model(n, models_dir, dl.yolo, dl.disable_sync),
+            lambda n=name: fetch_model(n, models_dir, dl.yolo),
             used=settings.vision.model == name,
         ))  # fmt: skip
     out.append(Component(

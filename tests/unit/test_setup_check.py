@@ -39,6 +39,9 @@ def locked(monkeypatch):
     }  # fmt: skip
     monkeypatch.setattr(detector, "MODEL_SHA256", {"yolo26n": _sha(b"yolo"),
                                                    "yolo26n-pose": _sha(b"pose")})  # fmt: skip
+    import mica.vision.__main__ as vision_cli
+
+    monkeypatch.setattr(vision_cli, "MODEL_SHA256", detector.MODEL_SHA256)
     monkeypatch.setattr(color, "COLORS_NPY_SHA256", _sha(b"warna"))
     monkeypatch.setattr(stt, "WHISPER_SHA256", {n: _sha(n.encode()) for n in stt.WHISPER_SHA256})
     monkeypatch.setattr(audio_cli, "WHISPER_SHA256", stt.WHISPER_SHA256)
@@ -73,7 +76,7 @@ def _fake_downloaders(content, calls):
         return path
 
     return Downloaders(yolo=yolo, url_bytes=lambda url: b"", url_file=url_file,
-                       embedder=embedder, disable_sync=lambda: None), colors  # fmt: skip
+                       embedder=embedder), colors  # fmt: skip
 
 
 # --- setup ----------------------------------------------------------------------------------
@@ -193,8 +196,20 @@ def test_check_missing_key_and_devices(tmp_path, locked, monkeypatch):
     by_item = {r.item: r for r in rows}
     assert by_item["GROQ_API_KEY"].status == "GAGAL"
     assert "GROQ_API_KEY di file .env" in by_item["GROQ_API_KEY"].message
-    assert by_item["perangkat audio"].status == "GAGAL"
+    assert by_item["perangkat audio"].status == "PERINGATAN"
     assert "mikrofon tidak ditemukan" in by_item["perangkat audio"].message
+    assert "kiosk tetap bisa dipakai lewat teks" in by_item["perangkat audio"].message
+
+
+def test_check_device_warning_only_exits_zero(tmp_path, locked, monkeypatch):
+    config = _dev_config(tmp_path)
+    _models(tmp_path, locked, load_settings(config))
+    rows, _ = _run(tmp_path, config, monkeypatch, devices=[])
+    assert not check.failed(rows)
+    assert {r.item: r for r in rows}["perangkat audio"].status == "PERINGATAN"
+    assert "SIAP DENGAN PERINGATAN" in check.format_table(rows)
+    monkeypatch.setattr(check, "run_check", lambda c, e: (rows, None))
+    assert check.main([]) == 0  # hanya PERINGATAN: kode keluar 0
 
 
 def test_check_key_value_never_printed(tmp_path, locked, monkeypatch, capsys):

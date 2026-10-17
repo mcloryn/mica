@@ -287,25 +287,42 @@ def _fetch_args(models_dir):
     return argparse.Namespace(models_dir=models_dir)
 
 
-def test_fetch_model_downloads_to_models_dir(tmp_path, capsys):
+def test_fetch_model_downloads_to_models_dir(tmp_path, capsys, monkeypatch):
+    import hashlib
+
     settings = load_settings(DEV_YAML)
     target = model_path(settings.vision.model, tmp_path / "models")
-    synced = []
+    sha = hashlib.sha256(b"bobot").hexdigest()
+    monkeypatch.setattr(cli, "MODEL_SHA256", {settings.vision.model: sha})
 
     def download(path):
         path.parent.mkdir(parents=True)
         path.write_bytes(b"bobot")
         return path
 
-    code = cli.cmd_fetch_model(
-        _fetch_args(tmp_path / "models"), settings, download, lambda: synced.append(1)
-    )
+    code = cli.cmd_fetch_model(_fetch_args(tmp_path / "models"), settings, download)
     out = capsys.readouterr().out
-    assert code == 0 and target.read_bytes() == b"bobot" and synced == [1]
-    # sha256 dari b"bobot"
-    import hashlib
+    assert code == 0 and target.read_bytes() == b"bobot"
+    assert f"sha256 {sha}" in out
 
-    assert f"sha256 {hashlib.sha256(b'bobot').hexdigest()}" in out
+
+def test_fetch_model_wrong_sha_deletes_file(tmp_path):
+    settings = load_settings(DEV_YAML)
+
+    def download(path):
+        path.parent.mkdir(parents=True)
+        path.write_bytes(b"bukan bobot asli")
+        return path
+
+    with pytest.raises(cli.DemoError, match="sha256"):
+        cli.cmd_fetch_model(_fetch_args(tmp_path / "models"), settings, download)
+    assert not model_path(settings.vision.model, tmp_path / "models").exists()
+
+
+def test_yolo_url_uses_locked_tag():
+    assert cli.yolo_url("yolo26n.pt") == (
+        "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n.pt"
+    )
 
 
 def test_fetch_model_rejects_download_elsewhere(tmp_path):
@@ -318,7 +335,7 @@ def test_fetch_model_rejects_download_elsewhere(tmp_path):
         return elsewhere
 
     with pytest.raises(cli.DemoError):
-        cli.cmd_fetch_model(_fetch_args(tmp_path / "models"), settings, download, lambda: None)
+        cli.cmd_fetch_model(_fetch_args(tmp_path / "models"), settings, download)
 
 
 def test_demo_missing_color_table_reports_code(tmp_path, capsys):
