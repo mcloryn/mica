@@ -16,7 +16,9 @@ speaker_ok=False, ready=False)) dan log WORKER_DEAD. Proses utama tetap berjalan
 Setelah restart, antrean masuk pekerja diganti baru dan pekerja mulai dari keadaan awal: vision
 kembali ke fps_idle, suara kembali ke mode off (Speak yang belum selesai hilang tanpa
 SpeechDone). M-09 wajib mengirim ulang SetVisionRate saat CameraStatus ok berikutnya dan
-ListenControl saat AudioStatus(ready=True) berikutnya.
+ListenControl saat AudioStatus(ready=True) berikutnya. Supaya restart terlihat walau proses
+dibunuh paksa, poll() mengembalikan status tidak tersedia dengan WORKER_RESTART tepat sebelum
+proses baru dimulai (vision: CameraStatus(ok=False); suara: AudioStatus(ready=False)).
 """
 
 from __future__ import annotations
@@ -139,7 +141,9 @@ class Bus:
         return self
 
     def _dead_status(self, name: str) -> Message:
-        message = f"{ErrorCode.WORKER_DEAD}: proses {name} mati"
+        return self._down_status(name, f"{ErrorCode.WORKER_DEAD}: proses {name} mati")
+
+    def _down_status(self, name: str, message: str) -> Message:
         if name == "audio":
             return AudioStatus(mic_ok=False, speaker_ok=False, ready=False, message=message)
         return CameraStatus(ok=False, message=message, fps=None)
@@ -166,6 +170,10 @@ class Bus:
                     self.vision_cfg = replace(self.vision_cfg, countdown_s=0.0)
                 else:
                     self.to_audio = self.ctx.Queue()  # mode kembali off
+                # proses yang dibunuh paksa tidak sempat melapor; status ini membuat M-09
+                # mengenali restart saat status ok/ready berikutnya datang
+                out.append(self._down_status(name, f"{ErrorCode.WORKER_RESTART}: proses {name} "
+                                                   "dimulai ulang"))  # fmt: skip
                 self._start_process(name)
             else:
                 self.dead.add(name)

@@ -114,9 +114,11 @@ def test_killed_worker_restarts_once_then_dead(workdir, caplog):
         _collect(bus, _ok)
         first = bus.processes["vision"]
         first.kill()
-        _collect(bus, lambda ms: bus.restarts["vision"] == 1 and _ok(ms))
+        msgs = _collect(bus, lambda ms: bus.restarts["vision"] == 1 and _ok(ms))
         assert bus.processes["vision"].pid != first.pid
         assert ErrorCode.WORKER_RESTART in caplog.text
+        down = [m for m in msgs if isinstance(m, CameraStatus) and not m.ok]
+        assert down and ErrorCode.WORKER_RESTART in down[0].message
 
         bus.processes["vision"].kill()
         msgs = _collect(bus, lambda ms: "vision" in bus.dead, timeout_s=10)

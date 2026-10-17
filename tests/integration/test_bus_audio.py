@@ -92,8 +92,11 @@ def test_killed_audio_worker_restarts_once_then_dead(workdir, caplog):
         first = bus.processes["audio"]
         old_queue = bus.to_audio
         first.kill()
-        _collect(bus, lambda ms: bus.restarts["audio"] == 1 and _ready(ms))
+        msgs = _collect(bus, lambda ms: bus.restarts["audio"] == 1 and _ready(ms))
         assert bus.processes["audio"].pid != first.pid and bus.to_audio is not old_queue
+        down = [m for m in msgs if isinstance(m, AudioStatus) and not m.ready]
+        assert down and ErrorCode.WORKER_RESTART in down[0].message
+        assert msgs.index(down[0]) < max(i for i, m in enumerate(msgs) if _ready([m]))
         assert ErrorCode.WORKER_RESTART in caplog.text
 
         bus.processes["audio"].kill()
