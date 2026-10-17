@@ -11,7 +11,8 @@ num2words(lang="id"):
 4. tanggal "29 September 2026";
 5. tahun ajaran "2026/2027" dan "T.A.";
 6. nomor telepon (awal 08 atau +62, minimal 9 digit): per digit, "+" -> "plus", koma antar
-   kelompok yang dipisah spasi (strip dibuang);
+   kelompok yang dipisah spasi (strip dibuang); telepon kantor dengan kode area dalam kurung
+   ("(061) 4573767", "(061) 457-3767") juga per digit, koma setelah kode area;
 7. "ke-2" -> "kedua", persen, desimal koma, ribuan bertitik, bilangan bulat lain;
 8. singkatan dari kamus ABBREVIATIONS (kata utuh, peka huruf besar); kode huruf+angka lain
    (misalnya SMKN1, IP4) dibiarkan;
@@ -33,7 +34,7 @@ ABBREVIATIONS = {
     "D3": "de tiga",
     "SKS": "es ka es",
     "IPK": "i pe ka",
-    "PMB": "pe em be",
+    "PMB": "P M B",  # pilihan hasa setelah pilot E-06 ("pe em be" terdengar "pe m be")
     "KIP": "kip",
     "dll": "dan lain-lain",
     "dsb": "dan sebagainya",
@@ -54,6 +55,7 @@ _DATE = re.compile(rf"(?<!\d)(\d{{1,2}}) ({MONTHS}) (\d{{4}})(?!\d)")
 _ACADEMIC_YEAR = re.compile(r"(?<![\d/])(\d{4})/(\d{4})(?![\d/])")
 _TA = re.compile(r"(?<!\w)T\.A\.")
 _PHONE = re.compile(r"(?<![\w+])(?:\+62|08)[\d -]*\d")
+_LANDLINE = re.compile(r"\((0\d{1,4})\)\s?(\d[\d -]*\d)")
 _ORDINAL = re.compile(r"(?<!\w)ke-(\d+)(?!\w)")
 _PERCENT = re.compile(r"(?<![\w.,])(\d+(?:,\d+)?)\s?%")
 _DECIMAL = re.compile(r"(?<![\w.,])(\d+),(\d+)(?![\w]|[.,]\d)")
@@ -113,6 +115,11 @@ def _phone(m: re.Match[str]) -> str | None:
     return ", ".join(groups)
 
 
+def _landline(m: re.Match[str]) -> str:
+    groups = [m.group(1), *m.group(2).split()]
+    return ", ".join(" ".join(DIGITS[int(c)] for c in g if c.isdigit()) for g in groups)
+
+
 def _percent(m: re.Match[str]) -> str:
     whole, _, frac = m.group(1).partition(",")
     number = _decimal_words(whole, frac) if frac else _words(whole)
@@ -138,6 +145,7 @@ def normalize_for_speech(text: str) -> str:
     text = _ACADEMIC_YEAR.sub(_academic_year, text)
     text = _TA.sub("tahun ajaran", text)
     text = _PHONE.sub(_phone, text)
+    text = _LANDLINE.sub(_landline, text)
     text = _ORDINAL.sub(lambda m: num2words(int(m.group(1)), lang="id", to="ordinal"), text)
     text = _PERCENT.sub(_percent, text)
     text = _DECIMAL.sub(lambda m: _decimal_words(m.group(1), m.group(2)), text)

@@ -232,3 +232,13 @@ def test_real_piper_voice_synthesizes():
     tts = PiperTts(ROOT / MODEL)
     clips = list(tts.stream("Halo. Biaya Rp14.000.000 per tahun."))
     assert len(clips) == 2 and all(c.sample_rate == 22050 and c.duration_s > 0.2 for c in clips)
+
+
+def test_say_without_rate_writes_no_files(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    lines = tmp_path / "kalimat.txt"
+    lines.write_text("Satu dua.\nRp15.000.000 per tahun.\n", encoding="utf-8")
+    before = set(tmp_path.rglob("*"))
+    code, played = _say(["--file", str(lines)], tmp_path)
+    assert code == 0 and len(played) == 2
+    assert set(tmp_path.rglob("*")) == before

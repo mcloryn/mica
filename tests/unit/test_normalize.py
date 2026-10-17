@@ -101,7 +101,7 @@ def test_numbers(text, expected):
         ("D3", "de tiga"),
         ("SKS", "es ka es"),
         ("IPK", "i pe ka"),
-        ("PMB", "pe em be"),
+        ("PMB", "P M B"),
         ("KIP", "kip"),
         ("dll", "dan lain-lain"),
         ("dsb", "dan sebagainya"),
@@ -162,5 +162,28 @@ def test_kb_dev_examples(text, expected):
 
 
 def test_refusal_texts_only_abbreviation_changes():
-    assert norm(REFUSAL) == REFUSAL.replace("PMB", "pe em be")
-    assert norm(UNAVAILABLE) == UNAVAILABLE.replace("PMB", "pe em be")
+    assert norm(REFUSAL) == REFUSAL.replace("PMB", "P M B")
+    assert norm(UNAVAILABLE) == UNAVAILABLE.replace("PMB", "P M B")
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        # KB dev: 01_profil_universitas.md, 13_kontak_lengkap.md
+        (
+            "Telepon universitas: (061) 4573767.",
+            "Telepon universitas: nol enam satu, empat lima tujuh tiga tujuh enam tujuh.",
+        ),
+        ("| Telepon universitas | (061) 4573767 |", "| Telepon universitas | nol enam satu, empat lima tujuh tiga tujuh enam tujuh |"),
+        ("(061) 457-3767", "nol enam satu, empat lima tujuh tiga tujuh enam tujuh"),
+    ],
+)  # fmt: skip
+def test_office_phone_with_area_code(text, expected):
+    assert norm(text) == expected
+
+
+def test_pilot_sentence_7_wib():
+    # kalimat 7 pilot E-06 (results/E-06/pilot-dev-20261017-140316)
+    assert norm("Pada hari Sabtu, Admisi buka 09.00 – 17.00 WIB.") == (
+        "Pada hari Sabtu, Admisi buka pukul sembilan sampai pukul tujuh belas waktu Indonesia barat."
+    )
