@@ -1,0 +1,4 @@
+﻿ui,rep,startup_s,uss_idle_mb,uss_after_mb,cpu_idle_pct,n_processes_idle,n_processes_after,n_updates,n_unacked,lat_p50_ms,lat_p95_ms,power_source,battery_percent,cover_window,edge_switches,cover_opened,cover_foreground,cover_ui_pct
+web,1,2.5268073081970215,185.19140625,243.38671875,4.713474554645915,8,8,59,0,1.5618999896105379,3.4429899969836453,ac,97,False,True,,,
+web,2,2.446709156036377,184.82421875,243.2265625,4.114531291368947,8,8,59,0,1.5291999734472483,2.860060014063463,ac,97,False,True,,,
+web,3,2.492060661315918,186.21875,244.30859375,5.93742959198032,8,8,59,0,1.5847000177018344,2.1493599924724545,ac,97,False,True,,,

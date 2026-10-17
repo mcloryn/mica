@@ -164,7 +164,7 @@ def child_pyside6(config: Path) -> int:
 # --- proses anak: web -------------------------------------------------------------------
 
 
-def child_web(config: Path, keep_rendering: bool = True) -> int:
+def child_web(config: Path, keep_rendering: bool = True, edge_extra: tuple[str, ...] = ()) -> int:
     from mica.config import load_settings
     from mica.webui.app import build_controller, serve
     from mica.webui.browser import EdgeBrowser
@@ -195,7 +195,12 @@ def child_web(config: Path, keep_rendering: bool = True) -> int:
     settings = load_settings(config)
     webui = BenchWebUi(settings.ui, dev=True)
     controller = build_controller(settings, webui, fake_workers=True, fake_pipeline=True)
-    browser = EdgeBrowser(settings.ui.fullscreen, keep_rendering=keep_rendering)
+
+    def popen(cmd: list[str]) -> subprocess.Popen:
+        # --edge-extra: switch kandidat disisipkan sebelum --kiosk/URL tanpa mengubah kode aplikasi
+        return subprocess.Popen([cmd[0], *edge_extra, *cmd[1:]])
+
+    browser = EdgeBrowser(settings.ui.fullscreen, keep_rendering=keep_rendering, popen=popen)
     commands = stdin_commands()
     driver = Driver(controller, webui.vm)
     stop = threading.Event()
@@ -406,10 +411,11 @@ def require_ac() -> dict[str, Any] | None:
 
 
 def run_once(ui: str, rep: int, config: Path, cover_window: bool = False,
-             edge_switches: bool = True) -> dict[str, Any]:  # fmt: skip
+             edge_switches: bool = True, edge_extra: tuple[str, ...] = ()) -> dict[str, Any]:  # fmt: skip
     power = require_ac()  # dicek sebelum setiap ulangan
     child = [sys.executable, __file__, "--child", ui, "--config", str(config),
-             "--edge-switches", "on" if edge_switches else "off"]  # fmt: skip
+             "--edge-switches", "on" if edge_switches else "off",
+             *(f"--edge-extra={x}" for x in edge_extra)]  # fmt: skip
     cover = Cover(0) if cover_window else None
     cover_info: dict[str, Any] = {}
     t0 = time.time()
@@ -492,12 +498,16 @@ def main(argv: list[str] | None = None) -> int:
                         help="tutup jendela UI dengan Notepad selama diam + 20 pertanyaan")  # fmt: skip
     parser.add_argument("--edge-switches", choices=("on", "off"), default="on",
                         help="off = Edge tanpa RENDERING_SWITCHES (pembanding uji)")  # fmt: skip
+    parser.add_argument("--edge-extra", action="append", default=[], metavar="SWITCH",
+                        help="switch Edge tambahan untuk menguji kandidat (boleh berulang); "
+                        "tulis --edge-extra=--switch")  # fmt: skip
     parser.add_argument("--child", choices=("pyside6", "web"))
     args = parser.parse_args(argv)
     if args.child == "pyside6":
         return child_pyside6(args.config)
     if args.child == "web":
-        return child_web(args.config, keep_rendering=args.edge_switches == "on")
+        return child_web(args.config, keep_rendering=args.edge_switches == "on",
+                         edge_extra=tuple(args.edge_extra))  # fmt: skip
 
     from mica.config import load_settings
     from mica.eval.environment import collect_environment
@@ -528,7 +538,8 @@ def _bench(args: argparse.Namespace, settings: Any, collect_environment: Any,
     for rep in range(1, args.reps + 1):
         for ui in uis:
             print(f"[{ui} ulangan {rep}] ...", flush=True)
-            r = run_once(ui, rep, args.config, args.cover_window, args.edge_switches == "on")
+            r = run_once(ui, rep, args.config, args.cover_window, args.edge_switches == "on",
+                         tuple(args.edge_extra))  # fmt: skip
             runs.append(r)
             p95 = "-" if r["lat_p95_ms"] is None else f"{r['lat_p95_ms']:.1f} ms"
             print(f"  mulai {r['startup_s']:.2f} s | USS diam {r['uss_idle_mb']:.0f} MB | "
@@ -590,6 +601,7 @@ def _bench(args: argparse.Namespace, settings: Any, collect_environment: Any,
     info = {
         "experiment": "ADR-19 tahap 1", "protocol": "docs/UI-WEB.md (pra-registrasi 17 Okt 2026)",
         "cover_window": args.cover_window, "edge_switches": args.edge_switches,
+        "edge_extra": args.edge_extra,
         "cover_details": [{"ui": r["ui"], "rep": r["rep"], **r["_cover"]} for r in runs
                           if r["_cover"]],
         "config": args.config.as_posix(), "uis": list(uis), "web_server": "Flask + flask-sock "

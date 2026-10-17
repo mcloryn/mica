@@ -33,7 +33,7 @@ from mica.ui.main_window import format_debug as qt_format_debug
 from mica.ui.viewmodel import ViewModel
 from mica.webui import state
 from mica.webui.app import WebUiError, build_controller, serve
-from mica.webui.browser import RENDERING_SWITCHES, EdgeBrowser, edge_command
+from mica.webui.browser import IDLE_SWITCHES, RENDERING_SWITCHES, EdgeBrowser, edge_command
 from mica.webui.server import HOST, STATIC_DIR, WebUi, start_server, stop_server
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -346,12 +346,13 @@ def test_edge_command_flags(tmp_path):
     url = "http://127.0.0.1:5000/"
     assert edge_command(edge, url, tmp_path, True) == [
         "msedge.exe", f"--user-data-dir={tmp_path}", "--no-first-run",
-        "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding",
+        "--disable-component-update", "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding",
         "--disable-background-timer-throttling",
         "--kiosk", url, "--edge-kiosk-type=fullscreen"]  # fmt: skip
     assert edge_command(edge, url, tmp_path, False)[-1] == url
     plain = edge_command(edge, url, tmp_path, True, keep_rendering=False)
     assert not set(RENDERING_SWITCHES) & set(plain) and "--kiosk" in plain
+    assert set(IDLE_SWITCHES) <= set(plain)  # pengurang kerja latar tidak ikut dimatikan
 
 
 def test_rendering_switches_are_only_verified_ones():
@@ -365,6 +366,8 @@ def test_rendering_switches_are_only_verified_ones():
     browser.start("http://127.0.0.1:1/")
     browser.close()
     assert set(RENDERING_SWITCHES) <= set(started[0])
+    # Langkah 31: hanya switch yang lolos aturan keputusan (changes.csv)
+    assert IDLE_SWITCHES == ("--disable-component-update",)
 
 
 class FakeProc:

@@ -1,0 +1,2 @@
+﻿ui,n_runs,n_updates,startup_median_s,uss_idle_median_mb,uss_after_median_mb,cpu_idle_median_pct,lat_p50_s,lat_p95_s,n_unacked,p95x3_s,keputusan_tahap1,alasan
+web,3,177,2.4206855297088623,195.37109375,253.3671875,5.520776165697337,0.0015219000051729381,0.0042654599936213285,0,0.012796379980863986,LOLOS,(b) lolos: p95 x 3 = 0.013 s <= 1.0 s

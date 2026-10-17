@@ -45,6 +45,17 @@ RENDERING_SWITCHES = (
 )
 
 
+# Switch pengurang kerja latar (Langkah 31 bagian C), hanya yang lolos aturan keputusan
+# results/ADR-19/ui-opt-20261017-232949/changes.csv. Diverifikasi 17 Okt 2026 di
+# https://source.chromium.org/chromium/chromium/src/+/main:chrome/common/chrome_switches.h
+# (dibaca lewat cermin resmi chromium.googlesource.com).
+IDLE_SWITCHES = (
+    # kDisableComponentUpdate: menonaktifkan pembaruan komponen (component updater).
+    # Bench tahap 1 AC: CPU diam 7,06% -> 4,35%, RAM USS diam 196,9 -> 194,0 MB.
+    "--disable-component-update",
+)
+
+
 class EdgeMissing(Exception):
     pass
 
@@ -58,7 +69,7 @@ def find_edge(paths: tuple[Path, ...] = EDGE_PATHS) -> Path:
 
 def edge_command(edge: Path, url: str, user_data_dir: Path, fullscreen: bool,
                  keep_rendering: bool = True) -> list[str]:  # fmt: skip
-    cmd = [str(edge), f"--user-data-dir={user_data_dir}", "--no-first-run"]
+    cmd = [str(edge), f"--user-data-dir={user_data_dir}", "--no-first-run", *IDLE_SWITCHES]
     if keep_rendering:
         cmd += RENDERING_SWITCHES
     if fullscreen:
