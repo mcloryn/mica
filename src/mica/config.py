@@ -136,7 +136,9 @@ class VadConfig(_Model):
 
 
 class TtsConfig(_Model):
-    voice: str
+    voice: str  # nama suara Piper, file models/piper/<voice>.onnx (+ .onnx.json)
+    # null = bawaan file .onnx.json suara (inference.length_scale); boleh null di kiosk
+    length_scale: PositiveFloat | None = None
 
 
 class AudioConfig(_Model):
@@ -305,7 +307,7 @@ def _format_validation_error(err: ValidationError) -> str:
 
 def _optional_in_kiosk(settings: Settings) -> set[str]:
     # Field null yang hanya wajib bila komponennya dipakai.
-    optional: set[str] = set()
+    optional: set[str] = {"audio.tts.length_scale"}  # null = bawaan .onnx.json suara
     if settings.rag.retriever != "hybrid":
         optional |= {"rag.rrf_k", "rag.candidates_per_retriever"}
     if settings.rag.retriever == "bm25":

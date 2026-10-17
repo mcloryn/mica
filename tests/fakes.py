@@ -71,3 +71,27 @@ class FakeDetector:
 def make_fake_detector(cfg: Any, options: dict[str, Any]) -> FakeDetector:
     present = options.get("present_s")
     return FakeDetector(tuple(present) if present is not None else None)
+
+
+class FakeTts:
+    """TextToSpeech palsu: satu clip per kalimat (dipisah titik), 0,1 s sunyi per kata."""
+
+    sample_rate = 16000
+
+    def __init__(self, voice_file=None, length_scale=None) -> None:
+        self.voice_file = voice_file
+        self.length_scale = length_scale
+        self.calls: list[str] = []
+
+    def stream(self, text: str):
+        from mica.audio.tts import AudioClip
+
+        self.calls.append(text)
+        for sentence in [s for s in text.split(".") if s.strip()]:
+            n = int(0.1 * self.sample_rate) * len(sentence.split())
+            yield AudioClip(np.zeros(n, dtype=np.int16), self.sample_rate, 0.01)
+
+    def synthesize(self, text: str):
+        from mica.audio.tts import concat
+
+        return concat(list(self.stream(text)))

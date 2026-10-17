@@ -43,7 +43,8 @@ audio:
     min_silence_ms: null            # E-05
   max_utterance_s: null             # E-05
   tts:
-    voice: id_ID-news_tts           # ADR-11
+    voice: id_ID-news_tts-medium    # ADR-11 provisional
+    length_scale: null              # null = bawaan .onnx.json suara
 vision:
   model: yolo26n-pose               # ADR-12; yolo26n | yolo26n-pose | yolo11n (E-07)
   tracker: bytetrack.yaml           # ADR-15

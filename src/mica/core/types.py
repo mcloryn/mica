@@ -34,6 +34,8 @@ class ErrorCode(StrEnum):
     # M-07
     VISION_MODEL_MISSING = "VISION_MODEL_MISSING"
     VISION_COLORS_MISSING = "VISION_COLORS_MISSING"
+    # M-08
+    VOICE_MISSING = "VOICE_MISSING"
 
 
 class ScrubbedText(str):
