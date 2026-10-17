@@ -150,3 +150,26 @@ jendela Edge tidak di depan.
 - PySide6 dibekukan sebagai cadangan. Kode dan tesnya tetap ada dan tetap harus lulus, tetapi
   tidak dikembangkan lagi. Keputusan menghapusnya dibuat setelah E-09.
 - Aturan tahap 1 dan tahap 2 di atas tidak diubah.
+
+## Optimasi putaran 2 (ditetapkan 17 Okt 2026 sebelum data)
+
+- Alasan: aturan putaran 1 (3 ulangan, median; results/ADR-19/ui-opt-20261017-232949)
+  terlalu peka terhadap variasi CPU diam antar-ulangan. Keputusan putaran 1 tetap berlaku dan
+  tidak diubah.
+- Kandidat: dua switch yang dibatalkan di putaran 1 karena kenaikan kecil CPU/p95 walau
+  menghemat RAM:
+  - k1 = `--disable-component-extensions-with-background-pages`;
+  - k2 = `--renderer-process-limit=1` (nilai sama dengan putaran 1).
+- Baseline: konfigurasi master sekarang (termasuk `--disable-component-update`).
+- Pengukuran: 10 ulangan per kondisi (baseline, k1, k2) dengan bench tahap 1 yang sama
+  (`scripts/ui_bench.py`, pekerja dan pipeline palsu), daya AC wajib. Urutan kondisi
+  diselang-seling (baseline, k1, k2, baseline, k1, k2, ...) supaya perubahan keadaan laptop
+  tersebar rata.
+- Sebuah metrik dihitung "naik" hanya bila median kandidat > nilai maksimum 10 ulangan
+  baseline. Metrik "turun" bila median kandidat < median baseline. Metrik per ulangan: RAM USS
+  diam, CPU diam, waktu mulai, p95 jeda tampil ulangan itu.
+- Kandidat dipertahankan bila RAM USS diam ATAU CPU diam turun, tidak ada metrik (RAM diam,
+  CPU diam, waktu mulai, p95 jeda) yang naik, dan semua tes + aturan (a) tahap 1 lulus.
+- Bila kedua kandidat lolos, gabungan keduanya diuji dengan aturan yang sama (10 ulangan,
+  selang-seling dengan baseline).
+- Hasil putaran 1 dan 2 dilaporkan terpisah di Bab 3.
