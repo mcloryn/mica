@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>MICA</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div id="layout">
+  <div id="main">
+    <div id="top">
+      <span id="status"></span>
+      <span id="camera_indicator"></span>
+      <span id="mic_indicator"></span>
+    </div>
+    <div id="home">
+      <p id="home_title"></p>
+      <div id="topics"></div>
+    </div>
+    <div id="conversation" hidden></div>
+    <div id="transcript_row" hidden>
+      <label id="transcript_label" for="transcript_edit"></label>
+      <input id="transcript_edit" type="text">
+      <button id="resend_button" type="button"></button>
+    </div>
+    <div id="inputs">
+      <input id="input" type="text">
+      <button id="send_button" type="button"></button>
+      <button id="talk_button" type="button"></button>
+      <button id="stop_button" type="button"></button>
+    </div>
+    <p id="notice"></p>
+  </div>
+  <aside id="debug_dock" hidden>
+    <div id="debug_title">Debug (dev)</div>
+    <pre id="debug_panel"></pre>
+  </aside>
+</div>
+<script src="/static/app.js"></script>
+</body>
+</html>
