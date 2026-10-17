@@ -9,3 +9,8 @@ __pycache__/
 *.egg-info/
 data/sources/
 data/cache/
+# E-05: rekaman relawan tidak pernah di-commit; hanya manifest contoh tanpa audio
+data/eval/speech/*
+!data/eval/speech/contoh/
+data/eval/speech/contoh/*
+!data/eval/speech/contoh/manifest.jsonl

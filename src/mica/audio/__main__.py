@@ -394,7 +394,7 @@ def build_parser() -> argparse.ArgumentParser:
     listen.add_argument("--voices-dir", type=Path, default=DEFAULT_VOICES_DIR)
     listen.add_argument("--device", type=int, help="indeks mikrofon sounddevice")
     listen.add_argument("--list-devices", action="store_true", help="tampilkan perangkat audio")
-    _add_trial_args(listen)
+    add_trial_args(listen)
     listen.add_argument("--echo", action="store_true", help='ucapkan "Kamu bertanya: <teks>"')
     listen.add_argument("--count", type=int, help="berhenti setelah N ucapan")
     listen.add_argument("--script", action="store_true", help="pilot WER: bacakan N pertanyaan")
@@ -408,7 +408,7 @@ def build_parser() -> argparse.ArgumentParser:
     demo.add_argument("--voices-dir", type=Path, default=DEFAULT_VOICES_DIR)
     demo.add_argument("--device", type=int, help="indeks mikrofon sounddevice")
     demo.add_argument("--output-device", type=int, help="indeks speaker sounddevice")
-    _add_trial_args(demo)
+    add_trial_args(demo)
     demo.add_argument("--turns", type=int, default=3, help="berhenti setelah N pertanyaan")
     demo.add_argument("--kill-after", type=float, help="bunuh proses suara S detik sejak siap")
     demo.add_argument("--stop-after", type=float,
@@ -417,7 +417,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _add_trial_args(p: argparse.ArgumentParser) -> None:
+def add_trial_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--vad-threshold", type=float, help="menimpa audio.vad.threshold")
     p.add_argument("--min-silence-ms", type=float, help="menimpa audio.vad.min_silence_ms")
     p.add_argument("--max-utterance-s", type=float, help="menimpa audio.max_utterance_s")

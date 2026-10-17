@@ -35,6 +35,26 @@ def wer(reference: str, hypothesis: str) -> float:
     return float(jiwer.wer(ref, hyp)) if hyp else 1.0
 
 
+def cer(reference: str, hypothesis: str) -> float:
+    """CER satu kalimat dengan normalisasi yang sama seperti WER."""
+    import jiwer
+
+    ref = normalize_for_wer(reference)
+    hyp = normalize_for_wer(hypothesis)
+    if not ref:
+        return 0.0 if not hyp else 1.0
+    return float(jiwer.cer(ref, hyp)) if hyp else 1.0
+
+
+def corpus_cer(references: list[str], hypotheses: list[str]) -> float:
+    """CER total (jumlah kesalahan karakter / jumlah karakter referensi)."""
+    import jiwer
+
+    refs = [normalize_for_wer(r) for r in references]
+    hyps = [normalize_for_wer(h) for h in hypotheses]
+    return float(jiwer.cer(refs, hyps))
+
+
 def corpus_wer(references: list[str], hypotheses: list[str]) -> float:
     """WER total atas seluruh daftar (jumlah kesalahan / jumlah kata referensi)."""
     import jiwer

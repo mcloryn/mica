@@ -14,7 +14,9 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 from mica.config import ConfigError, load_settings
 from mica.eval.annotate import POOL_DEPTH, export_pool, import_pool
@@ -28,7 +30,7 @@ from mica.eval.generation import (
     CacheMiss,
     run_generation,
 )
-from mica.eval.retrieval import MAIN_GROUP, run_retrieval
+from mica.eval.retrieval import MAIN_GROUP, run_retrieval, sha256_file
 from mica.kb.index import DEFAULT_KB_ROOT, KbLoadError, load_kb
 from mica.rag.retriever import EmbedderFactory
 
@@ -92,7 +94,37 @@ def build_parser() -> argparse.ArgumentParser:
         default=EXPERIMENT,
         help="label eksperimen di run.json dan nama folder run (default E-02)",
     )
+
+    from mica.audio.__main__ import add_trial_args
+
+    stt = sub.add_parser("stt", help="E-05: WER, CER, waktu sampai teks, transkripsi palsu")
+    stt.add_argument("--config", type=Path, required=True)
+    stt.add_argument("--dataset", type=Path, required=True, help="manifest.jsonl rekaman")
+    stt.add_argument("--out", type=Path, default=Path("results/E-05"))
+    stt.add_argument("--run-name", help="nama folder run (default: cap waktu)")
+    stt.add_argument("--backend", choices=("faster_whisper", "groq"), default="faster_whisper")
+    stt.add_argument("--threads", type=_threads_list,
+                     help="daftar thread dipisah koma, satu konfigurasi per nilai "
+                          "(default audio.stt.threads)")  # fmt: skip
+    stt.add_argument("--hotwords", type=Path, help="file kosakata, satu istilah per baris")
+    stt.add_argument("--groq-model", help="wajib untuk --backend groq (dokumentasi Groq)")
+    stt.add_argument("--questions", type=Path, default=Path("data/eval/questions.jsonl"),
+                     help="gold_chunk_ids untuk Recall@5 (rekaman ber-qid)")  # fmt: skip
+    stt.add_argument("--whisper-dir", type=Path, default=Path("models/whisper"))
+    stt.add_argument("--env-file", type=Path, default=Path(".env"))
+    stt.add_argument("--note", help="catatan di run.json, mis. 'sintetis, bukan hasil E-05'")
+    add_trial_args(stt)
     return parser
+
+
+def _threads_list(value: str) -> list[int]:
+    try:
+        threads = [int(v) for v in value.split(",") if v.strip()]
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"thread harus bilangan bulat: {value!r}") from None
+    if not threads or any(t <= 0 for t in threads):
+        raise argparse.ArgumentTypeError(f"thread harus > 0: {value!r}")
+    return list(dict.fromkeys(threads))
 
 
 def _retriever_list(value: str) -> list[str]:
@@ -223,11 +255,204 @@ def cmd_generation(args: argparse.Namespace, embedder_factory: EmbedderFactory |
     return 0
 
 
+class SttEvalError(Exception):
+    pass
+
+
+def _hotwords(path: Path | None) -> tuple[str | None, dict[str, Any] | None]:
+    """Satu istilah per baris -> string dipisah koma (parameter hotwords faster-whisper)."""
+    if path is None:
+        return None, None
+    terms = [t.strip() for t in path.read_text(encoding="utf-8").splitlines() if t.strip()]
+    if not terms:
+        raise SttEvalError(f"{path}: file hotwords kosong")
+    return ", ".join(terms), {
+        "file": path.as_posix(),
+        "sha256": sha256_file(path),
+        "n_terms": len(terms),
+        "joined_with": ", ",
+    }
+
+
+def stt_candidates(args: argparse.Namespace, settings: Any, no_speech: float | None) -> list[Any]:
+    from mica.audio.stt import (
+        WHISPER_REPO,
+        WHISPER_REVISION,
+        FasterWhisperStt,
+        GroqWhisperStt,
+        whisper_dir,
+    )
+    from mica.eval.stt import SttCandidate
+
+    hotwords, hot_info = _hotwords(args.hotwords)
+    if args.backend == "groq":
+        if hotwords is not None:
+            raise SttEvalError("--hotwords hanya untuk faster_whisper")
+        if not args.groq_model:
+            raise SttEvalError("--backend groq butuh --groq-model (lihat dokumentasi Groq)")
+        key = settings.api_keys.groq
+        if key is None:
+            raise SttEvalError("GROQ_API_KEY tidak ada di environment atau .env")
+        stt = GroqWhisperStt(key.get_secret_value(), args.groq_model, no_speech)
+        info = {
+            "backend": "groq",
+            "model": args.groq_model,
+            "language": "id",
+            "response_format": "verbose_json",
+        }
+        return [SttCandidate(f"groq-{args.groq_model}", False, stt, info)]
+    cfg = settings.audio.stt
+    root = whisper_dir(cfg.model, args.whisper_dir)
+    out = []
+    for threads in args.threads or [cfg.threads]:
+        stt = FasterWhisperStt(root, cfg.compute_type, threads, no_speech, hotwords=hotwords)
+        label = f"faster_whisper-{cfg.model}-t{stt.threads}" + ("-hotwords" if hotwords else "")
+        info = {
+            "backend": "faster_whisper",
+            "model": cfg.model,
+            "compute_type": cfg.compute_type,
+            "hf_repo": WHISPER_REPO,
+            "hf_revision": WHISPER_REVISION,
+            "threads_arg": threads,
+            "threads_effective": stt.threads,
+            "hotwords": hot_info,
+            "language": "id",
+            "condition_on_previous_text": False,
+            "vad_filter": False,
+            "beam_size": "bawaan library",
+        }
+        out.append(SttCandidate(label, True, stt, info))
+    return out
+
+
+def _retrieval(args: argparse.Namespace, settings: Any, items: list[Any]) -> tuple[Any, Any]:
+    """search(teks) -> chunk_id 5 teratas dengan retriever aktif (tanpa LLM), dan gold per qid."""
+    from mica.eval.dataset import load_questions
+    from mica.eval.stt import TOP_K
+    from mica.rag.retriever import make_retriever
+
+    qids = {i.qid for i in items if i.qid}
+    if not qids:
+        return None, None
+    gold = {q["qid"]: q.get("gold_chunk_ids") or [] for q in load_questions(args.questions)}
+    unknown = sorted(qids - set(gold))
+    if unknown:
+        raise SttEvalError(f"qid tidak ada di {args.questions}: {unknown}")
+    kb = load_kb(settings.kb.active_id, args.kb_root)
+    retriever = make_retriever(settings, kb)
+    return (lambda text: [h.chunk.chunk_id for h in retriever.search(text, TOP_K)]), gold
+
+
+def cmd_stt(
+    args: argparse.Namespace,
+    candidates: Callable[..., list[Any]] = stt_candidates,
+    retrieval: Callable[..., tuple[Any, Any]] = _retrieval,
+    prob_factory: Callable[[], Callable[..., float]] | None = None,
+) -> int:
+    from datetime import datetime
+
+    from mica.audio.listen import (
+        FILTER_ARGS,
+        VAD_ARGS,
+        make_segmenter,
+        resolve_filter_values,
+        resolve_vad_values,
+        silero_model_name,
+    )
+    from mica.audio.vad import silero_prob
+    from mica.eval.stt import (
+        CER_NORMALIZATION,
+        E05_RULE,
+        EXPERIMENT,
+        format_table,
+        load_manifest,
+        read_wav,
+        run_eval,
+    )
+    from mica.eval.wer import WER_NORMALIZATION
+    from mica.kb.index import package_version
+
+    settings = load_settings(args.config, env_file=args.env_file)
+    if settings.app.mode != "dev":
+        raise SttEvalError("eval stt hanya boleh saat app.mode: dev (ditolak di kiosk)")
+    items = load_manifest(args.dataset)
+    audio = {i.id: read_wav(i.file) for i in items}
+    values, sources = resolve_vad_values(settings.audio, args)
+    filters, filter_sources = resolve_filter_values(settings.audio, args)
+    if "nilai coba" in [*sources.values(), *filter_sources.values()]:
+        print("SUMBER NILAI: argumen CLI (nilai coba, bukan hasil E-05)")
+    for key, _flag in VAD_ARGS:
+        print(f"  audio.{key} = {values[key]} ({sources[key]})")
+    for key, _flag in FILTER_ARGS:
+        print(f"  audio.{key} = {filters[key]} ({filter_sources[key]})")
+    cands = candidates(args, settings, filters["stt.no_speech_threshold"])
+    search, gold = retrieval(args, settings, items)
+    environment = collect_environment()
+    warning = dirty_warning(environment)
+    if warning:
+        print(warning, file=sys.stderr)
+    stamp = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S")
+    run_dir = Path(args.out) / (args.run_name or stamp)
+    kinds = {k: sum(i.kind == k for i in items) for k in ("pertanyaan", "diam", "bising")}
+    info = {
+        "experiment": EXPERIMENT,
+        "note": args.note,
+        "dataset": {
+            "manifest": args.dataset.as_posix(),
+            "sha256": sha256_file(args.dataset),
+            "audio_sha256": {i.id: sha256_file(i.file) for i in items},
+            "counts": kinds,
+            "speakers": sorted({i.speaker for i in items}),
+        },
+        "vad": {"silero_model": silero_model_name(), "values": values, "sources": sources},
+        "filters": {"values": filters, "sources": filter_sources},
+        "end_of_file": "diam sepanjang min_silence_ms ditambahkan agar VAD menutup ucapan",
+        "wer_normalization": WER_NORMALIZATION,
+        "cer_normalization": CER_NORMALIZATION,
+        "retrieval": None
+        if search is None
+        else {
+            "retriever": settings.rag.retriever,
+            "kb_id": settings.kb.active_id,
+            "embedder": settings.kb.embedder.model,
+            "embedder_revision": settings.kb.embedder.revision,
+            "k": 5,
+            "questions": args.questions.as_posix(),
+        },
+        "rule": E05_RULE,
+        "packages": {
+            name: package_version(name)
+            for name in (
+                "faster-whisper",
+                "ctranslate2",
+                "pysilero-vad",
+                "jiwer",
+                "httpx",
+                "piper-tts",
+            )
+        },
+        "environment": environment,
+        "started_at": stamp,
+    }
+    summaries = run_eval(items, audio, cands,
+                         lambda: make_segmenter(values, prob_factory or silero_prob),
+                         filters["vad.min_speech_ms"], run_dir, info, search, gold)  # fmt: skip
+    print(format_table(summaries))
+    print(f"tersimpan: {run_dir.as_posix()}")
+    return 0
+
+
 def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     args = build_parser().parse_args(argv)
+    from mica.audio.listen import ListenError
+    from mica.audio.stt import SttModelMissing
+    from mica.eval.stt import ManifestError
+
     try:
+        if args.command == "stt":
+            return cmd_stt(args)
         if args.command == "retrieval":
             return cmd_retrieval(args, embedder_factory)
         if args.command == "gate":
@@ -237,7 +462,8 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
         if args.action == "export":
             return cmd_export(args, embedder_factory)
         return cmd_import(args)
-    except (ConfigError, KbLoadError, DatasetError, FileExistsError, ValueError, CacheMiss) as exc:
+    except (ConfigError, KbLoadError, DatasetError, FileExistsError, ValueError, CacheMiss,
+            SttEvalError, ManifestError, ListenError, SttModelMissing) as exc:  # fmt: skip
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
