@@ -131,6 +131,12 @@ class VisionWorkerConfig:
     camera_factory: str | None = None
     detector_factory: str | None = None
     factory_options: dict[str, Any] = field(default_factory=dict)
+    # dev saja: jendela pratinjau di proses ini (frame tetap tidak lewat bus), dengan hitung
+    # mundur setelah kamera siap dan aba-aba (detik sejak hitung mundur selesai, teks)
+    preview: bool = False
+    prompts: tuple[tuple[float, str], ...] = ()
+    countdown_s: float = 0.0
+    preview_seconds: float | None = None  # untuk baris "sisa waktu" di jendela
 
     @classmethod
     def from_settings(
@@ -144,12 +150,13 @@ class VisionWorkerConfig:
         camera_factory: str | None = None,
         detector_factory: str | None = None,
         factory_options: Mapping[str, Any] | None = None,
+        preview: bool = False,
+        prompts: tuple[tuple[float, str], ...] = (),
+        countdown_s: float = 0.0,
+        preview_seconds: float | None = None,
     ) -> VisionWorkerConfig:
         """overrides: nilai coba untuk kunci vision.* (termasuk "presence_signal")."""
-        if (camera_factory or detector_factory) and settings.app.mode != "dev":
-            raise WorkerConfigError(
-                "factory kamera/detektor palsu hanya boleh saat app.mode: dev (ditolak di kiosk)"
-            )
+        _check_dev_only(settings.app.mode, bool(camera_factory or detector_factory), preview)
         vision = settings.vision
         overrides = dict(overrides or {})
         signal = overrides.pop("presence_signal", None) or vision.presence_signal
@@ -191,15 +198,16 @@ class VisionWorkerConfig:
             camera_factory=camera_factory,
             detector_factory=detector_factory,
             factory_options=dict(factory_options or {}),
+            preview=preview,
+            prompts=tuple(prompts),
+            countdown_s=countdown_s,
+            preview_seconds=preview_seconds,
         )
         cfg.validate()
         return cfg
 
     def validate(self) -> None:
-        if (self.camera_factory or self.detector_factory) and self.mode != "dev":
-            raise WorkerConfigError(
-                "factory kamera/detektor palsu hanya boleh saat app.mode: dev (ditolak di kiosk)"
-            )
+        _check_dev_only(self.mode, bool(self.camera_factory or self.detector_factory), self.preview)
 
     def check_files(self) -> None:
         """Bobot model dan tabel warna harus ada sebelum proses anak dimulai."""
@@ -207,6 +215,19 @@ class VisionWorkerConfig:
             raise ModelMissing(Path(self.model_file))
         if self.color_method == "color_names_lut" and not Path(self.colors_file).is_file():
             raise ColorsMissing(Path(self.colors_file))
+
+
+def _check_dev_only(mode: str, factories: bool, preview: bool) -> None:
+    if mode == "dev":
+        return
+    if factories:
+        raise WorkerConfigError(
+            "factory kamera/detektor palsu hanya boleh saat app.mode: dev (ditolak di kiosk)"
+        )
+    if preview:
+        raise WorkerConfigError(
+            "pratinjau kamera hanya boleh saat app.mode: dev (ditolak di kiosk)"
+        )
 
 
 def load_factory(path: str) -> Callable[..., Any]:
@@ -267,6 +288,15 @@ class VisionLoop:
         self.camera_message = ""
         self.detections = 0  # sejak CameraStatus terakhir
         self.running = True
+        self.preview_on = cfg.preview
+        self.scenario_start: float | None = None  # kamera siap + hitung mundur
+        self.overlay: Any = None
+        if cfg.preview:
+            from mica.vision.preview import Overlay
+
+            self.overlay = Overlay()
+        self.shown: list[float] = []  # waktu frame ditampilkan / dideteksi (1 detik terakhir)
+        self.detected: list[float] = []
 
     def _send(self, msg: Any) -> None:
         self.outbox.put(msg)
@@ -288,12 +318,50 @@ class VisionLoop:
             elif isinstance(msg, SetVisionRate) and msg.fps > 0:
                 self.fps = msg.fps
 
-    def _color_of_target(self, frame: np.ndarray, now: float, tracks: list) -> ColorResult | None:
+    def _detect(self, frame: np.ndarray, now: float) -> None:
+        tracks = self.detector.detect_and_track(frame)
         target = self.presence.target_for(tracks, frame.shape, now)
-        if target is None:
-            return None
-        crop = self.region.extract(frame, target)
-        return None if crop is None else self.namer.name(crop)
+        located = self.region.locate(frame.shape, target) if target is not None else None
+        color: ColorResult | None = None
+        if located is not None:
+            x1, y1, x2, y2 = located[0]
+            color = self.namer.name(frame[y1:y2, x1:x2])  # piksel hanya di memori (N-08)
+        for event in self.presence.update(tracks, frame.shape, now, color_of=lambda _t: color):
+            self._send(event)
+        self.detections += 1
+        self.detected.append(now)
+        if self.overlay is not None:
+            self.overlay.tracks = tracks
+            self.overlay.state = self.presence.state
+            self.overlay.target = target.track_id if target is not None else None
+            self.overlay.region_rect = located[0] if located is not None else None
+            self.overlay.region_source = located[1] if located is not None else None
+            self.overlay.color = color
+
+    def _show(self, frame: np.ndarray, now: float) -> None:
+        """Gambar pratinjau; q menutup jendela tanpa menghentikan worker."""
+        import cv2
+
+        from mica.vision.preview import WINDOW, _banner, _draw, _prompt_lines, current_prompt
+
+        self.shown = [t for t in self.shown if now - t < 1.0] + [now]
+        self.detected = [t for t in self.detected if now - t < 1.0]
+        assert self.scenario_start is not None
+        if now < self.scenario_start:  # hitung mundur, tanpa deteksi
+            first, _ = current_prompt(list(self.cfg.prompts), 0.0)
+            lines = [f"Mulai dalam {self.scenario_start - now:.0f} s"]
+            lines += [f"Siapkan: {first}"] if first else []
+            _banner(frame, lines)
+            cv2.imshow(WINDOW, frame)
+            key = cv2.waitKey(1) & 0xFF
+        else:
+            elapsed = now - self.scenario_start
+            lines = _prompt_lines(list(self.cfg.prompts), elapsed, self.cfg.preview_seconds)
+            kp_conf = self.cfg.values.get("keypoint_torso.min_kp_conf")
+            key = _draw(frame, self.overlay, len(self.shown), len(self.detected), lines, kp_conf)
+        if key == ord("q"):
+            cv2.destroyWindow(WINDOW)
+            self.preview_on = False
 
     def run(self) -> None:
         start = self.clock()
@@ -317,15 +385,15 @@ class VisionLoop:
                 if frame is None:
                     self.sleep(1.0 / self.fps)
                     continue
+                if self.scenario_start is None:  # frame pertama: kamera siap
+                    countdown = self.cfg.countdown_s if self.cfg.preview else 0.0
+                    self.scenario_start = now + countdown
+                    next_detect = self.scenario_start
                 if now >= next_detect - 1e-6:
-                    tracks = self.detector.detect_and_track(frame)
-                    color = self._color_of_target(frame, now, tracks)
-                    for event in self.presence.update(
-                        tracks, frame.shape, now, color_of=lambda _t, c=color: c
-                    ):
-                        self._send(event)
-                    self.detections += 1
+                    self._detect(frame, now)
                     next_detect = max(next_detect + 1.0 / self.fps, now)
+                if self.preview_on:
+                    self._show(frame, now)
                 del frame  # N-08: frame hanya di memori
         finally:
             self.camera.release()

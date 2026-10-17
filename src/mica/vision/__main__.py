@@ -64,10 +64,16 @@ from mica.vision.presence import (
     PresenceState,
     PresenceTracker,
 )
+from mica.vision.preview import (
+    WINDOW,
+    Overlay,
+    _banner,
+    _draw,
+    _prompt_lines,
+    current_prompt,
+)
 from mica.vision.region import (
-    L_HIP,
     L_SHOULDER,
-    R_HIP,
     R_SHOULDER,
     ClothingRegion,
     shoulder_width_ratio,
@@ -76,6 +82,7 @@ from mica.vision.types import CameraStatus, PersonArrived, PersonLeft, PersonTra
 from mica.vision.worker import WorkerConfigError, make_color_namer, make_region, make_signal
 
 DEFAULT_CONFIG = Path("config/dev.yaml")
+START_TIMEOUT_S = 60.0  # bus-demo: batas tunggu kamera siap
 # kunci config -> argumen CLI demo
 PRESENCE_ARGS = (
     ("dwell_s", "--dwell-s"),
@@ -98,7 +105,6 @@ KP_ARGS = (
     ("keypoint_torso.shrink", "--kp-shrink"),
     ("keypoint_torso.torso_aspect", "--torso-aspect"),
 )
-WINDOW = "MICA vision demo (q = keluar)"
 # Tabel nama warna van de Weijer dkk. 2009 [30]; sha256 tar diukur saat unduhan pertama
 # (16 Okt 2026). Halaman sumber tidak mencantumkan lisensi, jadi tabel tidak di-commit.
 COLORS_URL = "https://lear.inrialpes.fr/people/vandeweijer/code/ColorNaming.tar"
@@ -166,9 +172,30 @@ def build_parser() -> argparse.ArgumentParser:
     bus.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     bus.add_argument("--models-dir", type=Path, default=DEFAULT_MODELS_DIR)
     bus.add_argument("--camera", type=int, default=0)
-    bus.add_argument("--seconds", type=float, default=30.0, help="berhenti setelah N detik")
     bus.add_argument(
-        "--kill-after", type=float, help="bunuh proses vision sekali setelah N detik (uji 8.1)"
+        "--seconds", type=float, default=30.0, help="berhenti N detik setelah skenario mulai"
+    )
+    bus.add_argument(
+        "--kill-after",
+        type=float,
+        help="bunuh proses vision sekali N detik setelah skenario mulai (uji 8.1)",
+    )
+    bus.add_argument(
+        "--preview", action="store_true", help="jendela pratinjau di proses kamera (dev saja)"
+    )
+    bus.add_argument(
+        "--prompt",
+        type=_prompt,
+        action="append",
+        default=[],
+        metavar="DETIK:TEKS",
+        help="aba-aba di jendela pratinjau mulai detik ke-N skenario (boleh berulang)",
+    )
+    bus.add_argument(
+        "--countdown",
+        type=float,
+        default=5.0,
+        help="hitung mundur N detik di jendela pratinjau setelah kamera siap",
     )
     _add_value_args(bus)
     return parser
@@ -464,19 +491,6 @@ class DemoStats:
         return self.shown / self.seconds if self.seconds > 0 else 0.0
 
 
-@dataclass
-class Overlay:
-    """Hasil deteksi terakhir, digambar ulang di frame terbaru di antara deteksi."""
-
-    tracks: list[PersonTrack] = field(default_factory=list)
-    state: str = PresenceState.IDLE
-    target: int | None = None
-    region_rect: tuple[int, int, int, int] | None = None
-    region_source: str | None = None
-    color: ColorResult | None = None
-    observations: list[TrackObs] = field(default_factory=list)
-
-
 def _wall() -> str:
     return datetime.now().strftime("%H:%M:%S")
 
@@ -491,89 +505,6 @@ def _describe(event: VisionEvent) -> str:
         fps = "" if event.fps is None else f" fps={event.fps:.2f}"
         return f"CameraStatus ok={event.ok} ({event.message}){fps}"
     return repr(event)
-
-
-def current_prompt(
-    prompts: list[tuple[float, str]], elapsed: float
-) -> tuple[str | None, tuple[float, str] | None]:
-    """(instruksi yang berlaku, (detik, instruksi) berikutnya)."""
-    now = None
-    upcoming = None
-    for at, text in sorted(prompts):
-        if at <= elapsed:
-            now = text
-        elif upcoming is None:
-            upcoming = (at, text)
-    return now, upcoming
-
-
-def _banner(frame: Any, lines: list[str]) -> None:
-    import cv2
-
-    h, w = frame.shape[:2]
-    top = h - 34 * len(lines) - 12
-    cv2.rectangle(frame, (0, top), (w, h), (0, 0, 0), -1)
-    for i, line in enumerate(lines):
-        scale, thick = (0.9, 2) if i == 0 else (0.6, 1)
-        y = top + 32 + 34 * i
-        cv2.putText(frame, line, (12, y), cv2.FONT_HERSHEY_SIMPLEX, scale, (255, 255, 255), thick)
-
-
-def _prompt_lines(
-    prompts: list[tuple[float, str]], elapsed: float, seconds: float | None
-) -> list[str]:
-    now, upcoming = current_prompt(prompts, elapsed)
-    lines = [now] if now else []
-    if upcoming is not None:
-        lines.append(f"Berikutnya dalam {upcoming[0] - elapsed:.0f} s: {upcoming[1]}")
-    if seconds is not None:
-        lines.append(f"Sisa waktu rekaman {max(seconds - elapsed, 0):.0f} s")
-    return lines
-
-
-def _color_text(result: ColorResult | None) -> str:
-    if result is None or result.top is None:
-        return "warna -"
-    return f"warna {result.top} {result.majority:.2f}" + ("" if result.label else " (ragu)")
-
-
-TORSO_POINTS = (L_SHOULDER, R_SHOULDER, L_HIP, R_HIP)
-
-
-def _draw(
-    frame: Any,
-    overlay: Overlay,
-    display_fps: float,
-    detect_fps: float,
-    lines: list[str],
-    kp_conf: float | None,
-) -> int:
-    import cv2
-
-    h = frame.shape[0]
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    for t in overlay.tracks:
-        x1, y1, x2, y2 = (int(v) for v in t.box_xyxy)
-        color = (0, 200, 0) if t.track_id == overlay.target else (200, 200, 0)
-        cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-        label = f"id {t.track_id} r={t.height_ratio(h):.2f}"
-        cv2.putText(frame, label, (x1, max(y1 - 6, 12)), font, 0.5, color, 1)
-        if t.keypoints is not None:
-            for i in TORSO_POINTS:
-                x, y, c = (float(v) for v in t.keypoints[i][:3])
-                ok = kp_conf is None or c >= kp_conf
-                cv2.circle(frame, (int(x), int(y)), 5, (0, 255, 255) if ok else (0, 0, 160), -1)
-    if overlay.region_rect is not None:
-        x1, y1, x2, y2 = overlay.region_rect
-        cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 255), 2)
-        text = f"{_color_text(overlay.color)} [{overlay.region_source}]"
-        cv2.putText(frame, text, (x1, min(y2 + 18, h - 4)), font, 0.6, (255, 0, 255), 2)
-    status = f"{overlay.state} | tampilan {display_fps:.1f} FPS | deteksi {detect_fps:.1f} FPS"
-    cv2.putText(frame, status, (8, 22), font, 0.6, (0, 0, 255), 2)
-    if lines:
-        _banner(frame, lines)
-    cv2.imshow(WINDOW, frame)
-    return cv2.waitKey(1) & 0xFF
 
 
 def _span(values: list[float]) -> str:
@@ -961,34 +892,56 @@ def cmd_bus_demo(
         camera_factory=camera_factory,
         detector_factory=detector_factory,
         factory_options=factory_options,
+        preview=args.preview,
+        prompts=tuple(args.prompt),
+        countdown_s=args.countdown,
+        preview_seconds=args.seconds,
     )
 
-    start = time.monotonic()
+    # Waktu skenario (--seconds, --kill-after, aba-aba) dihitung sejak kamera siap (CameraStatus
+    # ok pertama) ditambah hitung mundur pratinjau; waktu di log relatif terhadap titik itu.
+    countdown = args.countdown if args.preview else 0.0
+    spawn = time.monotonic()
     bus = start_workers(settings, cfg)
+    zero: float | None = None
     reported_pids: set[int] = set()
     killed = False
     counts: dict[str, int] = {}
     rss: tuple[float | None, float | None] = (None, None)
+
+    def elapsed() -> float:
+        return time.monotonic() - (zero if zero is not None else spawn)
+
     try:
-        while (elapsed := time.monotonic() - start) < args.seconds:
+        while zero is None or elapsed() < args.seconds:
+            if zero is None and time.monotonic() - spawn > START_TIMEOUT_S:
+                print(f"kamera tidak siap dalam {START_TIMEOUT_S:.0f} s; berhenti")
+                break
             proc = bus.processes["vision"]
-            if args.kill_after is not None and not killed and elapsed >= args.kill_after:
+            kill_due = args.kill_after is not None and zero is not None
+            if kill_due and not killed and elapsed() >= args.kill_after:
                 print(
-                    f"[{elapsed:6.2f}s {_wall()}] --kill-after: membunuh proses vision pid {proc.pid}"
+                    f"[{elapsed():6.2f}s {_wall()}] --kill-after: membunuh proses vision "
+                    f"pid {proc.pid}"
                 )
                 proc.kill()
                 killed = True
             for msg in bus.poll():
-                elapsed = time.monotonic() - start
                 name = type(msg).__name__
                 counts[name] = counts.get(name, 0) + 1
-                print(f"[{elapsed:6.2f}s {_wall()}] {_describe(msg)}")
                 proc = bus.processes["vision"]
                 if isinstance(msg, CameraStatus) and msg.ok and proc.pid not in reported_pids:
                     reported_pids.add(proc.pid)
                     took = time.monotonic() - bus.started_at["vision"]
+                    if zero is None:
+                        zero = time.monotonic() + countdown
+                    print(f"[{elapsed():6.2f}s {_wall()}] {_describe(msg)}")
                     print(f"    start proses kamera pid {proc.pid}: {took:.1f} s (spawn -> ok)")
+                    if countdown and len(reported_pids) == 1:
+                        print(f"    hitung mundur {countdown:.0f} s; skenario mulai di 0.00s")
                     rss = (_rss_mb(), _rss_mb(proc.pid))
+                else:
+                    print(f"[{elapsed():6.2f}s {_wall()}] {_describe(msg)}")
                 if isinstance(msg, PersonArrived):
                     bus.send("vision", SetVisionRate(values["fps_busy"]))
                     print(f"    -> SetVisionRate({values['fps_busy']})")

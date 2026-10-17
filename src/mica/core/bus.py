@@ -22,7 +22,7 @@ import multiprocessing as mp
 import pickle
 import queue
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from mica.config import Settings
@@ -107,6 +107,8 @@ class Bus:
                 if name == "vision":
                     # antrean masuk diganti: proses yang dibunuh bisa meninggalkan kuncinya
                     self.to_vision = self.ctx.Queue()
+                    # hitung mundur pratinjau (dev) hanya sekali, bukan lagi setelah restart
+                    self.vision_cfg = replace(self.vision_cfg, countdown_s=0.0)
                 self._start_process(name)
             else:
                 self.dead.add(name)
