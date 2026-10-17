@@ -1,4 +1,4 @@
-"""UI web (percobaan ADR-19): rakit KioskController + server + Edge, tanpa Qt.
+"""UI web (ADR-19, opsi ui.backend: web): rakit KioskController + server Flask + Edge, tanpa Qt.
 
 python -m mica.webui --config <yaml> [--fake-workers] [--fake-pipeline] [--no-browser] [--port N]
 - Rakitan bus/pipeline/controller sama dengan mica.ui.app.build; --fake-* hanya di mode dev.
@@ -9,8 +9,8 @@ python -m mica.webui --config <yaml> [--fake-workers] [--fake-pipeline] [--no-br
 from __future__ import annotations
 
 import argparse
-import asyncio
 import sys
+import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
@@ -20,7 +20,7 @@ from mica.config import ConfigError, Settings, load_settings
 from mica.core.controller import KioskController
 from mica.core.logging import InteractionLog
 from mica.core.session import Session
-from mica.webui.server import HOST, WebUi, start_site
+from mica.webui.server import HOST, WebUi, start_server, stop_server
 
 DEFAULT_CONFIG = Path("config/dev.yaml")
 WATCH_INTERVAL_S = 0.25  # non-ADR: cek berkala apakah jendela Edge sudah ditutup
@@ -74,19 +74,21 @@ def build_controller(
     return controller
 
 
-async def serve(
+def serve(
     webui: WebUi,
     controller: KioskController,
     browser: Any | None,
     port: int = 0,
-    stop: asyncio.Event | None = None,
+    stop: threading.Event | None = None,
     on_ready: Callable[[str], None] = print,
 ) -> None:
-    """Server + loop poll 50 ms sampai stop di-set atau jendela Edge ditutup; lalu bersih-bersih."""
-    stop = stop or asyncio.Event()
-    runner = await start_site(webui, port)
+    """Server + thread poll 50 ms sampai stop di-set atau jendela Edge ditutup; lalu bersih-bersih."""
+    stop = stop or threading.Event()
+    server = start_server(webui, port)
     url = f"http://{HOST}:{webui.port}/"
-    poll = asyncio.create_task(webui.poll_loop(stop))
+    poll = threading.Thread(target=webui.poll_loop, args=(stop,), name="mica-webui-poll",
+                            daemon=True)  # fmt: skip
+    poll.start()
     try:
         if browser is not None:
             browser.start(url)
@@ -94,18 +96,15 @@ async def serve(
         while not stop.is_set():
             if browser is not None and not browser.alive():
                 break  # jendela Edge ditutup
-            try:
-                await asyncio.wait_for(stop.wait(), WATCH_INTERVAL_S)
-            except TimeoutError:
-                pass
+            stop.wait(WATCH_INTERVAL_S)
     finally:
         stop.set()
-        await poll
-        await webui.close_sockets()
+        poll.join()
+        webui.close_sockets()
         controller.shutdown()
         if browser is not None:
             browser.close()
-        await runner.cleanup()
+        stop_server(server)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -128,8 +127,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     try:
-        asyncio.run(serve(webui, controller, browser, args.port,
-                          on_ready=lambda url: print(f"MICA web: {url}", flush=True)))  # fmt: skip
+        serve(webui, controller, browser, args.port,
+              on_ready=lambda url: print(f"MICA web: {url}", flush=True))  # fmt: skip
     except KeyboardInterrupt:
         print("berhenti")
     return 0

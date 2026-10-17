@@ -1,6 +1,6 @@
-"""UI web (percobaan ADR-19): serialisasi ViewModel ke JSON dan pesan browser ke event controller.
+"""UI web (ADR-19, opsi ui.backend: web): serialisasi ViewModel ke JSON dan pesan browser ke event controller.
 
-Tanpa Qt dan tanpa aiohttp, supaya bisa diuji murni. Aturan tampilan dan event di sini harus
+Tanpa Qt dan tanpa Flask, supaya bisa diuji murni. Aturan tampilan dan event di sini harus
 sama dengan mica.ui.main_window (PySide6); kesamaan itu dibuktikan tes yang membandingkan
 keduanya. Pesan hanya berisi teks tampilan, tidak pernah frame atau audio (N-08).
 """

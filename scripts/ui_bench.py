@@ -1,6 +1,7 @@
 """Pengukuran percobaan ADR-19 (docs/UI-WEB.md, tahap 1): PySide6 vs UI web.
 
 python scripts/ui_bench.py [--config config/dev.yaml] [--reps 3] [--out results/ADR-19]
+                           [--ui both|pyside6|web] [--name ui-bench]
 
 Per UI dan ulangan, proses anak menjalankan UI dengan pekerja palsu + pipeline palsu, lalu:
 1. waktu mulai = peluncuran proses anak -> layar pertama digambar (jam dinding kedua proses);
@@ -13,7 +14,7 @@ Per UI dan ulangan, proses anak menjalankan UI dengan pekerja palsu + pipeline p
      (bench memanggil window.update() supaya setiap pembaruan memicu Paint); event Paint
      diterima sebelum widget selesai digambar, setara dengan requestAnimationFrame;
 4. RAM USS lagi setelah 20 pertanyaan.
-Hasil: results/ADR-19/ui-bench-<cap waktu>/ (per_run.csv, latencies.csv, summary.csv, run.json).
+Hasil: results/ADR-19/<--name>-<cap waktu>/ (per_run.csv, latencies.csv, summary.csv, run.json).
 Aturan tahap 1 diterapkan mekanis: LOLOS bila (a) dan (b), dengan (b) = p95 jeda tampil x 3 <= 1,0 s.
 Kode aplikasi (mica.ui, mica.webui) tidak diubah untuk pengukuran; kait hanya di skrip ini.
 """
@@ -157,12 +158,12 @@ def child_pyside6(config: Path) -> int:
 
 
 def child_web(config: Path) -> int:
-    import asyncio
-
     from mica.config import load_settings
     from mica.webui.app import build_controller, serve
     from mica.webui.browser import EdgeBrowser
     from mica.webui.server import WebUi
+
+    driver: Driver | None = None
 
     class BenchWebUi(WebUi):
         def handle_message(self, data: dict[str, Any]) -> None:
@@ -171,43 +172,47 @@ def child_web(config: Path) -> int:
             if first and self.first_render_at is not None:
                 emit("painted")
 
+        def tick(self) -> None:
+            # Driver memanggil controller.submit, jadi harus di thread poll (pemilik controller)
+            if driver is not None:
+                driver.tick()
+            super().tick()
+
     settings = load_settings(config)
     webui = BenchWebUi(settings.ui, dev=True)
     controller = build_controller(settings, webui, fake_workers=True, fake_pipeline=True)
     browser = EdgeBrowser(settings.ui.fullscreen)
     commands = stdin_commands()
     driver = Driver(controller, webui.vm)
-
-    async def run() -> None:
-        stop = asyncio.Event()
-        task = asyncio.create_task(serve(webui, controller, browser, stop=stop,
-                                         on_ready=lambda url: emit("url", url=url,
-                                                                   edge_pid=browser.pid)))  # fmt: skip
-        start_index = 0
-        while not task.done():
-            try:
-                cmd = commands.get_nowait()
-            except queue.Empty:
-                cmd = None
-            if cmd == "go":
+    stop = threading.Event()
+    server = threading.Thread(target=serve, args=(webui, controller, browser),
+                              kwargs={"stop": stop, "on_ready": lambda url: emit(
+                                  "url", url=url, edge_pid=browser.pid)})  # fmt: skip
+    server.start()
+    start_index = 0
+    while server.is_alive():
+        try:
+            cmd = commands.get(timeout=0.05)
+        except queue.Empty:
+            cmd = None
+        if cmd == "go":
+            with webui.lock:
                 start_index = len(webui.ack_latencies_s)
-                driver.active = True
-            elif cmd == "quit":
-                stop.set()
-            driver.tick()
-            if driver.done and driver.active:
-                driver.active = False
-                # tunggu ack pembaruan terakhir (paling lama 5 s)
-                deadline = time.perf_counter() + 5.0
-                while webui.sent_at and time.perf_counter() < deadline:
-                    await asyncio.sleep(0.01)
+            driver.active = True
+        elif cmd == "quit":
+            stop.set()
+        if driver.done and driver.active:
+            driver.active = False
+            # tunggu ack pembaruan terakhir (paling lama 5 s)
+            deadline = time.perf_counter() + 5.0
+            while webui.sent_at and time.perf_counter() < deadline:
+                time.sleep(0.01)
+            with webui.lock:
                 lat = webui.ack_latencies_s[start_index:]
-                # pembaruan yang tidak pernah di-ack browser (mis. jendela tidak di depan)
-                emit("done", latencies=lat, updates=len(lat), unacked=len(webui.sent_at))
-            await asyncio.sleep(0.05)
-        await task
-
-    asyncio.run(run())
+                unacked = len(webui.sent_at)
+            # pembaruan yang tidak pernah di-ack browser (mis. jendela tidak di depan)
+            emit("done", latencies=lat, updates=len(lat), unacked=unacked)
+    server.join()
     return 0
 
 
@@ -336,6 +341,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--config", type=Path, default=Path("config/dev.yaml"))
     parser.add_argument("--reps", type=int, default=3)
     parser.add_argument("--out", type=Path, default=Path("results/ADR-19"))
+    parser.add_argument(
+        "--ui",
+        choices=("both", "pyside6", "web"),
+        default="both",
+        help="UI yang diukur (both = PySide6 sebagai pembanding + web)",
+    )
+    parser.add_argument("--name", default="ui-bench", help="awalan folder hasil")
     parser.add_argument("--child", choices=("pyside6", "web"))
     args = parser.parse_args(argv)
     if args.child == "pyside6":
@@ -357,9 +369,10 @@ def main(argv: list[str] | None = None) -> int:
                            check=False, capture_output=True, text=True)  # fmt: skip
     tests_line = (tests.stdout.strip().splitlines() or ["-"])[-1]
     print(f"tes UI web: {tests_line}", flush=True)
+    uis = ("pyside6", "web") if args.ui == "both" else (args.ui,)
     runs: list[dict[str, Any]] = []
     for rep in range(1, args.reps + 1):
-        for ui in ("pyside6", "web"):
+        for ui in uis:
             print(f"[{ui} ulangan {rep}] ...", flush=True)
             r = run_once(ui, rep, args.config)
             runs.append(r)
@@ -369,7 +382,7 @@ def main(argv: list[str] | None = None) -> int:
                   f"({r['n_updates']} pembaruan, {r['n_unacked']} tanpa ack)", flush=True)  # fmt: skip
 
     stamp = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S")
-    out = args.out / f"ui-bench-{stamp}"
+    out = args.out / f"{args.name}-{stamp}"
     out.mkdir(parents=True, exist_ok=False)
     fields = [k for k in runs[0] if not k.startswith("_")]
     with (out / "per_run.csv").open("w", encoding="utf-8-sig", newline="") as f:
@@ -383,7 +396,7 @@ def main(argv: list[str] | None = None) -> int:
             w.writerows([r["ui"], r["rep"], i, f"{x:.6f}"] for i, x in enumerate(r["_latencies"]))
 
     summary: dict[str, dict[str, Any]] = {}
-    for ui in ("pyside6", "web"):
+    for ui in uis:
         rs = [r for r in runs if r["ui"] == ui]
         lat = [x for r in rs for x in r["_latencies"]]
         summary[ui] = {
@@ -408,16 +421,20 @@ def main(argv: list[str] | None = None) -> int:
         "setiap pembaruan web di-ack browser (tampil)": all(r["n_unacked"] == 0 for r in runs
                                                             if r["ui"] == "web"),
     }  # fmt: skip
-    verdict, reasons = decide(summary["web"], functional)
+    verdict, reasons = decide(summary["web"], functional) if "web" in summary else ("-", [])
     with (out / "summary.csv").open("w", encoding="utf-8-sig", newline="") as f:
-        cols = list(summary["web"]) + ["keputusan_tahap1", "alasan"]
+        cols = list(summary[uis[0]]) + ["keputusan_tahap1", "alasan"]
         w = csv.DictWriter(f, fieldnames=cols)
         w.writeheader()
-        w.writerow({**summary["pyside6"], "keputusan_tahap1": "", "alasan": "pembanding"})
-        w.writerow({**summary["web"], "keputusan_tahap1": verdict, "alasan": "; ".join(reasons)})
+        if "pyside6" in summary:
+            w.writerow({**summary["pyside6"], "keputusan_tahap1": "", "alasan": "pembanding"})
+        if "web" in summary:
+            w.writerow({**summary["web"], "keputusan_tahap1": verdict,
+                        "alasan": "; ".join(reasons)})  # fmt: skip
     info = {
         "experiment": "ADR-19 tahap 1", "protocol": "docs/UI-WEB.md (pra-registrasi 17 Okt 2026)",
-        "config": args.config.as_posix(), "fullscreen": settings.ui.fullscreen,
+        "config": args.config.as_posix(), "uis": list(uis), "web_server": "Flask + flask-sock "
+        "(server Werkzeug, threaded)", "fullscreen": settings.ui.fullscreen,
         "font_scale": settings.ui.font_scale, "workers": "palsu (mica.ui.devfakes.FakeWorkerBus)",
         "pipeline": "palsu (mica.ui.devfakes.FakePipeline)", "reps": args.reps,
         "idle_s": IDLE_S, "n_questions": N_QUESTIONS, "question_template": QUESTION,
@@ -432,7 +449,9 @@ def main(argv: list[str] | None = None) -> int:
                                 "result": tests_line, "returncode": tests.returncode},
         "decision": {"verdict": verdict, "reasons": reasons},
         "versions": {"PySide6-Essentials": package_version("PySide6-Essentials"),
-                     "aiohttp": package_version("aiohttp"), "psutil": package_version("psutil"),
+                     "Flask": package_version("Flask"),
+                     "flask-sock": package_version("flask-sock"),
+                     "Werkzeug": package_version("Werkzeug"), "psutil": package_version("psutil"),
                      "edge": _edge_version(find_edge())},
         "environment": environment, "python": platform.python_version(),
     }  # fmt: skip

@@ -1,4 +1,4 @@
-"""UI web (percobaan ADR-19): Microsoft Edge sebagai proses anak.
+"""UI web (ADR-19, opsi ui.backend: web): Microsoft Edge sebagai proses anak.
 
 Flag (Microsoft Learn, "Configure Microsoft Edge kiosk mode", ms.date 14 Okt 2025, bukti [53];
 dicek 17 Okt 2026): --kiosk <url> --edge-kiosk-type=fullscreen (Digital/Interactive signage,

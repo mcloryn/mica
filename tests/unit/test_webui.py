@@ -2,15 +2,19 @@
 server (Origin, 127.0.0.1, tanpa aset internet), dan siklus hidup Edge. Tanpa browser sungguhan.
 """
 
-import asyncio
 import json
+import os
 import re
+import threading
+import time
 from datetime import date
 from pathlib import Path
 
-import aiohttp
+import httpx
 import pytest
 from PySide6.QtCore import Qt
+from simple_websocket import Client
+from simple_websocket import ConnectionError as WsRejected
 
 from mica.config import load_settings
 from mica.core.controller import DebugInfo
@@ -30,7 +34,7 @@ from mica.ui.viewmodel import ViewModel
 from mica.webui import state
 from mica.webui.app import WebUiError, build_controller, serve
 from mica.webui.browser import EdgeBrowser, edge_command
-from mica.webui.server import HOST, STATIC_DIR, WebUi, start_site
+from mica.webui.server import HOST, STATIC_DIR, WebUi, start_server, stop_server
 
 ROOT = Path(__file__).resolve().parents[2]
 DEV_YAML = ROOT / "config" / "dev.yaml"
@@ -226,68 +230,112 @@ class FakeController:
         self.closed = True
 
 
-def _run(coro):
-    return asyncio.run(coro)
+def _wait(cond, timeout_s=5.0):
+    deadline = time.monotonic() + timeout_s
+    while not cond() and time.monotonic() < deadline:
+        time.sleep(0.02)
+    return cond()
+
+
+def _recv(ws):
+    return json.loads(ws.receive(timeout=5))
 
 
 def test_server_binds_localhost_only_and_rejects_foreign_origin():
-    async def scenario():
-        webui = WebUi(_ui(), dev=True)
-        webui.controller = FakeController()
-        runner = await start_site(webui)
-        try:
-            assert HOST == "127.0.0.1"
-            assert {a[0] for a in runner.addresses} == {"127.0.0.1"}
-            url = f"http://{HOST}:{webui.port}"
-            async with aiohttp.ClientSession() as http:
-                for origin in ("http://evil.example", f"http://localhost:{webui.port}", None):
-                    headers = {"Origin": origin} if origin else {}
-                    with pytest.raises(aiohttp.WSServerHandshakeError) as err:
-                        await http.ws_connect(f"{url}/ws", headers=headers)
-                    assert err.value.status == 403
-                async with http.get(f"{url}/") as r:
-                    assert r.status == 200
-                    assert r.headers["Content-Security-Policy"].startswith("default-src 'self'")
-        finally:
-            await runner.cleanup()
+    webui = WebUi(_ui(), dev=True)
+    webui.controller = FakeController()
+    server = start_server(webui)
+    try:
+        assert HOST == "127.0.0.1"
+        assert server.socket.getsockname()[0] == "127.0.0.1"
+        url = f"http://{HOST}:{webui.port}"
+        for origin in ("http://evil.example", f"http://localhost:{webui.port}", None):
+            headers = {"Origin": origin} if origin else {}
+            with pytest.raises(WsRejected) as err:
+                Client.connect(f"ws://{HOST}:{webui.port}/ws", headers=headers)
+            assert err.value.status_code == 403
+        r = httpx.get(f"{url}/")
+        assert r.status_code == 200 and "<html" in r.text.lower()
+        assert r.headers["Content-Security-Policy"].startswith("default-src 'self'")
+        assert httpx.get(f"{url}/static/app.js").status_code == 200
+        assert httpx.get(f"{url}/static/../server.py").status_code == 404
+        assert not webui.sockets
+    finally:
+        stop_server(server)
 
-    _run(scenario())
+
+def test_server_has_no_debugger_or_reloader():
+    webui = WebUi(_ui(), dev=True)
+    server = start_server(webui)
+    try:
+        app = server.app
+        # app dilayani langsung: tidak dibungkus DebuggedApplication, debug/testing mati
+        assert type(app).__name__ == "Flask" and app.debug is False and app.testing is False
+        assert server.multithread and not server.multiprocess
+        # reloader Werkzeug hanya ada lewat run_simple(use_reloader=True), yang menjalankan
+        # proses anak dengan variabel ini; make_server tidak pernah memasangnya
+        assert "WERKZEUG_RUN_MAIN" not in os.environ
+        r = httpx.get(f"http://{HOST}:{webui.port}/console")
+        assert r.status_code == 404 and "Werkzeug" not in r.text  # konsol debugger tidak ada
+    finally:
+        stop_server(server)
 
 
 def test_websocket_sends_view_and_maps_events():
-    async def scenario():
-        webui = WebUi(_ui(), dev=True)
-        controller = FakeController()
-        webui.controller = controller
-        runner = await start_site(webui)
-        url = f"http://{HOST}:{webui.port}"
-        try:
-            async with aiohttp.ClientSession() as http:
-                ws = await http.ws_connect(f"{url}/ws", headers={"Origin": url})
-                config = await ws.receive_json()
-                first = await ws.receive_json()
-                assert config["type"] == "config" and first["type"] == "view"
-                assert first["view"]["home"] is True
-                await ws.send_json({"type": "ack", "seq": first["seq"]})
-                webui.show_item(ShowView(V.THINKING, transcript="Biaya?", send_enabled=False))
-                await webui.flush()
-                second = await ws.receive_json()
-                assert second["view"]["messages"][0]["text"] == "Biaya?"
-                assert second["seq"] == first["seq"] + 1
-                await ws.send_json({"type": "talk"})
-                await ws.send_json({"type": "ack", "seq": second["seq"]})
-                for _ in range(50):
-                    if len(webui.ack_latencies_s) == 2 and controller.events:
-                        break
-                    await asyncio.sleep(0.02)
-                await ws.close()
-        finally:
-            await runner.cleanup()
-        assert controller.events == [TalkTapped()]
-        assert len(webui.ack_latencies_s) == 2 and all(x >= 0 for x in webui.ack_latencies_s)
-        assert webui.first_render_at is not None
+    webui = WebUi(_ui(), dev=True)
+    controller = FakeController()
+    webui.controller = controller
+    server = start_server(webui)
+    url = f"http://{HOST}:{webui.port}"
+    try:
+        ws = Client.connect(f"ws://{HOST}:{webui.port}/ws", headers={"Origin": url})
+        config = _recv(ws)
+        first = _recv(ws)
+        assert config["type"] == "config" and first["type"] == "view"
+        assert first["view"]["home"] is True
+        ws.send(json.dumps({"type": "ack", "seq": first["seq"]}))
+        webui.show_item(ShowView(V.THINKING, transcript="Biaya?", send_enabled=False))
+        webui.flush()
+        second = _recv(ws)
+        assert second["view"]["messages"][0]["text"] == "Biaya?"
+        assert second["seq"] == first["seq"] + 1
+        ws.send(json.dumps({"type": "talk"}))
+        ws.send(json.dumps({"type": "ack", "seq": second["seq"]}))
+        # event browser baru sampai ke controller lewat thread poll (tick)
+        assert _wait(lambda: len(webui.ack_latencies_s) == 2 and not webui.events.empty())
+        assert controller.events == []
+        webui.tick()
+        ws.close()
+    finally:
+        webui.close_sockets()
+        stop_server(server)
+    assert controller.events == [TalkTapped()] and controller.steps == 1
+    assert len(webui.ack_latencies_s) == 2 and all(x >= 0 for x in webui.ack_latencies_s)
+    assert webui.first_render_at is not None
 
-    _run(scenario())
+
+def test_broadcast_to_all_active_connections():
+    webui = WebUi(_ui(), dev=False)
+    webui.controller = FakeController()
+    server = start_server(webui)
+    url = f"http://{HOST}:{webui.port}"
+    try:
+        clients = [Client.connect(f"ws://{HOST}:{webui.port}/ws", headers={"Origin": url})
+                   for _ in range(2)]  # fmt: skip
+        for ws in clients:
+            assert _recv(ws)["type"] == "config" and _recv(ws)["type"] == "view"
+        assert _wait(lambda: len(webui.sockets) == 2)
+        webui.show_item(ShowView(V.LISTENING, message="mendengarkan"))
+        webui.tick()
+        views = [_recv(ws) for ws in clients]
+        assert {v["seq"] for v in views} == {webui.seq}
+        assert all(v["view"]["status"] == "LISTENING" for v in views)
+        clients[0].close()
+        assert _wait(lambda: len(webui.sockets) == 1)
+        clients[1].close()
+    finally:
+        webui.close_sockets()
+        stop_server(server)
 
 
 # --- Edge dan siklus hidup ------------------------------------------------------------------
@@ -334,28 +382,33 @@ def test_closing_browser_stops_server_and_controller():
     webui.controller = controller
     browser = FakeBrowser()
     urls = []
-    _run(asyncio.wait_for(serve(webui, controller, browser, on_ready=urls.append), 10))
+    done = threading.Thread(target=serve, args=(webui, controller, browser),
+                            kwargs={"on_ready": urls.append}, daemon=True)  # fmt: skip
+    done.start()
+    done.join(10)
+    assert not done.is_alive()
     assert urls and urls[0].startswith("http://127.0.0.1:") and browser.url == urls[0]
     assert controller.closed and browser.closed and controller.steps > 0
 
 
 def test_stopping_server_closes_browser():
-    async def scenario():
-        webui = WebUi(_ui(), dev=False)
-        controller = FakeController()
-        webui.controller = controller
-        browser = FakeBrowser()
-        browser.alive = lambda: True
-        stop = asyncio.Event()
-        task = asyncio.create_task(serve(webui, controller, browser, stop=stop,
-                                         on_ready=lambda url: None))  # fmt: skip
-        await asyncio.sleep(0.2)
-        stop.set()
-        await asyncio.wait_for(task, 10)
-        return browser, controller
-
-    browser, controller = _run(scenario())
+    webui = WebUi(_ui(), dev=False)
+    controller = FakeController()
+    webui.controller = controller
+    browser = FakeBrowser()
+    browser.alive = lambda: True
+    stop = threading.Event()
+    task = threading.Thread(target=serve, args=(webui, controller, browser),
+                            kwargs={"stop": stop, "on_ready": lambda url: None}, daemon=True)  # fmt: skip
+    task.start()
+    time.sleep(0.2)
+    stop.set()
+    task.join(10)
+    assert not task.is_alive()
     assert browser.closed and controller.closed
+    # port sudah dilepas: server benar-benar berhenti
+    with pytest.raises(httpx.TransportError):  # Windows: ditolak atau timeout, tidak dilayani
+        httpx.get(f"http://{HOST}:{webui.port}/", timeout=2)
 
 
 def test_edge_browser_with_fake_popen(tmp_path):
