@@ -32,32 +32,6 @@ import ui_bench
 STATIC_DIR = Path(__file__).resolve().parents[1] / "src" / "mica" / "webui" / "static"
 
 
-def process_kind(proc: Any, root_pid: int) -> str:
-    import psutil
-
-    try:
-        name = proc.name().lower()
-        cmd = proc.cmdline()
-    except (psutil.NoSuchProcess, psutil.AccessDenied):
-        return "tidak terbaca"
-    if name == "python.exe":
-        # python.exe venv di Windows adalah peluncur yang menjalankan python.exe dasar sebagai
-        # proses anak; server Flask + controller berjalan di proses anak itu
-        return "python: peluncur venv" if proc.pid == root_pid else "python: Flask + controller"
-    if name != "msedge.exe":
-        return f"lain: {name}"
-    args = {a.split("=", 1)[0]: a.split("=", 1)[1] for a in cmd if a.startswith("--") and "=" in a}
-    kind = args.get("--type")
-    if kind is None:
-        return "edge: browser"
-    if kind == "utility":
-        sub = args.get("--utility-sub-type", "?")
-        return f"edge: utility ({sub})"
-    if kind == "renderer" and "--extension-process" in cmd:
-        return "edge: renderer (ekstensi)"
-    return f"edge: {kind}"
-
-
 def measure_idle(root_pid: int, seconds: float) -> list[dict[str, Any]]:
     import psutil
 
@@ -82,7 +56,7 @@ def measure_idle(root_pid: int, seconds: float) -> list[dict[str, Any]]:
         if p.pid not in start:
             continue
         cpu = 100.0 * (t.user + t.system - start[p.pid]) / elapsed
-        rows.append({"pid": p.pid, "kind": process_kind(p, root_pid), "cpu_pct": cpu,
+        rows.append({"pid": p.pid, "kind": ui_bench.process_kind(p, root_pid), "cpu_pct": cpu,
                      "uss_mb": uss})  # fmt: skip
     return rows
 

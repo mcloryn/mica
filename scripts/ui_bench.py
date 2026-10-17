@@ -2,7 +2,7 @@
 
 python scripts/ui_bench.py [--config config/dev.yaml] [--reps 3] [--out results/ADR-19]
                            [--ui both|pyside6|web] [--name ui-bench]
-                           [--cover-window] [--edge-switches on|off]
+                           [--cover-window] [--edge-switches on|off] [--long]
 
 Per UI dan ulangan, proses anak menjalankan UI dengan pekerja palsu + pipeline palsu, lalu:
 1. waktu mulai = peluncuran proses anak -> layar pertama digambar (jam dinding kedua proses);
@@ -24,6 +24,13 @@ tampil, skrip membuka Notepad lewat subprocess, memaksimalkan dan membawanya ke 
 menjalankan masa diam dan 20 pertanyaan, dan menutup Notepad. Persen luas jendela Edge yang
 tertutup Notepad dicatat. --edge-switches off meluncurkan Edge tanpa RENDERING_SWITCHES
 (mica.webui.browser) sebagai pembanding.
+
+--long (uji sesi panjang, Langkah 31 bagian D): satu run web dengan 200 pertanyaan generik
+("pertanyaan uji N"); setiap 10 pertanyaan sesi direset lewat PersonLeft (meniru pengunjung
+berganti). RAM USS total (Python + semua proses Edge) diukur di awal dan setelah setiap reset.
+Hasil: results/ADR-19/ui-long-<cap waktu>/ (ram.csv, run.json; kemiringan per 100 pertanyaan).
+
+Semua mode wajib daya AC: bench berhenti (kode 3) bila sumber daya terbaca baterai.
 """
 
 from __future__ import annotations
@@ -48,6 +55,8 @@ FACTOR = 3.0  # protokol: perkiraan laptop kiosk ~1/3 laptop dev
 LIMIT_S = 1.0  # protokol: Nielsen, bukti [52]
 QUESTION = "pertanyaan uji {n}"
 CHILD_TIMEOUT_S = 180.0  # non-ADR: batas tunggu satu tahap proses anak
+LONG_QUESTIONS = 200  # Langkah 31 bagian D: 200 pertanyaan generik (template QUESTION)
+LONG_BLOCK = 10  # sesi direset setiap 10 pertanyaan; RAM diukur di setiap reset
 
 
 def emit(event: str, **data: Any) -> None:
@@ -88,6 +97,46 @@ class Driver:
             self.done = True
             return
         self.asked += 1
+        self.controller.submit(TextSubmitted(QUESTION.format(n=self.asked)))
+
+
+class LongDriver:
+    """--long: LONG_QUESTIONS pertanyaan; setiap LONG_BLOCK pertanyaan sesi direset lewat
+    PersonLeft (meniru pengunjung berganti), lalu berhenti sampai induk selesai mengukur RAM."""
+
+    def __init__(self, controller: Any, vm: Any) -> None:
+        self.controller = controller
+        self.vm = vm
+        self.asked = 0
+        self.in_block = 0
+        self.resetting = False
+        self.active = False
+        self.done = False
+
+    def tick(self) -> None:
+        from mica.core.session import TextSubmitted, VisitState
+        from mica.vision.types import PersonLeft
+
+        if not self.active or self.done:
+            return
+        state = self.controller.session.state
+        if self.resetting:
+            if state == VisitState.IDLE and not self.vm.messages:
+                self.resetting = False
+                self.active = False  # tunggu "go" dari induk setelah RAM diukur
+                self.done = self.asked >= LONG_QUESTIONS
+                emit("checkpoint", asked=self.asked)
+            return
+        answered = sum(m.role == "mica" for m in self.vm.messages)
+        if answered < self.in_block or state not in (VisitState.IDLE, VisitState.READY):
+            return
+        if self.in_block == LONG_BLOCK:
+            self.in_block = 0
+            self.resetting = True
+            self.controller.submit(PersonLeft(track_id=0, t=time.time(), duration_s=0.0))
+            return
+        self.asked += 1
+        self.in_block += 1
         self.controller.submit(TextSubmitted(QUESTION.format(n=self.asked)))
 
 
@@ -164,13 +213,14 @@ def child_pyside6(config: Path) -> int:
 # --- proses anak: web -------------------------------------------------------------------
 
 
-def child_web(config: Path, keep_rendering: bool = True, edge_extra: tuple[str, ...] = ()) -> int:
+def child_web(config: Path, keep_rendering: bool = True, long: bool = False,
+              edge_extra: tuple[str, ...] = ()) -> int:  # fmt: skip
     from mica.config import load_settings
     from mica.webui.app import build_controller, serve
     from mica.webui.browser import EdgeBrowser
     from mica.webui.server import WebUi
 
-    driver: Driver | None = None
+    driver: Driver | LongDriver | None = None
 
     class BenchWebUi(WebUi):
         def handle_message(self, data: dict[str, Any]) -> None:
@@ -202,7 +252,7 @@ def child_web(config: Path, keep_rendering: bool = True, edge_extra: tuple[str, 
 
     browser = EdgeBrowser(settings.ui.fullscreen, keep_rendering=keep_rendering, popen=popen)
     commands = stdin_commands()
-    driver = Driver(controller, webui.vm)
+    driver = LongDriver(controller, webui.vm) if long else Driver(controller, webui.vm)
     stop = threading.Event()
     server = threading.Thread(target=serve, args=(webui, controller, browser),
                               kwargs={"stop": stop, "on_ready": lambda url: emit(
@@ -223,7 +273,7 @@ def child_web(config: Path, keep_rendering: bool = True, edge_extra: tuple[str, 
         elif cmd == "stats":
             with webui.lock:
                 emit("stats", sent=dict(sent), seq=webui.seq, ticks=sent.get("_ticks", 0))
-        if driver.done and driver.active:
+        if not long and driver.done and driver.active:
             driver.active = False
             # tunggu ack pembaruan terakhir (paling lama 5 s)
             deadline = time.perf_counter() + 5.0
@@ -342,6 +392,48 @@ def tree(pid: int) -> list[Any]:
 
     root = psutil.Process(pid)
     return [root, *root.children(recursive=True)]
+
+
+def process_kind(proc: Any, root_pid: int) -> str:
+    import psutil
+
+    try:
+        name = proc.name().lower()
+        cmd = proc.cmdline()
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+        return "tidak terbaca"
+    if name == "python.exe":
+        # python.exe venv di Windows adalah peluncur yang menjalankan python.exe dasar sebagai
+        # proses anak; server Flask + controller berjalan di proses anak itu
+        return "python: peluncur venv" if proc.pid == root_pid else "python: Flask + controller"
+    if name != "msedge.exe":
+        return f"lain: {name}"
+    args = {a.split("=", 1)[0]: a.split("=", 1)[1] for a in cmd if a.startswith("--") and "=" in a}
+    kind = args.get("--type")
+    if kind is None:
+        return "edge: browser"
+    if kind == "utility":
+        sub = args.get("--utility-sub-type", "?")
+        return f"edge: utility ({sub})"
+    if kind == "renderer" and "--extension-process" in cmd:
+        return "edge: renderer (ekstensi)"
+    return f"edge: {kind}"
+
+
+def uss_by_kind(pid: int) -> dict[str, tuple[int, float]]:
+    """{jenis proses: (jumlah, USS MB)} untuk pohon proses pid."""
+    import psutil
+
+    out: dict[str, tuple[int, float]] = {}
+    for p in tree(pid):
+        try:
+            uss = p.memory_full_info().uss / 2**20
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+        kind = process_kind(p, pid)
+        n, total = out.get(kind, (0, 0.0))
+        out[kind] = (n + 1, total + uss)
+    return out
 
 
 def uss_mb(pid: int) -> tuple[float, int]:
@@ -493,7 +585,7 @@ def main(argv: list[str] | None = None) -> int:
         default="both",
         help="UI yang diukur (both = PySide6 sebagai pembanding + web)",
     )
-    parser.add_argument("--name", default="ui-bench", help="awalan folder hasil")
+    parser.add_argument("--name", help="awalan folder hasil (bawaan ui-bench, --long: ui-long)")
     parser.add_argument("--cover-window", action="store_true",
                         help="tutup jendela UI dengan Notepad selama diam + 20 pertanyaan")  # fmt: skip
     parser.add_argument("--edge-switches", choices=("on", "off"), default="on",
@@ -501,12 +593,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--edge-extra", action="append", default=[], metavar="SWITCH",
                         help="switch Edge tambahan untuk menguji kandidat (boleh berulang); "
                         "tulis --edge-extra=--switch")  # fmt: skip
+    parser.add_argument("--cdp-gc", action="store_true",
+                        help="--long: paksa GC dan baca heap JS/DOM lewat DevTools di tiap reset")  # fmt: skip
+    parser.add_argument("--long", action="store_true",
+                        help="uji sesi panjang web: 200 pertanyaan, reset tiap 10, RAM tiap reset")  # fmt: skip
     parser.add_argument("--child", choices=("pyside6", "web"))
     args = parser.parse_args(argv)
     if args.child == "pyside6":
         return child_pyside6(args.config)
     if args.child == "web":
-        return child_web(args.config, keep_rendering=args.edge_switches == "on",
+        return child_web(args.config, keep_rendering=args.edge_switches == "on", long=args.long,
                          edge_extra=tuple(args.edge_extra))  # fmt: skip
 
     from mica.config import load_settings
@@ -520,10 +616,141 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     try:
         require_ac()
+        if args.long:
+            return _long(args, settings, collect_environment, package_version, find_edge)
         return _bench(args, settings, collect_environment, package_version, find_edge)
     except NotOnAc as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 3
+
+
+def _free_port() -> int:
+    import socket
+
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        return int(sock.getsockname()[1])
+
+
+def cdp_memory(port: int) -> dict[str, Any]:
+    """--cdp-gc (diagnosis kebocoran, bench saja): lewat Chrome DevTools Protocol di halaman
+    MICA, baca heap JS, paksa GC (HeapProfiler.collectGarbage), baca lagi heap JS dan jumlah
+    node DOM / listener (Memory.getDOMCounters)."""
+    import httpx
+    from simple_websocket import Client
+
+    pages = httpx.get(f"http://127.0.0.1:{port}/json/list", timeout=10).json()
+    page = next(p for p in pages if p.get("type") == "page"
+                and str(p.get("url", "")).startswith("http://127.0.0.1"))  # fmt: skip
+    ws = Client.connect(page["webSocketDebuggerUrl"])
+    try:
+
+        def call(i: int, method: str) -> dict[str, Any]:
+            ws.send(json.dumps({"id": i, "method": method}))
+            while True:
+                msg = json.loads(ws.receive(timeout=30))
+                if msg.get("id") == i:
+                    return msg.get("result", {})
+
+        before = call(1, "Runtime.getHeapUsage")
+        call(2, "HeapProfiler.collectGarbage")
+        after = call(3, "Runtime.getHeapUsage")
+        dom = call(4, "Memory.getDOMCounters")
+    finally:
+        ws.close()
+    return {"js_used_mb_before_gc": before.get("usedSize", 0) / 2**20,
+            "js_used_mb_after_gc": after.get("usedSize", 0) / 2**20,
+            "js_total_mb_after_gc": after.get("totalSize", 0) / 2**20,
+            "dom_documents": dom.get("documents"), "dom_nodes": dom.get("nodes"),
+            "js_event_listeners": dom.get("jsEventListeners")}  # fmt: skip
+
+
+def _long(args: argparse.Namespace, settings: Any, collect_environment: Any,
+          package_version: Any, find_edge: Any) -> int:  # fmt: skip
+    """--long: satu run web, RAM USS total (Python + semua Edge) di awal dan setiap reset sesi."""
+    environment = collect_environment()
+    power = require_ac()
+    extra = list(args.edge_extra)
+    port = None
+    if args.cdp_gc:
+        port = _free_port()
+        extra.append(f"--remote-debugging-port={port}")  # hanya 127.0.0.1, bench saja
+    child = [sys.executable, __file__, "--child", "web", "--long", "--config", str(args.config),
+             *(f"--edge-extra={x}" for x in extra)]  # fmt: skip
+    proc = subprocess.Popen(child, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                            stderr=subprocess.DEVNULL, text=True, encoding="utf-8")  # fmt: skip
+    points: list[dict[str, Any]] = []
+    t0 = time.time()
+    assert proc.stdin is not None
+    try:
+        read_event(proc, "painted")
+        asked = 0
+        while True:
+            cdp = cdp_memory(port) if port is not None else {}
+            kinds = uss_by_kind(proc.pid)
+            uss = sum(u for _, u in kinds.values())
+            n = sum(k for k, _ in kinds.values())
+            points.append({"asked": asked, "uss_total_mb": uss, "n_processes": n,
+                           "elapsed_s": time.time() - t0, "_kinds": kinds, **cdp})  # fmt: skip
+            print(f"  {asked:>3} pertanyaan | USS {uss:.1f} MB ({n} proses) {cdp}", flush=True)
+            if asked >= LONG_QUESTIONS:
+                break
+            proc.stdin.write("go\n")
+            proc.stdin.flush()
+            asked = int(read_event(proc, "checkpoint")["asked"])
+        proc.stdin.write("quit\n")
+        proc.stdin.flush()
+        proc.wait(timeout=30)
+    finally:
+        if proc.poll() is None:
+            for p in reversed(tree(proc.pid)):
+                p.kill()
+
+    xs = [p["asked"] for p in points]
+    ys = [p["uss_total_mb"] for p in points]
+    slope = statistics.linear_regression(xs, ys).slope  # MB per pertanyaan (kuadrat terkecil)
+    second = [p for p in points if p["asked"] >= LONG_QUESTIONS // 2]
+    slope_2nd = statistics.linear_regression([p["asked"] for p in second],
+                                             [p["uss_total_mb"] for p in second]).slope  # fmt: skip
+    summary = {
+        "uss_start_mb": ys[0], "uss_end_mb": ys[-1], "uss_min_mb": min(ys), "uss_max_mb": max(ys),
+        "slope_mb_per_100q": 100 * slope, "slope_2nd_half_mb_per_100q": 100 * slope_2nd,
+        "duration_s": points[-1]["elapsed_s"],
+    }  # fmt: skip
+    stamp = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S")
+    out = args.out / f"{args.name or 'ui-long'}-{stamp}"
+    out.mkdir(parents=True, exist_ok=False)
+    with (out / "ram.csv").open("w", encoding="utf-8-sig", newline="") as f:
+        cdp_fields = [k for k in points[0] if k.startswith(("js_", "dom_"))]
+        w = csv.DictWriter(f, fieldnames=["asked", "uss_total_mb", "n_processes", "elapsed_s",
+                                          *cdp_fields], extrasaction="ignore")  # fmt: skip
+        w.writeheader()
+        w.writerows(points)
+    with (out / "ram_by_kind.csv").open("w", encoding="utf-8-sig", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["asked", "kind", "n_processes", "uss_mb"])
+        for p in points:
+            for kind, (n, uss) in sorted(p["_kinds"].items()):
+                w.writerow([p["asked"], kind, n, f"{uss:.2f}"])
+    info = {
+        "experiment": "ADR-19 Langkah 31 bagian D: uji sesi panjang (RAM)",
+        "config": args.config.as_posix(), "workers": "palsu", "pipeline": "palsu",
+        "n_questions": LONG_QUESTIONS, "reset_every": LONG_BLOCK,
+        "reset_event": "PersonLeft (meniru pengunjung pergi)", "question_template": QUESTION,
+        "edge_extra": extra, "cdp_gc": bool(args.cdp_gc),
+        "ram_definition": "USS total pohon proses (peluncur venv + Python + semua proses Edge), "
+        "diukur di awal dan setelah setiap reset sesi",
+        "slope_definition": "kemiringan regresi kuadrat terkecil USS vs jumlah pertanyaan, x100",
+        "summary": summary, "power_source": (power or {}).get("source"),
+        "battery_percent": (power or {}).get("battery_percent"),
+        "versions": {"Flask": package_version("Flask"), "edge": _edge_version(find_edge())},
+        "environment": environment, "python": platform.python_version(),
+    }  # fmt: skip
+    (out / "run.json").write_text(json.dumps(info, ensure_ascii=False, indent=1) + "\n",
+                                  encoding="utf-8")  # fmt: skip
+    print(json.dumps(summary, indent=1))
+    print(f"tersimpan: {out.as_posix()}")
+    return 0
 
 
 def _bench(args: argparse.Namespace, settings: Any, collect_environment: Any,
@@ -549,7 +776,7 @@ def _bench(args: argparse.Namespace, settings: Any, collect_environment: Any,
                 print(f"  penutup: {r['_cover']}", flush=True)
 
     stamp = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S")
-    out = args.out / f"{args.name}-{stamp}"
+    out = args.out / f"{args.name or 'ui-bench'}-{stamp}"
     out.mkdir(parents=True, exist_ok=False)
     fields = [k for k in runs[0] if not k.startswith("_")]
     with (out / "per_run.csv").open("w", encoding="utf-8-sig", newline="") as f:

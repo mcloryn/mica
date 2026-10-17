@@ -1,0 +1,49 @@
+{
+ "experiment": "ADR-19 Langkah 31 bagian D: uji sesi panjang (RAM)",
+ "config": "config/dev.yaml",
+ "workers": "palsu",
+ "pipeline": "palsu",
+ "n_questions": 200,
+ "reset_every": 10,
+ "reset_event": "PersonLeft (meniru pengunjung pergi)",
+ "question_template": "pertanyaan uji {n}",
+ "ram_definition": "USS total pohon proses (peluncur venv + Python + semua proses Edge), diukur di awal dan setelah setiap reset sesi",
+ "slope_definition": "kemiringan regresi kuadrat terkecil USS vs jumlah pertanyaan, x100",
+ "summary": {
+  "uss_start_mb": 311.85546875,
+  "uss_end_mb": 277.8046875,
+  "uss_min_mb": 274.9453125,
+  "uss_max_mb": 394.921875,
+  "slope_mb_per_100q": -64.05478896103897,
+  "slope_2nd_half_mb_per_100q": -15.311079545454545,
+  "duration_s": 39.64094638824463
+ },
+ "power_source": "ac",
+ "battery_percent": 82,
+ "versions": {
+  "Flask": "3.1.3",
+  "edge": "155.0.4283.45"
+ },
+ "environment": {
+  "python": "3.13.7",
+  "torch": "2.14.1+cpu",
+  "torch_num_threads": 14,
+  "sentence_transformers": "6.1.0",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+  "cpu_count_logical": 20,
+  "power": {
+   "source": "ac",
+   "battery_percent": 82,
+   "battery_saver": false
+  },
+  "power_plan": {
+   "guid": "bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b",
+   "name": "ASUS Recommended",
+   "raw": "Power Scheme GUID: bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b  (ASUS Recommended)"
+  },
+  "git_commit": "01e6dd7ad03262c6ef2695012c760b382e74ef78",
+  "git_dirty": true
+ },
+ "python": "3.13.7"
+}
