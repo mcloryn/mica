@@ -286,3 +286,34 @@ pekerja dimulai. Aplikasi (`python -m mica`) tidak membaca stdin, jadi tidak ter
 
 Tangkapan layar: `docs/ui-screens/` (`python scripts/ui_screens.py`, Edge headless + CDP, sumber
 gambar palsu tanpa wajah orang sungguhan).
+
+## Langkah 37b: gaya web konvensional (18 Okt 2026)
+
+Masukan pemilik proyek: padding/margin terlalu besar, terlihat seperti app, terlalu "AI". Tata
+letak dua kolom, logika, ViewModel, dan pratinjau tidak diubah; bagian "Sistem desain" di atas
+digantikan oleh nilai berikut (riwayat tetap di atas).
+
+- Token (`static/tokens.css`): latar #f6f7f9, panel putih, garis 1 px #d0d7de, teks #1f2328,
+  teks sekunder #57606a, aksen biru tua #1f4e8c hanya untuk tombol utama, tombol topik, dan
+  tautan. Jarak 4/8/12/16/24 px. Radius 4/6 px, gelembung chat 10 px. Tanpa bayangan.
+  Huruf dasar 16 px, sekunder 14 px, percakapan 17 px, judul navbar dan sapaan 18 px,
+  line-height 1,5. Lebar isi maksimum 1440 px.
+- Font: font sistem (Segoe UI di Windows, lalu system-ui). Plus Jakarta Sans dan OFL.txt dihapus.
+  Alasannya: tampilan web/admin biasa memakai font sistem; tidak ada file font dan lisensi
+  yang perlu dirawat; dan di Langkah 37 font web terukur menambah +-1,8 MB RAM renderer.
+- Header = navbar (placeholder/logo + judul di kiri; status titik + teks, indikator kamera
+  dan mikrofon di kanan). Pemberitahuan kamera/AI = baris teks kecil di bawah navbar.
+- Sapaan = pesan pertama di percakapan (18 px). Topik = tombol outline biasa di atas bilah
+  input. Penolakan = pesan biasa dengan ikon info kecil.
+- Kamera = panel biasa berjudul "Kamera" dengan badge Aktif/Tidak aktif dan bingkai 1 px.
+- Mikrofon = tombol biasa (ikon + "Bicara"), tinggi sama dengan Kirim (44 px).
+- Ikon: SVG garis inline lokal (kamera, mikrofon, info), satu gaya, tanpa pustaka.
+- Dihapus: hero sapaan 45 px, kartu topik besar berbayang, pil status besar, cincin kamera 6 px
+  berwarna status, tombol mic bulat 88 px dengan bayangan dan denyut, input/tombol pil 64 px,
+  radius 10-24 px, bayangan, ukuran dasar 20 px. Gradasi, blur, dan emoji sudah tidak ada sejak
+  awal.
+- Animasi tersisa: titik status berkedip saat Mendengarkan dan titik tiga saat Berpikir. Keduanya
+  berhenti saat Siap; prefers-reduced-motion mematikannya.
+- Kontras (`python scripts/ui_contrast.py`): teks 15,80 di panel dan 14,74 di latar; teks sekunder
+  6,39 dan 5,96; gelembung MICA 14,35 (teks kecil 5,81); gelembung pengunjung 13,53; tombol utama
+  8,31 (hover 10,87); tombol topik/tautan 8,31.

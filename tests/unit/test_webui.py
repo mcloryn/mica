@@ -216,13 +216,12 @@ def test_static_files_have_no_external_urls():
             assert url.startswith("/static/fonts/"), (f.name, url)
 
 
-def test_font_is_local_with_license():
-    fonts = {f.name for f in (STATIC_DIR / "fonts").iterdir()}
-    assert fonts == {"PlusJakartaSans-wght.woff2", "OFL.txt"}
-    assert (STATIC_DIR / "fonts" / "PlusJakartaSans-wght.woff2").read_bytes()[:4] == b"wOF2"
-    assert "SIL Open Font License" in (STATIC_DIR / "fonts" / "OFL.txt").read_text("utf-8")
+def test_system_font_without_font_files():
+    # Langkah 37b: font sistem (Segoe UI di Windows); file font dan lisensinya dihapus
+    assert not (STATIC_DIR / "fonts").exists()
     tokens = (STATIC_DIR / "tokens.css").read_text("utf-8")
-    assert '"Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif' in tokens  # cadangan sistem
+    assert "@font-face" not in tokens and "url(" not in tokens
+    assert '--font: "Segoe UI", system-ui' in tokens
 
 
 def _css_rules(text):
@@ -246,12 +245,41 @@ def test_animation_only_in_active_status_and_reduced_motion():
 def test_touch_targets_at_least_44px():
     tokens = (STATIC_DIR / "tokens.css").read_text("utf-8")
     assert "--touch-min: 44px;" in tokens
-    sizes = [int(v) for v in re.findall(r"--mic-size:\s*(\d+)px", tokens)]
-    assert sizes and min(sizes) >= 44
     css = (STATIC_DIR / "style.css").read_text("utf-8")
-    for cls in (".chip", ".btn", "#debug_dock summary", ".pill"):
-        rule = next(b for sel, b in _css_rules(css) if sel.strip().startswith(cls))
-        assert "min-height: var(--touch-min)" in rule or "min-height: 64px" in rule, cls
+    for sel in (".btn", "#debug_dock summary", "#transcript_edit, #input"):
+        rule = next(b for s_, b in _css_rules(css) if s_.strip() == sel)
+        assert "min-height: var(--touch-min)" in rule, sel
+    btn = next(b for s_, b in _css_rules(css) if s_.strip() == ".btn")
+    assert "min-width: var(--touch-min)" in btn
+    html = (STATIC_DIR / "index.html").read_text("utf-8")
+    # mic adalah tombol biasa (.btn) dengan ikon + label, ukuran sama dengan Kirim
+    assert '<button id="talk_button" type="button" class="btn btn-icon">' in html
+    assert '<button id="send_button" type="button" class="btn btn-primary">' in html
+
+
+def test_conventional_style_no_ai_effects():
+    tokens = (STATIC_DIR / "tokens.css").read_text("utf-8")
+    css = re.sub(r"/\*.*?\*/", "", (STATIC_DIR / "style.css").read_text("utf-8"), flags=re.DOTALL)
+    for banned in ("gradient", "blur(", "backdrop-filter", "box-shadow", "text-shadow", "filter:"):
+        assert banned not in css and banned not in tokens, banned
+    radii = [int(v) for v in re.findall(r"--radius[\w-]*:\s*(\d+)px", tokens)]
+    assert radii and max(radii) <= 10
+    assert "--radius-bubble: 10px;" in tokens
+    for value in re.findall(r"border-radius:\s*([^;]+);", css):
+        assert value.strip() in (
+            "var(--radius)",
+            "var(--radius-m)",
+            "var(--radius-bubble)",
+            "50%",
+        ), value
+    spaces = sorted(int(v) for v in re.findall(r"--space-\d:\s*(\d+)px", tokens))
+    assert spaces == [4, 8, 12, 16, 24]
+    assert "--fs-m: 1rem;" in tokens and "--fs-s: 0.875rem;" in tokens
+    js = (STATIC_DIR / "app.js").read_text("utf-8")
+    assert "100 * c.font_scale" in js  # dasar 16 px
+    for f in ("index.html", "app.js", "style.css"):
+        text = (STATIC_DIR / f).read_text("utf-8")
+        assert not re.search(r"[\U0001F300-\U0001FAFF\u2728\u2B50]", text), f  # emoji/sparkle
 
 
 def test_colors_only_in_tokens():

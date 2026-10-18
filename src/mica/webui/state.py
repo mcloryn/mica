@@ -114,6 +114,9 @@ def config_json(ui: UiConfig, dev: bool) -> dict[str, Any]:
             "camera_off": texts.CAMERA_OFF,
             "mic_on": texts.MIC_ON,
             "mic_off": texts.MIC_OFF,
+            "camera_title": texts.CAMERA_TITLE,
+            "camera_badge_on": texts.CAMERA_BADGE_ON,
+            "camera_badge_off": texts.CAMERA_BADGE_OFF,
         },
     }
 

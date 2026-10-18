@@ -15,19 +15,16 @@ from pathlib import Path
 TOKENS = Path(__file__).resolve().parents[1] / "src/mica/webui/static/tokens.css"
 # (teks, latar, kegunaan)
 PAIRS = (
-    ("--text", "--surface", "teks utama di kartu"),
+    ("--text", "--surface", "teks utama di panel"),
     ("--text", "--bg", "teks utama di latar"),
-    ("--text-muted", "--surface", "teks sekunder di kartu"),
+    ("--text-muted", "--surface", "teks sekunder (14 px) di panel"),
     ("--text-muted", "--bg", "teks sekunder di latar"),
-    ("--text-muted", "--surface-sunken", "teks sekunder di bidang input/kamera"),
-    ("--text", "--surface-sunken", "teks chip dan input"),
-    ("--text", "--accent-soft", "gelembung pengunjung"),
-    ("--text", "--notice-bg", "kartu penolakan"),
-    ("--on-accent", "--accent", "tombol utama, logo, pil Berbicara"),
-    ("--on-accent", "--accent-strong", "tombol utama ditekan"),
-    ("--on-accent", "--status-ready", "pil Siap"),
-    ("--on-accent", "--status-listening", "pil Mendengarkan"),
-    ("--on-accent", "--status-thinking", "pil Berpikir"),
+    ("--text", "--bubble-mica", "gelembung MICA"),
+    ("--text-muted", "--bubble-mica", "teks kecil di gelembung MICA"),
+    ("--text", "--bubble-visitor", "gelembung pengunjung"),
+    ("--on-accent", "--accent", "tombol utama"),
+    ("--on-accent", "--accent-hover", "tombol utama (hover)"),
+    ("--accent", "--surface", "tombol topik outline / tautan"),
 )
 AA = 4.5
 

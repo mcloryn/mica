@@ -55,6 +55,7 @@ CAMERA_UNAVAILABLE = (
 )
 TARGET_LABEL, TARGET_LOCKED = "Target", "terkunci"
 TOPICS_HINT = "Pilih topik, lalu lengkapi pertanyaanmu"
+CAMERA_TITLE, CAMERA_BADGE_ON, CAMERA_BADGE_OFF = "Kamera", "Aktif", "Tidak aktif"
 MONTHS = ("Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus",
           "September", "Oktober", "November", "Desember")  # fmt: skip
 
