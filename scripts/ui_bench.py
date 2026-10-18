@@ -63,11 +63,25 @@ def emit(event: str, **data: Any) -> None:
     print(json.dumps({"event": event, "wall": time.time(), **data}), flush=True)
 
 
-def stdin_commands() -> queue.Queue[str]:
+def detach_stdin() -> Any:
+    """Langkah 37: pipa perintah dibaca dari salinan fd, stdin OS diarahkan ke NUL. Tanpa ini,
+    pekerja multiprocessing (spawn) yang dimulai saat thread lain sedang memblok membaca pipa
+    stdin tertahan di awal start pada Windows (terukur: proses kamera USS 3 MB, CPU 0)."""
+    import os
+
+    fd = os.dup(0)  # tidak diwariskan (PEP 446)
+    null = os.open(os.devnull, os.O_RDONLY)
+    os.dup2(null, 0)  # juga SetStdHandle untuk proses anak
+    os.close(null)
+    return os.fdopen(fd, "r", encoding="utf-8")
+
+
+def stdin_commands(stream: Any = None) -> queue.Queue[str]:
     q: queue.Queue[str] = queue.Queue()
+    source = stream if stream is not None else sys.stdin
 
     def read() -> None:
-        for line in sys.stdin:
+        for line in source:
             q.put(line.strip())
 
     threading.Thread(target=read, daemon=True).start()
@@ -214,7 +228,7 @@ def child_pyside6(config: Path) -> int:
 
 
 def child_web(config: Path, keep_rendering: bool = True, long: bool = False,
-              edge_extra: tuple[str, ...] = ()) -> int:  # fmt: skip
+              edge_extra: tuple[str, ...] = (), fake_camera: bool = False) -> int:  # fmt: skip
     from mica.config import load_settings
     from mica.webui.app import build_controller, serve
     from mica.webui.browser import EdgeBrowser
@@ -244,14 +258,16 @@ def child_web(config: Path, keep_rendering: bool = True, long: bool = False,
 
     settings = load_settings(config)
     webui = BenchWebUi(settings.ui, dev=True)
-    controller = build_controller(settings, webui, fake_workers=True, fake_pipeline=True)
+    commands_in = detach_stdin() if fake_camera else None  # sebelum pekerja kamera di-spawn
+    controller = build_controller(settings, webui, fake_workers=True, fake_pipeline=True,
+                                  fake_camera=fake_camera)  # fmt: skip
 
     def popen(cmd: list[str]) -> subprocess.Popen:
         # --edge-extra: switch kandidat disisipkan sebelum --kiosk/URL tanpa mengubah kode aplikasi
         return subprocess.Popen([cmd[0], *edge_extra, *cmd[1:]])
 
     browser = EdgeBrowser(settings.ui.fullscreen, keep_rendering=keep_rendering, popen=popen)
-    commands = stdin_commands()
+    commands = stdin_commands(commands_in)
     driver = LongDriver(controller, webui.vm) if long else Driver(controller, webui.vm)
     stop = threading.Event()
     server = threading.Thread(target=serve, args=(webui, controller, browser),
@@ -404,7 +420,10 @@ def process_kind(proc: Any, root_pid: int) -> str:
         return "tidak terbaca"
     if name == "python.exe":
         # python.exe venv di Windows adalah peluncur yang menjalankan python.exe dasar sebagai
-        # proses anak; server Flask + controller berjalan di proses anak itu
+        # proses anak; server Flask + controller berjalan di proses anak itu. Pekerja
+        # multiprocessing (spawn) memakai --multiprocessing-fork (Langkah 37: proses kamera).
+        if any("--multiprocessing-fork" in a for a in cmd):
+            return "python: pekerja (kamera)"
         return "python: peluncur venv" if proc.pid == root_pid else "python: Flask + controller"
     if name != "msedge.exe":
         return f"lain: {name}"
@@ -472,6 +491,33 @@ def cpu_idle_pct(pid: int, seconds: float) -> float:
     return 100.0 * used / elapsed
 
 
+def cpu_idle_split(pid: int, seconds: float) -> tuple[float, dict[str, float]]:
+    """Seperti cpu_idle_pct (total sama), ditambah rincian per jenis proses (process_kind)."""
+    import psutil
+
+    procs = tree(pid)
+    kinds = {p.pid: process_kind(p, pid) for p in procs}
+
+    def times() -> dict[int, float]:
+        out = {}
+        for p in procs:
+            try:
+                t = p.cpu_times()
+                out[p.pid] = t.user + t.system
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+        return out
+
+    start, t0 = times(), time.perf_counter()
+    time.sleep(seconds)
+    end, elapsed = times(), time.perf_counter() - t0
+    per: dict[str, float] = {}
+    for k in end:
+        if k in start:
+            per[kinds[k]] = per.get(kinds[k], 0.0) + 100.0 * (end[k] - start[k]) / elapsed
+    return sum(per.values()), per
+
+
 def read_event(proc: subprocess.Popen, name: str, timeout_s: float = CHILD_TIMEOUT_S) -> dict:
     deadline = time.time() + timeout_s
     assert proc.stdout is not None
@@ -503,11 +549,12 @@ def require_ac() -> dict[str, Any] | None:
 
 
 def run_once(ui: str, rep: int, config: Path, cover_window: bool = False,
-             edge_switches: bool = True, edge_extra: tuple[str, ...] = ()) -> dict[str, Any]:  # fmt: skip
+             edge_switches: bool = True, edge_extra: tuple[str, ...] = (),
+             child_extra: tuple[str, ...] = ()) -> dict[str, Any]:  # fmt: skip
     power = require_ac()  # dicek sebelum setiap ulangan
     child = [sys.executable, __file__, "--child", ui, "--config", str(config),
              "--edge-switches", "on" if edge_switches else "off",
-             *(f"--edge-extra={x}" for x in edge_extra)]  # fmt: skip
+             *(f"--edge-extra={x}" for x in edge_extra), *child_extra]  # fmt: skip
     cover = Cover(0) if cover_window else None
     cover_info: dict[str, Any] = {}
     t0 = time.time()
@@ -519,7 +566,8 @@ def run_once(ui: str, rep: int, config: Path, cover_window: bool = False,
         if cover is not None:
             cover.ui_root_pid = proc.pid
             cover_info = cover.open()
-        cpu = cpu_idle_pct(proc.pid, IDLE_S)
+        cpu, cpu_kinds = cpu_idle_split(proc.pid, IDLE_S)
+        uss_kinds = uss_by_kind(proc.pid)
         uss_idle, n_idle = uss_mb(proc.pid)
         assert proc.stdin is not None
         proc.stdin.write("go\n")
@@ -552,6 +600,7 @@ def run_once(ui: str, rep: int, config: Path, cover_window: bool = False,
         "cover_foreground": cover_info.get("notepad_foreground"),
         "cover_ui_pct": max(cover_info.get("ui_coverage_pct") or [0.0]) if cover_info else None,
         "_latencies": lat, "_cover": cover_info,
+        "_cpu_by_kind": cpu_kinds, "_uss_by_kind": {k: v[1] for k, v in uss_kinds.items()},
     }  # fmt: skip
 
 
@@ -598,12 +647,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--long", action="store_true",
                         help="uji sesi panjang web: 200 pertanyaan, reset tiap 10, RAM tiap reset")  # fmt: skip
     parser.add_argument("--child", choices=("pyside6", "web"))
+    parser.add_argument(
+        "--fake-camera",
+        action="store_true",
+        help="anak web: proses kamera dengan sumber gambar palsu (Langkah 37)",
+    )
     args = parser.parse_args(argv)
     if args.child == "pyside6":
         return child_pyside6(args.config)
     if args.child == "web":
         return child_web(args.config, keep_rendering=args.edge_switches == "on", long=args.long,
-                         edge_extra=tuple(args.edge_extra))  # fmt: skip
+                         edge_extra=tuple(args.edge_extra),
+                         fake_camera=args.fake_camera)  # fmt: skip
 
     from mica.config import load_settings
     from mica.eval.environment import collect_environment

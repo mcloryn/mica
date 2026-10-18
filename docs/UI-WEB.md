@@ -243,3 +243,46 @@ kotak ketik, Kirim). Layar < 1100 px (nilai desain): kolom kiri menjadi strip ke
 - Sumber gambar palsu (dev): `python -m mica.webui --fake-workers --fake-camera
   [--fake-pipeline]` menjalankan proses kamera asli dengan adegan buatan (siluet tanpa wajah,
   `mica/vision/fakesource.py`) dan nilai coba SDD bagian 12 untuk dwell/leave/rasio bahu.
+
+## Hasil ukur ulang Langkah 37 (18 Okt 2026)
+
+`python scripts/ui_preview_bench.py --reps 10` -> `results/ADR-19/ui-l37-20261018-145911/`
+(bench tahap 1 yang sama, AC, 10 ulangan per kondisi selang-seling; aturan putaran 2).
+
+Kondisi 1 (desain baru, pratinjau off) vs baseline `ui-opt2-combo-20261018-042512` (k1+k2):
+
+| metrik | c1 median | baseline median | baseline maks | hasil |
+| --- | --- | --- | --- | --- |
+| RAM USS diam (MB) | 177,85 | 175,13 | 176,48 | naik |
+| CPU diam (%) | 4,74 | 4,10 | 5,60 | tetap |
+| waktu mulai (s) | 2,457 | 2,463 | 2,492 | turun |
+| p95 jeda tampil (ms) | 4,59 | 3,04 | 7,37 | tetap |
+
+Penyebab RAM "naik" dicari (`results/ADR-19/ui-l37-diag-20261018/`): UI lama pada sesi yang sama
+juga 177,3 MB (pergeseran keadaan laptop sejak pagi); selisih UI baru vs lama +-2 MB seluruhnya di
+renderer Edge, +-1,8 MB di antaranya font web (tanpa @font-face 177,25 MB). Font wajib (Bagian
+A.3), jadi tidak dihapus; tidak ada animasi atau timer saat Siap. CPU diam tidak naik.
+
+Kondisi 2 (pratinjau public, `ui.preview_fps` 5 dan blok 16 nilai coba, proses kamera asli +
+sumber dan detektor palsu) vs kondisi 1, median:
+
+| metrik | c1 | c2 | selisih |
+| --- | --- | --- | --- |
+| RAM USS diam (MB) | 177,85 | 393,03 | +215,18 |
+| CPU diam (%) | 4,74 | 13,65 | +8,91 |
+| waktu mulai (s) | 2,457 | 2,504 | +0,048 |
+| p95 jeda tampil (ms) | 4,59 | 4,68 | +0,10 |
+
+Per jenis proses (median CPU % / USS MB, c1 -> c2): proses GPU Edge 0,53/53,9 -> 3,65/213,8;
+renderer 0,03/14,4 -> 2,67/21,7; browser Edge 3,24/47,3 -> 4,61/51,0; Flask + controller
+0,42/48,8 -> 0,85/49,5; proses kamera (sumber palsu, tanpa YOLO) 0 -> 1,93/42,5. Kenaikan RAM
+terbesar ada di proses GPU Edge (+160 MB) yang mendekode gambar pratinjau 5 fps. Dilaporkan apa
+adanya; keputusan pratinjau public di E-09 (docs/E-09.md, amandemen 1).
+
+Catatan alat: di bench, proses anak membaca perintah dari pipa stdin di thread lain; pekerja
+multiprocessing yang di-spawn saat itu tertahan di awal start pada Windows (USS 3 MB, CPU 0).
+`ui_bench.detach_stdin` membaca perintah dari salinan fd dan mengarahkan stdin OS ke NUL sebelum
+pekerja dimulai. Aplikasi (`python -m mica`) tidak membaca stdin, jadi tidak terdampak.
+
+Tangkapan layar: `docs/ui-screens/` (`python scripts/ui_screens.py`, Edge headless + CDP, sumber
+gambar palsu tanpa wajah orang sungguhan).

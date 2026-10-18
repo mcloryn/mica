@@ -1,0 +1,171 @@
+﻿order,condition,kind,cpu_idle_pct,uss_idle_mb
+1,c1,edge: browser,3.463503037062652,47.359375
+1,c1,edge: crashpad-handler,0.02604137621851618,1.77734375
+1,c1,edge: gpu-process,0.8072826627740016,52.203125
+1,c1,edge: renderer,0.02604137621851618,14.50390625
+1,c1,edge: utility (network.mojom.NetworkService),0.3906206432777427,8.390625
+1,c1,edge: utility (storage.mojom.StorageService),0.0,2.9609375
+1,c1,python: Flask + controller,0.3906206432777427,48.8125
+1,c1,python: peluncur venv,0.0,0.57421875
+2,c2,edge: browser,4.921812058227392,51.01953125
+2,c2,edge: crashpad-handler,0.026041333641414772,1.8125
+2,c2,edge: gpu-process,3.9582827134950453,212.015625
+2,c2,edge: renderer,3.93224137985363,22.76171875
+2,c2,edge: utility (network.mojom.NetworkService),0.33853733733839203,8.83203125
+2,c2,edge: utility (storage.mojom.StorageService),0.0,2.99609375
+2,c2,python: Flask + controller,0.5468680064697102,49.3984375
+2,c2,python: pekerja (kamera),2.6822573650657215,42.26953125
+2,c2,python: peluncur venv,0.0,0.57421875
+3,c1,edge: browser,4.244758720264725,48.8359375
+3,c1,edge: crashpad-handler,0.05208292908300276,1.7890625
+3,c1,edge: gpu-process,0.6249951489960331,53.91015625
+3,c1,edge: renderer,0.1302073227075069,15.21484375
+3,c1,edge: utility (network.mojom.NetworkService),0.4427048972055235,8.36328125
+3,c1,edge: utility (storage.mojom.StorageService),0.0,3.23828125
+3,c1,python: Flask + controller,0.3645805035810193,48.828125
+3,c1,python: peluncur venv,0.0,0.57421875
+4,c2,edge: browser,3.8280603568224723,49.9921875
+4,c2,edge: crashpad-handler,0.026041226917159675,1.79296875
+4,c2,edge: gpu-process,3.3593182723135984,213.75390625
+4,c2,edge: renderer,2.9426586416390434,20.859375
+4,c2,edge: utility (network.mojom.NetworkService),0.5729069921775128,8.7421875
+4,c2,edge: utility (storage.mojom.StorageService),0.0,2.98828125
+4,c2,python: Flask + controller,0.8333192613491096,49.55078125
+4,c2,python: pekerja (kamera),1.8749683380354967,42.33203125
+4,c2,python: peluncur venv,0.0,0.57421875
+5,c1,edge: browser,2.6301776829961527,47.01953125
+5,c1,edge: crashpad-handler,0.0,1.80859375
+5,c1,edge: gpu-process,0.4687445375636708,53.94140625
+5,c1,edge: renderer,0.0,14.3203125
+5,c1,edge: utility (network.mojom.NetworkService),0.18228954238587197,8.40625
+5,c1,edge: utility (storage.mojom.StorageService),0.0,2.984375
+5,c1,python: Flask + controller,0.36457908477174394,48.4609375
+5,c1,python: peluncur venv,0.0,0.57421875
+6,c2,edge: browser,4.739537359820322,51.0
+6,c2,edge: crashpad-handler,0.026041414064946828,1.79296875
+6,c2,edge: gpu-process,3.7239222112873964,217.0703125
+6,c2,edge: renderer,2.6041414064946826,21.30078125
+6,c2,edge: utility (network.mojom.NetworkService),0.5729111094288303,8.7109375
+6,c2,edge: utility (storage.mojom.StorageService),0.026041414064946828,2.96875
+6,c2,python: Flask + controller,0.8593666641432454,49.5
+6,c2,python: pekerja (kamera),1.979147468935959,42.27734375
+6,c2,python: peluncur venv,0.0,0.57421875
+7,c1,edge: browser,4.401009964726857,44.015625
+7,c1,edge: crashpad-handler,0.05208295816244801,1.30859375
+7,c1,edge: gpu-process,0.4947881025432561,42.3671875
+7,c1,edge: renderer,0.026041479081224006,12.19921875
+7,c1,edge: utility (network.mojom.NetworkService),0.31249774897468807,6.73046875
+7,c1,edge: utility (storage.mojom.StorageService),0.0,2.71875
+7,c1,python: Flask + controller,0.5208295816244801,46.41015625
+7,c1,python: peluncur venv,0.0,0.26171875
+8,c2,edge: browser,4.713469220644112,51.3828125
+8,c2,edge: crashpad-handler,0.10416506564959363,1.7890625
+8,c2,edge: gpu-process,4.088478826746551,212.734375
+8,c2,edge: renderer,2.109342579404271,21.81640625
+8,c2,edge: utility (network.mojom.NetworkService),0.4947840618355698,8.54296875
+8,c2,edge: utility (storage.mojom.StorageService),0.0,2.953125
+8,c2,python: Flask + controller,0.9895681236711396,49.86328125
+8,c2,python: pekerja (kamera),2.0051775137546777,42.515625
+8,c2,python: peluncur venv,0.0,0.57421875
+9,c1,edge: browser,2.656226704892222,46.75
+9,c1,edge: crashpad-handler,0.05208287656651416,1.7734375
+9,c1,edge: gpu-process,0.33853869768234207,53.9140625
+9,c1,edge: renderer,0.0,14.3203125
+9,c1,edge: utility (network.mojom.NetworkService),0.2604143828325708,8.39453125
+9,c1,edge: utility (storage.mojom.StorageService),0.0,2.97265625
+9,c1,python: Flask + controller,0.4427044508153704,48.13671875
+9,c1,python: peluncur venv,0.0,0.57421875
+10,c2,edge: browser,3.7239170350932516,49.765625
+10,c2,edge: crashpad-handler,0.026041377867784977,1.7890625
+10,c2,edge: gpu-process,3.6457929014898967,213.5234375
+10,c2,edge: renderer,2.7343446761174226,21.28125
+10,c2,edge: utility (network.mojom.NetworkService),0.5468689352234846,8.6640625
+10,c2,edge: utility (storage.mojom.StorageService),0.026041377867784977,2.96875
+10,c2,python: Flask + controller,1.015613736843614,49.40234375
+10,c2,python: pekerja (kamera),1.6666481835382385,42.53515625
+10,c2,python: peluncur venv,0.0,0.57421875
+11,c1,edge: browser,2.734352965673016,47.56640625
+11,c1,edge: crashpad-handler,0.026041456815933485,1.7734375
+11,c1,edge: gpu-process,0.5989535067664702,53.77734375
+11,c1,edge: renderer,0.0,14.34765625
+11,c1,edge: utility (network.mojom.NetworkService),0.44270476587086927,8.34765625
+11,c1,edge: utility (storage.mojom.StorageService),0.0,2.97265625
+11,c1,python: Flask + controller,0.5989535067664702,48.82421875
+11,c1,python: peluncur venv,0.0,0.57421875
+12,c2,edge: browser,4.270794590107569,51.2578125
+12,c2,edge: crashpad-handler,0.026041430427485173,1.81640625
+12,c2,edge: gpu-process,3.0989302208707357,216.5625
+12,c2,edge: renderer,1.7708172690689918,21.78515625
+12,c2,edge: utility (network.mojom.NetworkService),0.7812429128245552,8.78125
+12,c2,edge: utility (storage.mojom.StorageService),0.0,2.96484375
+12,c2,python: Flask + controller,0.6510357606871293,49.68359375
+12,c2,python: pekerja (kamera),1.6926929777865363,42.4375
+12,c2,python: peluncur venv,0.0,0.57421875
+13,c1,edge: browser,4.322880541794557,48.8984375
+13,c1,edge: crashpad-handler,0.026041449046955163,1.80078125
+13,c1,edge: gpu-process,0.4947875318921481,54.296875
+13,c1,edge: renderer,0.052082898093910326,14.390625
+13,c1,edge: utility (network.mojom.NetworkService),0.2864559395165068,8.32421875
+13,c1,edge: utility (storage.mojom.StorageService),0.0,3.0390625
+13,c1,python: Flask + controller,0.5468704299860584,48.4453125
+13,c1,python: peluncur venv,0.0,0.58984375
+14,c2,edge: browser,4.505187789675739,51.09765625
+14,c2,edge: crashpad-handler,0.026041547917200807,1.79296875
+14,c2,edge: gpu-process,4.088523023000526,213.80859375
+14,c2,edge: renderer,2.291656216713671,21.6796875
+14,c2,edge: utility (network.mojom.NetworkService),0.546872506261217,8.79296875
+14,c2,edge: utility (storage.mojom.StorageService),0.0,2.9609375
+14,c2,python: Flask + controller,0.9895788208536306,49.85546875
+14,c2,python: pekerja (kamera),0.4166647666752129,42.5078125
+14,c2,python: peluncur venv,0.0,0.57421875
+15,c1,edge: browser,2.4999743544297055,46.45703125
+15,c1,edge: crashpad-handler,0.026041399525309435,1.77734375
+15,c1,edge: gpu-process,0.5468693900314981,53.92578125
+15,c1,edge: renderer,0.0781241985759283,14.375
+15,c1,edge: utility (network.mojom.NetworkService),0.1562483971518566,8.39453125
+15,c1,edge: utility (storage.mojom.StorageService),0.0781241985759283,2.97265625
+15,c1,python: Flask + controller,0.4687451914555698,48.73828125
+15,c1,python: peluncur venv,0.0,0.57421875
+16,c2,edge: browser,3.229141280233657,49.4921875
+16,c2,edge: crashpad-handler,0.0260414619373682,1.80078125
+16,c2,edge: gpu-process,3.385390051857866,215.5234375
+16,c2,edge: renderer,3.489555899607339,21.8203125
+16,c2,edge: utility (network.mojom.NetworkService),0.4427048529352594,8.69140625
+16,c2,edge: utility (storage.mojom.StorageService),0.0,2.97265625
+16,c2,python: Flask + controller,0.3645804671231548,49.8515625
+16,c2,python: pekerja (kamera),2.9166437369852383,42.22265625
+16,c2,python: peluncur venv,0.0,0.57421875
+17,c1,edge: browser,3.749966119056422,49.17578125
+17,c1,edge: crashpad-handler,0.026041431382336267,1.78125
+17,c1,edge: gpu-process,0.5208286276467253,53.90625
+17,c1,edge: renderer,0.026041431382336267,14.37109375
+17,c1,edge: utility (network.mojom.NetworkService),0.4427043334997165,8.4765625
+17,c1,edge: utility (storage.mojom.StorageService),0.0,2.96484375
+17,c1,python: Flask + controller,0.31249717658803516,48.91796875
+17,c1,python: peluncur venv,0.0,0.57421875
+18,c2,edge: browser,5.44266315015724,51.30078125
+18,c2,edge: crashpad-handler,0.026041450479221243,1.78515625
+18,c2,edge: gpu-process,2.6301864984013457,215.90234375
+18,c2,edge: renderer,1.8749844345039295,21.80078125
+18,c2,edge: utility (network.mojom.NetworkService),0.4166632076675399,8.6484375
+18,c2,edge: utility (storage.mojom.StorageService),0.0,2.96484375
+18,c2,python: Flask + controller,0.39062175718831865,49.53515625
+18,c2,python: pekerja (kamera),2.5260206964844607,42.59765625
+18,c2,python: peluncur venv,0.0,0.57421875
+19,c1,edge: browser,3.0207964896848036,47.23828125
+19,c1,edge: crashpad-handler,0.07812404714702077,1.77734375
+19,c1,edge: gpu-process,0.6249923771761662,54.01171875
+19,c1,edge: renderer,0.05208269809801385,14.359375
+19,c1,edge: utility (network.mojom.NetworkService),0.26041349049006923,8.5625
+19,c1,edge: utility (storage.mojom.StorageService),0.026041349049006925,3.18359375
+19,c1,python: Flask + controller,0.33853753763709005,49.44921875
+19,c1,python: peluncur venv,0.0,0.57421875
+20,c2,edge: browser,5.130143992777727,51.046875
+20,c2,edge: crashpad-handler,0.05208268012972312,1.78515625
+20,c2,edge: gpu-process,3.6457876090806183,213.7109375
+20,c2,edge: renderer,3.67182894914548,21.57421875
+20,c2,edge: utility (network.mojom.NetworkService),0.5729094814269543,8.78125
+20,c2,edge: utility (storage.mojom.StorageService),0.0,2.96875
+20,c2,python: Flask + controller,1.015612262529601,49.484375
+20,c2,python: pekerja (kamera),1.8749764846700323,42.5390625
+20,c2,python: peluncur venv,0.0,0.57421875

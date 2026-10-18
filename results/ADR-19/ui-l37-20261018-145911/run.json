@@ -1,0 +1,142 @@
+{
+ "step": "Langkah 37",
+ "reps": 10,
+ "order": "selang-seling c1, c2",
+ "conditions": {
+  "c1": "camera_preview off, FakeWorkerBus, FakePipeline",
+  "c2": "camera_preview public, preview_fps 5.0, pixel_block 16 (nilai coba desain), proses kamera asli + sumber dan detektor palsu"
+ },
+ "baseline": {
+  "path": "results/ADR-19/ui-opt2-combo-20261018-042512/summary.csv",
+  "row": "k1+k2",
+  "n_runs": 10.0,
+  "uss_idle_mb_median": 175.12890625,
+  "uss_idle_mb_min": 173.7265625,
+  "uss_idle_mb_max": 176.484375,
+  "cpu_idle_pct_median": 4.101515675275323,
+  "cpu_idle_pct_min": 3.6457864363655,
+  "cpu_idle_pct_max": 5.59890649678977,
+  "startup_s_median": 2.462690830230713,
+  "startup_s_min": 2.4197442531585693,
+  "startup_s_max": 2.4916481971740723,
+  "lat_p95_ms_median": 3.0368500112672105,
+  "lat_p95_ms_min": 2.187219995539631,
+  "lat_p95_ms_max": 7.368040006258512,
+  "n_unacked": 0.0
+ },
+ "summary": {
+  "c1": {
+   "n_runs": 10,
+   "uss_idle_mb_median": 177.849609375,
+   "uss_idle_mb_min": 156.01171875,
+   "uss_idle_mb_max": 180.75390625,
+   "cpu_idle_pct_median": 4.739542660724165,
+   "cpu_idle_pct_min": 3.645790847717439,
+   "cpu_idle_pct_max": 5.859329521837811,
+   "startup_s_median": 2.456793785095215,
+   "startup_s_min": 2.4267868995666504,
+   "startup_s_max": 2.5434629917144775,
+   "lat_p95_ms_median": 4.584900000190827,
+   "lat_p95_ms_min": 4.276429992751217,
+   "lat_p95_ms_max": 5.216899994411503,
+   "n_unacked": 0
+  },
+  "c2": {
+   "n_runs": 10,
+   "uss_idle_mb_median": 393.02734375,
+   "uss_idle_mb_min": 390.50390625,
+   "uss_idle_mb_max": 395.7578125,
+   "cpu_idle_pct_median": 13.645665419967138,
+   "cpu_idle_pct_min": 12.291555161773003,
+   "cpu_idle_pct_max": 16.406040194091307,
+   "startup_s_median": 2.5044232606887817,
+   "startup_s_min": 2.4597651958465576,
+   "startup_s_max": 2.5208606719970703,
+   "lat_p95_ms_median": 4.680699988966808,
+   "lat_p95_ms_min": 4.012009999132715,
+   "lat_p95_ms_max": 5.010179989039897,
+   "n_unacked": 0
+  }
+ },
+ "c1_vs_baseline": {
+  "uss_idle_mb": "177.850 vs baseline median 175.129 / maks 176.484: naik",
+  "cpu_idle_pct": "4.740 vs baseline median 4.102 / maks 5.599: tetap",
+  "startup_s": "2.457 vs baseline median 2.463 / maks 2.492: turun",
+  "lat_p95_ms": "4.585 vs baseline median 3.037 / maks 7.368: tetap"
+ },
+ "c2_minus_c1_median": {
+  "uss_idle_mb": 215.177734375,
+  "cpu_idle_pct": 8.906122759242972,
+  "startup_s": 0.047629475593566895,
+  "lat_p95_ms": 0.09579998877598062
+ },
+ "by_kind_median": {
+  "c1": {
+   "cpu": {
+    "edge: browser": 3.2421497633737277,
+    "edge: crashpad-handler": 0.026041452931444324,
+    "edge: gpu-process": 0.5338490088391117,
+    "edge: renderer": 0.026041455231780135,
+    "edge: utility (network.mojom.NetworkService)": 0.2994768442455974,
+    "edge: utility (storage.mojom.StorageService)": 0.0,
+    "python: Flask + controller": 0.4166625470465566,
+    "python: peluncur venv": 0.0
+   },
+   "uss": {
+    "edge: browser": 47.298828125,
+    "edge: crashpad-handler": 1.77734375,
+    "edge: gpu-process": 53.912109375,
+    "edge: renderer": 14.365234375,
+    "edge: utility (network.mojom.NetworkService)": 8.392578125,
+    "edge: utility (storage.mojom.StorageService)": 2.97265625,
+    "python: Flask + controller": 48.775390625,
+    "python: peluncur venv": 0.57421875
+   }
+  },
+  "c2": {
+   "cpu": {
+    "edge: browser": 4.609328505159926,
+    "edge: crashpad-handler": 0.026041440453353208,
+    "edge: gpu-process": 3.6457902552852577,
+    "edge: renderer": 2.6692430413060526,
+    "edge: utility (network.mojom.NetworkService)": 0.5468707207423508,
+    "edge: utility (storage.mojom.StorageService)": 0.0,
+    "python: Flask + controller": 0.8463429627461775,
+    "python: pekerja (kamera)": 1.9270619768029955,
+    "python: peluncur venv": 0.0
+   },
+   "uss": {
+    "edge: browser": 51.033203125,
+    "edge: crashpad-handler": 1.79296875,
+    "edge: gpu-process": 213.78125,
+    "edge: renderer": 21.732421875,
+    "edge: utility (network.mojom.NetworkService)": 8.7265625,
+    "edge: utility (storage.mojom.StorageService)": 2.96875,
+    "python: Flask + controller": 49.54296875,
+    "python: pekerja (kamera)": 42.47265625,
+    "python: peluncur venv": 0.57421875
+   }
+  }
+ },
+ "environment": {
+  "python": "3.13.7",
+  "torch": "2.14.1+cpu",
+  "torch_num_threads": 14,
+  "sentence_transformers": "6.1.0",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+  "cpu_count_logical": 20,
+  "power": {
+   "source": "ac",
+   "battery_percent": 100,
+   "battery_saver": false
+  },
+  "power_plan": {
+   "guid": "bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b",
+   "name": "ASUS Recommended",
+   "raw": "Power Scheme GUID: bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b  (ASUS Recommended)"
+  },
+  "git_commit": "6db51e33979182a1e4ac2b88b407aeb63065afea",
+  "git_dirty": true
+ }
+}
