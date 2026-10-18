@@ -70,8 +70,8 @@ def test_view_json_answer_with_sources():
     v = state.view_json(vm)
     assert v["status"] == "SPEAKING" and v["status_label"] == "Berbicara" and not v["home"]
     assert v["messages"] == [
-        {"role": "visitor", "who": "Kamu", "text": "Biaya?", "sources": []},
-        {"role": "mica", "who": "MICA", "text": "Rp14.000.000.",
+        {"role": "visitor", "kind": "visitor", "who": "Kamu", "text": "Biaya?", "sources": []},
+        {"role": "mica", "kind": "answer", "who": "MICA", "text": "Rp14.000.000.",
          "sources": ["Biaya Kuliah dan Syarat Masuk (berlaku 29 September 2026)"]},
     ]  # fmt: skip
     assert v["last_transcript"] == "Biaya?" and v["send_enabled"]
@@ -201,14 +201,131 @@ def test_resend_edited_transcript_same_event(qtbot):
 # --- statis: tanpa aset internet ----------------------------------------------------------
 
 
+PAGE_FILES = {"index.html", "tokens.css", "style.css", "app.js"}
+
+
 def test_static_files_have_no_external_urls():
-    files = sorted(STATIC_DIR.iterdir())
-    assert {f.name for f in files} == {"index.html", "style.css", "app.js"}
+    files = sorted(f for f in STATIC_DIR.iterdir() if f.is_file())
+    assert {f.name for f in files} == PAGE_FILES
     for f in files:
         text = f.read_text(encoding="utf-8")
         assert not re.search(r"https?://", text, re.IGNORECASE), f.name
         assert "www." not in text and "@import" not in text and "//cdn" not in text, f.name
         assert not re.search(r"(src|href)=[\"'](?!/static/)", text), f.name
+        for url in re.findall(r"url\(\s*[\"']?([^\"')]+)", text):
+            assert url.startswith("/static/fonts/"), (f.name, url)
+
+
+def test_font_is_local_with_license():
+    fonts = {f.name for f in (STATIC_DIR / "fonts").iterdir()}
+    assert fonts == {"PlusJakartaSans-wght.woff2", "OFL.txt"}
+    assert (STATIC_DIR / "fonts" / "PlusJakartaSans-wght.woff2").read_bytes()[:4] == b"wOF2"
+    assert "SIL Open Font License" in (STATIC_DIR / "fonts" / "OFL.txt").read_text("utf-8")
+    tokens = (STATIC_DIR / "tokens.css").read_text("utf-8")
+    assert '"Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif' in tokens  # cadangan sistem
+
+
+def _css_rules(text):
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
+    return re.findall(r"([^{}]+)\{([^{}]*)\}", text)
+
+
+def test_animation_only_in_active_status_and_reduced_motion():
+    css = (STATIC_DIR / "style.css").read_text("utf-8")
+    for selector, body in _css_rules(css):
+        if re.search(r"(^|;)\s*animation\s*:", body) and "none" not in body:
+            parts = [p.strip() for p in selector.split(",")]
+            assert all(re.search(r'data-status="(listening|thinking|speaking)"', p)
+                       for p in parts), selector  # fmt: skip
+        assert "transition:" not in body or "none" in body, selector
+    assert "prefers-reduced-motion: reduce" in css
+    js = (STATIC_DIR / "app.js").read_text("utf-8")
+    assert "setInterval" not in js and "setTimeout" not in js  # tanpa timer saat diam
+
+
+def test_touch_targets_at_least_44px():
+    tokens = (STATIC_DIR / "tokens.css").read_text("utf-8")
+    assert "--touch-min: 44px;" in tokens
+    sizes = [int(v) for v in re.findall(r"--mic-size:\s*(\d+)px", tokens)]
+    assert sizes and min(sizes) >= 44
+    css = (STATIC_DIR / "style.css").read_text("utf-8")
+    for cls in (".chip", ".btn", "#debug_dock summary", ".pill"):
+        rule = next(b for sel, b in _css_rules(css) if sel.strip().startswith(cls))
+        assert "min-height: var(--touch-min)" in rule or "min-height: 64px" in rule, cls
+
+
+def test_colors_only_in_tokens():
+    css = (STATIC_DIR / "style.css").read_text("utf-8")
+    assert not re.search(r"#[0-9a-fA-F]{3,8}\b", re.sub(r"/\*.*?\*/", "", css, flags=re.DOTALL))
+
+
+def test_logo_route_serves_local_file_or_404(tmp_path):
+    logo = tmp_path / "logo.png"
+    logo.write_bytes(b"\x89PNG\r\n")
+    for ui, expected in ((_ui(logo_path=str(logo)), 200), (_ui(), 404)):
+        webui = WebUi(ui, dev=False)
+        server = start_server(webui)
+        try:
+            r = httpx.get(f"http://{HOST}:{webui.port}/logo")
+            assert r.status_code == expected
+            if expected == 200:
+                assert r.content == logo.read_bytes()
+        finally:
+            stop_server(server)
+    assert state.config_json(_ui(logo_path=str(logo)), dev=False)["logo"] == "/logo"
+    assert state.config_json(_ui(), dev=False)["logo"] is None
+
+
+@pytest.mark.parametrize(
+    "value", ["https://mikroskil.ac.id/logo.png", "//cdn/logo.png", "logo.gif"]
+)
+def test_logo_path_must_be_local_image(tmp_path, value):
+    import yaml
+
+    from mica.config import ConfigError
+
+    raw = yaml.safe_load(DEV_YAML.read_text(encoding="utf-8"))
+    raw["ui"]["logo_path"] = value
+    path = tmp_path / "c.yaml"
+    path.write_text(yaml.safe_dump(raw, allow_unicode=True), encoding="utf-8")
+    with pytest.raises(ConfigError, match="ui.logo_path"):
+        load_settings(path)
+
+
+def test_view_json_pill_notice_target_and_refusal_kind():
+    from mica.core.controller import DisplayUpdate
+
+    vm = ViewModel()
+    v = state.view_json(vm)
+    assert (v["pill"], v["pill_label"]) == ("ready", "Siap") and not v["target_present"]
+    assert v["greeting"].startswith("Halo, selamat datang")
+    assert v["notice"].startswith("Kamera aktif · gambar tidak disimpan")
+    vm.apply_display(DisplayUpdate(target_present=True, target_color="biru"))
+    vm.apply_display(DisplayUpdate(greeting="Halo, kamu yang berbaju biru"))
+    for item in (
+        ShowView(V.THINKING, transcript="x", send_enabled=False),
+        ShowView(V.SPEAKING, transcript="x", answer="Maaf, belum ada infonya."),
+    ):
+        vm.apply(item)
+    v = state.view_json(vm)
+    assert v["pill"] == "speaking" and v["target_color"] == "biru"
+    assert v["target_swatch"] == state.COLOR_SWATCH["biru"]
+    assert v["greeting"] == "Halo, kamu yang berbaju biru"
+    assert v["messages"][-1]["kind"] == "notice"  # penolakan: tanpa sumber
+    vm.apply(ShowView(V.READY, camera_ok=False))
+    assert state.view_json(vm)["notice"].startswith("Kamera tidak aktif")
+    vm.apply_display(DisplayUpdate(target_present=False))
+    vm.apply(ClearScreen())
+    v = state.view_json(vm)
+    assert not v["target_present"] and v["target_color"] is None
+    assert v["greeting"].startswith("Halo, selamat datang")
+
+
+def test_pills_cover_all_states():
+    from mica.core import texts
+
+    assert set(texts.PILLS) == {s.value for s in V}
+    assert {p for p, _ in texts.PILLS.values()} == {"ready", "listening", "thinking", "speaking"}
 
 
 # --- server ---------------------------------------------------------------------------------
@@ -517,3 +634,14 @@ def test_ack_reports_rendered_view_to_controller_for_k3():
     webui.handle_message({"type": "ack", "seq": webui.seq})
     webui.handle_message({"type": "ack", "seq": webui.seq})  # ack ganda: sekali saja
     assert webui.controller.rendered == [("THINKING", True, 42.0)]
+
+
+def test_token_contrast_at_least_aa():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("ui_contrast", ROOT / "scripts/ui_contrast.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    rows = mod.rows()
+    assert len(rows) == len(mod.PAIRS) and all(r >= 4.5 for *_, r in rows)
+    assert mod.ratio("#ffffff", "#000000") == pytest.approx(21.0)

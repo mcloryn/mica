@@ -20,6 +20,9 @@ M-10 Struktur).
   berlaku bernilai null (input ketik: vad, stt, first_response).
 - greeted dicatat saat audio sapaan mulai (SpeechDone sapaan) dengan latency_s = PersonArrived.t
   (target memenuhi dwell_s) sampai first_audio_t; null bila tidak ada audio atau sesi direset.
+- display (opsional, UI web): info tampilan saja tanpa mengubah M-09: teks sapaan yang diucapkan
+  (Speak saat IDLE -> GREETING) dan target vision (PersonArrived warna -> terkunci; PersonLeft ->
+  tanpa orang). Tidak ada frame; PySide6 tidak memakainya.
 - Tidak mengimpor Qt; waktu dari clock (monotonic) dan wall_clock (ts log) yang bisa disuntik.
 """
 
@@ -59,7 +62,7 @@ from mica.core.session import (
 from mica.core.types import ErrorCode, FinalAnswer
 from mica.rag.pii import scrub_pii
 from mica.rag.prompts import UNAVAILABLE
-from mica.vision.types import CameraStatus, PersonArrived
+from mica.vision.types import CameraStatus, PersonArrived, PersonLeft
 
 log = logging.getLogger(__name__)
 
@@ -127,6 +130,15 @@ class DebugInfo:
     timings: dict[str, float] | None = None
 
 
+@dataclass(frozen=True)
+class DisplayUpdate:
+    """Info tampilan tambahan untuk ViewModel (bukan bagian ShowView M-09)."""
+
+    greeting: str | None = None  # teks sapaan yang baru diucapkan
+    target_present: bool | None = None  # None = tidak berubah
+    target_color: str | None = None  # warna PersonArrived (None = tanpa warna)
+
+
 class KioskController:
     def __init__(
         self,
@@ -138,6 +150,7 @@ class KioskController:
         interaction_log: EventLog | None = None,
         wall_clock: Callable[[], datetime] = _now_local,
         debug: Callable[[DebugInfo], None] | None = None,
+        display: Callable[[DisplayUpdate], None] | None = None,
     ) -> None:
         """debug (dev saja): menerima DebugInfo; bila pipeline punya run(), baris log M-06
         (gerbang, skor, penyedia) dipakai untuk panel debug."""
@@ -149,6 +162,7 @@ class KioskController:
         self.interaction_log = interaction_log
         self.wall_clock = wall_clock
         self.debug = debug
+        self.display = display
         self.debug_info = DebugInfo(session.state)
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="mica-pipeline")
         self.answers: queue.Queue[tuple[AnswerReady, Any]] = queue.Queue()
@@ -210,9 +224,22 @@ class KioskController:
             self._execute(action)
         self._track_timing(event, before_state, before_id, now)
         self._log_visit(event, actions, before_state, before_id, before_view)
+        if self.display is not None:
+            self._update_display(event, actions, before_state)
         if self.debug is not None:
             fps = event.fps if isinstance(event, CameraStatus) else self.debug_info.camera_fps
             self._update_debug(state=self.session.state, camera_fps=fps)
+
+    def _update_display(self, event: Event, actions: list[Any], before_state: VisitState) -> None:
+        assert self.display is not None
+        if isinstance(event, PersonArrived):
+            self.display(DisplayUpdate(target_present=True, target_color=event.color))
+        elif isinstance(event, PersonLeft):
+            self.display(DisplayUpdate(target_present=False))
+        if before_state == VisitState.IDLE and self.session.state == VisitState.GREETING:
+            speak = next((a for a in actions if isinstance(a, Speak)), None)
+            if speak is not None:
+                self.display(DisplayUpdate(greeting=speak.text))
 
     def _update_debug(self, final: FinalAnswer | None = None, record: Any = None,
                       **changes: Any) -> None:  # fmt: skip

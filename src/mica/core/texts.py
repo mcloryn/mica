@@ -35,6 +35,26 @@ SEND, TALK, STOP, RESEND = "Kirim", "Bicara", "Berhenti", "Kirim ulang"
 TRANSCRIPT_LABEL = "Transkripsi (bisa diedit):"
 SOURCES_LABEL = "Sumber:"
 VISITOR, MICA = "Kamu", "MICA"
+# UI web (Langkah 37): pil status, pemberitahuan ringkas, dan teks kolom kamera
+PILLS = {  # status M-09 -> (kunci tampilan, label pil)
+    "IDLE": ("ready", "Siap"),
+    "READY": ("ready", "Siap"),
+    "GREETING": ("speaking", "Berbicara"),
+    "LISTENING": ("listening", "Mendengarkan"),
+    "THINKING": ("thinking", "Berpikir"),
+    "SPEAKING": ("speaking", "Berbicara"),
+}
+APP_TITLE = "MICA · Asisten PMB Universitas Mikroskil"
+NOTICE_SHORT = "Kamera aktif · gambar tidak disimpan · jawaban dibuat AI dari dokumen resmi PMB"
+NOTICE_SHORT_NO_CAMERA = (
+    "Kamera tidak aktif · gambar tidak disimpan · jawaban dibuat AI dari dokumen resmi PMB"
+)
+APPROACH = "Mendekatlah ke layar untuk mulai"
+CAMERA_UNAVAILABLE = (
+    "Kamera sedang tidak aktif, kamu tetap bisa bertanya dengan mengetik atau bicara"
+)
+TARGET_LABEL, TARGET_LOCKED = "Target", "terkunci"
+TOPICS_HINT = "Pilih topik, lalu lengkapi pertanyaanmu"
 MONTHS = ("Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus",
           "September", "Oktober", "November", "Desember")  # fmt: skip
 

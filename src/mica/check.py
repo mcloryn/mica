@@ -137,7 +137,8 @@ def _check_browser(edge_paths: tuple[Path, ...]) -> CheckRow:
 
 
 def _check_test_leak(settings: Settings, test_set: Path) -> CheckRow | None:
-    """Pertanyaan set uji resmi tidak boleh muncul di ui.suggestions (setelah normalisasi)."""
+    """Pertanyaan set uji resmi tidak boleh muncul di ui.suggestions maupun teks kartu topik UI
+    web (ui.topics; kartu mengisi kotak pertanyaan dengan nama topik), setelah normalisasi."""
     if not test_set.is_file():
         return None
     from mica.eval.dataset import DatasetError, load_questions
@@ -149,12 +150,12 @@ def _check_test_leak(settings: Settings, test_set: Path) -> CheckRow | None:
     except DatasetError as exc:
         return CheckRow(item, "GAGAL", f"{test_set.as_posix()} tidak terbaca ({exc})")
     test = {normalize_question(q["question"]): q["qid"] for q in questions}
-    leaked = sorted({test[n] for hints in settings.ui.suggestions.values() for hint in hints
-                     if (n := normalize_question(hint)) in test})  # fmt: skip
+    hints = [h for hs in settings.ui.suggestions.values() for h in hs] + list(settings.ui.topics)
+    leaked = sorted({test[n] for hint in hints if (n := normalize_question(hint)) in test})
     if leaked:
-        return CheckRow(item, "GAGAL", f"{len(leaked)} pertanyaan uji ada di ui.suggestions: "
+        return CheckRow(item, "GAGAL", f"{len(leaked)} pertanyaan uji ada di ui.suggestions/ui.topics: "
                         + ", ".join(leaked) + " (hapus dari config)")  # fmt: skip
-    return CheckRow(item, "OK", f"{len(test)} pertanyaan uji tidak ada di ui.suggestions")
+    return CheckRow(item, "OK", f"{len(test)} pertanyaan uji tidak ada di ui.suggestions/ui.topics")
 
 
 def run_check(

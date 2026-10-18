@@ -376,3 +376,15 @@ def test_check_no_leak_ok_and_no_row_without_test_set(tmp_path, locked, monkeypa
     leak = {r.item: r for r in run(test_set)}["kebocoran set uji"]
     assert leak.status == "OK" and "1 pertanyaan uji" in leak.message
     assert "kebocoran set uji" not in {r.item for r in run(tmp_path / "tidak-ada.jsonl")}
+
+
+def test_check_catches_test_question_in_topic_cards(tmp_path, locked, monkeypatch):
+    # kartu topik UI web mengisi kotak pertanyaan dengan nama topik: ikut dicek
+    config = _with_suggestions(tmp_path, {})
+    _models(tmp_path, locked, load_settings(config))
+    test_set = _test_set(tmp_path / "test.jsonl", ["Beasiswa?", "Ada asrama?"])
+    monkeypatch.setenv("GROQ_API_KEY", FAKE_KEY)
+    rows, _ = check.run_check(config, None, tmp_path, ROOT / "data" / "kb", lambda: DEVICES,
+                              (tmp_path / "msedge.exe",), test_set=test_set)  # fmt: skip
+    leak = {r.item: r for r in rows}["kebocoran set uji"]
+    assert leak.status == "GAGAL" and "o-test-001" in leak.message and "ui.topics" in leak.message

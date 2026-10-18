@@ -275,3 +275,23 @@ def test_controller_imports_no_heavy_modules():
     out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True,
                          check=True, cwd=ROOT)  # fmt: skip
     assert out.stdout.strip() == "[]"
+
+
+def test_display_hook_reports_greeting_and_target_without_changing_session(tmp_path):
+    from mica.core.controller import DisplayUpdate
+    from mica.vision.types import PersonLeft
+
+    plain, hooked = Rig(tmp_path / "a"), Rig(tmp_path / "b")
+    updates: list = []
+    hooked.ctrl.display = updates.append
+    for r in (plain, hooked):
+        r.greet()
+        r.step(PersonLeft(1, 1.0, 1.0))
+    assert updates == [
+        DisplayUpdate(target_present=True, target_color="merah"),
+        DisplayUpdate(greeting=GREETING_COLOR.format(warna="merah")),
+        DisplayUpdate(target_present=False),
+    ]
+    # M-09 tidak berubah: aksi dan state sama dengan controller tanpa hook
+    assert [type(m) for _, m in plain.bus.sent] == [type(m) for _, m in hooked.bus.sent]
+    assert plain.views == hooked.views and plain.session.state == hooked.session.state

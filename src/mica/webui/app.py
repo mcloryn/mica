@@ -71,7 +71,8 @@ def build_controller(
             stop()
         raise
     controller = KioskController(bus, Session.from_settings(settings), pipeline, webui.show_item,
-                                 clock, log, debug=webui.show_debug if dev else None)  # fmt: skip
+                                 clock, log, debug=webui.show_debug if dev else None,
+                                 display=webui.show_display)  # fmt: skip
     webui.controller = controller
     return controller
 

@@ -80,7 +80,8 @@ ui:
   backend: web                      # ADR-19: web | pyside6; web dipilih pemilik proyek 17 Okt 2026, pyside6 cadangan beku (docs/UI-WEB.md)
   fullscreen: true
   font_scale: 1.0
-  topics: [Program studi, Jalur masuk, Biaya, Beasiswa, Fasilitas, Prospek karier]   # F-14, dari topik dataset PRD
+  topics: [Program Studi, Biaya, Beasiswa, Pendaftaran, Fasilitas, Lokasi]   # F-14; kartu UI web (Langkah 37), kartu hanya mengisi kotak pertanyaan
+  logo_path: null                   # file logo lokal; null = placeholder teks "MICA" sampai logo resmi tersedia
   suggestions: {}                   # F-14; topik -> daftar saran pertanyaan, diisi pengembang
 logging:
   dir: logs/

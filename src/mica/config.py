@@ -228,6 +228,9 @@ class SessionConfig(_Model):
     regreet_cooldown_s: NonNegativeFloat | None = None
 
 
+LOGO_SUFFIXES = {".png", ".svg", ".jpg", ".jpeg", ".webp"}
+
+
 class UiConfig(_Model):
     # ADR-19: web = Flask + Edge kiosk, UI utama (keputusan pemilik proyek 17 Okt 2026);
     # pyside6 = cadangan beku, keputusan hapus setelah E-09 (docs/UI-WEB.md).
@@ -240,6 +243,19 @@ class UiConfig(_Model):
     suggestions: dict[str, Annotated[tuple[str, ...], Field(strict=False)]] = Field(
         default_factory=dict
     )
+    # logo header UI web: file lokal (png/svg/jpg/webp); null = placeholder teks "MICA"
+    logo_path: str | None = None
+
+    @field_validator("logo_path")
+    @classmethod
+    def _local_logo(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        if "://" in value or value.startswith("//"):
+            raise ValueError("ui.logo_path harus file lokal, bukan URL")
+        if Path(value).suffix.lower() not in LOGO_SUFFIXES:
+            raise ValueError(f"ui.logo_path harus salah satu {sorted(LOGO_SUFFIXES)}")
+        return value
 
     @model_validator(mode="after")
     def _suggestions_match_topics(self) -> UiConfig:
@@ -342,7 +358,8 @@ def _format_validation_error(err: ValidationError) -> str:
 
 def _optional_in_kiosk(settings: Settings) -> set[str]:
     # Field null yang hanya wajib bila komponennya dipakai.
-    optional: set[str] = {"audio.tts.length_scale"}  # null = bawaan .onnx.json suara
+    # null = bawaan .onnx.json suara; null = placeholder teks logo "MICA"
+    optional: set[str] = {"audio.tts.length_scale", "ui.logo_path"}
     if settings.rag.retriever != "hybrid":
         optional |= {"rag.rrf_k", "rag.candidates_per_retriever"}
     if settings.rag.retriever == "bm25":

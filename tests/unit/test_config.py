@@ -39,6 +39,8 @@ def _dummy(key: str):
         return "0" * 40
     if key == "presence_signal":
         return "shoulder_width"
+    if key == "logo_path":
+        return "assets/logo.png"
     return 1
 
 

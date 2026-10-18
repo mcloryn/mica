@@ -173,3 +173,52 @@ jendela Edge tidak di depan.
 - Bila kedua kandidat lolos, gabungan keduanya diuji dengan aturan yang sama (10 ulangan,
   selang-seling dengan baseline).
 - Hasil putaran 1 dan 2 dilaporkan terpisah di Bab 3.
+
+## Sistem desain UI kiosk (Langkah 37, 18 Okt 2026)
+
+Keputusan desain pemilik proyek, bukan hasil eksperimen. Tata letak: header (logo atau placeholder
+"MICA", judul, pil status, indikator kamera/mikrofon, pemberitahuan ringkas permanen), kolom kiri
++-35% (kartu kamera dengan cincin warna status, info target, ajakan atau pesan kamera mati),
+kolom kanan (sapaan dan 6 kartu topik, lalu percakapan, chip topik, dan bilah bawah: mikrofon,
+kotak ketik, Kirim). Layar < 1100 px (nilai desain): kolom kiri menjadi strip kecil di atas.
+
+- Token: `src/mica/webui/static/tokens.css`, satu-satunya tempat warna, jarak, radius, bayangan,
+  dan ukuran huruf. Palet netral sementara dengan satu aksen (`--accent` #1e4fd8), mudah
+  diganti warna resmi Mikroskil.
+- Kontras (rumus WCAG 2.1, `python scripts/ui_contrast.py`; SC 1.4.3 AA 4,5:1, dicek di
+  https://www.w3.org/TR/WCAG21/ versi REC-WCAG21-20250506 pada 18 Okt 2026):
+
+| teks | latar | kegunaan | rasio |
+| --- | --- | --- | --- |
+| `--text` #1a1d23 | `--surface` #ffffff | teks utama di kartu | 16,88:1 |
+| `--text` | `--bg` #f4f5f7 | teks utama di latar | 15,48:1 |
+| `--text-muted` #4a5260 | `--surface` | teks sekunder | 7,87:1 |
+| `--text-muted` | `--bg` | teks sekunder di latar | 7,22:1 |
+| `--text-muted` | `--surface-sunken` #eceef2 | teks di bidang input/kamera | 6,78:1 |
+| `--text` | `--surface-sunken` | chip, input | 14,53:1 |
+| `--text` | `--accent-soft` #e6edfd | gelembung pengunjung | 14,39:1 |
+| `--text` | `--notice-bg` #fff7e8 | kartu penolakan | 15,85:1 |
+| putih | `--accent` #1e4fd8 | tombol utama, pil Berbicara | 6,63:1 |
+| putih | `--accent-strong` #173fae | tombol ditekan | 8,90:1 |
+| putih | `--status-ready` #4a5260 | pil Siap | 7,87:1 |
+| putih | `--status-listening` #0f7a4d | pil Mendengarkan | 5,37:1 |
+| putih | `--status-thinking` #9a4a00 | pil Berpikir | 6,26:1 |
+
+- Font: Plus Jakarta Sans (SIL Open Font License 1.1), dari repositori resmi
+  https://github.com/tokotype/PlusJakartaSans, commit 18d1cd2f7ea10481919d2f05c1f7064b7307fc26
+  (2024-01-18), file `fonts/webfonts/PlusJakartaSans[wght].woff2` disimpan sebagai
+  `static/fonts/PlusJakartaSans-wght.woff2` (sha256 49c62cf1...c8539d2) beserta `OFL.txt`
+  (sha256 995c7199...ab08a99); diunduh dan dicek 18 Okt 2026. Cadangan: Segoe UI, system-ui.
+  Ukuran dasar 125% x `ui.font_scale` (20 px pada skala 1) untuk dibaca dari +-1 m.
+- Target sentuh minimal 44 x 44 px CSS (`--touch-min`), mengikuti WCAG 2.1 SC 2.5.5 Target Size
+  (Level AAA): "The size of the target for pointer inputs is at least 44 by 44 CSS pixels"
+  (https://www.w3.org/TR/WCAG21/#target-size, dicek 18 Okt 2026). Tombol utama 64 px, mikrofon
+  88 px.
+- Logo: `ui.logo_path` (file lokal png/svg/jpg/webp, bukan URL; null = placeholder teks "MICA"),
+  dilayani di `/logo`.
+- Kartu dan chip topik (`ui.topics`: Program Studi, Biaya, Beasiswa, Pendaftaran, Fasilitas,
+  Lokasi) hanya mengisi kotak pertanyaan dengan nama topik; tidak mengirim pertanyaan. `mica check`
+  ikut memeriksa `ui.topics` terhadap set uji resmi.
+- Gerak: animasi CSS hanya saat status Mendengarkan, Berpikir, dan Berbicara; tidak ada animasi
+  atau timer JS saat Siap; `prefers-reduced-motion` mematikan semua animasi.
+- Penolakan (jawaban MICA tanpa sumber) tampil sebagai kartu krem yang sopan, bukan galat.

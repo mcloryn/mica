@@ -31,7 +31,7 @@ from flask_sock import ConnectionClosed, Sock
 from werkzeug.serving import BaseWSGIServer, WSGIRequestHandler, make_server
 
 from mica.config import UiConfig
-from mica.core.controller import DebugInfo
+from mica.core.controller import DebugInfo, DisplayUpdate
 from mica.core.session import ClearScreen, Event, ShowView
 from mica.ui.viewmodel import ViewModel
 from mica.webui.state import config_json, event_from_message, format_debug, view_json
@@ -74,6 +74,12 @@ class WebUi:
             self.vm.apply(item)
             self.dirty = True
 
+    def show_display(self, update: DisplayUpdate) -> None:
+        """Info tampilan tambahan (sapaan, target vision) dari controller; tanpa frame."""
+        with self.lock:
+            self.vm.apply_display(update)
+            self.dirty = True
+
     def show_debug(self, info: DebugInfo) -> None:
         if self.dev:
             with self.lock:
@@ -109,6 +115,16 @@ class WebUi:
         @app.get("/static/<path:name>")
         def _static(name: str) -> Response:
             return send_from_directory(STATIC_DIR, name)
+
+        @app.get("/logo")
+        def _logo() -> Response:
+            # ui.logo_path: file lokal yang divalidasi config (bukan URL); null -> 404
+            if not self.ui.logo_path:
+                abort(404)
+            path = Path(self.ui.logo_path).resolve()
+            if not path.is_file():
+                abort(404)
+            return send_from_directory(path.parent, path.name)
 
         @sock.route("/ws")
         def _ws(ws: Any) -> None:

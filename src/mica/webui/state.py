@@ -25,8 +25,32 @@ def status_label(vm: ViewModel) -> str:
     return status
 
 
+# titik warna target (dekoratif; nama warna selalu ditulis sebagai teks). Kunci = COLOR_NAMES.
+COLOR_SWATCH = {
+    "hitam": "#111827", "biru": "#2563eb", "cokelat": "#92400e", "abu-abu": "#9ca3af",
+    "hijau": "#16a34a", "oranye": "#ea580c", "merah muda": "#ec4899", "ungu": "#7c3aed",
+    "merah": "#dc2626", "putih": "#ffffff", "kuning": "#facc15",
+}  # fmt: skip
+
+
+def message_kind(m: Any) -> str:
+    """visitor | answer (jawaban bersumber) | notice (penolakan/tidak tersedia: tanpa sumber)."""
+    if m.role == "visitor":
+        return "visitor"
+    return "answer" if m.sources else "notice"
+
+
 def view_json(vm: ViewModel) -> dict[str, Any]:
+    pill, pill_label = texts.PILLS[vm.status.value]
     return {
+        "pill": pill,
+        "pill_label": pill_label,
+        "greeting": vm.home_greeting,
+        "target_present": vm.target_present,
+        "target_color": vm.target_color,
+        "target_swatch": COLOR_SWATCH.get(vm.target_color or ""),
+        "preview": vm.preview,
+        "notice": texts.NOTICE_SHORT if vm.camera_ok else texts.NOTICE_SHORT_NO_CAMERA,
         "status": vm.status.value,
         "status_label": status_label(vm),
         "camera_label": texts.CAMERA_ON if vm.camera_ok else texts.CAMERA_OFF,
@@ -40,6 +64,7 @@ def view_json(vm: ViewModel) -> dict[str, Any]:
         "messages": [
             {
                 "role": m.role,
+                "kind": message_kind(m),
                 "who": texts.VISITOR if m.role == "visitor" else texts.MICA,
                 "text": m.text,
                 "sources": [source_line(s) for s in m.sources],
@@ -59,6 +84,7 @@ def config_json(ui: UiConfig, dev: bool) -> dict[str, Any]:
     return {
         "dev": dev,
         "font_scale": ui.font_scale,
+        "logo": "/logo" if ui.logo_path else None,
         "topics": [
             {
                 "topic": t,
@@ -77,6 +103,16 @@ def config_json(ui: UiConfig, dev: bool) -> dict[str, Any]:
             "transcript_label": texts.TRANSCRIPT_LABEL,
             "sources_label": texts.SOURCES_LABEL,
             "notice": f"{texts.NOTICE_CAMERA}  {texts.NOTICE_AI}",
+            "app_title": texts.APP_TITLE,
+            "approach": texts.APPROACH,
+            "camera_unavailable": texts.CAMERA_UNAVAILABLE,
+            "target_label": texts.TARGET_LABEL,
+            "target_locked": texts.TARGET_LOCKED,
+            "topics_hint": texts.TOPICS_HINT,
+            "camera_on": texts.CAMERA_ON,
+            "camera_off": texts.CAMERA_OFF,
+            "mic_on": texts.MIC_ON,
+            "mic_off": texts.MIC_OFF,
         },
     }
 

@@ -1,6 +1,7 @@
 """M-10 ViewModel: state tampilan murni (tanpa Qt) yang dibangun dari ShowView dan ClearScreen.
 
-ShowView dari M-09 adalah potret satu giliran (transkripsi + jawaban). ViewModel mengubahnya
+Field tampilan tambahan (greeting, target_*, preview) diisi dari DisplayUpdate controller dan
+config UI web; M-09 tidak berubah. ShowView dari M-09 adalah potret satu giliran (transkripsi + jawaban). ViewModel mengubahnya
 menjadi daftar pesan percakapan: pertanyaan masuk saat status THINKING dengan transkripsi,
 jawaban masuk saat ShowView membawa jawaban untuk giliran yang sedang terbuka. ClearScreen
 mengosongkan percakapan sehingga layar kembali ke layar awal (F-15).
@@ -13,6 +14,7 @@ from datetime import date
 from typing import Literal
 
 from mica.core import texts
+from mica.core.controller import DisplayUpdate
 from mica.core.session import ClearScreen, ShowView, VisitState
 from mica.core.types import Chunk
 
@@ -40,11 +42,27 @@ class ViewModel:
     camera_ok: bool = True
     mic_ok: bool = True
     turn_open: bool = False  # pertanyaan sudah tampil, jawaban belum
+    greeting: str | None = None  # sapaan yang diucapkan pada sesi ini
+    target_present: bool = False  # vision: target terkunci (PersonArrived, belum PersonLeft)
+    target_color: str | None = None
+    preview: str = "off"  # ui.camera_preview: off | public | debug
 
     @property
     def home(self) -> bool:
         """Layar awal (tombol topik) selama belum ada percakapan."""
         return not self.messages
+
+    @property
+    def home_greeting(self) -> str:
+        """Sapaan besar layar awal: sapaan sesi ini, atau sapaan umum."""
+        return self.greeting or texts.GREETING
+
+    def apply_display(self, update: DisplayUpdate) -> None:
+        if update.greeting is not None:
+            self.greeting = update.greeting
+        if update.target_present is not None:
+            self.target_present = update.target_present
+            self.target_color = update.target_color if update.target_present else None
 
     def apply(self, item: ShowView | ClearScreen) -> None:
         if isinstance(item, ClearScreen):
@@ -52,6 +70,7 @@ class ViewModel:
             self.last_transcript = None
             self.status_message = None
             self.turn_open = False
+            self.greeting = None
             return
         if item.status == VisitState.THINKING and item.transcript and not self.turn_open:
             self.messages.append(Message("visitor", item.transcript))
