@@ -1,0 +1,41 @@
+﻿kind,label,proc,stage,median,min,max,n
+tonggak,check selesai,main,check_done,,,,0
+tonggak,server Flask jalan,main,server_started,0.6671679999999469,0.6671679999999469,0.6671679999999469,1
+tonggak,Edge diluncurkan,main,edge_launched,0.7209871000004568,0.7209871000004568,0.7209871000004568,1
+tonggak,UI tampil (render pertama),main,ui_first_render,2.5117535999997926,2.5117535999997926,2.5117535999997926,1
+tonggak,pipeline siap (jawab ketikan),main,pipeline_ready,16.0258958000004,16.0258958000004,16.0258958000004,1
+tonggak,kamera siap (CameraStatus ok),main,camera_ready,1.0905679000006785,1.0905679000006785,1.0905679000006785,1
+tonggak,suara siap (AudioStatus ready),main,audio_ready,0.6731188000003385,0.6731188000003385,0.6731188000003385,1
+tonggak,semua siap,main,all_ready,16.028713400000015,16.028713400000015,16.028713400000015,1
+rentang,utama: rakit pipeline,main,pipeline_build_start->pipeline_ready,15.290467599999829,15.290467599999829,15.290467599999829,1
+rentang,utama: muat KB,main,kb_load_start->kb_load_done,0.02844939999977214,0.02844939999977214,0.02844939999977214,1
+rentang,utama: import torch,main,import_torch_start->import_torch_done,1.5136345000000802,1.5136345000000802,1.5136345000000802,1
+rentang,utama: import sentence_transformers,main,import_sentence_transformers_start->import_sentence_transformers_done,6.120463100000052,6.120463100000052,6.120463100000052,1
+rentang,utama: muat BGE-M3,main,embedder_load_start->embedder_load_done,7.333082799999829,7.333082799999829,7.333082799999829,1
+rentang,utama: spawn kamera,main,spawn_vision_start->spawn_vision_done,0.02904450000005454,0.02904450000005454,0.02904450000005454,1
+rentang,utama: spawn suara,main,spawn_audio_start->spawn_audio_done,,,,0
+rentang,kamera: import cv2,vision,import_cv2_start->import_cv2_done,0.023789400000168825,0.023789400000168825,0.023789400000168825,1
+rentang,kamera: import torch,vision,import_torch_start->import_torch_done,,,,0
+rentang,kamera: import ultralytics,vision,import_ultralytics_start->import_ultralytics_done,,,,0
+rentang,kamera: muat YOLO,vision,model_load_start->model_load_done,0.013099800000418327,0.013099800000418327,0.013099800000418327,1
+rentang,kamera: inferensi pemanasan,vision,model_load_done->warmup_inference_done,0.001354699999865261,0.001354699999865261,0.001354699999865261,1
+rentang,kamera: buka VideoCapture,vision,camera_open_start->camera_open_done,0.0015985000000000582,0.0015985000000000582,0.0015985000000000582,1
+rentang,kamera: frame pertama,vision,camera_open_done->camera_first_frame,0.0025425000003451714,0.0025425000003451714,0.0025425000003451714,1
+rentang,kamera: deteksi pertama,vision,camera_first_frame->first_detection,0.001122399999985646,0.001122399999985646,0.001122399999985646,1
+rentang,suara: import faster_whisper,audio,import_faster_whisper_start->import_faster_whisper_done,,,,0
+rentang,suara: import piper,audio,import_piper_start->import_piper_done,,,,0
+rentang,suara: import pysilero_vad,audio,import_pysilero_vad_start->import_pysilero_vad_done,,,,0
+rentang,suara: import sounddevice,audio,import_sounddevice_start->import_sounddevice_done,,,,0
+rentang,suara: muat Whisper,audio,stt_load_start->stt_load_done,,,,0
+rentang,suara: muat Piper,audio,stt_load_done->tts_load_done,,,,0
+rentang,suara: muat Silero VAD,audio,tts_load_done->vad_load_done,,,,0
+rentang,suara: buka mikrofon,audio,vad_load_done->mic_open_done,,,,0
+rentang,suara: buka speaker,audio,mic_open_done->player_open_done,,,,0
+jendela-awal,utama: pipeline,main,pipeline_build_start,0.7354282000005696,0.7354282000005696,0.7354282000005696,1
+jendela-akhir,utama: pipeline,main,pipeline_ready,16.0258958000004,16.0258958000004,16.0258958000004,1
+jendela-awal,utama: server -> UI tampil,main,server_started,0.6671679999999469,0.6671679999999469,0.6671679999999469,1
+jendela-akhir,utama: server -> UI tampil,main,ui_first_render,2.5117535999997926,2.5117535999997926,2.5117535999997926,1
+jendela-awal,proses kamera,vision,proc_start,0.9597724000004746,0.9597724000004746,0.9597724000004746,1
+jendela-akhir,proses kamera,vision,first_detection,1.0490637000002607,1.0490637000002607,1.0490637000002607,1
+jendela-awal,proses suara,audio,proc_start,,,,0
+jendela-akhir,proses suara,audio,player_open_done,,,,0

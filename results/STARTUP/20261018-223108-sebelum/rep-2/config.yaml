@@ -1,0 +1,99 @@
+app:
+  mode: dev
+  version: 0.1.0
+kb:
+  active_id: dev-2026-10-15-v2
+  chunker: structure_then_fixed
+  chunk_tokens: 400
+  overlap_tokens: 50
+  embedder:
+    model: BAAI/bge-m3
+    revision: 9a0624b896d81da7492a910ffa53731274b6cf3d
+rag:
+  retriever: hybrid
+  top_k: 5
+  rrf_k: 60
+  candidates_per_retriever: 20
+  reranker:
+    enabled: false
+    model: BAAI/bge-reranker-v2-m3
+    revision: null
+  gate:
+    threshold: 0.5
+  fact_check:
+    enabled: true
+  followup_mode: concat
+  history_turns: 1
+  prompt_variant: paraphrase
+llm:
+  chain:
+  - groq:openai/gpt-oss-120b
+  - groq:openai/gpt-oss-20b
+  timeout_s: 10
+  temperature: 0.2
+  reasoning_effort: low
+audio:
+  stt:
+    backend: faster_whisper
+    model: small
+    compute_type: int8
+    threads: null
+    no_speech_threshold: 0.6
+    groq_model: whisper-large-v3-turbo
+  vad:
+    threshold: 0.5
+    min_silence_ms: 500
+    min_speech_ms: 250
+  max_utterance_s: 15
+  tts:
+    voice: id_ID-news_tts-medium
+    length_scale: null
+vision:
+  model: yolo26n-pose
+  tracker: bytetrack.yaml
+  region: keypoint_torso
+  box_upper:
+    top: 0.35
+    bottom: 0.65
+    side: 0.25
+  keypoint_torso:
+    min_kp_conf: 0.5
+    shrink: 0.15
+    torso_aspect: 1.2
+  color:
+    method: lut_vote
+    min_majority: 0.6
+  dwell_s: 2.0
+  leave_s: 3.0
+  presence_signal: shoulder_width
+  min_box_height_ratio: null
+  min_shoulder_ratio: 0.22
+  conf: 0.1
+  imgsz: 640
+  fps_idle: 5
+  fps_busy: null
+  threads: null
+session:
+  idle_reset_s: null
+  regreet_cooldown_s: null
+ui:
+  backend: web
+  fullscreen: true
+  font_scale: 1.0
+  topics:
+  - Program Studi
+  - Biaya
+  - Beasiswa
+  - Pendaftaran
+  - Fasilitas
+  - Lokasi
+  logo_path: null
+  camera_preview: debug
+  preview_pixel_block: 16
+  preview_fps: 10
+  suggestions: {}
+logging:
+  dir: D:/SKRIPSI/mica/results/STARTUP/20261018-223108-sebelum/rep-2/logs
+eval:
+  judge:
+    enabled: false

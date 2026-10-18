@@ -1,0 +1,52 @@
+{
+ "label": "plumbing",
+ "reps": 1,
+ "warmup": 0,
+ "timeout_s": 240.0,
+ "config": "D:/SKRIPSI/mica/config/dev.yaml",
+ "fake_camera": true,
+ "trial_values_sdd_12": {
+  "vision.dwell_s": 2.0,
+  "vision.leave_s": 3.0,
+  "vision.min_shoulder_ratio": 0.22,
+  "vision.color.min_majority": 0.6,
+  "vision.box_upper.top": 0.35,
+  "vision.box_upper.bottom": 0.65,
+  "vision.box_upper.side": 0.25,
+  "vision.keypoint_torso.min_kp_conf": 0.5,
+  "vision.keypoint_torso.shrink": 0.15,
+  "vision.keypoint_torso.torso_aspect": 1.2,
+  "audio.vad.threshold": 0.5,
+  "audio.vad.min_silence_ms": 500,
+  "audio.vad.min_speech_ms": 250,
+  "audio.stt.no_speech_threshold": 0.6,
+  "audio.max_utterance_s": 15
+ },
+ "runs": [],
+ "aborted": {
+  "run": "rep-1",
+  "status": "memori",
+  "closed": "dibunuh"
+ },
+ "environment": {
+  "python": "3.13.7",
+  "torch": "2.14.1+cpu",
+  "torch_num_threads": 14,
+  "sentence_transformers": "6.1.0",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+  "cpu_count_logical": 20,
+  "power": {
+   "source": "ac",
+   "battery_percent": 100,
+   "battery_saver": false
+  },
+  "power_plan": {
+   "guid": "bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b",
+   "name": "ASUS Recommended",
+   "raw": "Power Scheme GUID: bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b  (ASUS Recommended)"
+  },
+  "git_commit": "7fb13750f1ba2e92cee3cfce812a9387d2489a5c",
+  "git_dirty": true
+ }
+}

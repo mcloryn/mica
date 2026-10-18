@@ -1,0 +1,2 @@
+{"ts": "2026-10-18T22:59:45.810372+07:00", "session_id": "d225d4a22bd04951b06496161d3a53c9", "event": "mic_down", "greeted_with_color": false, "latency_s": null}
+{"ts": "2026-10-18T22:59:52.494851+07:00", "session_id": "4d5f9a94ef5443c3904fbe4f9dc29015", "event": "greeted", "greeted_with_color": true, "latency_s": null}

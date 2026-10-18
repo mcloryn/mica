@@ -1,0 +1,4 @@
+{"ts": "2026-10-18T22:18:01.192136+07:00", "session_id": "dfe7db8f8dce4cb4b18fe2c3621db4d6", "event": "mic_down", "greeted_with_color": false, "latency_s": null}
+{"ts": "2026-10-18T22:18:01.196436+07:00", "session_id": "f485ed8dabef4825a4a8ac916f8ddf88", "event": "greeted", "greeted_with_color": true, "latency_s": null}
+{"ts": "2026-10-18T22:18:05.602122+07:00", "session_id": "f485ed8dabef4825a4a8ac916f8ddf88", "event": "person_left", "greeted_with_color": false, "latency_s": null}
+{"ts": "2026-10-18T22:18:14.798156+07:00", "session_id": "93a5722012b74c45b571765ecea65c39", "event": "greeted", "greeted_with_color": true, "latency_s": null}

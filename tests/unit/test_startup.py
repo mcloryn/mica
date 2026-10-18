@@ -97,3 +97,16 @@ def test_fake_bus_without_camera_does_not_wait_for_camera(tmp_path):
     bus.note_ui_rendered()
     bus.poll()  # AudioStatus(ready=True) palsu
     assert bus.all_ready_at is not None
+
+
+def test_startup_log_dir_gets_only_stage_lines(tmp_path, monkeypatch):
+    # N-08: pencatatan tahap hanya menulis satu file teks nama tahap + waktu, tanpa gambar/audio
+    monkeypatch.setattr(startup, "DEFAULT_PATH_OVERRIDE", None)
+    startup.begin()
+    startup.mark("main_start")
+    path = startup.init(tmp_path)
+    for stage in ("camera_first_frame", "mic_open_done", "all_ready"):
+        startup.mark(stage)
+    assert [p.name for p in tmp_path.iterdir()] == [path.name]
+    assert path.suffix == ".jsonl"
+    assert all(set(r) == KEYS for r in _rows(path))

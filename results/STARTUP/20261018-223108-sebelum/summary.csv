@@ -1,0 +1,41 @@
+﻿kind,label,proc,stage,median,min,max,n
+tonggak,check selesai,main,check_done,1.192476700000043,1.1789817999997467,1.2154411999999866,5
+tonggak,server Flask jalan,main,server_started,13.14174180000009,12.985033099999782,13.173679999999877,5
+tonggak,Edge diluncurkan,main,edge_launched,13.173050399999738,13.027362300000277,13.209463600000163,5
+tonggak,UI tampil (render pertama),main,ui_first_render,14.271378499999628,14.126255899999705,14.31894419999935,5
+tonggak,pipeline siap (jawab ketikan),main,pipeline_ready,13.12670849999995,12.978912600000513,13.16739509999934,5
+tonggak,kamera siap (CameraStatus ok),main,camera_ready,13.143277699999999,12.987314099999821,13.176497899999958,5
+tonggak,suara siap (AudioStatus ready),main,audio_ready,13.14407299999948,12.98655990000043,13.17559110000002,5
+tonggak,semua siap,main,all_ready,14.272338799999488,14.127188399999795,14.319994399999814,5
+rentang,utama: rakit pipeline,main,pipeline_build_start->pipeline_ready,11.58117940000011,11.485386100000142,11.663300499999423,5
+rentang,utama: muat KB,main,kb_load_start->kb_load_done,0.007812099999682687,0.006564199999957054,0.009388099999341648,5
+rentang,utama: import torch,main,import_torch_start->import_torch_done,1.2414272999994864,1.2379582999992635,1.2738935000006677,5
+rentang,utama: import sentence_transformers,main,import_sentence_transformers_start->import_sentence_transformers_done,4.399266099999295,4.347216099999969,4.473752099999729,5
+rentang,utama: muat BGE-M3,main,embedder_load_start->embedder_load_done,5.548942999999781,5.525731400000041,5.632697300000473,5
+rentang,utama: spawn kamera,main,spawn_vision_start->spawn_vision_done,0.024857699999301985,0.023209300000416988,0.03049609999925451,5
+rentang,utama: spawn suara,main,spawn_audio_start->spawn_audio_done,0.023732100000415812,0.022136499999760417,0.02603739999995014,5
+rentang,kamera: import cv2,vision,import_cv2_start->import_cv2_done,0.020355600000584673,0.017998999999690568,0.020736000000397325,5
+rentang,kamera: import torch,vision,import_torch_start->import_torch_done,1.37750270000015,1.3728038000008382,1.4247829999994792,5
+rentang,kamera: import ultralytics,vision,import_ultralytics_start->import_ultralytics_done,0.03939170000012382,0.03770450000047276,0.04077849999976024,5
+rentang,kamera: muat YOLO,vision,model_load_start->model_load_done,0.12902800000028947,0.1084498000000167,0.13690810000025522,5
+rentang,kamera: inferensi pemanasan,vision,model_load_done->warmup_inference_done,1.5194803999993383,1.4853476999996928,1.6109294999996564,5
+rentang,kamera: buka VideoCapture,vision,camera_open_start->camera_open_done,1.0145297999997638,1.0092432000001281,1.0607942000006005,5
+rentang,kamera: frame pertama,vision,camera_open_done->camera_first_frame,0.31109699999979057,0.29432209999959014,0.39216100000066945,5
+rentang,kamera: deteksi pertama,vision,camera_first_frame->first_detection,0.05300160000024334,0.04891829999996844,0.057230499999604945,5
+rentang,suara: import faster_whisper,audio,import_faster_whisper_start->import_faster_whisper_done,0.19163550000030227,0.18952149999950052,0.19530310000027384,5
+rentang,suara: import piper,audio,import_piper_start->import_piper_done,0.8856367999997019,0.8705412999997861,0.9012618000006114,5
+rentang,suara: import pysilero_vad,audio,import_pysilero_vad_start->import_pysilero_vad_done,0.0064886999998634565,0.003390400000171212,0.006818300000304589,5
+rentang,suara: import sounddevice,audio,import_sounddevice_start->import_sounddevice_done,0.06187410000075033,0.05989490000047226,0.06364720000055968,5
+rentang,suara: muat Whisper,audio,stt_load_start->stt_load_done,1.0766983000003165,1.0587417999995523,1.0972580000006928,5
+rentang,suara: muat Piper,audio,stt_load_done->tts_load_done,2.196470599999884,2.1111713999998756,2.277160000000549,5
+rentang,suara: muat Silero VAD,audio,tts_load_done->vad_load_done,0.006070200000067416,0.004923699999380915,0.006660600000031991,5
+rentang,suara: buka mikrofon,audio,vad_load_done->mic_open_done,0.03423430000020744,0.030484299999443465,0.03833490000033635,5
+rentang,suara: buka speaker,audio,mic_open_done->player_open_done,0.0009571999999025138,0.000913599999876169,0.0011383999999452499,5
+jendela-awal,utama: pipeline,main,pipeline_build_start,1.5089486999995643,1.493526500000371,1.5455290999998397,5
+jendela-akhir,utama: pipeline,main,pipeline_ready,13.12670849999995,12.978912600000513,13.16739509999934,5
+jendela-awal,utama: server -> UI tampil,main,server_started,13.14174180000009,12.985033099999782,13.173679999999877,5
+jendela-akhir,utama: server -> UI tampil,main,ui_first_render,14.271378499999628,14.126255899999705,14.31894419999935,5
+jendela-awal,proses kamera,vision,proc_start,1.7644747999993342,1.7566477000000305,1.8098538999993252,5
+jendela-akhir,proses kamera,vision,first_detection,6.353795299999547,6.222066499999528,6.401854099999582,5
+jendela-awal,proses suara,audio,proc_start,1.8174956999991991,1.7951253000001088,1.857857299999523,5
+jendela-akhir,proses suara,audio,player_open_done,6.2767957999994906,6.214868899999601,6.425330899999608,5

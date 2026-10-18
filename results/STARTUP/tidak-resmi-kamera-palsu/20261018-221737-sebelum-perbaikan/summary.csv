@@ -1,0 +1,41 @@
+﻿kind,label,proc,stage,median,min,max,n
+tonggak,check selesai,main,check_done,,,,0
+tonggak,server Flask jalan,main,server_started,,,,0
+tonggak,Edge diluncurkan,main,edge_launched,,,,0
+tonggak,UI tampil (render pertama),main,ui_first_render,,,,0
+tonggak,pipeline siap (jawab ketikan),main,pipeline_ready,,,,0
+tonggak,kamera siap (CameraStatus ok),main,camera_ready,,,,0
+tonggak,suara siap (AudioStatus ready),main,audio_ready,,,,0
+tonggak,semua siap,main,all_ready,,,,0
+rentang,utama: rakit pipeline,main,pipeline_build_start->pipeline_ready,,,,0
+rentang,utama: muat KB,main,kb_load_start->kb_load_done,,,,0
+rentang,utama: import torch,main,import_torch_start->import_torch_done,,,,0
+rentang,utama: import sentence_transformers,main,import_sentence_transformers_start->import_sentence_transformers_done,,,,0
+rentang,utama: muat BGE-M3,main,embedder_load_start->embedder_load_done,,,,0
+rentang,utama: spawn kamera,main,spawn_vision_start->spawn_vision_done,,,,0
+rentang,utama: spawn suara,main,spawn_audio_start->spawn_audio_done,,,,0
+rentang,kamera: import cv2,vision,import_cv2_start->import_cv2_done,,,,0
+rentang,kamera: import torch,vision,import_torch_start->import_torch_done,,,,0
+rentang,kamera: import ultralytics,vision,import_ultralytics_start->import_ultralytics_done,,,,0
+rentang,kamera: muat YOLO,vision,model_load_start->model_load_done,,,,0
+rentang,kamera: inferensi pemanasan,vision,model_load_done->warmup_inference_done,,,,0
+rentang,kamera: buka VideoCapture,vision,camera_open_start->camera_open_done,,,,0
+rentang,kamera: frame pertama,vision,camera_open_done->camera_first_frame,,,,0
+rentang,kamera: deteksi pertama,vision,camera_first_frame->first_detection,,,,0
+rentang,suara: import faster_whisper,audio,import_faster_whisper_start->import_faster_whisper_done,,,,0
+rentang,suara: import piper,audio,import_piper_start->import_piper_done,,,,0
+rentang,suara: import pysilero_vad,audio,import_pysilero_vad_start->import_pysilero_vad_done,,,,0
+rentang,suara: import sounddevice,audio,import_sounddevice_start->import_sounddevice_done,,,,0
+rentang,suara: muat Whisper,audio,stt_load_start->stt_load_done,,,,0
+rentang,suara: muat Piper,audio,stt_load_done->tts_load_done,,,,0
+rentang,suara: muat Silero VAD,audio,tts_load_done->vad_load_done,,,,0
+rentang,suara: buka mikrofon,audio,vad_load_done->mic_open_done,,,,0
+rentang,suara: buka speaker,audio,mic_open_done->player_open_done,,,,0
+jendela-awal,utama: pipeline,main,pipeline_build_start,,,,0
+jendela-akhir,utama: pipeline,main,pipeline_ready,,,,0
+jendela-awal,utama: server -> UI tampil,main,server_started,,,,0
+jendela-akhir,utama: server -> UI tampil,main,ui_first_render,,,,0
+jendela-awal,proses kamera,vision,proc_start,,,,0
+jendela-akhir,proses kamera,vision,first_detection,,,,0
+jendela-awal,proses suara,audio,proc_start,,,,0
+jendela-akhir,proses suara,audio,player_open_done,,,,0
