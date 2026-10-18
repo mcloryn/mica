@@ -61,8 +61,8 @@ def test_agreement_counts():
 # --- aturan -------------------------------------------------------------------------------
 
 
-def combo(region, method, f1, acc=0.5, available=True):
-    return ec.ComboRow(region, method, available, 10, acc, f1, 0)
+def combo(region, method, f1, acc=0.5):
+    return ec.ComboRow(region, method, 10, acc, f1, 0)
 
 
 def test_select_combo_macro_f1_then_accuracy_then_adr():
@@ -75,11 +75,9 @@ def test_select_combo_macro_f1_then_accuracy_then_adr():
     assert ec.select_combo(rows)[0].name == "keypoint_torso_lut_vote"
 
 
-def test_select_combo_unavailable_has_no_winner():
-    rows = [combo("box_upper", "lut_vote", 0.6), combo("box_upper", "lut_mean", 0, available=False)]  # fmt: skip
-    winner, best, reasons = ec.select_combo(rows)
-    assert winner is None and best is not None and best.method == "lut_vote"
-    assert "tidak tersedia" in reasons[0]
+def test_select_combo_without_items_has_no_winner():
+    winner, reasons = ec.select_combo([ec.ComboRow("box_upper", "lut_vote")])
+    assert winner is None and "tidak ada frame" in reasons[0]
 
 
 def test_min_majority_sweep_and_choice():
@@ -128,9 +126,13 @@ class ChannelNamer:
         return result_from_distribution(dist, 0.0, len(px))
 
 
-class Unavailable:
+class AlwaysWhite:
+    """Penamaan palsu yang selalu salah pada data sintetis (tidak ada baju putih)."""
+
     def name(self, pixels) -> ColorResult:
-        raise NotImplementedError("HsvRuleNamer belum dibuat")
+        dist = np.zeros(len(COLOR_NAMES))
+        dist[COLOR_NAMES.index("putih")] = 1.0
+        return result_from_distribution(dist, 0.0, int(np.asarray(pixels).size // 3))
 
 
 def person(tid=0):
@@ -182,7 +184,7 @@ def test_run_color_synthetic_winner(tmp_path):
         {"lut_vote": ChannelNamer(), "lut_mean": ChannelNamer()},
         tmp_path / "out", {"note": "sintetis"}, images=image_for(COLORS),
     )  # fmt: skip
-    assert all(r.available and r.accuracy == 1.0 and r.n == 3 for r in rows)
+    assert all(r.accuracy == 1.0 and r.n == 3 for r in rows)
     assert (winner.region, winner.method) == ec.ADR_CHOICE  # seri penuh -> pilihan ADR
     assert chosen == 0.5
     agreement = json.loads((tmp_path / "out" / "agreement.json").read_text(encoding="utf-8"))
@@ -194,20 +196,25 @@ def test_run_color_synthetic_winner(tmp_path):
     assert "vision.color.min_majority = 0.5" in verdict
 
 
-def test_run_color_unavailable_method_and_undetected(tmp_path):
+def test_run_color_lut_mean_wins_skips_sweep_and_undetected(tmp_path):
     frames = ev.load_frames(make_dataset(tmp_path / "ds", COLORS))
     rows, winner, chosen = ec.run_color(
         frames, labels(COLORS), labels(COLORS),
         lambda img: [person()] if img[50, 50].any() and img[50, 50, 0] == 0 else [],
-        regions(), {"lut_vote": ChannelNamer(), "lut_mean": Unavailable()},
+        regions(), {"lut_vote": AlwaysWhite(), "lut_mean": ChannelNamer()},
         tmp_path / "out", {}, images=image_for(COLORS),
     )  # fmt: skip
-    assert winner is None and chosen is None
-    assert [r.available for r in rows] == [True, False, True, False]
+    assert (winner.region, winner.method) == ("keypoint_torso", "lut_mean")
+    assert chosen is None  # amandemen 1: min_majority tidak berlaku untuk lut_mean
     assert rows[0].n == 3  # f2 (biru) tidak terdeteksi -> dikeluarkan
     verdict = (tmp_path / "out" / "verdict.md").read_text(encoding="utf-8")
-    assert "tidak tersedia" in verdict and "Tidak ada pemenang" in verdict
+    assert "sweep min_majority dilewati" in verdict and "cakupan 1.0000" in verdict
+    assert "sapaan selalu menyebut warna" in verdict
+    assert "vision.color.method = lut_mean" in verdict
     assert "1 sepakat tetapi tidak terdeteksi" in verdict
+    run = json.loads((tmp_path / "out" / "run.json").read_text(encoding="utf-8"))
+    assert run["min_majority_sweep"] == [] and run["decision"]["coverage"] == 1.0
+    assert (tmp_path / "out" / "min_majority.csv").read_text(encoding="utf-8-sig").count("\n") == 1
 
 
 def test_cli_color_with_fakes(tmp_path, monkeypatch, capsys):
@@ -233,10 +240,11 @@ def test_cli_color_with_fakes(tmp_path, monkeypatch, capsys):
     assert code == 0, captured.err
     assert "Kappa Cohen = 1.000" in out
     assert "| lut_mean |" in out
+    assert "vision.color.method = lut_vote, vision.color.min_majority = 0.5" in out
     run_dir = next((tmp_path / "res").iterdir())
     run = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
     assert run["region_values"]["box_upper.top"] == 0.35
-    assert run["unavailable"] == {}
+    assert run["decision"]["method"] == "lut_vote"
 
 
 def test_cli_color_refused_in_kiosk(tmp_path, monkeypatch, capsys):

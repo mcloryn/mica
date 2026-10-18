@@ -31,11 +31,14 @@ BOOTSTRAP_N = 1000
 DEFAULT_CONF = 0.1  # bawaan model.track Ultralytics 8.4 (nilai dev vision.conf)
 IOU_THRESHOLDS = tuple(round(0.5 + 0.05 * i, 2) for i in range(10))  # 0,50 ... 0,95
 RECALL_POINTS = np.linspace(0.0, 1.0, 101)
+USED_MODEL = "yolo26n-pose"  # amandemen 1 E-07: kiosk wajib model dengan keypoint
 E07_DETECTION_RULE = (
-    "Aturan E-07 deteksi (docs/E-07.md, 18 Okt 2026): pada conf 0,1 pemenang = mAP@50:95 "
-    "tertinggi; bila CI 95% bootstrap selisih mAP@50:95 (1000 resample frame berpasangan, seed "
-    "20261018) memuat 0, dipilih FPS lebih tinggi. vision.conf = nilai dengan mAP@50:95 "
-    "tertinggi pada model pemenang; seri -> 0,1, lalu nilai lebih kecil."
+    "Aturan E-07 deteksi (docs/E-07.md, 18 Okt 2026, amandemen 1): yolo26n-pose dipakai; "
+    "yolo26n hanya pembanding biaya model pose. Bila CI 95% bootstrap selisih mAP@50:95 "
+    "(yolo26n-pose - yolo26n, conf 0,1, 1000 resample frame berpasangan, seed 20261018) "
+    "seluruhnya di bawah 0, tidak ada pergantian otomatis dan hasil dicatat sebagai item "
+    "pembimbing. vision.conf = nilai dengan mAP@50:95 tertinggi pada yolo26n-pose; seri -> 0,1, "
+    "lalu nilai lebih kecil."
 )
 
 Predictor = Callable[[np.ndarray], list[PersonTrack]]
@@ -458,58 +461,62 @@ class Decision:
     conf: float | None
     reasons: list[str] = field(default_factory=list)
     diffs: dict[str, dict[str, float]] = field(default_factory=dict)
+    outcome: str | None = None  # pose lebih baik | seri | pembanding lebih tinggi bermakna
+    supervisor_item: bool = False  # True: yolo26n lebih tinggi bermakna (amandemen 1)
 
 
 def select(rows: list[ModelRow], boots: dict[tuple[str, float], np.ndarray]) -> Decision:
-    """Aturan E-07 bagian deteksi (docs/E-07.md), diterapkan mekanis."""
-    base = [r for r in rows if r.conf == DEFAULT_CONF]
-    if not base:
+    """Aturan E-07 bagian deteksi setelah amandemen 1 (docs/E-07.md), diterapkan mekanis:
+    yolo26n-pose dipakai; pembanding yang lebih tinggi bermakna hanya ditandai item pembimbing."""
+    base = {r.model: r for r in rows if r.conf == DEFAULT_CONF and np.isfinite(r.map50_95)}
+    if USED_MODEL not in base:
         return Decision(
-            None, None, [f"tidak ada run pada conf {DEFAULT_CONF}; aturan tidak bisa diterapkan"]
+            None,
+            None,
+            [
+                (
+                    f"tidak ada mAP@50:95 {USED_MODEL} pada conf {DEFAULT_CONF}; aturan tidak bisa "
+                    "diterapkan"
+                )
+            ],
         )
-    valid = [r for r in base if np.isfinite(r.map50_95)]
-    if not valid:
-        return Decision(None, None, ["mAP@50:95 tidak terdefinisi (tidak ada label orang)"])
-    top = max(valid, key=lambda r: r.map50_95)
-    decision = Decision(None, None)
-    decision.reasons.append(
-        f"mAP@50:95 tertinggi pada conf {DEFAULT_CONF}: {top.model} ({top.map50_95:.4f})"
-    )
-    tied = [top]
-    for r in valid:
-        if r is top:
+    pose = base[USED_MODEL]
+    decision = Decision(USED_MODEL, None)
+    for r in base.values():
+        if r is pose:
             continue
-        diff = boots[(top.model, DEFAULT_CONF)] - boots[(r.model, DEFAULT_CONF)]
+        diff = boots[(USED_MODEL, DEFAULT_CONF)] - boots[(r.model, DEFAULT_CONF)]
         lo, hi = ci95(diff)
-        decision.diffs[f"{top.model} - {r.model}"] = {
-            "selisih": top.map50_95 - r.map50_95,
+        decision.diffs[f"{USED_MODEL} - {r.model}"] = {
+            "selisih": pose.map50_95 - r.map50_95,
             "ci_lo": lo,
             "ci_hi": hi,
         }
-        if lo <= 0.0 <= hi:
-            tied.append(r)
+        ci = f"CI 95% selisih {USED_MODEL} - {r.model} = [{lo:.4f}, {hi:.4f}]"
+        if hi < 0.0:
+            decision.outcome = f"{r.model} lebih tinggi bermakna"
+            decision.supervisor_item = True
             decision.reasons.append(
-                f"CI 95% selisih {top.model} - {r.model} = [{lo:.4f}, {hi:.4f}] memuat 0: seri"
+                f"{ci} seluruhnya di bawah 0: {r.model} lebih tinggi bermakna -> ITEM PEMBIMBING; "
+                f"tanpa pergantian otomatis, {USED_MODEL} tetap dipakai"
             )
+        elif lo > 0.0:
+            decision.outcome = decision.outcome or f"{USED_MODEL} lebih baik"
+            decision.reasons.append(f"{ci} seluruhnya di atas 0: {USED_MODEL} lebih baik")
         else:
-            decision.reasons.append(
-                f"CI 95% selisih {top.model} - {r.model} = [{lo:.4f}, {hi:.4f}] tidak memuat 0"
-            )
-    winner = min(tied, key=lambda r: (r.time_p50_s, r.model)) if len(tied) > 1 else top
-    if len(tied) > 1:
+            decision.outcome = decision.outcome or "seri"
+            decision.reasons.append(f"{ci} memuat 0: seri, {USED_MODEL} dipakai")
         decision.reasons.append(
-            "seri -> FPS lebih tinggi: "
-            + ", ".join(f"{r.model} {r.fps:.2f} FPS" for r in tied)
-            + f" -> {winner.model}"
+            f"biaya model pose: {USED_MODEL} {pose.fps:.2f} FPS vs {r.model} {r.fps:.2f} FPS "
+            f"(p50 {pose.time_p50_s:.4f} vs {r.time_p50_s:.4f} s)"
         )
-    decision.model = winner.model
-    own = [r for r in rows if r.model == winner.model and np.isfinite(r.map50_95)]
+    own = [r for r in rows if r.model == USED_MODEL and np.isfinite(r.map50_95)]
     best = max(r.map50_95 for r in own)
     candidates = [r.conf for r in own if r.map50_95 == best]
     conf = DEFAULT_CONF if DEFAULT_CONF in candidates else min(candidates)
     decision.conf = conf
     decision.reasons.append(
-        f"vision.conf pada {winner.model}: "
+        f"vision.conf pada {USED_MODEL}: "
         + ", ".join(f"{r.conf} -> {r.map50_95:.4f}" for r in sorted(own, key=lambda r: r.conf))
         + f"; dipilih {conf}"
     )
@@ -535,13 +542,13 @@ def verdict_markdown(rows: list[ModelRow], decision: Decision, note: str | None)
         )
     lines += ["", "## Keputusan", ""]
     lines += [f"- {reason}" for reason in decision.reasons]
-    lines += [
-        "",
-        f"**vision.model = {decision.model}, vision.conf = {decision.conf}**"
-        if decision.model
-        else "**Tidak ada pemenang.**",
-        "",
-    ]
+    if decision.model is None:
+        lines += ["", "**Tidak ada keputusan.**", ""]
+        return "\n".join(lines)
+    lines += ["", f"Hasil perbandingan: {decision.outcome or '-'}."]
+    if decision.supervisor_item:
+        lines += ["", "**ITEM PEMBIMBING: pembanding tanpa keypoint lebih tinggi bermakna.**"]
+    lines += ["", f"**vision.model = {decision.model}, vision.conf = {decision.conf}**", ""]
     return "\n".join(lines)
 
 
@@ -654,6 +661,8 @@ def run_vision(
         "decision": {
             "model": decision.model,
             "conf": decision.conf,
+            "outcome": decision.outcome,
+            "supervisor_item": decision.supervisor_item,
             "reasons": decision.reasons,
             "diffs": decision.diffs,
         },

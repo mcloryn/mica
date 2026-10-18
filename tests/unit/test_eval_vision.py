@@ -122,38 +122,53 @@ def row(model, conf, map5095, p50):
     return ev.ModelRow(model, conf, 10, 10, 10, 0.8, map5095, map5095, 0, 1, p50, p50)
 
 
-def test_select_clear_winner_then_conf():
-    rows = [
-        row("a", 0.1, 0.6, 0.2),
-        row("b", 0.1, 0.4, 0.1),
-        row("a", 0.25, 0.65, 0.2),
-        row("a", 0.5, 0.5, 0.2),
-    ]
-    boots = {("a", 0.1): np.full(100, 0.6), ("b", 0.1): np.full(100, 0.4)}
-    d = ev.select(rows, boots)
-    assert (d.model, d.conf) == ("a", 0.25)
-    assert d.diffs["a - b"]["ci_lo"] == pytest.approx(0.2)
+POSE, N = "yolo26n-pose", "yolo26n"
 
 
-def test_select_tie_goes_to_faster_model():
-    rows = [row("a", 0.1, 0.6, 0.2), row("b", 0.1, 0.58, 0.1)]
+def boots_for(pose, n, spread=0.0, size=1000):
     rng = np.random.default_rng(0)
-    boots = {("a", 0.1): rng.normal(0.6, 0.05, 1000), ("b", 0.1): rng.normal(0.58, 0.05, 1000)}
-    d = ev.select(rows, boots)
-    assert d.model == "b"  # CI selisih memuat 0 -> FPS lebih tinggi
-    assert any("seri" in r for r in d.reasons)
+    return {
+        (POSE, 0.1): pose + rng.normal(0, spread, size),
+        (N, 0.1): n + rng.normal(0, spread, size),
+    }
+
+
+def test_select_pose_better():
+    rows = [row(POSE, 0.1, 0.6, 0.2), row(N, 0.1, 0.4, 0.1), row(POSE, 0.25, 0.65, 0.2)]
+    d = ev.select(rows, boots_for(0.6, 0.4))
+    assert (d.model, d.conf, d.supervisor_item) == (POSE, 0.25, False)
+    assert d.outcome == f"{POSE} lebih baik"
+    assert d.diffs[f"{POSE} - {N}"]["ci_lo"] == pytest.approx(0.2)
+    verdict = ev.verdict_markdown(rows, d, None)
+    assert "ITEM PEMBIMBING" not in verdict and f"vision.model = {POSE}" in verdict
+
+
+def test_select_tie_keeps_pose_even_if_slower():
+    rows = [row(POSE, 0.1, 0.58, 0.2), row(N, 0.1, 0.6, 0.1)]
+    d = ev.select(rows, boots_for(0.58, 0.6, spread=0.05))
+    assert (d.model, d.outcome, d.supervisor_item) == (POSE, "seri", False)
+    assert any("biaya model pose" in r for r in d.reasons)
+
+
+def test_select_yolo26n_significantly_better_is_supervisor_item():
+    rows = [row(POSE, 0.1, 0.4, 0.2), row(N, 0.1, 0.6, 0.1), row(POSE, 0.5, 0.3, 0.2)]
+    d = ev.select(rows, boots_for(0.4, 0.6))
+    assert d.model == POSE and d.conf == 0.1  # tanpa pergantian otomatis
+    assert d.supervisor_item and d.outcome == f"{N} lebih tinggi bermakna"
+    verdict = ev.verdict_markdown(rows, d, None)
+    assert "ITEM PEMBIMBING" in verdict and f"vision.model = {POSE}" in verdict
 
 
 def test_select_conf_tie_prefers_default_then_smaller():
-    rows = [row("a", 0.1, 0.6, 0.2), row("a", 0.25, 0.6, 0.2)]
-    assert ev.select(rows, {("a", 0.1): np.full(10, 0.6)}).conf == 0.1
-    rows = [row("a", 0.1, 0.5, 0.2), row("a", 0.25, 0.6, 0.2), row("a", 0.5, 0.6, 0.2)]
-    assert ev.select(rows, {("a", 0.1): np.full(10, 0.5)}).conf == 0.25
+    rows = [row(POSE, 0.1, 0.6, 0.2), row(POSE, 0.25, 0.6, 0.2)]
+    assert ev.select(rows, {(POSE, 0.1): np.full(10, 0.6)}).conf == 0.1
+    rows = [row(POSE, 0.1, 0.5, 0.2), row(POSE, 0.25, 0.6, 0.2), row(POSE, 0.5, 0.6, 0.2)]
+    assert ev.select(rows, {(POSE, 0.1): np.full(10, 0.5)}).conf == 0.25
 
 
-def test_select_without_default_conf_has_no_winner():
-    d = ev.select([row("a", 0.25, 0.6, 0.2)], {})
-    assert d.model is None
+def test_select_without_pose_or_default_conf_has_no_decision():
+    assert ev.select([row(POSE, 0.25, 0.6, 0.2)], {}).model is None
+    assert ev.select([row(N, 0.1, 0.6, 0.2)], {}).model is None
 
 
 # --- dataset ------------------------------------------------------------------------------
@@ -238,7 +253,7 @@ def test_run_vision_writes_outputs(tmp_path):
     frames = ev.load_frames(root)
     rows, decision = ev.run_vision(
         frames,
-        {"good": lambda: fake_predictor(True), "bad": lambda: fake_predictor(False)},
+        {POSE: lambda: fake_predictor(True), N: lambda: fake_predictor(False)},
         [0.1, 0.25],
         tmp_path / "out",
         {"note": "sintetis"},
@@ -246,15 +261,15 @@ def test_run_vision_writes_outputs(tmp_path):
         clock=fake_clock(),
         progress=lambda s: None,
     )
-    assert decision.model == "good"
-    good = {r.conf: r for r in rows if r.model == "good"}
+    assert decision.model == POSE and decision.outcome == f"{POSE} lebih baik"
+    good = {r.conf: r for r in rows if r.model == POSE}
     assert good[0.1].map50_95 == 1.0 and good[0.1].n_det == 8 and good[0.25].n_det == 4
     for name in ("summary.csv", "per_frame.csv", "per_kondisi.csv", "verdict.md", "run.json"):
         assert (tmp_path / "out" / name).is_file()
     run = json.loads((tmp_path / "out" / "run.json").read_text(encoding="utf-8"))
     assert run["bootstrap"]["seed"] == 20261018
-    assert run["decision"]["model"] == "good"
-    assert "vision.model = good" in (tmp_path / "out" / "verdict.md").read_text(encoding="utf-8")
+    assert run["decision"]["model"] == POSE and run["decision"]["supervisor_item"] is False
+    assert f"vision.model = {POSE}" in (tmp_path / "out" / "verdict.md").read_text(encoding="utf-8")
 
 
 def test_cli_vision_with_fake_predictors(tmp_path, monkeypatch, capsys):

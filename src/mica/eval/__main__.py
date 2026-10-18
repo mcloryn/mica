@@ -392,8 +392,8 @@ def cmd_vision_scenarios(args: argparse.Namespace) -> int:
     settings = _vision_settings(args, "vision-scenarios")
     if not args.model.endswith("-pose"):
         raise VisionEvalError(
-            f"model {args.model} tanpa keypoint: sinyal shoulder_width butuh varian -pose; grid "
-            "min_box_height_ratio belum ditetapkan (amandemen docs/E-07.md dulu)"
+            f"model {args.model} tanpa keypoint: kiosk wajib model -pose (amandemen 1 E-07); "
+            "sinyal shoulder_width butuh keypoint bahu"
         )
     path = model_path(args.model, args.models_dir)
     if not path.is_file():

@@ -3,8 +3,9 @@
 Frame E-07 (data/eval/vision/<nama>/) + colors.csv dan colors_rater2.csv (frame, track,
 color_label; track = indeks baris orang di label YOLO). Cohen's kappa antar-penilai; hanya
 pasangan yang disepakati masuk akurasi. Orang diambil dari deteksi yolo26n-pose yang cocok
-(IoU >= 0,5) dengan kotak label, lalu setiap region x metode menamai warnanya (suara terbanyak,
-tanpa min_majority). Pemenang macro-F1, lalu sweep min_majority pada pemenang. Frame hanya di
+(IoU >= 0,5) dengan kotak label, lalu setiap region x metode (lut_vote, lut_mean; amandemen 1)
+menamai warnanya (warna teratas, tanpa min_majority). Pemenang macro-F1, lalu sweep
+min_majority bila pemenang lut_vote. Frame hanya di
 memori (N-08); hasil berisi angka, ID, dan label saja.
 """
 
@@ -13,7 +14,7 @@ from __future__ import annotations
 import csv
 import json
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -32,7 +33,7 @@ from mica.vision.types import PersonTrack
 
 EXPERIMENT = "E-08"
 REGIONS = ("keypoint_torso", "box_upper")
-METHODS = ("lut_vote", "lut_mean")
+METHODS = ("lut_vote", "lut_mean")  # amandemen 1 E-08
 ADR_CHOICE = ("keypoint_torso", "lut_vote")  # pemecah seri terakhir (docs/E-08.md)
 # nilai coba area pakaian, SDD bagian 12 (docs/E-08.md)
 TRIAL_VALUES = {
@@ -47,10 +48,11 @@ MIN_MAJORITY_GRID = (0.5, 0.6, 0.7)
 MATCH_IOU = 0.5
 NO_PRED = "(tanpa prediksi)"
 E08_RULE = (
-    "Aturan E-08 (docs/E-08.md, 18 Okt 2026): kombinasi region x metode dengan macro-F1 "
-    "tertinggi (tanpa min_majority; seri -> akurasi, lalu keypoint_torso + color_names_lut); "
-    "lalu min_majority {0,5; 0,6; 0,7} pada pemenang: presisi (benar / disebut warna) "
-    "tertinggi, seri -> nilai lebih kecil. Cakupan selalu dilaporkan."
+    "Aturan E-08 (docs/E-08.md, 18 Okt 2026, amandemen 1): kombinasi region x {lut_vote, "
+    "lut_mean} dengan macro-F1 tertinggi (tanpa min_majority; seri -> akurasi, lalu "
+    "keypoint_torso + lut_vote); lalu, hanya bila pemenang lut_vote, min_majority {0,5; 0,6; "
+    "0,7}: presisi (benar / disebut warna) tertinggi, seri -> nilai lebih kecil. lut_mean: sweep "
+    "dilewati, cakupan 100 %. Cakupan selalu dilaporkan."
 )
 
 Key = tuple[str, int]  # (frame, track)
@@ -205,12 +207,10 @@ class Prediction:
 class ComboRow:
     region: str
     method: str
-    available: bool
     n: int = 0
     accuracy: float = 0.0
     macro_f1: float = 0.0
     n_no_pred: int = 0
-    note: str = ""
 
     @property
     def name(self) -> str:
@@ -220,44 +220,26 @@ class ComboRow:
         return {
             "region": self.region,
             "metode": self.method,
-            "tersedia": int(self.available),
             "n": self.n,
-            "akurasi": f"{self.accuracy:.4f}" if self.available else "",
-            "macro_f1": f"{self.macro_f1:.4f}" if self.available else "",
-            "n_tanpa_prediksi": self.n_no_pred if self.available else "",
-            "catatan": self.note,
+            "akurasi": f"{self.accuracy:.4f}",
+            "macro_f1": f"{self.macro_f1:.4f}",
+            "n_tanpa_prediksi": self.n_no_pred,
         }
 
 
-def select_combo(rows: Sequence[ComboRow]) -> tuple[ComboRow | None, ComboRow | None, list[str]]:
-    """-> (pemenang menurut aturan, terbaik di antara yang tersedia, alasan)."""
-    available = [r for r in rows if r.available and r.n > 0]
-    reasons = []
-    best = (
-        max(
-            available,
-            key=lambda r: (r.macro_f1, r.accuracy, (r.region, r.method) == ADR_CHOICE),
-        )
-        if available
-        else None
-    )
-    missing = [r.name for r in rows if not r.available]
-    if missing:
-        reasons.append(
-            "kombinasi tidak tersedia: " + ", ".join(missing) + " -> aturan E-08 "
-            "tidak bisa diterapkan penuh, tidak ada pemenang"
-        )
-        return None, best, reasons
-    if best is None:
-        reasons.append("tidak ada frame sepakat yang terdeteksi")
-        return None, None, reasons
-    tied = [r for r in available if r.macro_f1 == best.macro_f1]
-    reasons.append(f"macro-F1 tertinggi: {best.name} ({best.macro_f1:.4f})")
+def select_combo(rows: Sequence[ComboRow]) -> tuple[ComboRow | None, list[str]]:
+    """Tahap 1 aturan E-08 -> (pemenang, alasan)."""
+    valid = [r for r in rows if r.n > 0]
+    if not valid:
+        return None, ["tidak ada frame sepakat yang terdeteksi"]
+    best = max(valid, key=lambda r: (r.macro_f1, r.accuracy, (r.region, r.method) == ADR_CHOICE))
+    reasons = [f"macro-F1 tertinggi: {best.name} ({best.macro_f1:.4f})"]
+    tied = [r for r in valid if r.macro_f1 == best.macro_f1]
     if len(tied) > 1:
         reasons.append(
             "seri macro-F1: " + ", ".join(r.name for r in tied) + " -> akurasi, lalu pilihan ADR"
         )
-    return best, best, reasons
+    return best, reasons
 
 
 def sweep_min_majority(
@@ -292,16 +274,12 @@ def select_min_majority(rows: Sequence[dict[str, Any]]) -> float | None:
     return min(valid, key=lambda r: (-r["presisi"], r["min_majority"]))["min_majority"]
 
 
+def coverage(preds: Sequence[Prediction]) -> float | None:
+    """Persen sapaan berwarna tanpa min_majority (lut_mean: ada warna bila area berpiksel)."""
+    return sum(p.top is not None for p in preds) / len(preds) if preds else None
+
+
 # --- run ----------------------------------------------------------------------------------
-
-
-@dataclass
-class ItemResult:
-    key: Key
-    label1: str | None
-    label2: str | None
-    status: str  # sepakat | tidak sepakat | hanya penilai 1/2 | tidak terdeteksi
-    preds: dict[str, Prediction] = field(default_factory=dict)
 
 
 def _f(x: float | None) -> str:
@@ -322,8 +300,8 @@ def predict_items(
     regions: Mapping[str, ClothingRegion],
     namers: Mapping[str, ColorNamer],
     images: Callable[[VisionFrame], np.ndarray],
-) -> tuple[dict[Key, dict[str, Prediction]], dict[str, str]]:
-    """Prediksi per (frame, track) per kombinasi; -> (prediksi, metode tidak tersedia)."""
+) -> dict[Key, dict[str, Prediction]]:
+    """Prediksi per (frame, track) per kombinasi; orang tanpa deteksi cocok tidak ada di hasil."""
     by_frame: dict[str, list[int]] = {}
     for fid, tr in keys:
         by_frame.setdefault(fid, []).append(tr)
@@ -331,7 +309,6 @@ def predict_items(
     unknown = sorted(set(by_frame) - set(frame_of))
     if unknown:
         raise VisionEvalError(f"frame tidak ada di manifest: {', '.join(unknown)}")
-    unavailable: dict[str, str] = {}
     out: dict[Key, dict[str, Prediction]] = {}
     for fid, tracks_wanted in by_frame.items():
         frame = frame_of[fid]
@@ -350,29 +327,16 @@ def predict_items(
             for rname, region in regions.items():
                 pixels = region.extract(image, person)
                 for mname, namer in namers.items():
-                    if mname in unavailable:
+                    if pixels is None or pixels.size == 0:
+                        preds[f"{rname}_{mname}"] = Prediction(None, 0.0)
                         continue
-                    try:
-                        if pixels is None or pixels.size == 0:
-                            preds[f"{rname}_{mname}"] = Prediction(None, 0.0)
-                            continue
-                        result = namer.name(pixels)
-                    except NotImplementedError as exc:
-                        unavailable[mname] = str(exc)
-                        continue
+                    result = namer.name(pixels)
                     dist = np.asarray(result.distribution, dtype=float)
-                    voted = result_from_distribution(dist, 0.0, result.pixels)
-                    preds[f"{rname}_{mname}"] = Prediction(voted.top, voted.majority)
+                    top = result_from_distribution(dist, 0.0, result.pixels)
+                    preds[f"{rname}_{mname}"] = Prediction(top.top, top.majority)
             out[(fid, tr)] = preds
         del image  # N-08
-    for preds in out.values():  # metode yang gagal di tengah jalan dibuang dari semua item
-        for key in [k for k in preds if _method_of(k) in unavailable]:
-            preds.pop(key, None)
-    return out, unavailable
-
-
-def _method_of(combo: str) -> str:
-    return next(m for m in METHODS if combo.endswith(m))
+    return out
 
 
 def verdict_markdown(
@@ -380,10 +344,10 @@ def verdict_markdown(
     n_undetected: int,
     rows: Sequence[ComboRow],
     winner: ComboRow | None,
-    best: ComboRow | None,
     reasons: list[str],
     sweep: list[dict[str, Any]],
     chosen: float | None,
+    winner_coverage: float | None,
     note: str | None,
 ) -> str:
     lines = ["# E-08 verdict: warna pakaian atas", ""]
@@ -405,20 +369,15 @@ def verdict_markdown(
     ]
     for r in rows:
         x = r.row()
-        if r.available:
-            lines.append(
-                f"| {r.region} | {r.method} | {r.n} | {x['akurasi']} | "
-                f"{x['macro_f1']} | {r.n_no_pred} |"
-            )
-        else:
-            lines.append(f"| {r.region} | {r.method} | - | tidak tersedia | - | - |")
+        lines.append(
+            f"| {r.region} | {r.method} | {r.n} | {x['akurasi']} | {x['macro_f1']} | "
+            f"{r.n_no_pred} |"
+        )
     lines += ["", "## Keputusan", ""] + [f"- {r}" for r in reasons]
-    target = winner or best
-    if target is not None and sweep:
-        label = "pemenang" if winner else "terbaik yang tersedia (sementara, bukan keputusan)"
+    if winner is not None and winner.method == "lut_vote":
         lines += [
             "",
-            f"min_majority pada {target.name} ({label}):",
+            f"min_majority pada {winner.name}:",
             "",
             "| min_majority | disebut | benar | presisi | cakupan |",
             "| --- | --- | --- | --- | --- |",
@@ -428,19 +387,32 @@ def verdict_markdown(
                 f"| {s['min_majority']} | {s['disebut']} | {s['benar']} | "
                 f"{_f(s['presisi']) or '-'} | {_f(s['cakupan']) or '-'} |"
             )
+    elif winner is not None:
+        lines += [
+            "",
+            (
+                f"Pemenang {winner.name}: sweep min_majority dilewati (amandemen 1), cakupan "
+                f"{_f(winner_coverage) or '-'}. Keterbatasan: sapaan selalu menyebut warna."
+            ),
+        ]
     lines.append("")
-    if winner is not None and chosen is not None:
+    if winner is None:
+        lines.append("**Tidak ada pemenang.**")
+    elif winner.method == "lut_mean":
         lines.append(
-            f"**vision.region = {winner.region}, vision.color.method = {winner.method}, "
+            f"**vision.region = {winner.region}, vision.color.method = lut_mean "
+            "(min_majority tidak berlaku)**"
+        )
+    elif chosen is not None:
+        lines.append(
+            f"**vision.region = {winner.region}, vision.color.method = lut_vote, "
             f"vision.color.min_majority = {chosen}**"
         )
-    elif winner is not None:
+    else:
         lines.append(
-            f"**vision.region = {winner.region}, vision.color.method = {winner.method}; "
+            f"**vision.region = {winner.region}, vision.color.method = lut_vote; "
             "min_majority tidak bisa dipilih (tidak ada warna yang disebut)**"
         )
-    else:
-        lines.append("**Tidak ada pemenang.**")
     return "\n".join(lines) + "\n"
 
 
@@ -461,9 +433,7 @@ def run_color(
     run_dir = Path(run_dir)
     run_dir.mkdir(parents=True, exist_ok=False)
     agree = agreement(first, second)
-    preds, unavailable = predict_items(
-        frames, sorted(agree.agreed), predictor, regions, namers, images
-    )
+    preds = predict_items(frames, sorted(agree.agreed), predictor, regions, namers, images)
     detected = [k for k in sorted(agree.agreed) if k in preds]
     true = [agree.agreed[k] for k in detected]
     rows: list[ComboRow] = []
@@ -471,15 +441,11 @@ def run_color(
     for rname in regions:
         for mname in namers:
             combo = f"{rname}_{mname}"
-            if mname in unavailable:
-                rows.append(ComboRow(rname, mname, False, note=unavailable[mname]))
-                continue
             pred = [preds[k][combo].top for k in detected]
             rows.append(
                 ComboRow(
                     rname,
                     mname,
-                    True,
                     len(true),
                     accuracy(true, pred),
                     macro_f1(true, pred),
@@ -508,14 +474,12 @@ def run_color(
                 for i, c in enumerate(COLOR_NAMES)
             ]
             _write_csv(run_dir / f"confusion_{combo}.csv", cm_rows)
-    winner, best, reasons = select_combo(rows)
-    target = winner or best
-    sweep = (
-        sweep_min_majority(true, [preds[k][target.name] for k in detected])
-        if target is not None
-        else []
-    )
-    chosen = select_min_majority(sweep) if winner is not None else None
+    winner, reasons = select_combo(rows)
+    winner_preds = [preds[k][winner.name] for k in detected] if winner else []
+    # amandemen 1: sweep min_majority hanya untuk lut_vote
+    sweep = sweep_min_majority(true, winner_preds) if winner and winner.method == "lut_vote" else []
+    chosen = select_min_majority(sweep) if sweep else None
+    winner_coverage = coverage(winner_preds)
     _write_csv(run_dir / "summary.csv", [r.row() for r in rows])
     fields = ["region", "metode", "warna", "n", "benar", "akurasi_warna", "presisi", "f1"]
     _write_csv(run_dir / "per_color.csv", per_color, fields)
@@ -550,9 +514,8 @@ def run_color(
             row[f"pred_{combo}"] = p.top or ""
             row[f"mayoritas_{combo}"] = f"{p.majority:.3f}"
         items.append(row)
-    combos = [f"{r.region}_{r.method}" for r in rows if r.available]
     item_fields = ["frame", "track", "label_penilai1", "label_penilai2", "status"]
-    item_fields += [f"{p}_{c}" for c in combos for p in ("pred", "mayoritas")]
+    item_fields += [f"{p}_{r.name}" for r in rows for p in ("pred", "mayoritas")]
     _write_csv(run_dir / "per_item.csv", items, item_fields)
     n_undetected = len(agree.agreed) - len(detected)
     (run_dir / "agreement.json").write_text(
@@ -566,7 +529,15 @@ def run_color(
     )
     (run_dir / "verdict.md").write_text(
         verdict_markdown(
-            agree, n_undetected, rows, winner, best, reasons, sweep, chosen, info.get("note")
+            agree,
+            n_undetected,
+            rows,
+            winner,
+            reasons,
+            sweep,
+            chosen,
+            winner_coverage,
+            info.get("note"),
         ),
         encoding="utf-8",
     )
@@ -574,19 +545,20 @@ def run_color(
         **info,
         "experiment": EXPERIMENT,
         "rule": E08_RULE,
+        "amendment": "amandemen 1 E-08 (18 Okt 2026): HsvRuleNamer dihapus, lut_vote vs lut_mean",
         "labels": list(COLOR_NAMES),
         "region_values": TRIAL_VALUES,
         "region_values_source": "nilai coba SDD bagian 12 (docs/E-08.md)",
         "match_iou": MATCH_IOU,
-        "metric": "prediksi = ColorResult.top tanpa min_majority; macro-F1 atas gabungan label "
+        "metric": "prediksi = warna teratas tanpa min_majority; macro-F1 atas gabungan label "
         "benar dan prediksi; area tanpa piksel = tanpa prediksi (salah)",
         "agreement": {**agree.summary(), "n_sepakat_tidak_terdeteksi": n_undetected},
-        "unavailable": unavailable,
         "summary": [r.row() for r in rows],
         "decision": {
             "region": winner.region if winner else None,
             "method": winner.method if winner else None,
             "min_majority": chosen,
+            "coverage": winner_coverage if winner and winner.method == "lut_mean" else None,
             "reasons": reasons,
         },
         "min_majority_sweep": sweep,
