@@ -195,8 +195,9 @@ def test_public_preview_jpeg_rate_and_no_extra_inference(tmp_path):
     ref, ref_detector = _loop(tmp_path, "off", None)
     ref.run()
     assert detector.calls == ref_detector.calls  # pratinjau tidak menambah inferensi
-    # 100 frame x 0,04 s = 4 s pada preview_fps 5 -> +-20 JPEG
-    assert 15 <= loop.previews <= 21
+    # 100 frame x 0,04 s = 4 s pada preview_fps config (10, keputusan desain Langkah 38) -> +-40 JPEG
+    assert loop.cfg.preview_fps == 10
+    assert 0.75 * 4 * loop.cfg.preview_fps <= loop.previews <= 4 * loop.cfg.preview_fps + 1
     assert out.qsize() == 1 and out.get_nowait()[:2] == b"\xff\xd8"
 
 

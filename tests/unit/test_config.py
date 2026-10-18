@@ -573,6 +573,18 @@ def test_kiosk_yaml_preview_public_with_trial_values():
     raw = yaml.safe_load(KIOSK_YAML.read_text(encoding="utf-8"))
     assert raw["ui"]["camera_preview"] == "public"
     text = KIOSK_YAML.read_text(encoding="utf-8")
-    for key in ("preview_pixel_block", "preview_fps"):
-        line = next(ln for ln in text.splitlines() if ln.strip().startswith(f"{key}:"))
-        assert "NILAI COBA DESAIN" in line
+    line = next(ln for ln in text.splitlines() if ln.strip().startswith("preview_pixel_block:"))
+    assert "NILAI COBA DESAIN" in line
+
+
+@pytest.mark.parametrize("path", [DEV_YAML, KIOSK_YAML])
+def test_preview_fps_10_user_design_decision(path):
+    # Langkah 38: keputusan desain pengguna, bukan hasil eksperimen; laju deteksi tidak berubah
+    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    assert raw["ui"]["preview_fps"] == 10
+    assert raw["vision"]["fps_idle"] == 5 and raw["vision"]["fps_busy"] is None
+    line = next(ln for ln in path.read_text(encoding="utf-8").splitlines()
+                if ln.strip().startswith("preview_fps:"))  # fmt: skip
+    assert "keputusan desain pengguna 18 Okt 2026: pratinjau minimal 10 fps" in line
+    if path == DEV_YAML:  # kiosk.yaml masih berisi TBD (null), dimuat lengkap di tes lain
+        assert load_settings(path).ui.preview_fps == 10

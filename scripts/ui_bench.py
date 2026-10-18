@@ -260,7 +260,7 @@ def child_web(config: Path, keep_rendering: bool = True, long: bool = False,
     if static_dir is not None:  # Langkah 37b: A/B versi file statis (bench saja)
         import mica.webui.server as server_mod
 
-        server_mod.STATIC_DIR = static_dir
+        server_mod.STATIC_DIR = Path(static_dir).resolve()  # relatif = relatif ke paket Flask
     settings = load_settings(config)
     webui = BenchWebUi(settings.ui, dev=True)
     commands_in = detach_stdin() if fake_camera else None  # sebelum pekerja kamera di-spawn
@@ -271,7 +271,12 @@ def child_web(config: Path, keep_rendering: bool = True, long: bool = False,
         # --edge-extra: switch kandidat disisipkan sebelum --kiosk/URL tanpa mengubah kode aplikasi
         return subprocess.Popen([cmd[0], *edge_extra, *cmd[1:]])
 
-    browser = EdgeBrowser(settings.ui.fullscreen, keep_rendering=keep_rendering, popen=popen)
+    browser = EdgeBrowser(
+        settings.ui.fullscreen,
+        keep_rendering=keep_rendering,
+        popen=popen,
+        camera_preview=settings.ui.camera_preview,
+    )  # Langkah 38: K2 ikut config
     commands = stdin_commands(commands_in)
     driver = LongDriver(controller, webui.vm) if long else Driver(controller, webui.vm)
     stop = threading.Event()
@@ -555,7 +560,9 @@ def require_ac() -> dict[str, Any] | None:
 
 def run_once(ui: str, rep: int, config: Path, cover_window: bool = False,
              edge_switches: bool = True, edge_extra: tuple[str, ...] = (),
-             child_extra: tuple[str, ...] = ()) -> dict[str, Any]:  # fmt: skip
+             child_extra: tuple[str, ...] = (),
+             stderr_path: Path | None = None) -> dict[str, Any]:  # fmt: skip
+    """stderr_path (Langkah 38): stderr proses anak disimpan ke file ini (bawaan dibuang)."""
     power = require_ac()  # dicek sebelum setiap ulangan
     child = [sys.executable, __file__, "--child", ui, "--config", str(config),
              "--edge-switches", "on" if edge_switches else "off",
@@ -563,8 +570,9 @@ def run_once(ui: str, rep: int, config: Path, cover_window: bool = False,
     cover = Cover(0) if cover_window else None
     cover_info: dict[str, Any] = {}
     t0 = time.time()
+    err = stderr_path.open("w", encoding="utf-8") if stderr_path else subprocess.DEVNULL
     proc = subprocess.Popen(child, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                            stderr=subprocess.DEVNULL, text=True, encoding="utf-8")  # fmt: skip
+                            stderr=err, text=True, encoding="utf-8")  # fmt: skip
     try:
         painted = read_event(proc, "painted")
         startup_s = painted["wall"] - t0

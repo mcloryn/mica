@@ -136,7 +136,11 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
         if record_resources is not None:
             check_allowed(settings.app.mode, e09)  # ditolak sebelum pekerja dimulai
         webui = WebUi(settings.ui, dev=settings.app.mode == "dev")
-        browser = None if no_browser else EdgeBrowser(settings.ui.fullscreen)
+        browser = (
+            None
+            if no_browser
+            else EdgeBrowser(settings.ui.fullscreen, camera_preview=settings.ui.camera_preview)
+        )
         controller = build_controller(settings, webui, fake_workers=fake_workers,
                                       fake_pipeline=fake_pipeline,
                                       fake_camera=fake_camera)  # fmt: skip

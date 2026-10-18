@@ -66,6 +66,16 @@ IDLE_SWITCHES = (
 )
 
 
+# Switch biaya pratinjau kamera (Langkah 38, pra-registrasi docs/UI-PREVIEW-OPT.md), hanya bila
+# ui.camera_preview bukan off (kondisi yang diukur). kDisableGpuCompositing: "Prevent the
+# compositor from using its GPU implementation" (https://chromium.googlesource.com/chromium/src/
+# +/HEAD/content/public/common/content_switches.cc, dicek 18 Okt 2026). K2 lolos aturan
+# keputusan: results/ADR-19/ui-preview-opt-20261018-1712/03-k2-vs-base (10 ulangan
+# selang-seling, AC, median): RAM USS diam 391,3 -> 218,1 MB (GPU Edge 213,4 -> 38,3 MB),
+# CPU diam 15,70% -> 13,80%, p95 jeda 4,71 -> 3,63 ms.
+PREVIEW_SWITCHES = ("--disable-gpu-compositing",)
+
+
 class EdgeMissing(Exception):
     pass
 
@@ -78,10 +88,12 @@ def find_edge(paths: tuple[Path, ...] = EDGE_PATHS) -> Path:
 
 
 def edge_command(edge: Path, url: str, user_data_dir: Path, fullscreen: bool,
-                 keep_rendering: bool = True) -> list[str]:  # fmt: skip
+                 keep_rendering: bool = True, camera_preview: str = "off") -> list[str]:  # fmt: skip
     cmd = [str(edge), f"--user-data-dir={user_data_dir}", "--no-first-run", *IDLE_SWITCHES]
     if keep_rendering:
         cmd += RENDERING_SWITCHES
+    if camera_preview != "off":
+        cmd += PREVIEW_SWITCHES
     if fullscreen:
         return [*cmd, "--kiosk", url, "--edge-kiosk-type=fullscreen"]
     return [*cmd, url]  # jendela biasa (ui.fullscreen false)
@@ -90,9 +102,10 @@ def edge_command(edge: Path, url: str, user_data_dir: Path, fullscreen: bool,
 class EdgeBrowser:
     def __init__(self, fullscreen: bool, edge: Path | None = None,
                  popen: Callable[..., Any] = subprocess.Popen,
-                 keep_rendering: bool = True) -> None:  # fmt: skip
+                 keep_rendering: bool = True, camera_preview: str = "off") -> None:  # fmt: skip
         self.fullscreen = fullscreen
         self.keep_rendering = keep_rendering  # False hanya untuk uji pembanding (ui_bench)
+        self.camera_preview = camera_preview  # ui.camera_preview; bukan off -> PREVIEW_SWITCHES
         self.edge = edge or find_edge()
         self.popen = popen
         self.proc: Any = None
@@ -101,7 +114,8 @@ class EdgeBrowser:
     def start(self, url: str) -> None:
         self.profile = Path(tempfile.mkdtemp(prefix="mica-edge-"))
         self.proc = self.popen(edge_command(self.edge, url, self.profile, self.fullscreen,
-                                              self.keep_rendering))  # fmt: skip
+                                              self.keep_rendering,
+                                              self.camera_preview))  # fmt: skip
 
     @property
     def pid(self) -> int | None:

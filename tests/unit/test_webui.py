@@ -33,7 +33,13 @@ from mica.ui.main_window import format_debug as qt_format_debug
 from mica.ui.viewmodel import ViewModel
 from mica.webui import state
 from mica.webui.app import WebUiError, build_controller, serve
-from mica.webui.browser import IDLE_SWITCHES, RENDERING_SWITCHES, EdgeBrowser, edge_command
+from mica.webui.browser import (
+    IDLE_SWITCHES,
+    PREVIEW_SWITCHES,
+    RENDERING_SWITCHES,
+    EdgeBrowser,
+    edge_command,
+)
 from mica.webui.server import HOST, STATIC_DIR, WebUi, start_server, stop_server
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -539,6 +545,48 @@ def test_edge_command_flags(tmp_path):
     plain = edge_command(edge, url, tmp_path, True, keep_rendering=False)
     assert not set(RENDERING_SWITCHES) & set(plain) and "--kiosk" in plain
     assert set(IDLE_SWITCHES) <= set(plain)  # pengurang kerja latar tidak ikut dimatikan
+
+
+def test_production_browser_never_opens_devtools_port(tmp_path):
+    # Langkah 38: --remote-debugging-port hanya untuk bench (ui_bench --edge-extra), bukan produksi
+    import mica.webui.browser as browser_mod
+
+    assert "remote-debugging" not in Path(browser_mod.__file__).read_text(encoding="utf-8")
+    url = "http://127.0.0.1:5000/"
+    for preview in ("off", "public", "debug"):
+        for fullscreen in (True, False):
+            for keep in (True, False):
+                cmd = edge_command(Path("msedge.exe"), url, tmp_path, fullscreen, keep, preview)
+                assert not any("remote-debugging" in part for part in cmd)
+
+
+def test_preview_switch_only_when_preview_on(tmp_path):
+    # Langkah 38: K2 lolos (03-k2-vs-base); hanya kondisi yang diukur (pratinjau bukan off)
+    assert PREVIEW_SWITCHES == ("--disable-gpu-compositing",)
+    url = "http://127.0.0.1:5000/"
+    edge = Path("msedge.exe")
+    assert "--disable-gpu-compositing" not in edge_command(edge, url, tmp_path, True)
+    for mode in ("public", "debug"):
+        cmd = edge_command(edge, url, tmp_path, True, camera_preview=mode)
+        assert cmd.count("--disable-gpu-compositing") == 1
+        assert cmd.index("--disable-gpu-compositing") < cmd.index("--kiosk")
+    started = []
+    for mode in ("off", "public"):
+        browser = EdgeBrowser(True, edge=edge, camera_preview=mode,
+                              popen=lambda cmd: started.append(cmd) or FakeProc())  # fmt: skip
+        browser.start(url)
+        browser.close()
+    assert "--disable-gpu-compositing" not in started[0]
+    assert "--disable-gpu-compositing" in started[1]
+
+
+def test_run_passes_camera_preview_to_browser():
+    import inspect
+
+    from mica.webui import app
+
+    src = inspect.getsource(app.run)
+    assert "camera_preview=settings.ui.camera_preview" in src
 
 
 def test_rendering_switches_are_only_verified_ones():
