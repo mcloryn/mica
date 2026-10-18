@@ -996,6 +996,7 @@ mica/
       types.py                 # tipe data 5.1
       bus.py                   # M-13
       session.py               # M-09
+      controller.py            # M-10: KioskController
       logging.py               # M-11
     kb/                        # M-02: parsers.py, chunker.py, embedder.py, index.py, __main__.py
     rag/                       # M-03 sampai M-06: retriever.py, rerank.py, gate.py, checker.py,
