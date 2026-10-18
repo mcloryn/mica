@@ -1,4 +1,5 @@
-"""CLI evaluasi (M-12). Saat ini subperintah annotate, retrieval, gate, dan generation.
+"""CLI evaluasi (M-12): annotate, retrieval, gate, generation, copy, stt, latency, dataset,
+vision, vision-scenarios, dan color.
 
 python -m mica.eval annotate export --config <yaml> --dataset <jsonl> --out <pool.csv> [--force]
 python -m mica.eval annotate import --dataset <jsonl> --pool <pool.csv>
@@ -17,6 +18,8 @@ python -m mica.eval vision --config <yaml> --dataset data/eval/vision/<nama>
     [--models yolo26n,yolo26n-pose] [--conf 0.1,0.25,0.5] [--out results/E-07]   (docs/E-07.md)
 python -m mica.eval vision-scenarios --config <yaml> --dataset data/eval/vision_scenarios/<nama>
     --model <pemenang> [--conf <terpilih>] [--grid default] [--out results/E-07]
+python -m mica.eval color --config <yaml> --dataset data/eval/vision/<nama> [--labels colors.csv]
+    [--labels2 colors_rater2.csv] [--out results/E-08]   (docs/E-08.md)
 """
 
 from __future__ import annotations
@@ -199,6 +202,19 @@ def build_parser() -> argparse.ArgumentParser:
     scen.add_argument("--out", type=Path, default=Path("results/E-07"))
     scen.add_argument("--models-dir", type=Path, default=Path("models"))
     scen.add_argument("--note", help="catatan di run.json, mis. 'sintetis, bukan hasil E-07'")
+
+    col = sub.add_parser("color", help="E-08: kappa, akurasi, macro-F1 warna (docs/E-08.md)")
+    col.add_argument("--config", type=Path, required=True)
+    col.add_argument("--dataset", type=Path, required=True, help="folder data/eval/vision/<nama>")
+    col.add_argument("--labels", type=Path, default=Path("colors.csv"),
+                     help="label penilai 1 (relatif terhadap --dataset)")  # fmt: skip
+    col.add_argument("--labels2", type=Path, default=Path("colors_rater2.csv"),
+                     help="label penilai 2 (relatif terhadap --dataset)")  # fmt: skip
+    col.add_argument("--model", default="yolo26n-pose", help="detektor orang dan keypoint")
+    col.add_argument("--conf", type=float, help="default vision.conf")
+    col.add_argument("--out", type=Path, default=Path("results/E-08"))
+    col.add_argument("--models-dir", type=Path, default=Path("models"))
+    col.add_argument("--note", help="catatan di run.json, mis. 'sintetis, bukan hasil E-08'")
     return parser
 
 
@@ -416,6 +432,67 @@ def cmd_vision_scenarios(args: argparse.Namespace) -> int:
         lambda: UltralyticsDetector(path, vision.tracker, conf, vision.imgsz),
         es.GRIDS[args.grid], vision.fps_idle, run_dir, info, min_kp_conf=args.min_kp_conf,
     )  # fmt: skip
+    print((run_dir / "verdict.md").read_text(encoding="utf-8"))
+    print(f"tersimpan: {run_dir.as_posix()}")
+    return 0
+
+
+def cmd_color(args: argparse.Namespace) -> int:
+    from mica.eval import color as ec
+    from mica.eval import vision as ev
+    from mica.vision.color import (
+        COLORS_NPY_SHA256,
+        DEFAULT_COLORS_FILE,
+        ColorNamesLut,
+        HsvRuleNamer,
+    )
+    from mica.vision.detector import ModelMissing, model_path
+    from mica.vision.detector import sha256_file as file_sha
+    from mica.vision.worker import make_region
+
+    settings = _vision_settings(args, "color")
+    if not args.model.endswith("-pose"):
+        raise ev.VisionEvalError(f"region keypoint_torso butuh model -pose, bukan {args.model}")
+    path = model_path(args.model, args.models_dir)
+    if not path.is_file():
+        raise ModelMissing(path)
+    frames = ev.load_frames(args.dataset)
+    labels = [p if p.is_absolute() else args.dataset / p for p in (args.labels, args.labels2)]
+    first, second = (ec.load_color_labels(p) for p in labels)
+    colors_file = Path(args.models_dir) / DEFAULT_COLORS_FILE.name
+    namers = {"color_names_lut": ColorNamesLut.load(colors_file, 0.0),
+              "hsv_rules": HsvRuleNamer(0.0)}  # fmt: skip
+    regions = {r: make_region(r, ec.TRIAL_VALUES) for r in ec.REGIONS}
+    conf = args.conf if args.conf is not None else settings.vision.conf
+    environment = collect_environment()
+    warning = dirty_warning(environment)
+    if warning:
+        print(warning, file=sys.stderr)
+    stamp = _run_stamp()
+    run_dir = Path(args.out) / f"color-{stamp}"
+    info = {
+        "note": args.note,
+        "model": args.model,
+        "conf": conf,
+        "imgsz": settings.vision.imgsz,
+        "model_file": _model_info(args.models_dir, args.model),
+        "colors_file": {
+            "file": colors_file.as_posix(),
+            "sha256": file_sha(colors_file),
+            "sha256_expected": COLORS_NPY_SHA256,
+        },
+        "dataset": {
+            "path": args.dataset.as_posix(),
+            "manifest_sha256": sha256_file(args.dataset / "manifest.jsonl"),
+            "labels_sha256": [sha256_file(p) for p in labels],
+            "n_frame": len(frames),
+        },
+        "packages": _vision_packages(),
+        "environment": environment,
+        "started_at": stamp,
+    }
+    predictor = ev.ultralytics_predictor(path, conf, settings.vision.imgsz)
+    ec.run_color(frames, first, second, predictor, regions, namers, run_dir, info)
     print((run_dir / "verdict.md").read_text(encoding="utf-8"))
     print(f"tersimpan: {run_dir.as_posix()}")
     return 0
@@ -888,6 +965,7 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
     from mica.eval.copy_rate import RunMismatch
     from mica.eval.stt import ManifestError
     from mica.eval.vision import VisionEvalError
+    from mica.vision.color import ColorsMissing
     from mica.vision.detector import ModelMissing
 
     try:
@@ -897,6 +975,8 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
             return cmd_vision(args)
         if args.command == "vision-scenarios":
             return cmd_vision_scenarios(args)
+        if args.command == "color":
+            return cmd_color(args)
         if args.command == "latency":
             return cmd_latency(args)
         if args.command == "dataset":
@@ -915,7 +995,7 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
     except (ConfigError, KbLoadError, DatasetError, FileExistsError, ValueError, CacheMiss,
             SttEvalError, ManifestError, ListenError, SttModelMissing, RunMismatch,
             KeyError, OfficialDatasetError, SplitRefused, VisionEvalError,
-            ModelMissing) as exc:  # fmt: skip
+            ModelMissing, ColorsMissing) as exc:  # fmt: skip
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
