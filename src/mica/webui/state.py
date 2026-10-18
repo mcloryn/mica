@@ -85,6 +85,7 @@ def config_json(ui: UiConfig, dev: bool) -> dict[str, Any]:
         "dev": dev,
         "font_scale": ui.font_scale,
         "logo": "/logo" if ui.logo_path else None,
+        "preview": ui.camera_preview,
         "topics": [
             {
                 "topic": t,

@@ -222,3 +222,24 @@ kotak ketik, Kirim). Layar < 1100 px (nilai desain): kolom kiri menjadi strip ke
 - Gerak: animasi CSS hanya saat status Mendengarkan, Berpikir, dan Berbicara; tidak ada animasi
   atau timer JS saat Siap; `prefers-reduced-motion` mematikan semua animasi.
 - Penolakan (jawaban MICA tanpa sumber) tampil sebagai kartu krem yang sopan, bukan galat.
+
+## Pratinjau kamera UI kiosk (Langkah 37, 18 Okt 2026)
+
+- `ui.camera_preview`: `off` | `public` | `debug`. kiosk.yaml `public`, dev.yaml `debug`; config
+  menolak `debug` saat `app.mode: kiosk`.
+- Proses kamera membuat gambar lebar 320 px yang dicerminkan, di-JPEG di memori
+  (`mica/vision/livepreview.py`), dengan laju `ui.preview_fps` dari frame kamera dan hasil
+  deteksi TERAKHIR (tidak ada inferensi YOLO tambahan). `public`: seluruh gambar di-pixelate
+  (blok `ui.preview_pixel_block` px) kecuali kotak target; tanpa target seluruh gambar
+  di-pixelate. Overlay public: kotak target + label warna, tanpa angka. `debug`: tanpa
+  pixelate, semua kotak, area baju, label warna, skor, lebar bahu.
+- Nilai coba DESAIN (bukan hasil eksperimen): `ui.preview_pixel_block` 16, `ui.preview_fps` 5.
+- Jalur: antrean multiprocessing terpisah dari bus event (`Bus.preview`, maxsize 1, frame lama
+  dibuang); bus event tetap tanpa frame (SDD M-13). Server memompa antrean ke WebSocket
+  `/preview` (pesan biner), hanya 127.0.0.1 dengan cek Origin yang sama dengan `/ws`; CSP
+  `img-src 'self' blob:`. Tidak ada endpoint yang menyimpan gambar; tidak ada gambar ke disk.
+- Info target di kolom kiri berasal dari event `PersonArrived`/`PersonLeft` lewat hook tampilan
+  controller (bukan dari gambar), jadi tetap tampil walau pratinjau `off`.
+- Sumber gambar palsu (dev): `python -m mica.webui --fake-workers --fake-camera
+  [--fake-pipeline]` menjalankan proses kamera asli dengan adegan buatan (siluet tanpa wajah,
+  `mica/vision/fakesource.py`) dan nilai coba SDD bagian 12 untuk dwell/leave/rasio bahu.

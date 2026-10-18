@@ -10,7 +10,12 @@ hanya 127.0.0.1.
   {"type": "ack", "seq"} setelah requestAnimationFrame berikutnya; selisih waktunya (diukur di
   Python) dicatat di ack_latencies_s untuk scripts/ui_bench.py.
 - WebSocket dengan header Origin selain alamat server ini ditolak (403) sebelum handshake.
-- Content-Security-Policy hanya mengizinkan aset dari server ini (tanpa aset internet).
+- Content-Security-Policy hanya mengizinkan aset dari server ini (tanpa aset internet); img-src
+  juga blob: untuk gambar pratinjau yang dibuat browser dari pesan biner.
+- Pratinjau kamera (ui.camera_preview bukan off): JPEG dari antrean pratinjau proses kamera
+  (terpisah dari bus event) dipompa satu thread latar ke WebSocket /preview sebagai pesan biner.
+  /preview hanya di 127.0.0.1 dengan cek Origin yang sama seperti /ws. Tidak ada endpoint yang
+  menyimpan gambar; JPEG hanya lewat di memori (N-08).
 
 Server WSGI: server bawaan Werkzeug (threaded, reloader dan debugger mati); alasannya di
 docs/UI-WEB.md, "Catatan setelah tahap 1".
@@ -39,7 +44,12 @@ from mica.webui.state import config_json, event_from_message, format_debug, view
 HOST = "127.0.0.1"  # tidak pernah 0.0.0.0: UI hanya untuk laptop kiosk itu sendiri
 POLL_INTERVAL_S = 0.05  # SDD 3.3: setara QTimer 50 ms PySide6
 STATIC_DIR = Path(__file__).with_name("static")
-CSP = "default-src 'self'; connect-src 'self'; img-src 'self'; style-src 'self'; script-src 'self'"
+CSP = (
+    "default-src 'self'; connect-src 'self'; img-src 'self' blob:; style-src 'self'; "
+    "script-src 'self'"
+)
+WS_PATHS = ("/ws", "/preview")  # WebSocket dengan cek Origin
+PREVIEW_POLL_S = 0.5  # batas tunggu antrean pratinjau (thread berhenti cepat saat stop)
 
 
 class WebUi:
@@ -52,8 +62,11 @@ class WebUi:
         # K-3 (E-09): jam yang sama dengan controller dan pekerja (monotonic), bukan perf_counter
         self.render_clock = render_clock
         self.sent_views: dict[int, tuple[str, bool]] = {}  # seq -> (status, ada transkripsi)
-        self.vm = ViewModel()
+        self.vm = ViewModel(preview=ui.camera_preview)
         self.controller: Any = None
+        self.preview_source: Any = None  # antrean pratinjau proses kamera (Bus.preview)
+        self.preview_sockets: set[Any] = set()
+        self.previews_sent = 0
         self.port: int | None = None
         self.lock = threading.RLock()  # vm, sockets, seq, sent_at, debug, dan setiap ws.send
         self.sockets: set[Any] = set()
@@ -99,7 +112,7 @@ class WebUi:
 
         @app.before_request
         def _check_origin() -> None:
-            if request.path == "/ws" and not self.origin_allowed(request.headers.get("Origin")):
+            if request.path in WS_PATHS and not self.origin_allowed(request.headers.get("Origin")):
                 abort(403, "Origin ditolak")
 
         @app.after_request
@@ -130,6 +143,10 @@ class WebUi:
         def _ws(ws: Any) -> None:
             self.serve_socket(ws)
 
+        @sock.route("/preview")
+        def _preview(ws: Any) -> None:
+            self.serve_preview_socket(ws)
+
         return app
 
     def serve_socket(self, ws: Any) -> None:
@@ -151,6 +168,42 @@ class WebUi:
         finally:
             with self.lock:
                 self.sockets.discard(ws)
+
+    def serve_preview_socket(self, ws: Any) -> None:
+        """Hanya server -> browser (JPEG biner); pesan dari browser diabaikan."""
+        with self.lock:
+            self.preview_sockets.add(ws)
+        try:
+            while ws.receive() is not None:
+                pass
+        except ConnectionClosed:
+            pass
+        finally:
+            with self.lock:
+                self.preview_sockets.discard(ws)
+
+    def push_preview(self, jpeg: bytes) -> None:
+        """Kirim satu JPEG pratinjau ke semua koneksi /preview; tidak disimpan di mana pun."""
+        with self.lock:
+            targets = list(self.preview_sockets)
+        for ws in targets:
+            try:
+                ws.send(jpeg)
+                self.previews_sent += 1
+            except ConnectionClosed:
+                with self.lock:
+                    self.preview_sockets.discard(ws)
+
+    def preview_loop(self, stop: threading.Event) -> None:
+        """Pompa antrean pratinjau -> /preview sampai stop (menunggu, bukan polling sibuk)."""
+        while not stop.is_set() and self.preview_source is not None:
+            try:
+                jpeg = self.preview_source.get(timeout=PREVIEW_POLL_S)
+            except queue.Empty:
+                continue
+            except (EOFError, OSError, ValueError):
+                break  # antrean ditutup saat bus berhenti
+            self.push_preview(jpeg)
 
     def handle_message(self, data: dict[str, Any]) -> None:
         kind = data.get("type")
@@ -218,7 +271,7 @@ class WebUi:
 
     def close_sockets(self) -> None:
         with self.lock:
-            targets = list(self.sockets)
+            targets = list(self.sockets) + list(self.preview_sockets)
         for ws in targets:
             try:
                 ws.close()

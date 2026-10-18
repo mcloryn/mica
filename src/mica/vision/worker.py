@@ -137,6 +137,11 @@ class VisionWorkerConfig:
     prompts: tuple[tuple[float, str], ...] = ()
     countdown_s: float = 0.0
     preview_seconds: float | None = None  # untuk baris "sisa waktu" di jendela
+    # pratinjau UI kiosk (ui.camera_preview; mica.vision.livepreview): JPEG kecil lewat antrean
+    # terpisah dari bus, dengan laju dan blok pixelate dari config
+    camera_preview: str = "off"
+    preview_fps: float | None = None
+    preview_pixel_block: int | None = None
 
     @classmethod
     def from_settings(
@@ -202,12 +207,23 @@ class VisionWorkerConfig:
             prompts=tuple(prompts),
             countdown_s=countdown_s,
             preview_seconds=preview_seconds,
+            camera_preview=settings.ui.camera_preview,
+            preview_fps=settings.ui.preview_fps,
+            preview_pixel_block=settings.ui.preview_pixel_block,
         )
         cfg.validate()
         return cfg
 
     def validate(self) -> None:
         _check_dev_only(self.mode, bool(self.camera_factory or self.detector_factory), self.preview)
+        if self.camera_preview == "debug" and self.mode != "dev":
+            raise WorkerConfigError(
+                "pratinjau debug (tanpa samaran) hanya boleh saat app.mode: dev"
+            )
+        if self.camera_preview != "off" and not (self.preview_fps and self.preview_pixel_block):
+            raise WorkerConfigError(
+                "ui.preview_fps dan ui.preview_pixel_block wajib bila pratinjau aktif"
+            )
 
     def check_files(self) -> None:
         """Bobot model dan tabel warna harus ada sebelum proses anak dimulai."""
@@ -263,6 +279,7 @@ class VisionLoop:
         detector: PersonDetector,
         clock: Callable[[], float] = time.monotonic,
         sleep: Callable[[float], None] = time.sleep,
+        preview_out: Any = None,
     ) -> None:
         values = cfg.values
         self.cfg = cfg
@@ -297,6 +314,19 @@ class VisionLoop:
             self.overlay = Overlay()
         self.shown: list[float] = []  # waktu frame ditampilkan / dideteksi (1 detik terakhir)
         self.detected: list[float] = []
+        # pratinjau UI kiosk: hanya bila mode bukan off DAN ada antrean; tanpa itu tidak ada JPEG
+        self.preview_out = preview_out
+        self.renderer: Any = None
+        if preview_out is not None and cfg.camera_preview != "off":
+            from mica.vision.livepreview import PreviewRenderer
+
+            assert cfg.preview_pixel_block is not None
+            self.renderer = PreviewRenderer(cfg.camera_preview, cfg.preview_pixel_block,
+                                            values.get("keypoint_torso.min_kp_conf"))  # fmt: skip
+        self.next_preview: float | None = None
+        self.previews = 0  # JPEG pratinjau yang dikirim
+        # hasil deteksi terakhir untuk overlay pratinjau (pratinjau tidak memanggil detektor)
+        self.last: tuple[Any, Any, Any, ColorResult | None] = ([], None, None, None)
 
     def _send(self, msg: Any) -> None:
         self.outbox.put(msg)
@@ -328,6 +358,7 @@ class VisionLoop:
             color = self.namer.name(frame[y1:y2, x1:x2])  # piksel hanya di memori (N-08)
         for event in self.presence.update(tracks, frame.shape, now, color_of=lambda _t: color):
             self._send(event)
+        self.last = (tracks, target, located[0] if located is not None else None, color)
         self.detections += 1
         self.detected.append(now)
         if self.overlay is not None:
@@ -337,6 +368,21 @@ class VisionLoop:
             self.overlay.region_rect = located[0] if located is not None else None
             self.overlay.region_source = located[1] if located is not None else None
             self.overlay.color = color
+
+    def _publish_preview(self, frame: np.ndarray) -> None:
+        """JPEG pratinjau dari frame ini + hasil deteksi terakhir -> antrean (frame lama dibuang)."""
+        from mica.vision.livepreview import encode_jpeg, put_latest
+
+        tracks, target, region, color = self.last
+        label = None
+        if color is not None:
+            if self.cfg.camera_preview == "debug" and color.top is not None:
+                label = f"{color.top} {color.majority:.2f}"
+            else:
+                label = color.label
+        image = self.renderer.render(frame, tracks, target, region, label)
+        if put_latest(self.preview_out, encode_jpeg(image)):
+            self.previews += 1
 
     def _show(self, frame: np.ndarray, now: float) -> None:
         """Gambar pratinjau; q menutup jendela tanpa menghentikan worker."""
@@ -392,6 +438,12 @@ class VisionLoop:
                 if now >= next_detect - 1e-6:
                     self._detect(frame, now)
                     next_detect = max(next_detect + 1.0 / self.fps, now)
+                due = self.next_preview is None or now >= self.next_preview - 1e-6
+                if self.renderer is not None and now >= self.scenario_start and due:
+                    self._publish_preview(frame)
+                    assert self.cfg.preview_fps is not None
+                    step = 1.0 / self.cfg.preview_fps
+                    self.next_preview = max((self.next_preview or now) + step, now)
                 if self.preview_on:
                     self._show(frame, now)
                 del frame  # N-08: frame hanya di memori
@@ -399,7 +451,9 @@ class VisionLoop:
             self.camera.release()
 
 
-def run_vision_worker(cfg: VisionWorkerConfig, inbox: Any, outbox: Any) -> None:
+def run_vision_worker(
+    cfg: VisionWorkerConfig, inbox: Any, outbox: Any, preview_out: Any = None
+) -> None:
     """Entry proses anak. Error tak terduga dilaporkan sebagai CameraStatus(ok=False), lalu
     proses keluar dengan error supaya bus memulai ulang (SDD 8.1)."""
     try:
@@ -408,7 +462,8 @@ def run_vision_worker(cfg: VisionWorkerConfig, inbox: Any, outbox: Any) -> None:
         detector = _make_detector(cfg)
         # pemanasan: muat model sebelum kamera dibuka
         detector.detect_and_track(np.zeros((480, 640, 3), dtype=np.uint8))
-        loop = VisionLoop(cfg, inbox, outbox, _make_camera(cfg), detector)
+        loop = VisionLoop(cfg, inbox, outbox, _make_camera(cfg), detector,
+                          preview_out=preview_out)  # fmt: skip
         loop.run()
     except Exception as exc:
         outbox.put(CameraStatus(ok=False, message=f"vision worker error: {exc}", fps=None))

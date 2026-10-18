@@ -245,6 +245,12 @@ class UiConfig(_Model):
     )
     # logo header UI web: file lokal (png/svg/jpg/webp); null = placeholder teks "MICA"
     logo_path: str | None = None
+    # pratinjau kamera UI web (Langkah 37): off | public (tersamar kecuali kotak target) |
+    # debug (tanpa samaran, dev saja). Blok pixelate (px pada gambar lebar 320) dan laju
+    # pratinjau adalah nilai coba desain, bukan hasil eksperimen.
+    camera_preview: Literal["off", "public", "debug"]
+    preview_pixel_block: PositiveInt
+    preview_fps: PositiveFloat
 
     @field_validator("logo_path")
     @classmethod
@@ -295,6 +301,15 @@ class Settings(_Model):
     eval: EvalConfig
     # Diisi load_settings dari .env/environment, bukan dari YAML; tidak ikut hash.
     api_keys: ApiKeys = ApiKeys()
+
+    @model_validator(mode="after")
+    def _preview_debug_dev_only(self) -> Settings:
+        if self.app.mode == "kiosk" and self.ui.camera_preview == "debug":
+            raise ValueError(
+                "ui.camera_preview debug (tanpa samaran) hanya boleh saat app.mode: dev; "
+                "kiosk memakai public atau off"
+            )
+        return self
 
     def _config_dict(self) -> dict[str, Any]:
         return self.model_dump(mode="json", exclude={"api_keys"})

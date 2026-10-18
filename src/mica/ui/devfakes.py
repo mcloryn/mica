@@ -2,7 +2,9 @@
 
 FakeWorkerBus berjalan di dalam proses: tanpa kamera dan mikrofon (CameraStatus ok=False,
 AudioStatus mic_ok=False) sehingga UI dipakai lewat teks; Speak langsung dijawab SpeechDone
-pada poll berikutnya (tanpa suara). FakePipeline menjawab dengan teks berlabel palsu tanpa
+pada poll berikutnya (tanpa suara). Dengan vision (start_fake_camera), proses kamera asli
+berjalan dengan sumber gambar palsu (mica.vision.fakesource): event kamera dan antrean
+pratinjau datang dari proses itu. FakePipeline menjawab dengan teks berlabel palsu tanpa
 memanggil Groq. Keduanya ditolak di mode kiosk oleh mica.ui.app.
 """
 
@@ -15,15 +17,39 @@ from mica.core.types import FinalAnswer
 from mica.vision.types import CameraStatus
 
 FAKE_ANSWER_PREFIX = "[jawaban palsu dev] "
+# nilai coba SDD bagian 12 untuk sumber gambar palsu (dev saja, bukan hasil E-07/E-08)
+FAKE_CAMERA_VALUES = {
+    "dwell_s": 2.0, "leave_s": 3.0, "min_shoulder_ratio": 0.22, "color.min_majority": 0.6,
+    "box_upper.top": 0.35, "box_upper.bottom": 0.65, "box_upper.side": 0.25,
+    "keypoint_torso.min_kp_conf": 0.5, "keypoint_torso.shrink": 0.15,
+    "keypoint_torso.torso_aspect": 1.2,
+}  # fmt: skip
+
+
+def start_fake_camera(settings: Any) -> Any:
+    """Bus vision saja: proses kamera asli + sumber gambar dan detektor palsu (dev saja)."""
+    from mica.core.bus import start_workers
+    from mica.vision.worker import VisionWorkerConfig
+
+    cfg = VisionWorkerConfig.from_settings(
+        settings, FAKE_CAMERA_VALUES,
+        camera_factory="mica.vision.fakesource:make_camera",
+        detector_factory="mica.vision.fakesource:make_detector",
+    )  # fmt: skip
+    return start_workers(settings, vision=cfg)
 
 
 class FakeWorkerBus:
     names = ("vision", "audio")
 
-    def __init__(self) -> None:
+    def __init__(self, vision: Any = None) -> None:
+        self.vision = vision  # Bus vision asli (sumber gambar palsu) atau None
+        self.preview = getattr(vision, "preview", None)
         self.dead: set[str] = set()
+        camera = [] if vision is not None else [
+            CameraStatus(ok=False, message="kamera palsu (dev): tidak ada kamera")]  # fmt: skip
         self.outbox: list[Any] = [
-            CameraStatus(ok=False, message="kamera palsu (dev): tidak ada kamera"),
+            *camera,
             AudioStatus(
                 mic_ok=False,
                 speaker_ok=False,
@@ -36,15 +62,21 @@ class FakeWorkerBus:
 
     def poll(self) -> list[Any]:
         out, self.outbox = self.outbox, []
+        if self.vision is not None:
+            out += self.vision.poll()
         return out
 
     def send(self, target: str, msg: Any) -> None:
         self.sent.append((target, msg))
+        if target == "vision" and self.vision is not None:
+            self.vision.send(target, msg)
         if isinstance(msg, Speak):  # StopSpeaking: Speak palsu sudah selesai seketika
             self.outbox.append(SpeechDone(msg.session_id, msg.utterance_id, None))
 
     def stop(self) -> None:
         self.stopped = True
+        if self.vision is not None:
+            self.vision.stop()
 
 
 class FakePipeline:

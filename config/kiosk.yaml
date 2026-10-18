@@ -82,6 +82,9 @@ ui:
   font_scale: 1.0
   topics: [Program Studi, Biaya, Beasiswa, Pendaftaran, Fasilitas, Lokasi]   # F-14; kartu UI web (Langkah 37), kartu hanya mengisi kotak pertanyaan
   logo_path: null                   # file logo lokal; null = placeholder teks "MICA" sampai logo resmi tersedia
+  camera_preview: public            # off | public | debug (debug ditolak di kiosk); Langkah 37
+  preview_pixel_block: 16           # NILAI COBA DESAIN (bukan hasil eksperimen): blok pixelate px pada gambar lebar 320
+  preview_fps: 5                    # NILAI COBA DESAIN (bukan hasil eksperimen): laju pratinjau; tidak menambah inferensi YOLO
   suggestions: {}                   # F-14; topik -> daftar saran pertanyaan, diisi pengembang
 logging:
   dir: logs/

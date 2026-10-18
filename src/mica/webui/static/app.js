@@ -9,6 +9,8 @@ let config = null;
 let view = null;
 let rendered = 0; // jumlah pesan yang sudah menjadi elemen
 let shownTranscript = null;
+let previewSocket = null;
+let previewUrl = null;
 
 function send(msg) {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
@@ -56,6 +58,25 @@ function applyConfig(c) {
   $("topic_cards").replaceChildren(...c.topics.map((x) => topicButton(x.topic, "topic-card")));
   $("chips").replaceChildren(...c.topics.map((x) => topicButton(x.topic, "chip")));
   $("debug_dock").hidden = !c.dev;
+  if (c.preview !== "off" && previewSocket === null) openPreview();
+}
+
+function openPreview() {
+  // pratinjau kamera: JPEG biner dari /preview (127.0.0.1, Origin dicek server); hanya di memori
+  previewSocket = new WebSocket(`ws://${location.host}/preview`);
+  previewSocket.binaryType = "blob";
+  previewSocket.addEventListener("open", () => { window.__micaPreviewReady = true; });
+  previewSocket.addEventListener("message", (e) => {
+    const img = $("preview_img");
+    const old = previewUrl;
+    previewUrl = URL.createObjectURL(e.data);
+    img.src = previewUrl;
+    if (old) URL.revokeObjectURL(old);
+    if (view === null || view.camera_ok) {
+      img.hidden = false;
+      $("preview_empty").hidden = true;
+    }
+  });
 }
 
 function messageElement(m) {
@@ -111,6 +132,10 @@ function render(v) {
   $("stop_button").hidden = v.pill !== "speaking";
   $("greeting").textContent = v.greeting;
   renderLeft(v);
+  if (!v.camera_ok) { // kamera mati: gambar pratinjau terakhir tidak ditampilkan
+    $("preview_img").hidden = true;
+    $("preview_empty").hidden = false;
+  }
   const conv = $("conversation");
   if (rendered > v.messages.length) { // ClearScreen
     conv.replaceChildren();

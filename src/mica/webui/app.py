@@ -1,8 +1,11 @@
 """UI web (ADR-19, opsi ui.backend: web): rakit KioskController + server Flask + Edge, tanpa Qt.
 
-python -m mica.webui --config <yaml> [--fake-workers] [--fake-pipeline] [--no-browser] [--port N]
+python -m mica.webui --config <yaml> [--fake-workers [--fake-camera]] [--fake-pipeline] [--no-browser]
+    [--port N]
     [--record-resources <folder> [--resource-interval 5] [--e09]]
 - Rakitan bus/pipeline/controller sama dengan mica.ui.app.build; --fake-* hanya di mode dev.
+- --fake-camera (dengan --fake-workers): proses kamera asli dengan sumber gambar palsu
+  (mica.vision.fakesource) sehingga pratinjau, target, dan sapaan bisa dicoba tanpa kamera.
 - Edge ditutup -> server, controller, dan pekerja berhenti rapi; server berhenti -> Edge ditutup.
 - --no-browser: hanya server (URL dicetak), berhenti dengan Ctrl+C.
 - --record-resources: perekam sumber daya E-09 (mica.eval.resources); hanya dev, kecuali --e09.
@@ -38,19 +41,23 @@ def build_controller(
     *,
     fake_workers: bool = False,
     fake_pipeline: bool = False,
+    fake_camera: bool = False,
     bus: Any = None,
     pipeline: Any = None,
     clock: Callable[[], float] = time.monotonic,
 ) -> KioskController:
     dev = settings.app.mode == "dev"
-    if not dev and (fake_workers or fake_pipeline or bus is not None or pipeline is not None):
+    fakes = fake_workers or fake_pipeline or fake_camera
+    if not dev and (fakes or bus is not None or pipeline is not None):
         raise WebUiError("pekerja/pipeline palsu hanya boleh saat app.mode: dev (ditolak di kiosk)")
+    if fake_camera and not fake_workers:
+        raise WebUiError("--fake-camera hanya bersama --fake-workers")
     log = InteractionLog(Path(settings.logging.dir))
     if bus is None:
         if fake_workers:
-            from mica.ui.devfakes import FakeWorkerBus
+            from mica.ui.devfakes import FakeWorkerBus, start_fake_camera
 
-            bus = FakeWorkerBus()
+            bus = FakeWorkerBus(start_fake_camera(settings) if fake_camera else None)
         else:
             from mica.core.bus import start_workers
 
@@ -74,6 +81,7 @@ def build_controller(
                                  clock, log, debug=webui.show_debug if dev else None,
                                  display=webui.show_display)  # fmt: skip
     webui.controller = controller
+    webui.preview_source = getattr(bus, "preview", None)  # None bila pratinjau off
     return controller
 
 
@@ -92,6 +100,11 @@ def serve(
     poll = threading.Thread(target=webui.poll_loop, args=(stop,), name="mica-webui-poll",
                             daemon=True)  # fmt: skip
     poll.start()
+    pump = None
+    if webui.preview_source is not None:
+        pump = threading.Thread(target=webui.preview_loop, args=(stop,),
+                                name="mica-webui-preview", daemon=True)  # fmt: skip
+        pump.start()
     try:
         if browser is not None:
             browser.start(url)
@@ -103,6 +116,8 @@ def serve(
     finally:
         stop.set()
         poll.join()
+        if pump is not None:
+            pump.join(timeout=2)
         webui.close_sockets()
         controller.shutdown()
         if browser is not None:
@@ -111,7 +126,7 @@ def serve(
 
 
 def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool = False,
-        no_browser: bool = False, port: int = 0, record_resources: Path | None = None,
+        fake_camera: bool = False, no_browser: bool = False, port: int = 0, record_resources: Path | None = None,
         resource_interval: float = 5.0, e09: bool = False) -> int:  # fmt: skip
     """Rakit lalu jalankan sampai Edge ditutup atau Ctrl+C (dipakai python -m mica dan main)."""
     from mica.eval.resources import RecorderRefused, check_allowed
@@ -123,7 +138,8 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
         webui = WebUi(settings.ui, dev=settings.app.mode == "dev")
         browser = None if no_browser else EdgeBrowser(settings.ui.fullscreen)
         controller = build_controller(settings, webui, fake_workers=fake_workers,
-                                      fake_pipeline=fake_pipeline)  # fmt: skip
+                                      fake_pipeline=fake_pipeline,
+                                      fake_camera=fake_camera)  # fmt: skip
     except (WebUiError, EdgeMissing, RecorderRefused) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -134,7 +150,8 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
         recorder = make_recorder(record_resources, settings.app.mode, e09,
                                  lambda: bus_roots(controller.bus, browser), resource_interval,
                                  {"ui_backend": "web", "fake_workers": fake_workers,
-                                  "fake_pipeline": fake_pipeline})  # fmt: skip
+                                  "fake_pipeline": fake_pipeline, "fake_camera": fake_camera,
+                                  "camera_preview": settings.ui.camera_preview})  # fmt: skip
         recorder.start()
     try:
         serve(webui, controller, browser, port,
@@ -152,6 +169,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--fake-workers", action="store_true", help="bus palsu (dev saja)")
     parser.add_argument("--fake-pipeline", action="store_true", help="jawaban palsu (dev saja)")
+    parser.add_argument(
+        "--fake-camera",
+        action="store_true",
+        help="dengan --fake-workers: proses kamera dengan sumber gambar palsu (dev)",
+    )
     parser.add_argument("--no-browser", action="store_true", help="jangan luncurkan Edge")
     parser.add_argument("--port", type=int, default=0, help="0 = port acak bebas")
     from mica.eval.resources import add_arguments
@@ -164,6 +186,6 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     return run(settings, fake_workers=args.fake_workers, fake_pipeline=args.fake_pipeline,
-               no_browser=args.no_browser, port=args.port,
+               fake_camera=args.fake_camera, no_browser=args.no_browser, port=args.port,
                record_resources=args.record_resources,
                resource_interval=args.resource_interval, e09=args.e09)  # fmt: skip

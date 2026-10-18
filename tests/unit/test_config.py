@@ -54,6 +54,7 @@ def _fill_nulls(node):
 def _complete_kiosk_raw() -> dict:
     raw = _fill_nulls(_dev_raw())
     raw["app"]["mode"] = "kiosk"
+    raw["ui"]["camera_preview"] = "public"  # debug ditolak di kiosk
     raw["kb"]["active_id"] = "official-2026-11-02"
     raw["llm"]["chain"] = ["groq:model-a", "groq:model-b"]
     return raw
@@ -555,3 +556,23 @@ def test_kiosk_yaml_vision_uses_pose_and_signal_is_tbd():
 def test_dev_yaml_presence_signal_shoulder_width():
     vision = load_settings(DEV_YAML).vision
     assert vision.presence_signal == "shoulder_width" and vision.min_shoulder_ratio is None
+
+
+def test_camera_preview_debug_rejected_in_kiosk(tmp_path):
+    raw = _complete_kiosk_raw()
+    raw["ui"]["camera_preview"] = "debug"
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert "camera_preview debug" in str(exc.value)
+    raw["ui"]["camera_preview"] = "public"
+    assert load_settings(_write(tmp_path, raw)).ui.camera_preview == "public"
+    assert load_settings(DEV_YAML).ui.camera_preview == "debug"
+
+
+def test_kiosk_yaml_preview_public_with_trial_values():
+    raw = yaml.safe_load(KIOSK_YAML.read_text(encoding="utf-8"))
+    assert raw["ui"]["camera_preview"] == "public"
+    text = KIOSK_YAML.read_text(encoding="utf-8")
+    for key in ("preview_pixel_block", "preview_fps"):
+        line = next(ln for ln in text.splitlines() if ln.strip().startswith(f"{key}:"))
+        assert "NILAI COBA DESAIN" in line
