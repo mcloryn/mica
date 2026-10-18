@@ -113,3 +113,29 @@ Switch K2 dicek: `kDisableGpuCompositing[] = "disable-gpu-compositing"` ("Preven
 from using its GPU implementation") di
 https://chromium.googlesource.com/chromium/src/+/HEAD/content/public/common/content_switches.cc,
 dicek 18 Okt 2026.
+
+### Amandemen 2 (18 Okt 2026, setelah hasil 03-06, sebelum mengukur 07-08)
+
+Hasil 03-06 (`results/ADR-19/ui-preview-opt-20261018-1712`) sudah ada: K2 lolos aturan keputusan
+dan menjadi konfigurasi akhir. Amandemen ini menambah pengukuran, tidak mengubah aturan di atas.
+
+- K2 sekarang ada di kode: `mica/webui/browser.py` `PREVIEW_SWITCHES`
+  (`--disable-gpu-compositing`), hanya bila `ui.camera_preview` bukan `off` (kondisi yang
+  diukur). Bench mengambil switch itu dari config, jadi kondisi 07-08 tanpa `edge=` tambahan;
+  file statis tetap dari 21e25ae (sama dengan pohon kerja).
+- `ui.preview_fps` 10 adalah KEPUTUSAN DESAIN PENGGUNA (18 Okt 2026, pratinjau minimal 10 fps),
+  bukan hasil eksperimen. Laju deteksi YOLO (`vision.fps_idle`, `vision.fps_busy`) tidak diubah;
+  overlay memakai deteksi terakhir.
+- 07-fps10-vs-fps5: info saja, tanpa keputusan. Bench tahap 1 yang sama, 10 + 10 ulangan
+  selang-seling, AC, `--min-free-gb 2.5`.
+- 08-grow-fps10-gc: uji tumbuh 15 menit pada fps 10 (sampel tiap 30 s, aturan "naik terus" /
+  "mendatar" sama dengan Diagnosis). Edge dijalankan dengan `--remote-debugging-port` (hanya
+  127.0.0.1; berbeda dari 06, dicatat sebagai beda kondisi). Setelah sampel terakhir: GC paksa di
+  halaman MICA dengan cara L31 (`ui_bench.cdp_memory`: `HeapProfiler.collectGarbage` lewat
+  DevTools), lalu RAM USS renderer 30 dan 60 s sesudahnya.
+  - "turun lagi setelah GC (sampah GC)" bila renderer 60 s setelah GC lebih rendah dari sampel
+    terakhir sebelum GC;
+  - selain itu "tidak turun (bocor)". Angka 30 s dilaporkan apa adanya.
+- Cek laju kamera (`scripts/camera_rate.py`, 30 s setelah pemanasan 3 s, kamera asli + YOLO
+  asli, lalu sumber palsu): kamera dianggap sanggup bila frame terbaca per detik >= 10. Laju JPEG
+  pratinjau dan laju deteksi dilaporkan apa adanya.
