@@ -92,4 +92,24 @@ Uji tumbuh 15 menit diulang untuk konfigurasi akhir.
 
 ## Amandemen
 
-(belum ada)
+### Amandemen 1 (18 Okt 2026, setelah diagnosis, sebelum mengukur K1)
+
+Diagnosis uji tumbuh 15 menit kondisi sekarang
+(`results/ADR-19/ui-preview-opt-20261018-1712/01-diagnosis-grow`):
+
+- GPU Edge naik dari 55,6 ke +-210 MB dalam 60 s pertama (puncak 233,6 MB pada 120 s), lalu
+  bertahan di 197-208 MB sampai menit 15. Aturan mekanis tetap menamainya "naik terus"
+  (rata-rata 5 menit terakhir 207,4 > 5 menit pertama 194,8 karena kenaikan awal; kemiringan 10
+  menit terakhir +0,77 MB/menit).
+- Renderer naik pelan dari 21 ke 30 MB (+0,3 MB/menit).
+- CPU rata-rata per proses: kamera 1,28%, Edge GPU 2,83%, renderer 2,46%, browser 1,31%, inti
+  Python 0,87%.
+
+Biaya utama ada di sisi tampil Edge (GPU + renderer), bukan di pembuatan JPEG. Sumber palsu hampir
+selalu statis, sedangkan kamera asli selalu berubah, jadi "JPEG sama dibuat ulang" bukan penyebab
+yang relevan untuk kiosk. Kandidat K1 dan K2 tidak diubah; K3 tidak ada.
+
+Switch K2 dicek: `kDisableGpuCompositing[] = "disable-gpu-compositing"` ("Prevent the compositor
+from using its GPU implementation") di
+https://chromium.googlesource.com/chromium/src/+/HEAD/content/public/common/content_switches.cc,
+dicek 18 Okt 2026.
