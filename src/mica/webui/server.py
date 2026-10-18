@@ -79,6 +79,7 @@ class WebUi:
         self.ack_latencies_s: list[float] = []
         self.first_render_at: float | None = None
         self.on_event: Callable[[Any], None] | None = None  # kait tes/bench
+        self.on_first_render: Callable[[], None] | None = None  # Langkah 40: tahap start-up
 
     # --- dipanggil controller (thread poll) ---------------------------------------------
 
@@ -217,6 +218,8 @@ class WebUi:
                     self.ack_latencies_s.append(now - sent)
                     if self.first_render_at is None:
                         self.first_render_at = now
+                        if self.on_first_render is not None:
+                            self.on_first_render()
                 rendered = getattr(self.controller, "view_rendered", None)
                 if view is not None and rendered is not None:
                     rendered(view[0], view[1], self.render_clock())  # respons pertama K-3

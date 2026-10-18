@@ -242,20 +242,28 @@ def make_pipeline(
     log: InteractionLog | None = None,
 ) -> AnswerPipeline:
     """Rakit pipeline dari konfigurasi: KB aktif, retriever, gerbang, rantai LLM, checker."""
+    from mica.core import startup
     from mica.kb.index import DEFAULT_KB_ROOT, load_kb
     from mica.rag.checker import make_checker
     from mica.rag.gate import make_gate
     from mica.rag.llm import make_llm
     from mica.rag.retriever import embedder_for_kb, make_retriever
 
+    startup.mark("kb_load_start")
     kb = load_kb(settings.kb.active_id, kb_root or DEFAULT_KB_ROOT)
+    startup.mark("kb_load_done")
     embedder = None
     if settings.rag.retriever != "bm25":
         # model dimuat di depan supaya timings.retrieval tidak memuat waktu muat model
         embedder = embedder_for_kb(kb)
         load = getattr(embedder, "load", None)
         if load is not None:
+            if startup.active():  # Langkah 40: modul yang memang dimuat BgeM3Embedder.load
+                startup.timed_import("torch")
+                startup.timed_import("sentence_transformers")
+            startup.mark("embedder_load_start")
             load()
+            startup.mark("embedder_load_done")
     retriever = make_retriever(settings, kb, embedder_factory=lambda m, r: embedder)
     return AnswerPipeline(
         settings,

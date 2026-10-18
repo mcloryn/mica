@@ -72,6 +72,10 @@ def main(
 
         return check_main(argv[1:])
 
+    from mica.core import startup
+
+    startup.begin()  # Langkah 40: tahap dibuffer sampai logging.dir diketahui (run web)
+    startup.mark("main_start")
     parser = argparse.ArgumentParser(prog="python -m mica")
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--env-file", type=Path, default=DEFAULT_ENV)
@@ -83,6 +87,7 @@ def main(
     args = parser.parse_args(argv)
 
     rows, settings = check(args.config, args.env_file)
+    startup.mark("check_done")
     if failed(rows) or settings is None:
         print(format_table(rows))
         print("MICA tidak dijalankan.")

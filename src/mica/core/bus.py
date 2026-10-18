@@ -129,6 +129,9 @@ class Bus:
             target, args = run_audio_worker, (self.audio_cfg, self.to_audio, self.to_main)
         else:
             raise ValueError(f"pekerja tidak dikenal: {name}")
+        from mica.core import startup
+
+        startup.mark(f"spawn_{name}_start")
         proc = self.ctx.Process(
             target=target,
             args=args,
@@ -137,7 +140,7 @@ class Bus:
         )
         proc.start()
         self.processes[name] = proc
-        self.started_at[name] = time.monotonic()
+        self.started_at[name] = startup.mark(f"spawn_{name}_done")
 
     def start(self) -> Bus:
         for name in self.names:

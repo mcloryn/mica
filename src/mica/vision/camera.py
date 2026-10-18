@@ -56,10 +56,15 @@ class Camera:
         ):
             return False
         self.last_open_attempt = now
+        from mica.core import startup
+
+        startup.mark("camera_open_start")
         capture = self.open_capture(self.source)
         if capture is not None and capture.isOpened():
             self.capture = capture
+            startup.mark("camera_open_done")
             return True
+        startup.mark("camera_open_failed")
         if capture is not None:
             capture.release()
         return False

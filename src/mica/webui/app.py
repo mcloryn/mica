@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from mica.config import ConfigError, Settings, load_settings
+from mica.core import startup
 from mica.core.controller import KioskController
 from mica.core.logging import InteractionLog
 from mica.core.session import Session
@@ -62,8 +63,12 @@ def build_controller(
             from mica.core.bus import start_workers
 
             bus = start_workers(settings)
+    watch = None
+    if startup.active():  # Langkah 40: pembungkus pasif, pesan bus tidak diubah
+        watch = bus = startup.StartupBus(bus)
     try:
         if pipeline is None:
+            startup.mark("pipeline_build_start")
             if fake_pipeline:
                 from mica.ui.devfakes import FakePipeline
 
@@ -72,11 +77,20 @@ def build_controller(
                 from mica.rag.pipeline import make_pipeline
 
                 pipeline = make_pipeline(settings)  # baris giliran ditulis controller
+            startup.mark("pipeline_ready")
     except Exception:
         stop = getattr(bus, "stop", None)
         if stop is not None:
             stop()
         raise
+    if watch is not None:
+        watch.note_pipeline_ready()
+
+        def first_render() -> None:
+            startup.mark("ui_first_render")
+            watch.note_ui_rendered()
+
+        webui.on_first_render = first_render
     controller = KioskController(bus, Session.from_settings(settings), pipeline, webui.show_item,
                                  clock, log, debug=webui.show_debug if dev else None,
                                  display=webui.show_display)  # fmt: skip
@@ -96,6 +110,7 @@ def serve(
     """Server + thread poll 50 ms sampai stop di-set atau jendela Edge ditutup; lalu bersih-bersih."""
     stop = stop or threading.Event()
     server = start_server(webui, port)
+    startup.mark("server_started")
     url = f"http://{HOST}:{webui.port}/"
     poll = threading.Thread(target=webui.poll_loop, args=(stop,), name="mica-webui-poll",
                             daemon=True)  # fmt: skip
@@ -108,6 +123,7 @@ def serve(
     try:
         if browser is not None:
             browser.start(url)
+            startup.mark("edge_launched")
         on_ready(url)
         while not stop.is_set():
             if browser is not None and not browser.alive():
@@ -132,6 +148,9 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
     from mica.eval.resources import RecorderRefused, check_allowed
     from mica.webui.browser import EdgeBrowser, EdgeMissing
 
+    startup.begin()
+    startup.mark("run_start")
+    startup.init(Path(settings.logging.dir))
     try:
         if record_resources is not None:
             check_allowed(settings.app.mode, e09)  # ditolak sebelum pekerja dimulai

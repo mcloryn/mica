@@ -304,6 +304,7 @@ class VisionLoop:
         self.camera_ok: bool | None = None
         self.camera_message = ""
         self.detections = 0  # sejak CameraStatus terakhir
+        self.first_detection_marked = False
         self.running = True
         self.preview_on = cfg.preview
         self.scenario_start: float | None = None  # kamera siap + hitung mundur
@@ -360,6 +361,11 @@ class VisionLoop:
             self._send(event)
         self.last = (tracks, target, located[0] if located is not None else None, color)
         self.detections += 1
+        if not self.first_detection_marked:  # Langkah 40: tahap start-up
+            from mica.core import startup
+
+            self.first_detection_marked = True
+            startup.mark("first_detection")
         self.detected.append(now)
         if self.overlay is not None:
             self.overlay.tracks = tracks
@@ -432,6 +438,9 @@ class VisionLoop:
                     self.sleep(1.0 / self.fps)
                     continue
                 if self.scenario_start is None:  # frame pertama: kamera siap
+                    from mica.core import startup
+
+                    startup.mark("camera_first_frame")
                     countdown = self.cfg.countdown_s if self.cfg.preview else 0.0
                     self.scenario_start = now + countdown
                     next_detect = self.scenario_start
@@ -456,12 +465,23 @@ def run_vision_worker(
 ) -> None:
     """Entry proses anak. Error tak terduga dilaporkan sebagai CameraStatus(ok=False), lalu
     proses keluar dengan error supaya bus memulai ulang (SDD 8.1)."""
+    from mica.core import startup
+
+    startup.set_process("vision")
+    startup.mark("proc_start")
     try:
         cfg.validate()
         cfg.check_files()
+        startup.timed_import("cv2")
+        if cfg.detector_factory is None:  # modul yang memang dimuat UltralyticsDetector
+            startup.timed_import("torch")
+            startup.timed_import("ultralytics")
+        startup.mark("model_load_start")
         detector = _make_detector(cfg)
+        startup.mark("model_load_done")
         # pemanasan: muat model sebelum kamera dibuka
         detector.detect_and_track(np.zeros((480, 640, 3), dtype=np.uint8))
+        startup.mark("warmup_inference_done")
         loop = VisionLoop(cfg, inbox, outbox, _make_camera(cfg), detector,
                           preview_out=preview_out)  # fmt: skip
         loop.run()

@@ -486,24 +486,39 @@ def run_audio_worker(cfg: AudioWorkerConfig, inbox: Any, outbox: Any) -> None:
     """Entry proses anak. Error tak terduga dilaporkan sebagai AudioStatus(ready=False), lalu
     proses keluar dengan error supaya bus memulai ulang (SDD 8.1)."""
     from mica.audio.mic import MicUnavailable
+    from mica.core import startup
 
+    startup.set_process("audio")
+    startup.mark("proc_start")
     try:
         cfg.validate()
         cfg.check_files()
+        # Langkah 40: modul yang memang dimuat pabrik asli di bawah, dicatat waktunya
+        for module, factory in (("faster_whisper", cfg.stt_factory), ("piper", cfg.tts_factory),
+                                ("pysilero_vad", cfg.prob_factory),
+                                ("sounddevice", cfg.mic_factory)):  # fmt: skip
+            if factory is None:
+                startup.timed_import(module)
+        startup.mark("stt_load_start")
         stt = _make_stt(cfg)
+        startup.mark("stt_load_done")
         tts = _make_tts(cfg)
+        startup.mark("tts_load_done")
         prob = _make_prob(cfg)
+        startup.mark("vad_load_done")
         mic, mic_message = None, ""
         try:
             mic = _make_mic(cfg)
             mic.pause()  # mode awal off
         except MicUnavailable as exc:
             mic_message = str(exc)  # sudah diawali MIC_DOWN
+        startup.mark("mic_open_done")
         player, speaker_message = None, ""
         try:
             player = _make_player(cfg)
         except SpeakerUnavailable as exc:
             speaker_message = f"speaker tidak tersedia: {exc}"
+        startup.mark("player_open_done")
         AudioLoop(cfg, inbox, outbox, stt, tts, mic, player, prob, mic_message,
                   speaker_message).run()  # fmt: skip
     except Exception as exc:
