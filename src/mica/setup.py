@@ -115,7 +115,7 @@ def components(
         "tabel warna",
         ((models_dir / DEFAULT_COLORS_FILE.name, COLORS_NPY_SHA256),),
         lambda: fetch_colors(models_dir, dl.url_bytes),
-        used=settings.vision.color.method == "color_names_lut",
+        used=True,  # lut_vote dan lut_mean sama-sama memakai tabel
     ))  # fmt: skip
 
     emb = settings.kb.embedder

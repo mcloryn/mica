@@ -66,19 +66,19 @@ def combo(region, method, f1, acc=0.5, available=True):
 
 
 def test_select_combo_macro_f1_then_accuracy_then_adr():
-    rows = [combo("box_upper", "hsv_rules", 0.6), combo("keypoint_torso", "hsv_rules", 0.7),
-            combo("box_upper", "color_names_lut", 0.5), combo("keypoint_torso", "color_names_lut", 0.4)]  # fmt: skip
-    assert ec.select_combo(rows)[0].name == "keypoint_torso_hsv_rules"
-    rows = [combo("box_upper", "hsv_rules", 0.7, acc=0.8), combo("keypoint_torso", "hsv_rules", 0.7, acc=0.6)]  # fmt: skip
-    assert ec.select_combo(rows)[0].name == "box_upper_hsv_rules"
-    rows = [combo("box_upper", "hsv_rules", 0.7), combo("keypoint_torso", "color_names_lut", 0.7)]
-    assert ec.select_combo(rows)[0].name == "keypoint_torso_color_names_lut"
+    rows = [combo("box_upper", "lut_mean", 0.6), combo("keypoint_torso", "lut_mean", 0.7),
+            combo("box_upper", "lut_vote", 0.5), combo("keypoint_torso", "lut_vote", 0.4)]  # fmt: skip
+    assert ec.select_combo(rows)[0].name == "keypoint_torso_lut_mean"
+    rows = [combo("box_upper", "lut_mean", 0.7, acc=0.8), combo("keypoint_torso", "lut_mean", 0.7, acc=0.6)]  # fmt: skip
+    assert ec.select_combo(rows)[0].name == "box_upper_lut_mean"
+    rows = [combo("box_upper", "lut_mean", 0.7), combo("keypoint_torso", "lut_vote", 0.7)]
+    assert ec.select_combo(rows)[0].name == "keypoint_torso_lut_vote"
 
 
 def test_select_combo_unavailable_has_no_winner():
-    rows = [combo("box_upper", "color_names_lut", 0.6), combo("box_upper", "hsv_rules", 0, available=False)]  # fmt: skip
+    rows = [combo("box_upper", "lut_vote", 0.6), combo("box_upper", "lut_mean", 0, available=False)]  # fmt: skip
     winner, best, reasons = ec.select_combo(rows)
-    assert winner is None and best is not None and best.method == "color_names_lut"
+    assert winner is None and best is not None and best.method == "lut_vote"
     assert "tidak tersedia" in reasons[0]
 
 
@@ -179,7 +179,7 @@ def test_run_color_synthetic_winner(tmp_path):
     second = labels(COLORS, {("f4", 0): "ungu"})  # satu tidak sepakat
     rows, winner, chosen = ec.run_color(
         frames, labels(COLORS), second, lambda img: [person()], regions(),
-        {"color_names_lut": ChannelNamer(), "hsv_rules": ChannelNamer()},
+        {"lut_vote": ChannelNamer(), "lut_mean": ChannelNamer()},
         tmp_path / "out", {"note": "sintetis"}, images=image_for(COLORS),
     )  # fmt: skip
     assert all(r.available and r.accuracy == 1.0 and r.n == 3 for r in rows)
@@ -188,7 +188,7 @@ def test_run_color_synthetic_winner(tmp_path):
     agreement = json.loads((tmp_path / "out" / "agreement.json").read_text(encoding="utf-8"))
     assert agreement["n_tidak_sepakat"] == 1 and agreement["n_sepakat"] == 3
     for name in ("summary.csv", "per_color.csv", "min_majority.csv", "per_item.csv",
-                 "verdict.md", "run.json", "confusion_box_upper_color_names_lut.csv"):  # fmt: skip
+                 "verdict.md", "run.json", "confusion_box_upper_lut_vote.csv"):  # fmt: skip
         assert (tmp_path / "out" / name).is_file()
     verdict = (tmp_path / "out" / "verdict.md").read_text(encoding="utf-8")
     assert "vision.color.min_majority = 0.5" in verdict
@@ -199,7 +199,7 @@ def test_run_color_unavailable_method_and_undetected(tmp_path):
     rows, winner, chosen = ec.run_color(
         frames, labels(COLORS), labels(COLORS),
         lambda img: [person()] if img[50, 50].any() and img[50, 50, 0] == 0 else [],
-        regions(), {"color_names_lut": ChannelNamer(), "hsv_rules": Unavailable()},
+        regions(), {"lut_vote": ChannelNamer(), "lut_mean": Unavailable()},
         tmp_path / "out", {}, images=image_for(COLORS),
     )  # fmt: skip
     assert winner is None and chosen is None
@@ -232,11 +232,11 @@ def test_cli_color_with_fakes(tmp_path, monkeypatch, capsys):
     out = captured.out
     assert code == 0, captured.err
     assert "Kappa Cohen = 1.000" in out
-    assert "hsv_rules | - | tidak tersedia" in out  # HsvRuleNamer asli belum dibuat
+    assert "| lut_mean |" in out
     run_dir = next((tmp_path / "res").iterdir())
     run = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
     assert run["region_values"]["box_upper.top"] == 0.35
-    assert "hsv_rules" in run["unavailable"]
+    assert run["unavailable"] == {}
 
 
 def test_cli_color_refused_in_kiosk(tmp_path, monkeypatch, capsys):

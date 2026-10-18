@@ -37,10 +37,10 @@ from mica.vision.color import (
     DEFAULT_COLORS_FILE,
     ColorNamer,
     ColorNamesLut,
+    ColorNamesLutMean,
     ColorResult,
     ColorsMissing,
     ColorVoting,
-    HsvRuleNamer,
 )
 from mica.vision.detector import DEFAULT_MODELS_DIR, ModelMissing, PersonDetector, model_path
 from mica.vision.presence import (
@@ -105,9 +105,9 @@ def make_region(region: str, values: Mapping[str, float]) -> ClothingRegion:
 
 
 def make_color_namer(method: str, path: Path, min_majority: float) -> ColorNamer:
-    if method == "color_names_lut":
-        return ColorNamesLut.load(path, min_majority)
-    return HsvRuleNamer(min_majority)
+    if method == "lut_mean":
+        return ColorNamesLutMean.load(path, min_majority)
+    return ColorNamesLut.load(path, min_majority)
 
 
 @dataclass(frozen=True)
@@ -213,7 +213,7 @@ class VisionWorkerConfig:
         """Bobot model dan tabel warna harus ada sebelum proses anak dimulai."""
         if self.detector_factory is None and not Path(self.model_file).is_file():
             raise ModelMissing(Path(self.model_file))
-        if self.color_method == "color_names_lut" and not Path(self.colors_file).is_file():
+        if not Path(self.colors_file).is_file():  # lut_vote dan lut_mean memakai tabel
             raise ColorsMissing(Path(self.colors_file))
 
 

@@ -444,7 +444,7 @@ def cmd_color(args: argparse.Namespace) -> int:
         COLORS_NPY_SHA256,
         DEFAULT_COLORS_FILE,
         ColorNamesLut,
-        HsvRuleNamer,
+        ColorNamesLutMean,
     )
     from mica.vision.detector import ModelMissing, model_path
     from mica.vision.detector import sha256_file as file_sha
@@ -460,8 +460,8 @@ def cmd_color(args: argparse.Namespace) -> int:
     labels = [p if p.is_absolute() else args.dataset / p for p in (args.labels, args.labels2)]
     first, second = (ec.load_color_labels(p) for p in labels)
     colors_file = Path(args.models_dir) / DEFAULT_COLORS_FILE.name
-    namers = {"color_names_lut": ColorNamesLut.load(colors_file, 0.0),
-              "hsv_rules": HsvRuleNamer(0.0)}  # fmt: skip
+    namers = {"lut_vote": ColorNamesLut.load(colors_file, 0.0),
+              "lut_mean": ColorNamesLutMean.load(colors_file, 0.0)}  # fmt: skip
     regions = {r: make_region(r, ec.TRIAL_VALUES) for r in ec.REGIONS}
     conf = args.conf if args.conf is not None else settings.vision.conf
     environment = collect_environment()

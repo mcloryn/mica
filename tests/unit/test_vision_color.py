@@ -9,10 +9,10 @@ from mica.vision.color import (
     COLOR_NAMES,
     DEFAULT_COLORS_FILE,
     ColorNamesLut,
+    ColorNamesLutMean,
     ColorResult,
     ColorsMissing,
     ColorVoting,
-    HsvRuleNamer,
     lut_index,
 )
 from mica.vision.presence import BoxHeightSignal, PresenceTracker
@@ -93,9 +93,34 @@ def test_load_npy(tmp_path):
     assert ColorNamesLut.load(path, 0.5).name(solid((255, 0, 0))).label == "biru"
 
 
-def test_hsv_rules_not_implemented_yet():
-    with pytest.raises(NotImplementedError, match="E-08"):
-        HsvRuleNamer(0.5).name(solid((0, 0, 0)))
+# --- lut_mean (amandemen 1 E-08) -------------------------------------------------------
+
+
+@pytest.mark.parametrize("bgr", [(255, 0, 0), (0, 0, 255), (255, 255, 255), (0, 0, 0)])
+def test_lut_mean_single_color_equals_lut_vote(bgr):
+    vote = ColorNamesLut(fake_table(), min_majority=0.6).name(solid(bgr))
+    mean = ColorNamesLutMean(fake_table(), min_majority=0.6).name(solid(bgr))
+    assert mean.label == vote.label and mean.majority == 1.0 and mean.pixels == 200
+
+
+def test_lut_mean_two_colors_can_differ_from_vote():
+    # setengah biru (B 255) + setengah merah (R 255): rata-rata BGR (128, 0, 128) jatuh di bin
+    # R >= 16 dan B >= 16 tanpa G, yang di tabel uji berlabel hitam; voting = biru/merah 50:50
+    img = np.concatenate([solid((255, 0, 0)), solid((0, 0, 255))], axis=1)
+    vote = ColorNamesLut(fake_table(), min_majority=0.0).name(img)
+    mean = ColorNamesLutMean(fake_table(), min_majority=0.9).name(img)
+    assert vote.top in ("biru", "merah")
+    assert mean.label == "hitam" and mean.majority == 1.0  # min_majority tidak membatasi
+
+
+def test_lut_mean_empty_and_load(tmp_path):
+    namer = ColorNamesLutMean(fake_table(), 0.6)
+    assert namer.name(np.zeros((0, 0, 3), np.uint8)).label is None
+    path = tmp_path / "w2c.npy"
+    np.save(path, fake_table())
+    loaded = ColorNamesLutMean.load(path, 0.5)
+    assert isinstance(loaded, ColorNamesLutMean)
+    assert loaded.name(solid((255, 0, 0))).label == "biru"
 
 
 # --- region -----------------------------------------------------------------------------
@@ -314,3 +339,12 @@ def test_real_table_pure_colors():
         ((0, 0, 0), "hitam"),
     ]:
         assert namer.name(solid(rgb[::-1])).label == name, rgb
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(not REAL_TABLE.is_file(), reason="tabel warna belum diunduh (fetch-colors)")
+def test_real_table_lut_mean_differs_on_mixed_area():
+    # 60 % putih + 40 % hitam: voting -> putih; rata-rata RGB (153, 153, 153) -> tabel: abu-abu
+    img = np.concatenate([solid((255, 255, 255), w=6), solid((0, 0, 0), w=4)], axis=1)
+    assert ColorNamesLut.load(REAL_TABLE, 0.0).name(img).label == "putih"
+    assert ColorNamesLutMean.load(REAL_TABLE, 0.0).name(img).label == "abu-abu"

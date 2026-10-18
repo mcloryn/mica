@@ -119,14 +119,24 @@ class ColorNamesLut:
         return result_from_distribution(counts.astype(float), self.min_majority, int(counts.sum()))
 
 
-class HsvRuleNamer:
-    """Baseline aturan HSV untuk E-08; belum dibuat."""
+class ColorNamesLutMean(ColorNamesLut):
+    """lut_mean (amandemen 1 E-08): rata-rata BGR seluruh piksel, dibulatkan ke bilangan bulat
+    terdekat, lalu satu kali lookup di tabel yang sama. Hasilnya satu suara, jadi majority = 1 dan
+    min_majority tidak membatasi (cakupan 100 %)."""
 
-    def __init__(self, min_majority: float) -> None:
-        self.min_majority = min_majority
+    def counts(self, pixels: np.ndarray) -> np.ndarray:
+        if pixels is None or np.asarray(pixels).size == 0:
+            return np.zeros(len(COLOR_NAMES), dtype=np.int64)
+        px = np.asarray(pixels, dtype=np.float64).reshape(-1, 3)
+        mean = np.clip(np.rint(px.mean(axis=0)), 0, 255).astype(np.uint8)
+        counts = np.zeros(len(COLOR_NAMES), dtype=np.int64)
+        counts[self.labels[lut_index(mean)[0]]] = 1
+        return counts
 
     def name(self, pixels: np.ndarray) -> ColorResult:
-        raise NotImplementedError("HsvRuleNamer (vision.color.method: hsv_rules) dibuat untuk E-08")
+        counts = self.counts(pixels)
+        n = 0 if pixels is None else int(np.asarray(pixels).reshape(-1, 3).shape[0])
+        return result_from_distribution(counts.astype(float), 0.0, n if counts.any() else 0)
 
 
 class ColorVoting:

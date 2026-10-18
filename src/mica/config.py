@@ -153,9 +153,24 @@ class AudioConfig(_Model):
     tts: TtsConfig
 
 
+# nilai lama vision.color.method sebelum amandemen 1 E-08 (docs/E-08.md, 18 Okt 2026)
+OLD_COLOR_METHODS = {
+    "color_names_lut": "ganti dengan lut_vote (metode yang sama, nama baru)",
+    "hsv_rules": "HsvRuleNamer dihapus (amandemen 1 E-08); pilih lut_vote atau lut_mean",
+}
+
+
 class ColorConfig(_Model):
-    method: Literal["color_names_lut", "hsv_rules"]
-    min_majority: float | None = Field(default=None, ge=0, le=1)
+    # ADR-14: kedua metode memakai tabel van de Weijer; lut_vote provisional sampai E-08
+    method: Literal["lut_vote", "lut_mean"]
+    min_majority: float | None = Field(default=None, ge=0, le=1)  # hanya untuk lut_vote
+
+    @field_validator("method", mode="before")
+    @classmethod
+    def _old_method(cls, value: Any) -> Any:
+        if isinstance(value, str) and value in OLD_COLOR_METHODS:
+            raise ValueError(f"nilai lama {value!r}: {OLD_COLOR_METHODS[value]}")
+        return value
 
 
 class BoxUpperConfig(_Model):

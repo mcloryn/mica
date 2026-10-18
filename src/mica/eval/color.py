@@ -32,8 +32,8 @@ from mica.vision.types import PersonTrack
 
 EXPERIMENT = "E-08"
 REGIONS = ("keypoint_torso", "box_upper")
-METHODS = ("color_names_lut", "hsv_rules")
-ADR_CHOICE = ("keypoint_torso", "color_names_lut")  # pemecah seri terakhir (docs/E-08.md)
+METHODS = ("lut_vote", "lut_mean")
+ADR_CHOICE = ("keypoint_torso", "lut_vote")  # pemecah seri terakhir (docs/E-08.md)
 # nilai coba area pakaian, SDD bagian 12 (docs/E-08.md)
 TRIAL_VALUES = {
     "box_upper.top": 0.35,

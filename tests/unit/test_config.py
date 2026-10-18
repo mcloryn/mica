@@ -86,6 +86,24 @@ def test_ui_backend_required(tmp_path):
     assert "ui.backend" in str(exc.value)
 
 
+@pytest.mark.parametrize(
+    ("old", "hint"), [("hsv_rules", "HsvRuleNamer dihapus"), ("color_names_lut", "lut_vote")]
+)
+def test_old_color_method_rejected_with_clear_message(tmp_path, old, hint):
+    raw = _dev_raw()
+    raw["vision"]["color"]["method"] = old
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert "vision.color.method" in str(exc.value) and hint in str(exc.value)
+
+
+def test_color_method_lut_mean_accepted(tmp_path):
+    raw = _dev_raw()
+    raw["vision"]["color"]["method"] = "lut_mean"
+    assert load_settings(_write(tmp_path, raw)).vision.color.method == "lut_mean"
+    assert load_settings(DEV_YAML).vision.color.method == "lut_vote"
+
+
 def test_unknown_field_rejected(tmp_path):
     raw = _dev_raw()
     raw["rag"]["topk"] = 5

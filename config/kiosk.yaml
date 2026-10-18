@@ -61,7 +61,7 @@ vision:
     shrink: null                    # E-08
     torso_aspect: null              # E-08; bila pinggul tak terlihat
   color:
-    method: color_names_lut         # ADR-14; color_names_lut | hsv_rules (E-08)
+    method: lut_vote                # ADR-14; lut_vote | lut_mean (E-08, amandemen 1); PROVISIONAL
     min_majority: null              # E-08
   dwell_s: null                     # E-07, syarat sapaan <= 3 detik (N-06)
   leave_s: null                     # E-07
