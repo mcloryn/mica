@@ -228,7 +228,8 @@ def child_pyside6(config: Path) -> int:
 
 
 def child_web(config: Path, keep_rendering: bool = True, long: bool = False,
-              edge_extra: tuple[str, ...] = (), fake_camera: bool = False) -> int:  # fmt: skip
+              edge_extra: tuple[str, ...] = (), fake_camera: bool = False,
+              static_dir: Path | None = None) -> int:  # fmt: skip
     from mica.config import load_settings
     from mica.webui.app import build_controller, serve
     from mica.webui.browser import EdgeBrowser
@@ -256,6 +257,10 @@ def child_web(config: Path, keep_rendering: bool = True, long: bool = False,
 
     sent: dict[str, int] = {}  # pesan server -> browser per jenis (diagnosis: kirim saat diam?)
 
+    if static_dir is not None:  # Langkah 37b: A/B versi file statis (bench saja)
+        import mica.webui.server as server_mod
+
+        server_mod.STATIC_DIR = static_dir
     settings = load_settings(config)
     webui = BenchWebUi(settings.ui, dev=True)
     commands_in = detach_stdin() if fake_camera else None  # sebelum pekerja kamera di-spawn
@@ -652,13 +657,19 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="anak web: proses kamera dengan sumber gambar palsu (Langkah 37)",
     )
+    parser.add_argument(
+        "--static-dir",
+        type=Path,
+        help="anak web: layani file statis dari folder ini (A/B gaya, bench saja)",
+    )
     args = parser.parse_args(argv)
     if args.child == "pyside6":
         return child_pyside6(args.config)
     if args.child == "web":
         return child_web(args.config, keep_rendering=args.edge_switches == "on", long=args.long,
                          edge_extra=tuple(args.edge_extra),
-                         fake_camera=args.fake_camera)  # fmt: skip
+                         fake_camera=args.fake_camera,
+                         static_dir=args.static_dir)  # fmt: skip
 
     from mica.config import load_settings
     from mica.eval.environment import collect_environment

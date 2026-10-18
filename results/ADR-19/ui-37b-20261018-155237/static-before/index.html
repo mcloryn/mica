@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MICA</title>
+<link rel="stylesheet" href="/static/tokens.css">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body data-status="ready">
+<header id="header">
+  <div id="brand">
+    <span id="logo_text" class="logo-placeholder">MICA</span>
+    <img id="logo_img" alt="Logo" hidden>
+    <span id="app_title"></span>
+  </div>
+  <div id="indicators">
+    <span id="status_pill" class="pill" role="status" aria-live="polite"></span>
+    <span id="camera_indicator" class="indicator"><span class="dot"></span><span class="label"></span></span>
+    <span id="mic_indicator" class="indicator"><span class="dot"></span><span class="label"></span></span>
+  </div>
+  <p id="notice"></p>
+</header>
+
+<main id="layout">
+  <section id="left" aria-label="Kamera">
+    <div id="preview_card">
+      <div id="preview_ring">
+        <img id="preview_img" alt="Pratinjau kamera" hidden>
+        <div id="preview_empty">
+          <span id="preview_mica" aria-hidden="true">MICA</span>
+        </div>
+      </div>
+    </div>
+    <p id="target_info"><span id="target_dot" class="swatch" hidden></span><span id="target_text"></span></p>
+    <p id="camera_message"></p>
+    <details id="debug_dock" hidden>
+      <summary>Debug (dev)</summary>
+      <pre id="debug_panel"></pre>
+    </details>
+  </section>
+
+  <section id="right" aria-label="Percakapan">
+    <div id="home">
+      <h1 id="greeting"></h1>
+      <p id="topics_hint"></p>
+      <div id="topic_cards"></div>
+    </div>
+    <div id="conversation" hidden aria-live="polite"></div>
+    <div id="chips" hidden></div>
+    <div id="transcript_row" hidden>
+      <label id="transcript_label" for="transcript_edit"></label>
+      <input id="transcript_edit" type="text">
+      <button id="resend_button" type="button" class="btn btn-secondary"></button>
+    </div>
+    <div id="bottom_bar">
+      <button id="talk_button" type="button" class="mic" aria-label="Bicara">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z"/></svg>
+      </button>
+      <input id="input" type="text" autocomplete="off">
+      <button id="send_button" type="button" class="btn btn-primary"></button>
+      <button id="stop_button" type="button" class="btn btn-secondary" hidden></button>
+    </div>
+  </section>
+</main>
+<script src="/static/app.js"></script>
+</body>
+</html>

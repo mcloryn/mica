@@ -4,7 +4,7 @@ python scripts/ui_screens.py [--out docs/ui-screens] [--only nama,...]
 
 Setiap adegan: WebUi dengan controller tiruan (tanpa pekerja, tanpa pipeline), ViewModel diisi
 ShowView/DisplayUpdate yang sama dengan yang dikirim M-09/controller, lalu halaman difoto di
-1536 x 864 (layar laptop dev) atau 1000 x 700 (layar sempit). Adegan pratinjau memakai sumber
+1366 x 768 dan 1920 x 1080 (Langkah 37b), atau 1000 x 700 untuk adegan layar sempit. Adegan pratinjau memakai sumber
 gambar palsu (mica.vision.fakesource: siluet buatan, tanpa wajah orang sungguhan) yang dirender
 oleh fungsi pratinjau yang sama dengan proses kamera. Hanya 127.0.0.1; dev saja.
 """
@@ -37,7 +37,8 @@ from mica.webui.server import HOST, WebUi, start_server, stop_server
 
 V = VisitState
 CDP_PORT = 9333  # hanya 127.0.0.1 (bawaan Edge), selama skrip berjalan
-WIDE, NARROW = (1536, 864), (1000, 700)
+SIZES = ((1366, 768), (1920, 1080))  # Langkah 37b
+NARROW = ((1000, 700),)
 CHUNK = Chunk("03#2", "03", "Biaya Kuliah dan Syarat Masuk", "Biaya S1", date(2026, 9, 29),
               "dev", "isi", False)  # fmt: skip
 GREET = "Halo, selamat datang di Universitas Mikroskil. Kamu yang berbaju biru, ada yang bisa saya bantu?"
@@ -75,13 +76,13 @@ def _conversation(w: WebUi, answer: str, sources: tuple[Chunk, ...]) -> None:
 class Scene:
     name: str
     setup: Callable[[WebUi], None]
-    size: tuple[int, int] = WIDE
+    sizes: tuple[tuple[int, int], ...] = SIZES
     preview: str | None = None  # None = pratinjau mati; public | debug = sumber palsu
 
 
 SCENES = [
     Scene("01-siap-tanpa-orang", lambda w: w.show_item(ShowView(V.IDLE))),
-    Scene("02-sapaan-kartu-topik", _greeted),
+    Scene("02-sapaan-topik", _greeted),
     Scene("03-percakapan-jawaban-sumber", lambda w: _conversation(w, ANSWER, (CHUNK,))),
     Scene("04-penolakan", lambda w: _conversation(w, REFUSAL, ())),
     Scene(
@@ -91,7 +92,7 @@ SCENES = [
     Scene("06-kamera-mati", lambda w: w.show_item(ShowView(V.READY, camera_ok=False))),
     Scene("07-preview-public", _greeted, preview="public"),
     Scene("08-preview-debug", _greeted, preview="debug"),
-    Scene("09-layar-sempit", lambda w: _conversation(w, ANSWER, (CHUNK,)), size=NARROW),
+    Scene("09-layar-sempit", lambda w: _conversation(w, ANSWER, (CHUNK,)), sizes=NARROW),
 ]
 
 
@@ -149,14 +150,14 @@ class Cdp:
         self.ws.close()
 
 
-def shoot(scene: Scene, cdp: Cdp, out: Path, settings: Any) -> Path:
+def shoot(scene: Scene, cdp: Cdp, out: Path, settings: Any, size: tuple[int, int]) -> Path:
     ui = settings.ui.model_copy(update={"camera_preview": scene.preview or "off"})
     webui = WebUi(ui, dev=scene.preview == "debug")
     webui.controller = NullController()
     scene.setup(webui)
     server = start_server(webui)
     try:
-        w, h = scene.size
+        w, h = size
         cdp.call("Emulation.setDeviceMetricsOverride", width=w, height=h, deviceScaleFactor=1,
                  mobile=False)  # fmt: skip
         cdp.call("Page.navigate", url=f"http://{HOST}:{webui.port}/")
@@ -169,7 +170,7 @@ def shoot(scene: Scene, cdp: Cdp, out: Path, settings: Any) -> Path:
         cdp.wait_for("document.fonts.status === 'loaded'")
         time.sleep(0.4)
         shot = cdp.call("Page.captureScreenshot", format="png")
-        path = out / f"{scene.name}.png"
+        path = out / f"{scene.name}-{w}x{h}.png"
         path.write_bytes(base64.b64decode(shot["data"]))
         return path
     finally:
@@ -197,7 +198,8 @@ def main(argv: list[str] | None = None) -> int:
             for scene in SCENES:
                 if wanted and scene.name not in wanted:
                     continue
-                print(shoot(scene, cdp, args.out, settings).as_posix())
+                for size in scene.sizes:
+                    print(shoot(scene, cdp, args.out, settings, size).as_posix())
         finally:
             cdp.close()
     finally:

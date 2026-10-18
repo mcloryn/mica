@@ -1,0 +1,188 @@
+/* Tata letak UI kiosk MICA (Langkah 37): header, kolom kamera kiri (+-35%), percakapan kanan.
+   Semua nilai dari tokens.css; tanpa aset internet. Animasi hanya saat status aktif
+   (body[data-status] = listening | thinking | speaking) dan mati saat Siap. */
+
+* { box-sizing: border-box; }
+html { font-family: var(--font); font-size: 125%; }
+body {
+  margin: 0; height: 100vh; display: flex; flex-direction: column;
+  background: var(--bg); color: var(--text); font-size: var(--fs-m); line-height: 1.45;
+  overflow: hidden;
+}
+[hidden] { display: none !important; }
+button, input { font: inherit; color: inherit; }
+
+/* --- header ----------------------------------------------------------------------------- */
+#header {
+  display: grid; grid-template-columns: 1fr auto; align-items: center;
+  gap: var(--space-2) var(--space-4); padding: var(--space-3) var(--space-5);
+  background: var(--surface); border-bottom: 1px solid var(--border);
+}
+#brand { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.logo-placeholder {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 44px; padding: 0 var(--space-3); border-radius: var(--radius-s);
+  background: var(--accent); color: var(--on-accent); font-weight: 800; letter-spacing: 0.06em;
+}
+#logo_img { height: 44px; width: auto; }
+#app_title { font-weight: 700; font-size: var(--fs-l); white-space: nowrap; overflow: hidden;
+             text-overflow: ellipsis; }
+#indicators { display: flex; align-items: center; gap: var(--space-3); }
+#notice {
+  grid-column: 1 / -1; margin: 0; font-size: var(--fs-s); color: var(--text-muted);
+}
+
+.pill {
+  display: inline-flex; align-items: center; gap: var(--space-2); min-height: var(--touch-min);
+  padding: 0 var(--space-5); border-radius: var(--radius-pill); font-weight: 700;
+  font-size: var(--fs-l); color: var(--on-accent); background: var(--status-ready);
+}
+.pill::before {
+  content: ""; width: 12px; height: 12px; border-radius: 50%; background: currentColor;
+}
+.indicator {
+  display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--fs-s);
+  color: var(--text-muted);
+}
+.indicator .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--status-listening); }
+.indicator.off .dot { background: transparent; border: 2px solid var(--text-muted); }
+
+body[data-status="ready"] { --status: var(--status-ready); }
+body[data-status="listening"] { --status: var(--status-listening); }
+body[data-status="thinking"] { --status: var(--status-thinking); }
+body[data-status="speaking"] { --status: var(--status-speaking); }
+.pill { background: var(--status); }
+
+/* --- tata letak dua kolom ---------------------------------------------------------------- */
+#layout {
+  flex: 1; min-height: 0; display: grid; grid-template-columns: var(--left-col) 1fr;
+  gap: var(--space-5); padding: var(--space-5);
+}
+#left { display: flex; flex-direction: column; gap: var(--space-3); min-height: 0; }
+#right {
+  display: flex; flex-direction: column; gap: var(--space-3); min-height: 0;
+  background: var(--surface); border-radius: var(--radius-l); box-shadow: var(--shadow-1);
+  padding: var(--space-5);
+}
+
+/* --- kartu kamera ----------------------------------------------------------------------- */
+#preview_card {
+  background: var(--surface); border-radius: var(--radius-l); box-shadow: var(--shadow-1);
+  padding: var(--space-3);
+}
+#preview_ring {
+  position: relative; aspect-ratio: 4 / 3; border-radius: var(--radius-m); overflow: hidden;
+  outline: 6px solid var(--status); outline-offset: -6px; background: var(--surface-sunken);
+}
+#preview_img { width: 100%; height: 100%; object-fit: cover; display: block; }
+#preview_empty {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+}
+#preview_mica { font-size: var(--fs-xxl); font-weight: 800; color: var(--text-muted);
+                letter-spacing: 0.08em; }
+#target_info { margin: 0; font-size: var(--fs-l); font-weight: 600; display: flex;
+               align-items: center; gap: var(--space-2); }
+.swatch { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border);
+          flex: none; }
+#camera_message { margin: 0; font-size: var(--fs-m); color: var(--text-muted); }
+
+#debug_dock {
+  margin-top: auto; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-s); padding: var(--space-2) var(--space-3); min-height: 0;
+  overflow: auto; max-height: 40%;
+}
+#debug_dock summary { cursor: pointer; min-height: var(--touch-min); display: flex;
+                      align-items: center; font-size: var(--fs-s); font-weight: 600; }
+#debug_panel { white-space: pre-wrap; margin: 0; font-size: var(--fs-xs); }
+
+/* --- layar awal: sapaan dan kartu topik ------------------------------------------------- */
+#home { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;
+        gap: var(--space-4); }
+#greeting { margin: 0; font-size: var(--fs-xxl); line-height: 1.2; font-weight: 800; }
+#topics_hint { margin: 0; color: var(--text-muted); }
+#topic_cards {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4); margin-top: auto;
+}
+.topic-card {
+  min-height: 96px; padding: var(--space-4); border-radius: var(--radius-m);
+  border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow-1);
+  font-size: var(--fs-l); font-weight: 700; text-align: left; cursor: pointer;
+}
+.topic-card:active, .chip:active { background: var(--accent-soft); }
+
+/* --- percakapan ------------------------------------------------------------------------- */
+#conversation { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;
+                gap: var(--space-4); padding-right: var(--space-2); }
+.bubble { max-width: 80%; padding: var(--space-3) var(--space-4); border-radius: var(--radius-m);
+          white-space: pre-wrap; }
+.bubble.visitor { align-self: flex-end; background: var(--accent-soft);
+                  border-bottom-right-radius: var(--space-1); }
+.card-answer, .card-notice {
+  align-self: flex-start; max-width: 90%; padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-m); border-bottom-left-radius: var(--space-1);
+}
+.card-answer { background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-2); }
+.card-notice { background: var(--notice-bg); border: 1px solid var(--notice-border); }
+.who { font-size: var(--fs-s); font-weight: 700; color: var(--text-muted); margin-bottom: var(--space-1); }
+.text { white-space: pre-wrap; }
+.sources { margin-top: var(--space-3); padding-top: var(--space-2); border-top: 1px solid var(--border);
+           font-size: var(--fs-s); color: var(--text-muted); }
+
+#chips { display: flex; gap: var(--space-2); flex-wrap: nowrap; overflow-x: auto; }
+.chip {
+  flex: none; min-height: var(--touch-min); padding: 0 var(--space-4); border-radius: var(--radius-pill);
+  border: 1px solid var(--border); background: var(--surface-sunken); font-weight: 600; cursor: pointer;
+}
+
+#transcript_row { display: flex; gap: var(--space-2); align-items: center; font-size: var(--fs-s); }
+#transcript_edit { flex: 1; min-height: var(--touch-min); padding: 0 var(--space-3);
+                   border: 1px solid var(--border); border-radius: var(--radius-s); }
+
+/* --- bilah bawah ------------------------------------------------------------------------ */
+#bottom_bar { display: flex; align-items: center; gap: var(--space-3); }
+#input {
+  flex: 1; min-width: 0; min-height: 64px; padding: 0 var(--space-4); border-radius: var(--radius-pill);
+  border: 2px solid var(--border); background: var(--surface-sunken); font-size: var(--fs-l);
+}
+#input:focus, #transcript_edit:focus { outline: 3px solid var(--accent); outline-offset: 1px; }
+.btn {
+  min-height: 64px; min-width: var(--touch-min); padding: 0 var(--space-5);
+  border-radius: var(--radius-pill); border: 0; font-weight: 700; font-size: var(--fs-l); cursor: pointer;
+}
+.btn-primary { background: var(--accent); color: var(--on-accent); }
+.btn-primary:active { background: var(--accent-strong); }
+.btn-secondary { background: var(--surface-sunken); color: var(--text); border: 1px solid var(--border); }
+#transcript_row .btn { min-height: var(--touch-min); font-size: var(--fs-s); }
+button:disabled { opacity: 0.45; cursor: default; }
+button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.mic {
+  flex: none; width: var(--mic-size); height: var(--mic-size); border-radius: 50%; border: 0;
+  background: var(--accent); color: var(--on-accent); display: inline-flex; align-items: center;
+  justify-content: center; cursor: pointer; box-shadow: var(--shadow-2);
+}
+.mic svg { width: 44px; height: 44px; fill: currentColor; }
+body[data-status="listening"] .mic { background: var(--status-listening); }
+
+/* --- gerak: hanya selama status aktif ---------------------------------------------------- */
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgb(15 122 77 / 0.45); }
+                   50% { box-shadow: 0 0 0 14px rgb(15 122 77 / 0); } }
+@keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+body[data-status="listening"] .mic { animation: pulse 1.4s ease-in-out infinite; }
+body[data-status="thinking"] .pill::before,
+body[data-status="speaking"] .pill::before { animation: breathe 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+
+/* --- layar sempit (< 1100 px, nilai desain): kamera jadi strip kecil di atas -------------- */
+@media (max-width: 1099px) {
+  #layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; gap: var(--space-3);
+            padding: var(--space-3); }
+  #left { flex-direction: row; align-items: center; gap: var(--space-4); }
+  #preview_card { width: 180px; flex: none; padding: var(--space-2); }
+  #preview_mica { font-size: var(--fs-m); }
+  #target_info, #camera_message { font-size: var(--fs-s); }
+  #debug_dock { margin-top: 0; max-height: 120px; }
+  #topic_cards { grid-template-columns: repeat(2, 1fr); }
+  #app_title { font-size: var(--fs-m); }
+}

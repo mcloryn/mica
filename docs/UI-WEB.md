@@ -317,3 +317,9 @@ digantikan oleh nilai berikut (riwayat tetap di atas).
 - Kontras (`python scripts/ui_contrast.py`): teks 15,80 di panel dan 14,74 di latar; teks sekunder
   6,39 dan 5,96; gelembung MICA 14,35 (teks kecil 5,81); gelembung pengunjung 13,53; tombol utama
   8,31 (hover 10,87); tombol topik/tautan 8,31.
+- Ukur ulang (`python scripts/ui_ab_bench.py --before db85a13 --reps 10`,
+  results/ADR-19/ui-37b-20261018-155237; AC, pratinjau off, selang-seling, aturan putaran 2):
+  median RAM USS diam 179,28 -> 176,73 MB (turun), CPU diam 5,16 -> 4,73% (turun), waktu mulai
+  2,478 -> 2,484 s (tetap). p95 jeda tampil 4,88 -> 5,57 ms, di atas maksimum versi sebelum
+  (5,20 ms), jadi "naik"; nilainya tetap jauh di bawah batas tahap 1 (x3 = 17 ms <= 1 s).
+- Tangkapan layar: `docs/ui-screens/` (1366x768 dan 1920x1080; sebelum di `before-37b/`).

@@ -1,0 +1,74 @@
+/* Token desain MICA (Langkah 37). Satu-satunya tempat warna, jarak, radius, bayangan, dan ukuran
+   huruf. Palet netral sementara dengan satu warna aksen (--accent); ganti nilai di sini dengan
+   warna resmi Mikroskil nanti. Rasio kontras dihitung dengan rumus WCAG 2.1 (docs/UI-WEB.md,
+   "Sistem desain"; scripts/ui_contrast.py); semua pasangan teks >= 4,5:1 (SC 1.4.3 AA). */
+
+@font-face {
+  /* Plus Jakarta Sans, SIL OFL 1.1 (fonts/OFL.txt); github.com/tokotype/PlusJakartaSans,
+     commit 18d1cd2, fonts/webfonts/PlusJakartaSans[wght].woff2, dicek 18 Okt 2026 */
+  font-family: "Plus Jakarta Sans";
+  src: url("/static/fonts/PlusJakartaSans-wght.woff2") format("woff2");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* warna dasar */
+  --bg: #f4f5f7;              /* latar halaman */
+  --surface: #ffffff;         /* kartu */
+  --surface-sunken: #eceef2;  /* chip, bidang input */
+  --border: #d5d9e0;
+  --text: #1a1d23;            /* teks utama: 16,88:1 di --surface, 15,48:1 di --bg */
+  --text-muted: #4a5260;      /* teks sekunder: 7,87:1 / 7,22:1 / 6,78:1 (sunken) */
+
+  /* satu warna aksen */
+  --accent: #1e4fd8;          /* putih di atas aksen: 6,63:1 */
+  --accent-strong: #173fae;   /* ditekan: putih 8,90:1 */
+  --accent-soft: #e6edfd;     /* gelembung pengunjung: --text 14,39:1 */
+  --on-accent: #ffffff;
+
+  /* status (cincin kamera, pil); teks pil putih di atasnya */
+  --status-ready: #4a5260;      /* putih 7,87:1 */
+  --status-listening: #0f7a4d;  /* putih 5,37:1 */
+  --status-thinking: #9a4a00;   /* putih 6,26:1 */
+  --status-speaking: var(--accent);
+
+  /* penolakan: sopan, bukan merah galat */
+  --notice-bg: #fff7e8;         /* --text 15,85:1 */
+  --notice-border: #e7c27d;
+
+  /* jarak (kelipatan 4 px) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* radius dan bayangan */
+  --radius-s: 10px;
+  --radius-m: 16px;
+  --radius-l: 24px;
+  --radius-pill: 999px;
+  --shadow-1: 0 1px 2px rgb(16 24 40 / 0.06), 0 1px 3px rgb(16 24 40 / 0.10);
+  --shadow-2: 0 4px 12px rgb(16 24 40 / 0.08), 0 2px 4px rgb(16 24 40 / 0.06);
+
+  /* huruf: ukuran dasar diatur app.js = 125% x ui.font_scale (20 px pada skala 1) supaya terbaca
+     dari +-1 m; semua ukuran lain dalam rem */
+  --font: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
+  --fs-xs: 0.75rem;
+  --fs-s: 0.875rem;
+  --fs-m: 1rem;
+  --fs-l: 1.25rem;
+  --fs-xl: 1.75rem;
+  --fs-xxl: 2.25rem;
+
+  /* target sentuh minimal 44 x 44 px CSS (WCAG 2.1 SC 2.5.5, w3.org/TR/WCAG21, dicek 18 Okt 2026) */
+  --touch-min: 44px;
+  --mic-size: 88px;
+
+  /* tata letak; 1100 px = nilai desain, bukan ambang evaluasi */
+  --left-col: 35%;
+}

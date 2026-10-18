@@ -1,0 +1,75 @@
+{
+ "step": "Langkah 37b",
+ "before_ref": "db85a13",
+ "static_before_files": [
+  "src/mica/webui/static/app.js",
+  "src/mica/webui/static/fonts/OFL.txt",
+  "src/mica/webui/static/fonts/PlusJakartaSans-wght.woff2",
+  "src/mica/webui/static/index.html",
+  "src/mica/webui/static/style.css",
+  "src/mica/webui/static/tokens.css"
+ ],
+ "reps": 10,
+ "camera_preview": "off",
+ "summary": {
+  "sebelum": {
+   "n_runs": 10,
+   "uss_idle_mb_median": 179.28125,
+   "uss_idle_mb_min": 177.2734375,
+   "uss_idle_mb_max": 180.96875,
+   "cpu_idle_pct_median": 5.1561876055178555,
+   "cpu_idle_pct_min": 3.984323602226491,
+   "cpu_idle_pct_max": 6.4061912018415015,
+   "startup_s_median": 2.477823495864868,
+   "startup_s_min": 2.44451642036438,
+   "startup_s_max": 2.546764850616455,
+   "lat_p95_ms_median": 4.876539987162686,
+   "lat_p95_ms_min": 4.563460001372732,
+   "lat_p95_ms_max": 5.199389997869729,
+   "n_unacked": 0
+  },
+  "sesudah": {
+   "n_runs": 10,
+   "uss_idle_mb_median": 176.7265625,
+   "uss_idle_mb_min": 174.74609375,
+   "uss_idle_mb_max": 178.5078125,
+   "cpu_idle_pct_median": 4.7264419782696,
+   "cpu_idle_pct_min": 3.671822303229726,
+   "cpu_idle_pct_max": 5.989496345881443,
+   "startup_s_median": 2.4836102724075317,
+   "startup_s_min": 2.4354264736175537,
+   "startup_s_max": 2.5235097408294678,
+   "lat_p95_ms_median": 5.573749991890509,
+   "lat_p95_ms_min": 4.814130003796886,
+   "lat_p95_ms_max": 6.21157000423409,
+   "n_unacked": 0
+  }
+ },
+ "verdicts": {
+  "uss_idle_mb": "turun",
+  "cpu_idle_pct": "turun",
+  "startup_s": "tetap",
+  "lat_p95_ms": "naik"
+ },
+ "environment": {
+  "python": "3.13.7",
+  "torch": "2.14.1+cpu",
+  "torch_num_threads": 14,
+  "sentence_transformers": "6.1.0",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+  "cpu_count_logical": 20,
+  "power": {
+   "source": "ac",
+   "battery_percent": 100,
+   "battery_saver": false
+  },
+  "power_plan": {
+   "guid": "bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b",
+   "name": "ASUS Recommended",
+   "raw": "Power Scheme GUID: bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b  (ASUS Recommended)"
+  },
+  "git_commit": "a6f8543bfdcb299ca2d6e29895f8041e04a5fb31",
+  "git_dirty": true
+ }
+}
