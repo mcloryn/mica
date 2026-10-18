@@ -8,6 +8,7 @@ import multiprocessing as mp
 import os
 import queue
 import time
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -67,6 +68,32 @@ def test_public_without_target_pixelates_whole_image():
     base, _ = r.base(frame)
     assert np.array_equal(out, lp.pixelate(base, BLOCK))
     assert out.shape[1] == lp.PREVIEW_WIDTH
+
+
+def test_public_target_outside_image_pixelates_whole_image():
+    # aman-gagal: kotak target di luar gambar / kosong -> tidak ada area tanpa samaran
+    frame, tracks = _scene()
+    r = lp.PreviewRenderer("public", BLOCK)
+    base, _ = r.base(frame)
+    for box in ((-500.0, -400.0, -10.0, -5.0), (100.0, 100.0, 100.0, 300.0)):
+        target = replace(tracks[0], box_xyxy=box)
+        out = r.render(frame, tracks, target, None, "biru")
+        assert np.array_equal(out, lp.pixelate(base, BLOCK))
+
+
+def test_preview_fps_10_from_config_reaches_worker():
+    # Langkah 38: ui.preview_fps 10 (keputusan desain pengguna) sampai ke VisionWorkerConfig;
+    # laju deteksi tetap vision.fps_idle
+    from mica.config import load_settings
+    from mica.ui.devfakes import FAKE_CAMERA_VALUES
+
+    settings = load_settings(Path(__file__).resolve().parents[2] / "config/dev.yaml")
+    cfg = VisionWorkerConfig.from_settings(
+        settings, FAKE_CAMERA_VALUES,
+        camera_factory="mica.vision.fakesource:make_camera",
+        detector_factory="mica.vision.fakesource:make_detector",
+    )  # fmt: skip
+    assert cfg.preview_fps == 10 and cfg.fps_idle == 5
 
 
 def test_pixelate_blocks_are_uniform():
