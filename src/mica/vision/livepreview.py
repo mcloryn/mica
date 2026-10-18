@@ -31,6 +31,26 @@ OTHER_BGR = (200, 200, 200)
 REGION_BGR = (255, 160, 0)
 
 
+LABEL_BG_ALPHA = 0.75  # latar label debug semi-pekat (nilai desain)
+
+
+def debug_label(image: np.ndarray, text: str, top_left: tuple[int, int]) -> None:
+    """Label debug: teks putih di atas kotak gelap semi-pekat agar terbaca (Langkah 37c)."""
+    import cv2
+
+    font, scale, thick = cv2.FONT_HERSHEY_SIMPLEX, 0.4, 1
+    (tw, th), base = cv2.getTextSize(text, font, scale, thick)
+    h, w = image.shape[:2]
+    x1, y1 = max(top_left[0], 0), max(top_left[1], 0)
+    x2, y2 = min(x1 + tw + 6, w), min(y1 + th + base + 6, h)
+    if x2 <= x1 or y2 <= y1:
+        return
+    roi = image[y1:y2, x1:x2]
+    roi[:] = (roi.astype(np.float32) * (1 - LABEL_BG_ALPHA)).astype(np.uint8)  # latar gelap
+    cv2.putText(image, text, (x1 + 3, y1 + 3 + th), font, scale, (255, 255, 255), thick,
+                cv2.LINE_AA)  # fmt: skip
+
+
 def pixelate(image: np.ndarray, block: int) -> np.ndarray:
     """Rata-rata per blok block x block (INTER_AREA), lalu diperbesar tanpa interpolasi."""
     import cv2
@@ -100,8 +120,7 @@ class PreviewRenderer:
                 r = _clip(_mirror_box(t.box_xyxy, scale, w), w, h)
                 if r is not None:
                     cv2.rectangle(image, r[:2], r[2:], OTHER_BGR, 1)
-                    cv2.putText(image, f"{t.track_id} {t.conf:.2f}", (r[0] + 2, r[1] + 12),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.35, OTHER_BGR, 1)  # fmt: skip
+                    debug_label(image, f"{t.track_id} {t.conf:.2f}", (r[0] + 2, r[1] + 2))
             if region is not None:
                 rr = _clip(_mirror_box(region, scale, w), w, h)
                 if rr is not None:
@@ -114,7 +133,9 @@ class PreviewRenderer:
                 ratio = (shoulder_width_ratio(target, frame.shape[1], self.min_kp_conf)
                          if self.min_kp_conf is not None else None)  # fmt: skip
                 label = f"{label} {target.conf:.2f}" + (f" bahu {ratio:.2f}" if ratio else "")
-            if label.strip():
+            if label.strip() and self.mode == "debug":
+                debug_label(image, label.strip(), (x1 + 3, y1 + 3))
+            elif label.strip():  # public: tidak berubah sejak Langkah 37
                 cv2.putText(image, label.strip(), (x1 + 4, y1 + 16), cv2.FONT_HERSHEY_SIMPLEX,
                             0.45, TARGET_BGR, 1, cv2.LINE_AA)  # fmt: skip
         return image

@@ -25,12 +25,9 @@ def status_label(vm: ViewModel) -> str:
     return status
 
 
-# titik warna target (dekoratif; nama warna selalu ditulis sebagai teks). Kunci = COLOR_NAMES.
-COLOR_SWATCH = {
-    "hitam": "#111827", "biru": "#2563eb", "cokelat": "#92400e", "abu-abu": "#9ca3af",
-    "hijau": "#16a34a", "oranye": "#ea580c", "merah muda": "#ec4899", "ungu": "#7c3aed",
-    "merah": "#dc2626", "putih": "#ffffff", "kuning": "#facc15",
-}  # fmt: skip
+def color_slug(name: str | None) -> str | None:
+    """Nama warna van de Weijer (COLOR_NAMES) -> kunci token CSS (--c-<slug>-swatch/-tint)."""
+    return None if not name else name.replace(" ", "-")
 
 
 def message_kind(m: Any) -> str:
@@ -48,7 +45,13 @@ def view_json(vm: ViewModel) -> dict[str, Any]:
         "greeting": vm.home_greeting,
         "target_present": vm.target_present,
         "target_color": vm.target_color,
-        "target_swatch": COLOR_SWATCH.get(vm.target_color or ""),
+        # warna sesi: hanya saat target terkunci; None = netral (juga setelah sesi reset)
+        "session_color": color_slug(vm.target_color) if vm.target_present else None,
+        "status_line": (
+            texts.STATUS_READY_NO_MIC
+            if pill == "ready" and not vm.mic_ok
+            else texts.STATUS_LINES[pill]
+        ),
         "preview": vm.preview,
         "notice": texts.NOTICE_SHORT if vm.camera_ok else texts.NOTICE_SHORT_NO_CAMERA,
         "status": vm.status.value,
@@ -107,16 +110,17 @@ def config_json(ui: UiConfig, dev: bool) -> dict[str, Any]:
             "app_title": texts.APP_TITLE,
             "approach": texts.APPROACH,
             "camera_unavailable": texts.CAMERA_UNAVAILABLE,
-            "target_label": texts.TARGET_LABEL,
-            "target_locked": texts.TARGET_LOCKED,
+            "wearing": texts.WEARING,
+            "detected_no_color": texts.DETECTED_NO_COLOR,
+            "camera_info": texts.CAMERA_INFO,
+            "welcome_title": texts.WELCOME_TITLE,
             "topics_hint": texts.TOPICS_HINT,
+            "mic_unavailable_button": texts.MIC_UNAVAILABLE_BUTTON,
             "camera_on": texts.CAMERA_ON,
             "camera_off": texts.CAMERA_OFF,
             "mic_on": texts.MIC_ON,
             "mic_off": texts.MIC_OFF,
             "camera_title": texts.CAMERA_TITLE,
-            "camera_badge_on": texts.CAMERA_BADGE_ON,
-            "camera_badge_off": texts.CAMERA_BADGE_OFF,
         },
     }
 

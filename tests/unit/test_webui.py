@@ -216,12 +216,21 @@ def test_static_files_have_no_external_urls():
             assert url.startswith("/static/fonts/"), (f.name, url)
 
 
-def test_system_font_without_font_files():
-    # Langkah 37b: font sistem (Segoe UI di Windows); file font dan lisensinya dihapus
-    assert not (STATIC_DIR / "fonts").exists()
+def test_font_is_local_atkinson_with_license():
+    # Langkah 37c: Atkinson Hyperlegible (Braille Institute), SIL OFL 1.1, regular + bold
+    fonts = {f.name for f in (STATIC_DIR / "fonts").iterdir()}
+    assert fonts == {"AtkinsonHyperlegible-Regular.woff2", "AtkinsonHyperlegible-Bold.woff2",
+                     "OFL.txt"}  # fmt: skip
+    for name in fonts - {"OFL.txt"}:
+        assert (STATIC_DIR / "fonts" / name).read_bytes()[:4] == b"wOF2"
+    ofl = (STATIC_DIR / "fonts" / "OFL.txt").read_text("utf-8")
+    assert "Braille Institute" in ofl and "SIL Open Font License, Version 1.1" in ofl
     tokens = (STATIC_DIR / "tokens.css").read_text("utf-8")
-    assert "@font-face" not in tokens and "url(" not in tokens
-    assert '--font: "Segoe UI", system-ui' in tokens
+    assert '--font: "Atkinson Hyperlegible", "Segoe UI", system-ui' in tokens
+    weights = set(
+        re.findall(r"font-weight:\s*(\d+)", tokens + (STATIC_DIR / "style.css").read_text("utf-8"))
+    )
+    assert weights == {"400", "700"}  # berat 400 dan 700 saja
 
 
 def _css_rules(text):
@@ -229,14 +238,13 @@ def _css_rules(text):
     return re.findall(r"([^{}]+)\{([^{}]*)\}", text)
 
 
-def test_animation_only_in_active_status_and_reduced_motion():
+def test_only_animation_is_swatch_fade_and_reduced_motion():
     css = (STATIC_DIR / "style.css").read_text("utf-8")
-    for selector, body in _css_rules(css):
-        if re.search(r"(^|;)\s*animation\s*:", body) and "none" not in body:
-            parts = [p.strip() for p in selector.split(",")]
-            assert all(re.search(r'data-status="(listening|thinking|speaking)"', p)
-                       for p in parts), selector  # fmt: skip
-        assert "transition:" not in body or "none" in body, selector
+    animated = [sel.strip() for sel, body in _css_rules(css)
+                if re.search(r"(^|;)\s*animation\s*:", body) and "animation: none" not in body]  # fmt: skip
+    assert animated == [".swatch-big"]
+    assert "animation: fade-in 200ms" in css
+    assert "transition:" not in re.sub(r"transition: none !important", "", css)
     assert "prefers-reduced-motion: reduce" in css
     js = (STATIC_DIR / "app.js").read_text("utf-8")
     assert "setInterval" not in js and "setTimeout" not in js  # tanpa timer saat diam
@@ -249,37 +257,67 @@ def test_touch_targets_at_least_44px():
     for sel in (".btn", "#debug_dock summary", "#transcript_edit, #input"):
         rule = next(b for s_, b in _css_rules(css) if s_.strip() == sel)
         assert "min-height: var(--touch-min)" in rule, sel
-    btn = next(b for s_, b in _css_rules(css) if s_.strip() == ".btn")
-    assert "min-width: var(--touch-min)" in btn
+    tile = next(b for s_, b in _css_rules(css) if s_.strip() == ".topic-tile")
+    assert "min-height: 64px" in tile
     html = (STATIC_DIR / "index.html").read_text("utf-8")
-    # mic adalah tombol biasa (.btn) dengan ikon + label, ukuran sama dengan Kirim
-    assert '<button id="talk_button" type="button" class="btn btn-icon">' in html
-    assert '<button id="send_button" type="button" class="btn btn-primary">' in html
+    assert '<button id="talk_button" type="button" class="btn btn-primary btn-icon">' in html
+    assert '<button id="send_button" type="button" class="btn">' in html
 
 
 def test_conventional_style_no_ai_effects():
     tokens = (STATIC_DIR / "tokens.css").read_text("utf-8")
     css = re.sub(r"/\*.*?\*/", "", (STATIC_DIR / "style.css").read_text("utf-8"), flags=re.DOTALL)
-    for banned in ("gradient", "blur(", "backdrop-filter", "box-shadow", "text-shadow", "filter:"):
+    for banned in ("gradient", "blur(", "backdrop-filter", "box-shadow", "text-shadow", "filter:",
+                   "text-transform", "uppercase", "monospace"):  # fmt: skip
         assert banned not in css and banned not in tokens, banned
     radii = [int(v) for v in re.findall(r"--radius[\w-]*:\s*(\d+)px", tokens)]
-    assert radii and max(radii) <= 10
-    assert "--radius-bubble: 10px;" in tokens
+    assert radii and max(radii) <= 10 and "--radius-bubble: 10px;" in tokens
     for value in re.findall(r"border-radius:\s*([^;]+);", css):
-        assert value.strip() in (
-            "var(--radius)",
-            "var(--radius-m)",
-            "var(--radius-bubble)",
-            "50%",
-        ), value
+        assert value.strip() in ("var(--radius)", "var(--radius-m)", "var(--radius-bubble)"), value
     spaces = sorted(int(v) for v in re.findall(r"--space-\d:\s*(\d+)px", tokens))
     assert spaces == [4, 8, 12, 16, 24]
-    assert "--fs-m: 1rem;" in tokens and "--fs-s: 0.875rem;" in tokens
+    sizes = {k: v for k, v in re.findall(r"--fs-([\w-]+):\s*([\d.]+)rem", tokens)}
+    assert (sizes["m"], sizes["answer"], sizes["greeting"], sizes["welcome"]) == (
+        "1",
+        "1.125",
+        "1.375",
+        "1.75",
+    )  # 16 / 18 / 22 / 28 px
+    assert "--line: 1.5;" in tokens
     js = (STATIC_DIR / "app.js").read_text("utf-8")
     assert "100 * c.font_scale" in js  # dasar 16 px
     for f in ("index.html", "app.js", "style.css"):
         text = (STATIC_DIR / f).read_text("utf-8")
-        assert not re.search(r"[\U0001F300-\U0001FAFF\u2728\u2B50]", text), f  # emoji/sparkle
+        assert not re.search(r"[\U0001F300-\U0001FAFF\u2728\u2B50\u2192]", text), f  # emoji, panah
+
+
+def test_ui_texts_are_plain_sentences():
+    from mica.core import texts
+
+    c = state.config_json(_ui(), dev=False)["texts"]
+    shown = [*c.values(), texts.NOTICE_SHORT, texts.NOTICE_SHORT_NO_CAMERA,
+             *texts.STATUS_LINES.values()]  # fmt: skip
+    for t in shown:
+        assert " · " not in t and "→" not in t and t != t.upper(), t
+    assert texts.STATUS_LINES == {
+        "ready": "Silakan bicara atau ketik pertanyaan", "listening": "Mendengarkan...",
+        "thinking": "Mencari di dokumen PMB...", "speaking": "Menjawab...",
+    }  # fmt: skip
+    assert texts.NOTICE_SHORT == (
+        "Kamera aktif, gambar tidak disimpan. Jawaban disusun AI dari dokumen resmi PMB dan bisa "
+        "keliru; pastikan ke staf PMB untuk hal penting.")  # fmt: skip
+
+
+def test_all_session_colors_have_tokens_and_rules():
+    from mica.vision.color import COLOR_NAMES
+
+    tokens = (STATIC_DIR / "tokens.css").read_text("utf-8")
+    css = (STATIC_DIR / "style.css").read_text("utf-8")
+    for name in COLOR_NAMES:
+        slug = state.color_slug(name)
+        assert f"--c-{slug}-swatch:" in tokens and f"--c-{slug}-tint:" in tokens, name
+        assert f'body[data-color="{slug}"]' in css, name
+    assert "--c-putih-edge:" in tokens  # putih: garis tepi abu
 
 
 def test_colors_only_in_tokens():
@@ -320,32 +358,34 @@ def test_logo_path_must_be_local_image(tmp_path, value):
         load_settings(path)
 
 
-def test_view_json_pill_notice_target_and_refusal_kind():
+def test_view_json_status_notice_session_color_and_refusal_kind():
     from mica.core.controller import DisplayUpdate
 
     vm = ViewModel()
     v = state.view_json(vm)
     assert (v["pill"], v["pill_label"]) == ("ready", "Siap") and not v["target_present"]
-    assert v["greeting"].startswith("Halo, selamat datang")
-    assert v["notice"].startswith("Kamera aktif · gambar tidak disimpan")
-    vm.apply_display(DisplayUpdate(target_present=True, target_color="biru"))
-    vm.apply_display(DisplayUpdate(greeting="Halo, kamu yang berbaju biru"))
+    assert v["status_line"] == "Silakan bicara atau ketik pertanyaan"
+    assert v["greeting"].startswith("Halo, selamat datang") and v["session_color"] is None
+    assert v["notice"].startswith("Kamera aktif, gambar tidak disimpan.")
+    vm.apply_display(DisplayUpdate(target_present=True, target_color="merah muda"))
+    vm.apply_display(DisplayUpdate(greeting="Halo, kamu yang berbaju merah muda"))
     for item in (
         ShowView(V.THINKING, transcript="x", send_enabled=False),
         ShowView(V.SPEAKING, transcript="x", answer="Maaf, belum ada infonya."),
     ):
         vm.apply(item)
     v = state.view_json(vm)
-    assert v["pill"] == "speaking" and v["target_color"] == "biru"
-    assert v["target_swatch"] == state.COLOR_SWATCH["biru"]
-    assert v["greeting"] == "Halo, kamu yang berbaju biru"
+    assert v["pill"] == "speaking" and v["status_line"] == "Menjawab..."
+    assert v["target_color"] == "merah muda" and v["session_color"] == "merah-muda"
     assert v["messages"][-1]["kind"] == "notice"  # penolakan: tanpa sumber
     vm.apply(ShowView(V.READY, camera_ok=False))
     assert state.view_json(vm)["notice"].startswith("Kamera tidak aktif")
+    vm.apply(ShowView(V.READY, mic_ok=False))
+    assert state.view_json(vm)["status_line"] == "Silakan ketik pertanyaan"
     vm.apply_display(DisplayUpdate(target_present=False))
     vm.apply(ClearScreen())
     v = state.view_json(vm)
-    assert not v["target_present"] and v["target_color"] is None
+    assert not v["target_present"] and v["session_color"] is None  # kembali netral
     assert v["greeting"].startswith("Halo, selamat datang")
 
 

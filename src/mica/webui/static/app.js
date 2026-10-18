@@ -1,6 +1,6 @@
-// UI kiosk MICA (Langkah 37b): merender JSON ViewModel dari server dan mengirim event input.
+// UI kiosk MICA (Langkah 37c): merender JSON ViewModel dari server dan mengirim event input.
 // Tidak ada logika state di sini; aturan event diperiksa lagi di server (mica.webui.state).
-// Tidak ada timer atau animasi JS: gerak hanya lewat CSS saat status aktif.
+// Tidak ada timer atau animasi JS. Warna sesi diberikan lewat body[data-color] (tokens.css).
 "use strict";
 
 const $ = (id) => document.getElementById(id);
@@ -9,6 +9,7 @@ let config = null;
 let view = null;
 let rendered = 0; // jumlah pesan yang sudah menjadi elemen
 let shownTranscript = null;
+let shownStatus = null;
 let previewSocket = null;
 let previewUrl = null;
 
@@ -23,22 +24,27 @@ function el(tag, className, text) {
   return e;
 }
 
-function infoIcon() {
-  // ikon garis "i" dalam lingkaran dari <template> di index.html (SVG lokal, satu gaya)
-  return $("info_icon").content.firstElementChild.cloneNode(true);
+function icon(name) {
+  // ikon garis dari <template id="icon-..."> di index.html (SVG lokal, satu gaya)
+  const t = $(`icon-${name}`) || $("icon-topic");
+  return t.content.firstElementChild.cloneNode(true);
 }
 
+const slug = (text) => text.toLowerCase().replace(/\s+/g, "-");
+
 function fillQuestion(topic) {
-  // tombol topik HANYA mengisi kotak pertanyaan dengan nama topik (bukan pertanyaan set uji)
+  // topik HANYA mengisi kotak pertanyaan dengan nama topik (bukan pertanyaan set uji)
   const input = $("input");
   input.value = `${topic} `;
   input.focus();
   input.setSelectionRange(input.value.length, input.value.length);
 }
 
-function topicButton(topic) {
-  const b = el("button", "btn btn-topic", topic);
+function topicButton(topic, tile) {
+  const b = el("button", tile ? "topic-tile" : "btn btn-topic");
   b.type = "button";
+  if (tile) b.append(icon(`topic-${slug(topic)}`));
+  b.append(el("span", "", topic));
   b.addEventListener("click", () => fillQuestion(topic));
   return b;
 }
@@ -48,20 +54,22 @@ function applyConfig(c) {
   document.documentElement.style.fontSize = `${100 * c.font_scale}%`;
   const t = c.texts;
   $("app_title").textContent = t.app_title;
+  $("welcome_title").textContent = t.welcome_title;
   $("topics_hint").textContent = t.topics_hint;
+  $("camera_title").textContent = t.camera_title;
+  $("camera_info").textContent = t.camera_info;
   $("input").placeholder = t.input_placeholder;
   $("send_button").textContent = t.send;
-  $("talk_label").textContent = t.talk;
   $("stop_button").textContent = t.stop;
   $("resend_button").textContent = t.resend;
   $("transcript_label").textContent = t.transcript_label;
-  $("camera_title").textContent = t.camera_title;
   if (c.logo) {
     $("logo_img").src = c.logo;
     $("logo_img").hidden = false;
     $("logo_text").hidden = true;
   }
-  $("topics").replaceChildren(...c.topics.map((x) => topicButton(x.topic)));
+  $("topic_grid").replaceChildren(...c.topics.map((x) => topicButton(x.topic, true)));
+  $("chips").replaceChildren(...c.topics.map((x) => topicButton(x.topic, false)));
   $("debug_dock").hidden = !c.dev;
   if (c.preview !== "off" && previewSocket === null) openPreview();
 }
@@ -88,16 +96,18 @@ function messageElement(m) {
   const box = el("div", `msg ${m.kind === "visitor" ? "visitor" : "mica"}`);
   box.append(el("div", "who", m.who));
   const bubble = el("div", "bubble");
-  if (m.kind === "notice") { // penolakan: pesan biasa dengan ikon info kecil
+  if (m.kind === "notice") { // penolakan: gelembung MICA biasa dengan ikon info kecil
     const line = el("div", "notice-line");
-    line.append(infoIcon(), el("span", "", m.text));
+    line.append(icon("info"), el("span", "", m.text));
     bubble.append(line);
   } else {
     bubble.textContent = m.text;
   }
   box.append(bubble);
   if (m.sources.length) {
-    box.append(el("div", "sources", `${config.texts.sources_label} ${m.sources.join("; ")}`));
+    const src = el("div", "sources");
+    src.append(icon("doc"), el("span", "", `${config.texts.sources_label} ${m.sources.join("; ")}`));
+    box.append(src);
   }
   return box;
 }
@@ -110,43 +120,56 @@ function indicator(id, ok, onLabel, offLabel) {
 
 function renderLeft(v) {
   const t = config.texts;
-  const target = $("target_text");
-  const dot = $("target_dot");
-  const msg = $("camera_message");
-  $("camera_badge").textContent = v.camera_ok ? t.camera_badge_on : t.camera_badge_off;
+  const text = $("color_text");
+  const swatch = $("swatch_big");
   if (!v.camera_ok) {
-    target.textContent = "";
-    dot.hidden = true;
-    msg.textContent = t.camera_unavailable; // N-10
+    swatch.hidden = true;
+    text.textContent = t.camera_unavailable; // N-10
+    text.className = "quiet";
     $("preview_img").hidden = true; // gambar terakhir tidak ditampilkan saat kamera mati
     $("preview_empty").hidden = false;
   } else if (v.target_present) {
-    const color = v.target_color ? ` ${v.target_color[0].toUpperCase()}${v.target_color.slice(1)}` : "";
-    target.textContent = `${t.target_label}:${color} · ${t.target_locked}`;
-    dot.hidden = !v.target_swatch;
-    if (v.target_swatch) dot.style.background = v.target_swatch;
-    msg.textContent = "";
+    swatch.hidden = !v.session_color; // memudar masuk 200 ms (CSS) saat muncul
+    text.textContent = v.target_color ? t.wearing.replace("{warna}", v.target_color) : t.detected_no_color;
+    text.className = "";
   } else {
-    target.textContent = "";
-    dot.hidden = true;
-    msg.textContent = t.approach;
+    swatch.hidden = true;
+    text.textContent = t.approach;
+    text.className = "quiet";
   }
+}
+
+function renderStatus(v) {
+  if (v.pill === shownStatus) return;
+  shownStatus = v.pill;
+  $("status_icon").replaceChildren(icon(v.pill));
+  $("status_text").textContent = v.status_line;
 }
 
 function render(v) {
   view = v;
+  const t = config.texts;
   document.body.dataset.status = v.pill;
-  $("status_pill").querySelector(".label").textContent = v.pill_label;
+  if (v.session_color) document.body.dataset.color = v.session_color;
+  else delete document.body.dataset.color; // sesi selesai/reset: kembali netral
   $("notice").textContent = v.notice; // N-08: selalu tampil
-  indicator("camera_indicator", v.camera_ok, config.texts.camera_on, config.texts.camera_off);
-  indicator("mic_indicator", v.mic_ok, config.texts.mic_on, config.texts.mic_off);
-  $("talk_button").disabled = !v.talk_enabled;
+  indicator("camera_indicator", v.camera_ok, t.camera_on, t.camera_off);
+  indicator("mic_indicator", v.mic_ok, t.mic_on, t.mic_off);
+  const talk = $("talk_button");
+  talk.disabled = !v.talk_enabled;
+  talk.classList.toggle("btn-primary", v.talk_enabled);
+  $("talk_label").textContent = v.talk_enabled ? t.talk : t.mic_unavailable_button;
+  $("send_button").classList.toggle("btn-primary", !v.talk_enabled); // utama bila tanpa mic
   $("send_button").disabled = !v.send_enabled;
   $("resend_button").disabled = !v.send_enabled;
   $("stop_button").hidden = v.pill !== "speaking";
-  $("greeting").textContent = v.greeting; // sapaan = pesan pertama percakapan
-  $("topics_hint").hidden = !v.home;
+  $("welcome_greeting").textContent = v.greeting;
+  $("greeting").textContent = v.greeting;
+  $("welcome").hidden = !v.home;
+  $("greeting_msg").hidden = v.home; // setelah mulai, sapaan jadi pesan pertama
+  $("chips").hidden = v.home; // grid topik menyusut jadi satu baris tombol kecil
   renderLeft(v);
+  renderStatus(v);
   const list = $("messages");
   if (rendered > v.messages.length) { // ClearScreen
     list.replaceChildren();

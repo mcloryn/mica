@@ -279,3 +279,12 @@ def test_preview_socket_origin_checked_and_receives_jpeg():
     finally:
         webui.close_sockets()
         stop_server(server)
+
+
+def test_debug_label_white_on_dark_box_public_unchanged():
+    img = np.full((60, 120, 3), 200, dtype=np.uint8)
+    lp.debug_label(img, "biru 0.91", (5, 5))
+    box = img[5:20, 5:60]
+    assert (box < 200).any() and (box.max(axis=2) > 230).any()  # latar digelapkan + teks putih
+    assert box.min() <= int(200 * (1 - lp.LABEL_BG_ALPHA)) + 1
+    assert (img[40:, :] == 200).all()  # di luar kotak label tidak berubah

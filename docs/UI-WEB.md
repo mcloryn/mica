@@ -323,3 +323,40 @@ digantikan oleh nilai berikut (riwayat tetap di atas).
   2,478 -> 2,484 s (tetap). p95 jeda tampil 4,88 -> 5,57 ms, di atas maksimum versi sebelum
   (5,20 ms), jadi "naik"; nilainya tetap jauh di bawah batas tahap 1 (x3 = 17 ms <= 1 s).
 - Tangkapan layar: `docs/ui-screens/` (1366x768 dan 1920x1080; sebelum di `before-37b/`).
+
+## Langkah 37c: karakter lewat warna sesi (18 Okt 2026)
+
+Masukan pemilik proyek: layout sudah disukai tetapi terlalu polos. Tata letak dua kolom, logika
+M-09, event, dan pratinjau tidak diubah (kecuali label overlay debug).
+
+- Font: Atkinson Hyperlegible (Braille Institute), SIL OFL 1.1 (Copyright 2020 Braille Institute
+  of America, Inc.). Sumber: repositori upstream resmi
+  https://github.com/googlefonts/atkinson-hyperlegible, commit
+  1cb311624b2ddf88e9e37873999d165a8cd28b46. google/fonts (ofl/atkinsonhyperlegible,
+  upstream_info.md) menyatakan berkasnya diambil dari commit yang sama. Diambil
+  `fonts/webfonts/AtkinsonHyperlegible-Regular.woff2` (sha256 2df4ba17...4a1150) dan
+  `-Bold.woff2` (sha256 da8fce41...93c075) beserta OFL.txt (sha256 f32d22b3...dc143); dicek
+  18 Okt 2026. Tanpa italic. Skala huruf 16/18/22/28 px, berat 400 dan 700, line-height 1,5.
+- Warna sesi: 11 nama warna van de Weijer (`COLOR_NAMES`) dipetakan di `tokens.css` ke swatch
+  (contoh warna dan garis tepi kiri 4 px) dan tint (latar gelembung pengunjung).
+  - Hitam, cokelat, ungu, dan abu-abu memakai tint netral/sangat muda; identitasnya ditunjukkan
+    garis tepi. Putih memakai tint abu muda dengan garis tepi abu.
+  - `view.session_color` hanya ada saat target terkunci. Setelah PersonLeft atau reset, warna
+    kembali netral.
+- Kolom kamera: contoh warna 56 px + "Kamu memakai baju <warna>", lalu dua kalimat info. Badge
+  "Aktif" dihapus.
+- Layar sambut: judul 28 px, sapaan 22 px, grid topik 3x2 berikon garis. Setelah percakapan
+  mulai, topik menjadi baris tombol kecil.
+- Sumber: baris kecil dengan ikon dokumen. Penolakan: gelembung MICA biasa dengan ikon info.
+- Status: kalimat di atas bilah input (Siap/Mendengarkan.../Mencari di dokumen PMB.../
+  Menjawab...; tanpa mikrofon: "Silakan ketik pertanyaan"). Ikonnya statis.
+  - Header hanya menampilkan indikator kamera dan mikrofon.
+  - Bicara menjadi tombol utama bila mikrofon ada. Bila tidak ada, tombolnya nonaktif dengan teks
+    "Mikrofon tidak tersedia, silakan ketik", dan Kirim menjadi tombol utama.
+- Footer: pemberitahuan berupa kalimat biasa (N-08).
+- Satu-satunya animasi otomatis: contoh warna memudar masuk 200 ms saat target terkunci; mati
+  dengan prefers-reduced-motion.
+  - Indikator mendengar berupa ikon gelombang statis, supaya tetap hanya ada satu animasi
+    otomatis.
+- Label overlay debug: teks putih di atas kotak gelap semi-pekat (alfa 0,75); mode public tidak
+  berubah.

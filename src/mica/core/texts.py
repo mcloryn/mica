@@ -44,18 +44,34 @@ PILLS = {  # status M-09 -> (kunci tampilan, label pil)
     "THINKING": ("thinking", "Berpikir"),
     "SPEAKING": ("speaking", "Berbicara"),
 }
-APP_TITLE = "MICA · Asisten PMB Universitas Mikroskil"
-NOTICE_SHORT = "Kamera aktif · gambar tidak disimpan · jawaban dibuat AI dari dokumen resmi PMB"
-NOTICE_SHORT_NO_CAMERA = (
-    "Kamera tidak aktif · gambar tidak disimpan · jawaban dibuat AI dari dokumen resmi PMB"
+APP_TITLE = "Asisten PMB Universitas Mikroskil"
+# Langkah 37c: pemberitahuan sebagai kalimat biasa di footer (N-08)
+NOTICE_SHORT = (
+    "Kamera aktif, gambar tidak disimpan. Jawaban disusun AI dari dokumen resmi PMB dan bisa "
+    "keliru; pastikan ke staf PMB untuk hal penting."
 )
-APPROACH = "Mendekatlah ke layar untuk mulai"
+NOTICE_SHORT_NO_CAMERA = (
+    "Kamera tidak aktif, gambar tidak disimpan. Jawaban disusun AI dari dokumen resmi PMB dan "
+    "bisa keliru; pastikan ke staf PMB untuk hal penting."
+)
+APPROACH = "Belum ada yang terdeteksi. Berdirilah di depan layar."
 CAMERA_UNAVAILABLE = (
     "Kamera sedang tidak aktif, kamu tetap bisa bertanya dengan mengetik atau bicara"
 )
-TARGET_LABEL, TARGET_LOCKED = "Target", "terkunci"
+WEARING = "Kamu memakai baju {warna}"  # warna sesi, huruf kecil biasa
+DETECTED_NO_COLOR = "Kamu sudah terdeteksi di depan layar."
+CAMERA_INFO = "MICA menyapa berdasarkan warna baju. Gambar kamera tidak disimpan."
+WELCOME_TITLE = "Tanya apa saja seputar PMB"
 TOPICS_HINT = "Pilih topik, lalu lengkapi pertanyaanmu"
-CAMERA_TITLE, CAMERA_BADGE_ON, CAMERA_BADGE_OFF = "Kamera", "Aktif", "Tidak aktif"
+CAMERA_TITLE = "Kamera"
+MIC_UNAVAILABLE_BUTTON = "Mikrofon tidak tersedia, silakan ketik"
+STATUS_LINES = {  # kunci pil -> kalimat status di atas bilah input
+    "ready": "Silakan bicara atau ketik pertanyaan",
+    "listening": "Mendengarkan...",
+    "thinking": "Mencari di dokumen PMB...",
+    "speaking": "Menjawab...",
+}
+STATUS_READY_NO_MIC = "Silakan ketik pertanyaan"
 MONTHS = ("Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus",
           "September", "Oktober", "November", "Desember")  # fmt: skip
 

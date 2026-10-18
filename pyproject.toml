@@ -51,7 +51,7 @@ dev = [
 where = ["src"]
 
 [tool.setuptools.package-data]
-"mica.webui" = ["static/*"]  # UI web (ui.backend: web); font sistem, tanpa file font
+"mica.webui" = ["static/*", "static/fonts/*"]  # UI web (ui.backend: web); font Atkinson Hyperlegible OFL
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

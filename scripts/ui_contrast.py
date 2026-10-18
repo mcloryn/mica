@@ -14,17 +14,18 @@ from pathlib import Path
 
 TOKENS = Path(__file__).resolve().parents[1] / "src/mica/webui/static/tokens.css"
 # (teks, latar, kegunaan)
+COLOR_SLUGS = ("hitam", "biru", "cokelat", "abu-abu", "hijau", "oranye", "merah-muda", "ungu",
+               "merah", "putih", "kuning")  # mica.vision.color.COLOR_NAMES  # fmt: skip
 PAIRS = (
-    ("--text", "--surface", "teks utama di panel"),
+    ("--text", "--surface", "teks utama di panel / gelembung MICA"),
     ("--text", "--bg", "teks utama di latar"),
-    ("--text-muted", "--surface", "teks sekunder (14 px) di panel"),
-    ("--text-muted", "--bg", "teks sekunder di latar"),
-    ("--text", "--bubble-mica", "gelembung MICA"),
-    ("--text-muted", "--bubble-mica", "teks kecil di gelembung MICA"),
-    ("--text", "--bubble-visitor", "gelembung pengunjung"),
+    ("--text-muted", "--surface", "teks sekunder di panel"),
+    ("--text-muted", "--bg", "teks sekunder di latar, tombol nonaktif"),
+    ("--text", "--neutral-tint", "gelembung pengunjung tanpa warna sesi"),
     ("--on-accent", "--accent", "tombol utama"),
     ("--on-accent", "--accent-hover", "tombol utama (hover)"),
-    ("--accent", "--surface", "tombol topik outline / tautan"),
+    ("--accent", "--surface", "tombol topik / ikon topik / tautan"),
+    *(("--text", f"--c-{c}-tint", f"gelembung pengunjung, warna sesi {c}") for c in COLOR_SLUGS),
 )
 AA = 4.5
 
