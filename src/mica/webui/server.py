@@ -55,9 +55,11 @@ PREVIEW_POLL_S = 0.5  # batas tunggu antrean pratinjau (thread berhenti cepat sa
 class WebUi:
     def __init__(self, ui: UiConfig, dev: bool,
                  clock: Callable[[], float] = time.perf_counter,
-                 render_clock: Callable[[], float] = time.monotonic) -> None:  # fmt: skip
+                 render_clock: Callable[[], float] = time.monotonic,
+                 trial: bool = False) -> None:  # fmt: skip
         self.ui = ui
         self.dev = dev
+        self.trial = trial  # --trial-values (Langkah 41): label "NILAI COBA (dev)" di header
         self.clock = clock
         # K-3 (E-09): jam yang sama dengan controller dan pekerja (monotonic), bukan perf_counter
         self.render_clock = render_clock
@@ -153,7 +155,7 @@ class WebUi:
     def serve_socket(self, ws: Any) -> None:
         with self.lock:
             self.sockets.add(ws)
-            ws.send(json.dumps({"type": "config", **config_json(self.ui, self.dev)}))
+            ws.send(json.dumps({"type": "config", **config_json(self.ui, self.dev, self.trial)}))
             self._send_view([ws])
             if self.debug_text is not None:
                 ws.send(json.dumps({"type": "debug", "text": self.debug_text}))

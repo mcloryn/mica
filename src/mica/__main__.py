@@ -41,7 +41,8 @@ def _launch_web(settings: Settings, args: argparse.Namespace) -> int:
     return run(settings, fake_workers=args.fake_workers, fake_pipeline=args.fake_pipeline,
                record_resources=getattr(args, "record_resources", None),
                resource_interval=getattr(args, "resource_interval", 5.0),
-               e09=getattr(args, "e09", False))  # fmt: skip
+               e09=getattr(args, "e09", False),
+               trial=getattr(args, "trial_values", False))  # fmt: skip
 
 
 # ui.backend -> peluncur UI (ADR-19, Provisional; pilihan akhir di E-09)
@@ -81,6 +82,8 @@ def main(
     parser.add_argument("--env-file", type=Path, default=DEFAULT_ENV)
     parser.add_argument("--fake-workers", action="store_true", help="bus palsu (dev saja)")
     parser.add_argument("--fake-pipeline", action="store_true", help="jawaban palsu (dev saja)")
+    parser.add_argument("--trial-values", action="store_true",
+                        help="isi kunci null dengan nilai coba SDD bagian 12 (dev saja)")  # fmt: skip
     from mica.eval.resources import add_arguments
 
     add_arguments(parser)
@@ -92,6 +95,15 @@ def main(
         print(format_table(rows))
         print("MICA tidak dijalankan.")
         return 1
+    if args.trial_values:  # Langkah 41: setelah check, di memori; kiosk ditolak
+        from mica.config import ConfigError
+        from mica.trial import load_trial_settings
+
+        try:
+            settings, _filled = load_trial_settings(args.config, args.env_file)
+        except ConfigError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
     if settings.app.mode != "dev" and (args.fake_workers or args.fake_pipeline):
         print("error: --fake-workers/--fake-pipeline hanya boleh saat app.mode: dev",
               file=sys.stderr)  # fmt: skip

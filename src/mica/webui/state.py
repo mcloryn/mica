@@ -98,9 +98,10 @@ def topic_question(ui: UiConfig, topic: str) -> str:
     return suggestions[0] if suggestions else topic
 
 
-def config_json(ui: UiConfig, dev: bool) -> dict[str, Any]:
+def config_json(ui: UiConfig, dev: bool, trial: bool = False) -> dict[str, Any]:
     return {
         "dev": dev,
+        "trial": trial and dev,  # nilai coba hanya ada di dev (mica.trial)
         "font_scale": ui.font_scale,
         "logo": "/logo" if ui.logo_path else None,
         "preview": ui.camera_preview,
@@ -136,6 +137,7 @@ def config_json(ui: UiConfig, dev: bool) -> dict[str, Any]:
             "mic_on": texts.MIC_ON,
             "mic_off": texts.MIC_OFF,
             "camera_title": texts.CAMERA_TITLE,
+            "trial_badge": texts.TRIAL_BADGE,
         },
     }
 

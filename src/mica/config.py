@@ -431,13 +431,24 @@ def load_settings(
 ) -> Settings:
     """require_complete False: lewati cek null mode kiosk (hanya untuk check, yang melaporkan
     daftar kuncinya sendiri lewat missing_kiosk_fields)."""
+    return settings_from_raw(read_raw(path), env_file, require_complete=require_complete)
+
+
+def read_raw(path: Path) -> dict[str, Any]:
+    """Isi YAML config sebagai dict (belum divalidasi)."""
     try:
         raw = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
     except (OSError, yaml.YAMLError) as exc:
         raise ConfigError(CFG_INVALID, f"gagal membaca {path}: {exc}") from exc
     if not isinstance(raw, dict):
         raise ConfigError(CFG_INVALID, f"{path}: isi teratas harus berupa mapping")
+    return raw
 
+
+def settings_from_raw(
+    raw: dict[str, Any], env_file: Path | None = None, *, require_complete: bool = True
+) -> Settings:
+    """Validasi dict config (dari read_raw, mungkin sudah diisi nilai coba dev; mica.trial)."""
     _check_gemini_in_kiosk(raw)
 
     if "api_keys" in raw:

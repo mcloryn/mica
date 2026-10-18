@@ -43,26 +43,18 @@ def build_controller(
     fake_workers: bool = False,
     fake_pipeline: bool = False,
     fake_camera: bool = False,
+    fake_voice: bool = False,
     bus: Any = None,
     pipeline: Any = None,
     clock: Callable[[], float] = time.monotonic,
 ) -> KioskController:
     dev = settings.app.mode == "dev"
-    fakes = fake_workers or fake_pipeline or fake_camera
+    fakes = fake_workers or fake_pipeline or fake_camera or fake_voice
     if not dev and (fakes or bus is not None or pipeline is not None):
         raise WebUiError("pekerja/pipeline palsu hanya boleh saat app.mode: dev (ditolak di kiosk)")
-    if fake_camera and not fake_workers:
-        raise WebUiError("--fake-camera hanya bersama --fake-workers")
     log = InteractionLog(Path(settings.logging.dir))
     if bus is None:
-        if fake_workers:
-            from mica.ui.devfakes import FakeWorkerBus, start_fake_camera
-
-            bus = FakeWorkerBus(start_fake_camera(settings) if fake_camera else None)
-        else:
-            from mica.core.bus import start_workers
-
-            bus = start_workers(settings)
+        bus = _start_bus(settings, fake_workers, fake_camera, fake_voice)
     # Langkah 40: pembungkus pasif (pesan bus tidak diubah) untuk tahap start-up dan untuk
     # mengakhiri "Menyiapkan kamera/mikrofon..." saat status pertama pekerja datang
     watch = bus = startup.StartupBus(bus, on_status=webui.device_status)
@@ -101,6 +93,29 @@ def build_controller(
     webui.controller = controller
     webui.preview_source = getattr(bus, "preview", None)  # None bila pratinjau off
     return controller
+
+
+def _start_bus(settings: Settings, fake_workers: bool, fake_camera: bool, fake_voice: bool) -> Any:
+    """Pekerja kamera dan suara, masing-masing asli atau palsu (dev; Langkah 41):
+    - --fake-workers: suara palsu di proses utama, kamera palsu (tanpa kamera) atau, dengan
+      --fake-camera, proses kamera dengan sumber gambar palsu;
+    - --fake-voice: suara palsu, kamera asli (atau sumber palsu bila --fake-camera);
+    - --fake-camera saja: proses suara asli + proses kamera dengan sumber gambar palsu."""
+    from mica.core.bus import start_workers
+    from mica.ui.devfakes import FakeWorkerBus, fake_camera_config, start_fake_camera
+
+    if fake_workers or fake_voice:
+        if fake_camera:
+            vision = start_fake_camera(settings)
+        elif fake_voice:
+            vision = start_workers(settings, workers=("vision",))
+        else:
+            vision = None
+        return FakeWorkerBus(vision)
+    if fake_camera:
+        return start_workers(settings, vision=fake_camera_config(settings),
+                             workers=("vision", "audio"))  # fmt: skip
+    return start_workers(settings)
 
 
 def serve(
@@ -149,8 +164,9 @@ def serve(
 
 
 def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool = False,
-        fake_camera: bool = False, no_browser: bool = False, port: int = 0, record_resources: Path | None = None,
-        resource_interval: float = 5.0, e09: bool = False) -> int:  # fmt: skip
+        fake_camera: bool = False, fake_voice: bool = False, no_browser: bool = False,
+        port: int = 0, record_resources: Path | None = None, resource_interval: float = 5.0,
+        e09: bool = False, trial: bool = False) -> int:  # fmt: skip
     """Rakit lalu jalankan sampai Edge ditutup atau Ctrl+C (dipakai python -m mica dan main)."""
     from mica.eval.resources import RecorderRefused, check_allowed
     from mica.webui.browser import EdgeBrowser, EdgeMissing
@@ -161,15 +177,15 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
     try:
         if record_resources is not None:
             check_allowed(settings.app.mode, e09)  # ditolak sebelum pekerja dimulai
-        webui = WebUi(settings.ui, dev=settings.app.mode == "dev")
+        webui = WebUi(settings.ui, dev=settings.app.mode == "dev", trial=trial)
         browser = (
             None
             if no_browser
             else EdgeBrowser(settings.ui.fullscreen, camera_preview=settings.ui.camera_preview)
         )
         controller = build_controller(settings, webui, fake_workers=fake_workers,
-                                      fake_pipeline=fake_pipeline,
-                                      fake_camera=fake_camera)  # fmt: skip
+                                      fake_pipeline=fake_pipeline, fake_camera=fake_camera,
+                                      fake_voice=fake_voice)  # fmt: skip
     except (WebUiError, EdgeMissing, RecorderRefused) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -202,7 +218,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--fake-camera",
         action="store_true",
-        help="dengan --fake-workers: proses kamera dengan sumber gambar palsu (dev)",
+        help="proses kamera dengan sumber gambar palsu (dev); suara asli kecuali --fake-workers",
+    )
+    parser.add_argument(
+        "--fake-voice",
+        action="store_true",
+        help="suara palsu (tanpa mikrofon/speaker), kamera asli kecuali --fake-camera (dev)",
+    )
+    parser.add_argument(
+        "--trial-values",
+        action="store_true",
+        help="isi kunci null dengan nilai coba SDD bagian 12 di memori (dev saja)",
     )
     parser.add_argument("--no-browser", action="store_true", help="jangan luncurkan Edge")
     parser.add_argument("--port", type=int, default=0, help="0 = port acak bebas")
@@ -211,11 +237,18 @@ def main(argv: list[str] | None = None) -> int:
     add_arguments(parser)
     args = parser.parse_args(argv)
     try:
-        settings = load_settings(args.config, Path(".env"))
+        if args.trial_values:
+            from mica.trial import load_trial_settings
+
+            settings, _filled = load_trial_settings(args.config, Path(".env"))
+        else:
+            settings = load_settings(args.config, Path(".env"))
     except ConfigError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     return run(settings, fake_workers=args.fake_workers, fake_pipeline=args.fake_pipeline,
-               fake_camera=args.fake_camera, no_browser=args.no_browser, port=args.port,
+               fake_camera=args.fake_camera, fake_voice=args.fake_voice,
+               no_browser=args.no_browser, port=args.port,
                record_resources=args.record_resources,
-               resource_interval=args.resource_interval, e09=args.e09)  # fmt: skip
+               resource_interval=args.resource_interval, e09=args.e09,
+               trial=args.trial_values)  # fmt: skip

@@ -37,19 +37,14 @@ from typing import Any
 import psutil
 import yaml
 
+from mica import trial
+
 ROOT = Path(__file__).resolve().parents[1]
 CLOSE_TIMEOUT_S = 30.0
 
-# NILAI COBA SDD bagian 12 (dev dan demo saja), hanya untuk kunci yang masih null
-TRIAL_VALUES: dict[str, float] = {
-    "vision.dwell_s": 2.0, "vision.leave_s": 3.0, "vision.min_shoulder_ratio": 0.22,
-    "vision.color.min_majority": 0.6, "vision.box_upper.top": 0.35,
-    "vision.box_upper.bottom": 0.65, "vision.box_upper.side": 0.25,
-    "vision.keypoint_torso.min_kp_conf": 0.5, "vision.keypoint_torso.shrink": 0.15,
-    "vision.keypoint_torso.torso_aspect": 1.2, "audio.vad.threshold": 0.5,
-    "audio.vad.min_silence_ms": 500, "audio.vad.min_speech_ms": 250,
-    "audio.stt.no_speech_threshold": 0.6, "audio.max_utterance_s": 15,
-}  # fmt: skip
+# NILAI COBA SDD bagian 12 (dev dan demo saja), hanya untuk kunci yang masih null; sumber tunggal
+# mica.trial (sama dengan --trial-values)
+TRIAL_VALUES = trial.TRIAL_VALUES
 
 # tahap tonggak untuk laporan (proses, tahap, label)
 MILESTONES = (
@@ -100,23 +95,12 @@ WINDOWS = (
 )
 
 
-def _set(raw: dict[str, Any], dotted: str, value: Any) -> bool:
-    node = raw
-    *parents, last = dotted.split(".")
-    for key in parents:
-        node = node[key]
-    if node.get(last) is None:
-        node[last] = value
-        return True
-    return False
-
-
 def make_config(src: Path, out: Path) -> tuple[Path, dict[str, Any]]:
     raw = yaml.safe_load(src.read_text(encoding="utf-8"))
     if raw["app"]["mode"] != "dev":
         raise SystemExit("startup_profile hanya untuk config dev (nilai coba)")
     raw["logging"]["dir"] = (out / "logs").as_posix()
-    filled = {k: v for k, v in TRIAL_VALUES.items() if _set(raw, k, v)}
+    filled = trial.fill_nulls(raw)
     path = out / "config.yaml"
     path.write_text(yaml.safe_dump(raw, sort_keys=False, allow_unicode=True), encoding="utf-8")
     return path, filled

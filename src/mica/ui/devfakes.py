@@ -14,29 +14,32 @@ from typing import Any, Literal
 
 from mica.audio.messages import AudioStatus, Speak, SpeechDone
 from mica.core.types import FinalAnswer
+from mica.trial import TRIAL_VALUES
 from mica.vision.types import CameraStatus
 
 FAKE_ANSWER_PREFIX = "[jawaban palsu dev] "
-# nilai coba SDD bagian 12 untuk sumber gambar palsu (dev saja, bukan hasil E-07/E-08)
-FAKE_CAMERA_VALUES = {
-    "dwell_s": 2.0, "leave_s": 3.0, "min_shoulder_ratio": 0.22, "color.min_majority": 0.6,
-    "box_upper.top": 0.35, "box_upper.bottom": 0.65, "box_upper.side": 0.25,
-    "keypoint_torso.min_kp_conf": 0.5, "keypoint_torso.shrink": 0.15,
-    "keypoint_torso.torso_aspect": 1.2,
-}  # fmt: skip
+# nilai coba SDD bagian 12 untuk sumber gambar palsu (dev saja, bukan hasil E-07/E-08); sumber
+# tunggal mica.trial.TRIAL_VALUES, kunci tanpa awalan "vision."
+FAKE_CAMERA_VALUES = {k.removeprefix("vision."): v for k, v in TRIAL_VALUES.items()
+                      if k.startswith("vision.")}  # fmt: skip
+
+
+def fake_camera_config(settings: Any) -> Any:
+    """VisionWorkerConfig proses kamera asli dengan sumber gambar dan detektor palsu (dev)."""
+    from mica.vision.worker import VisionWorkerConfig
+
+    return VisionWorkerConfig.from_settings(
+        settings, FAKE_CAMERA_VALUES,
+        camera_factory="mica.vision.fakesource:make_camera",
+        detector_factory="mica.vision.fakesource:make_detector",
+    )  # fmt: skip
 
 
 def start_fake_camera(settings: Any) -> Any:
     """Bus vision saja: proses kamera asli + sumber gambar dan detektor palsu (dev saja)."""
     from mica.core.bus import start_workers
-    from mica.vision.worker import VisionWorkerConfig
 
-    cfg = VisionWorkerConfig.from_settings(
-        settings, FAKE_CAMERA_VALUES,
-        camera_factory="mica.vision.fakesource:make_camera",
-        detector_factory="mica.vision.fakesource:make_detector",
-    )  # fmt: skip
-    return start_workers(settings, vision=cfg)
+    return start_workers(settings, vision=fake_camera_config(settings))
 
 
 class FakeWorkerBus:

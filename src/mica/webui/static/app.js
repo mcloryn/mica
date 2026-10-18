@@ -71,6 +71,8 @@ function applyConfig(c) {
   $("topic_grid").replaceChildren(...c.topics.map((x) => topicButton(x.topic, true)));
   $("chips").replaceChildren(...c.topics.map((x) => topicButton(x.topic, false)));
   $("debug_dock").hidden = !c.dev;
+  $("trial_badge").textContent = t.trial_badge;
+  $("trial_badge").hidden = !c.trial; // --trial-values (Langkah 41)
   if (c.preview !== "off" && previewSocket === null) openPreview();
 }
 

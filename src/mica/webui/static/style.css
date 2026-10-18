@@ -51,6 +51,10 @@ body[data-color="kuning"] { --session-swatch: var(--c-kuning-swatch); --session-
 #logo_img { height: 32px; width: auto; }
 #app_title { font-size: var(--fs-answer); font-weight: 700; white-space: nowrap; overflow: hidden;
              text-overflow: ellipsis; }
+.trial-badge { /* --trial-values (Langkah 41): label kecil, dev saja */
+  padding: 0 var(--space-2); border: 1px solid var(--border); border-radius: var(--radius);
+  font-size: var(--fs-s); color: var(--text-muted); white-space: nowrap;
+}
 #indicators { display: flex; align-items: center; gap: var(--space-4); font-size: var(--fs-s); }
 .indicator { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--text-muted); }
 .indicator.off { color: var(--text); }
