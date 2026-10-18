@@ -34,6 +34,7 @@ from typing import Any
 from mica.audio.messages import (
     AudioStatus,
     ListenControl,
+    ReleaseTalk,
     Speak,
     SpeechDone,
     SpeechStarted,
@@ -77,6 +78,7 @@ Message = (
     | StopSpeaking
     | SpeechDone
     | ListenControl
+    | ReleaseTalk
     | AudioStatus
 )
 

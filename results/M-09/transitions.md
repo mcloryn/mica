@@ -23,6 +23,14 @@ ShowView adalah potret tampilan; Ignored = dicatat di log debug oleh M-10.
 | T18 | GREETING | TopicTapped / TextSubmitted | Teks tidak kosong | StopSpeaking, ListenControl, ShowView, RunPipeline | THINKING | Keputusan 17 Okt (N-10) |
 | T19 | LISTENING | TopicTapped / TextSubmitted | Teks tidak kosong | ListenControl, ShowView, RunPipeline | THINKING | Keputusan 17 Okt (N-10) |
 | T20 | READY | TalkTapped | - | ListenControl, ShowView | READY | Langkah 24 (push-to-talk, M-08) |
+| P01 | IDLE | TalkPressed | input_mode push_to_talk; session_id baru | ListenControl, ShowView | LISTENING | Langkah 42 (keputusan 18 Okt) |
+| P02 | READY | TalkPressed | input_mode push_to_talk | ListenControl, ShowView | LISTENING | Langkah 42 (keputusan 18 Okt) |
+| P03 | GREETING / SPEAKING | TalkPressed | input_mode push_to_talk; barge-in, SpeechDone nanti diabaikan | StopSpeaking, ListenControl, ShowView | LISTENING | Langkah 42 (keputusan 18 Okt) |
+| P04 | LISTENING | TalkReleased | input_mode push_to_talk | ReleaseTalk, ShowView | LISTENING | Langkah 42 (keputusan 18 Okt) |
+| P05 | LISTENING | TalkCancelled | input_mode push_to_talk | ListenControl, ShowView | READY | Langkah 42 (keputusan 18 Okt) |
+| P06 | LISTENING | Transcript | input_mode push_to_talk; filtered_by tidak None | ShowView | READY | Langkah 42 (keputusan 18 Okt) |
+| P07 | THINKING / LISTENING | TalkPressed | input_mode push_to_talk; tidak bisa merekam | Ignored | Tetap | Langkah 42 |
+| P08 | Semua | TalkPressed / TalkReleased / TalkCancelled | input_mode vad | Ignored | Tetap | Langkah 42 |
 | T16 | Semua | SpeechStarted / Transcript / SpeechDone / AnswerReady | session_id lama | Ignored | Tetap | SDD 3.3, 5.2 |
 | T17 | Semua | Event lain | - | Ignored | Tetap | SDD 7.1 |
 | R01 | IDLE | CameraStatus(ok=True) | Sebelumnya ok=False (restart) | SetVisionRate, ShowView | IDLE | Keputusan 17 Okt |

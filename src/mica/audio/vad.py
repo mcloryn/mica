@@ -66,6 +66,41 @@ def is_too_short(utterance: Utterance, min_speech_ms: float | None) -> bool:
     return min_speech_ms is not None and utterance.speech_s * 1000 < min_speech_ms
 
 
+def push_to_talk_utterance(
+    pcm: np.ndarray,
+    prob: Callable[[np.ndarray], float],
+    threshold: float,
+    cut_by_max: bool = False,
+    pad_ms: float = PAD_MS,
+    sample_rate: int = SAMPLE_RATE,
+) -> Utterance | None:
+    """Push-to-talk (Langkah 42): seluruh rekaman selama tombol ditahan = satu ucapan. VAD hanya
+    mengecek ada ucapan dan memangkas hening di awal/akhir (sisa padding pad_ms); akhir ucapan
+    ditentukan tombol, bukan min_silence_ms. None = tidak ada potongan dengan prob >= threshold."""
+    pcm = np.asarray(pcm, dtype=np.int16)
+    n = len(pcm) // CHUNK_SAMPLES
+    probs = [prob(pcm[i * CHUNK_SAMPLES : (i + 1) * CHUNK_SAMPLES]) for i in range(n)]
+    above = [i for i, p in enumerate(probs) if p >= threshold]
+    if not above:
+        return None
+    pad = int(pad_ms * sample_rate / 1000)
+    first, last = above[0], above[-1]
+    start = max(first * CHUNK_SAMPLES - pad, 0)
+    end = min((last + 1) * CHUNK_SAMPLES + pad, len(pcm))
+    inner = probs[first : last + 1]
+    return Utterance(
+        pcm[start:end].copy(),
+        (end - start) / sample_rate,
+        cut_by_max,
+        speech_s=(last + 1 - first) * CHUNK_SAMPLES / sample_rate,
+        start_s=first * CHUNK_SAMPLES / sample_rate,
+        prob_max=max(inner),
+        prob_mean=sum(inner) / len(inner),
+        n_above=len(above),
+        trailing_silence_s=0.0,
+    )
+
+
 class SpeechSegmenter:
     def __init__(
         self,

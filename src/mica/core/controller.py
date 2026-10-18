@@ -40,6 +40,7 @@ from typing import Any, Literal, Protocol
 from mica.audio.messages import (
     AudioStatus,
     ListenControl,
+    ReleaseTalk,
     Speak,
     SpeechDone,
     StopSpeaking,
@@ -270,7 +271,7 @@ class KioskController:
     def _execute(self, action: Any) -> None:
         if isinstance(action, ListenControl):  # Langkah 42: diagnosis mikrofon
             log.info("ListenControl(%s) ke proses suara", action.mode)
-        if isinstance(action, (Speak, StopSpeaking, ListenControl)):
+        if isinstance(action, (Speak, StopSpeaking, ListenControl, ReleaseTalk)):
             self._send("audio", action)
         elif isinstance(action, SetVisionRate):
             self._send("vision", action)

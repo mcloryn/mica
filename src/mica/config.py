@@ -147,6 +147,9 @@ class TtsConfig(_Model):
 
 
 class AudioConfig(_Model):
+    # Langkah 42, keputusan desain pengguna 18 Okt 2026: push_to_talk (tahan tombol Bicara);
+    # vad = mode lama (VAD menentukan akhir ucapan), tetap ada untuk perbandingan
+    input_mode: Literal["push_to_talk", "vad"] = "push_to_talk"
     stt: SttConfig
     vad: VadConfig
     max_utterance_s: PositiveFloat | None = None

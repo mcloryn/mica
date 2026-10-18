@@ -15,6 +15,11 @@ MIC_DOWN = "Mikrofon tidak tersedia; silakan ketik pertanyaan."
 
 
 TALK_NOW = "Silakan bicara"
+# push-to-talk (Langkah 42)
+TALK_HOLD = "Mendengarkan... lepas tombol untuk mengirim"
+TALK_PROCESSING = "Memproses suara..."
+TALK_CANCELLED = "Dibatalkan"
+NOT_HEARD_HOLD = "Suara tidak terdengar, coba lagi sambil menahan tombol"
 
 # M-10: pemberitahuan permanen (N-08) dan label UI
 NOTICE_CAMERA = "Kamera aktif untuk mendeteksi pengunjung. Gambar tidak disimpan."

@@ -16,8 +16,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-ListenMode = Literal["auto", "push_to_talk", "off"]
-FilteredBy = Literal["min_speech", "no_speech"]
+# hold (Langkah 42, audio.input_mode push_to_talk): rekam selama tombol Bicara ditahan;
+# ReleaseTalk = tombol dilepas (kirim); ListenControl lain selama hold = dibatalkan
+ListenMode = Literal["auto", "push_to_talk", "hold", "off"]
+# no_voice (Langkah 42): rekaman tahan-tombol tanpa ucapan menurut VAD, STT tidak dipanggil
+FilteredBy = Literal["min_speech", "no_speech", "no_voice"]
 
 
 @dataclass(frozen=True)
@@ -35,8 +38,12 @@ class Transcript:
     audio_s: float
     cut_by_max: bool = False
     filtered_by: FilteredBy | None = None  # None = tidak tersaring
-    vad_s: float | None = None  # diam di ujung ucapan sampai VAD menyatakan selesai (timings.vad)
-    ended_t: float | None = None  # monotonic saat VAD menyatakan ucapan selesai
+    # mode vad: diam di ujung ucapan sampai VAD menyatakan selesai (timings.vad); push-to-talk:
+    # tombol dilepas sampai cek VAD selesai (amandemen 2 E-09)
+    vad_s: float | None = None
+    # monotonic saat VAD menyatakan ucapan selesai / cek VAD selesai; ended_t - vad_s = akhir
+    # ucapan (vad) atau saat tombol dilepas (push-to-talk)
+    ended_t: float | None = None
 
 
 @dataclass(frozen=True)
@@ -67,6 +74,13 @@ class ListenControl:
 
 
 @dataclass(frozen=True)
+class ReleaseTalk:
+    """Tombol Bicara dilepas (push-to-talk): rekaman hold dikirim ke cek VAD lalu STT."""
+
+    session_id: str | None
+
+
+@dataclass(frozen=True)
 class AudioStatus:
     mic_ok: bool
     speaker_ok: bool
@@ -75,5 +89,12 @@ class AudioStatus:
 
 
 AudioMessage = (
-    SpeechStarted | Transcript | Speak | StopSpeaking | SpeechDone | ListenControl | AudioStatus
+    SpeechStarted
+    | Transcript
+    | Speak
+    | StopSpeaking
+    | SpeechDone
+    | ListenControl
+    | ReleaseTalk
+    | AudioStatus
 )

@@ -51,6 +51,10 @@ body[data-color="kuning"] { --session-swatch: var(--c-kuning-swatch); --session-
 #logo_img { height: 32px; width: auto; }
 #app_title { font-size: var(--fs-answer); font-weight: 700; white-space: nowrap; overflow: hidden;
              text-overflow: ellipsis; }
+#talk_button.held { /* push-to-talk: tombol sedang ditahan (Langkah 42) */
+  outline: 3px solid var(--accent); outline-offset: 2px;
+}
+#talk_button { touch-action: none; user-select: none; -webkit-user-select: none; }
 .trial-badge { /* --trial-values (Langkah 41): label kecil, dev saja */
   padding: 0 var(--space-2); border: 1px solid var(--border); border-radius: var(--radius);
   font-size: var(--fs-s); color: var(--text-muted); white-space: nowrap;

@@ -156,6 +156,8 @@ def build_parser() -> argparse.ArgumentParser:
                      help="daftar thread dipisah koma, satu konfigurasi per nilai "
                           "(default audio.stt.threads)")  # fmt: skip
     stt.add_argument("--hotwords", type=Path, help="file kosakata, satu istilah per baris")
+    stt.add_argument("--input-mode", choices=("push_to_talk", "vad"),
+                     help="bawaan audio.input_mode; push_to_talk = amandemen 1 E-05")  # fmt: skip
     stt.add_argument("--groq-model", help="menimpa audio.stt.groq_model (untuk --backend groq)")
     stt.add_argument("--questions", type=Path, default=Path("data/eval/questions.jsonl"),
                      help="gold_chunk_ids untuk Recall@5 (rekaman ber-qid)")  # fmt: skip
@@ -792,6 +794,7 @@ def cmd_stt(
     stamp = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S")
     run_dir = Path(args.out) / (args.run_name or stamp)
     kinds = {k: sum(i.kind == k for i in items) for k in ("pertanyaan", "diam", "bising")}
+    input_mode = args.input_mode or settings.audio.input_mode
     info = {
         "experiment": EXPERIMENT,
         "note": args.note,
@@ -806,7 +809,13 @@ def cmd_stt(
         },
         "vad": {"silero_model": silero_model_name(), "values": values, "sources": sources},
         "filters": {"values": filters, "sources": filter_sources},
-        "end_of_file": "diam sepanjang min_silence_ms ditambahkan agar VAD menutup ucapan",
+        "input_mode": input_mode,
+        "end_of_file": (
+            "satu rekaman = satu kali tombol ditahan; VAD hanya cek ucapan dan "
+            "memangkas hening (amandemen 1 E-05)"
+            if input_mode == "push_to_talk"
+            else "diam sepanjang min_silence_ms ditambahkan agar VAD menutup ucapan"
+        ),
         "wer_normalization": WER_NORMALIZATION,
         "cer_normalization": CER_NORMALIZATION,
         "retrieval": None
@@ -844,6 +853,7 @@ def cmd_stt(
         retrieval=(lambda: retrieval(args, settings, items)) if with_qid else None,
         loaded_modules=heavy_modules_loaded,
         late_info=lambda: {"environment": collect_environment()},
+        input_mode=input_mode,
     )
     print(format_table(summaries))
     print(f"tersimpan: {run_dir.as_posix()}")

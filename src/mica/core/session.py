@@ -37,6 +37,7 @@ from mica.audio.messages import (
     AudioStatus,
     ListenControl,
     ListenMode,
+    ReleaseTalk,
     Speak,
     SpeechDone,
     SpeechStarted,
@@ -86,6 +87,21 @@ class StopTapped:
 
 
 @dataclass(frozen=True)
+class TalkPressed:
+    """Tombol Bicara mulai ditahan (push-to-talk, Langkah 42)."""
+
+
+@dataclass(frozen=True)
+class TalkReleased:
+    """Tombol Bicara dilepas: rekaman dikirim."""
+
+
+@dataclass(frozen=True)
+class TalkCancelled:
+    """Pointer keluar dari tombol atau pointercancel: rekaman dibatalkan."""
+
+
+@dataclass(frozen=True)
 class TalkTapped:
     """Tombol bicara (push-to-talk, SDD M-08 Perilaku)."""
 
@@ -108,6 +124,9 @@ Event = (
     | TextSubmitted
     | StopTapped
     | TalkTapped
+    | TalkPressed
+    | TalkReleased
+    | TalkCancelled
     | Tick
 )
 
@@ -151,7 +170,7 @@ class Ignored:
     reason: str
 
 
-Action = Speak | StopSpeaking | SetVisionRate | ListenControl | RunPipeline | ShowView
+Action = Speak | StopSpeaking | SetVisionRate | ListenControl | ReleaseTalk | RunPipeline | ShowView
 Action = Action | ClearScreen | Ignored
 
 
@@ -174,7 +193,9 @@ class Session:
         regreet_cooldown_s: float | None,
         new_session_id: Callable[[], str] = _new_session_id,
         new_utterance_id: Callable[[], str] | None = None,
+        input_mode: str = "vad",
     ) -> None:
+        self.input_mode = input_mode  # audio.input_mode (Langkah 42)
         self.fps_idle = fps_idle
         self.fps_busy = fps_busy
         self.min_majority = min_majority
@@ -201,7 +222,8 @@ class Session:
     def from_settings(cls, settings: Settings, **kwargs: Callable[[], str]) -> Session:
         v, s = settings.vision, settings.session
         return cls(v.fps_idle, v.fps_busy, v.color.min_majority, s.idle_reset_s,
-                   s.regreet_cooldown_s, **kwargs)  # fmt: skip
+                   s.regreet_cooldown_s, **kwargs,
+                   input_mode=settings.audio.input_mode)  # fmt: skip
 
     # --- bantuan ------------------------------------------------------------------------
 
@@ -226,7 +248,13 @@ class Session:
     def _busy_rate(self) -> list[Action]:
         return [] if self.fps_busy is None else [SetVisionRate(self.fps_busy)]
 
+    @property
+    def push_to_talk(self) -> bool:
+        return self.input_mode == "push_to_talk"
+
     def _listen(self, mode: ListenMode) -> ListenControl:
+        if self.push_to_talk and mode == "auto":
+            mode = "off"  # push-to-talk: mikrofon hanya merekam selama tombol ditahan
         return ListenControl(mode, self.session_id)
 
     def _speak(self, text: str) -> tuple[Speak, str]:
@@ -311,8 +339,36 @@ class Session:
         mode: ListenMode = "auto" if self.state == VisitState.READY else "off"
         return [self._listen(mode), self._keep_view()]
 
+    def _talk(self, event: TalkPressed | TalkReleased | TalkCancelled) -> list[Action]:
+        """Push-to-talk (Langkah 42): tekan = LISTENING (rekam), lepas = proses seperti
+        sebelumnya (Transcript), batal = READY. Tekan saat MICA bicara = barge-in."""
+        s = self.state
+        if isinstance(event, TalkPressed):
+            stop: list[Action] = []
+            if s == VisitState.IDLE:
+                self.session_id = self.new_session_id()
+            elif s == VisitState.GREETING:
+                self.greeting_uid = None  # SpeechDone sapaan nanti diabaikan
+                stop = [StopSpeaking(self.session_id)]
+            elif s == VisitState.SPEAKING:
+                stop = [StopSpeaking(self.session_id)]
+            elif s != VisitState.READY:
+                return self._ignore(event, "tombol Bicara hanya di IDLE/READY/GREETING/SPEAKING")
+            self.state = VisitState.LISTENING
+            return [*stop, self._listen("hold"), self._show(message=texts.TALK_HOLD)]
+        if s != VisitState.LISTENING:
+            return self._ignore(event, "tombol Bicara tidak sedang ditahan")
+        if isinstance(event, TalkReleased):
+            return [ReleaseTalk(self.session_id), self._show(message=texts.TALK_PROCESSING)]
+        self.state = VisitState.READY
+        return [self._listen("off"), self._show(message=texts.TALK_CANCELLED)]
+
     def _transition(self, event: Event, now: float) -> list[Action]:
         s = self.state
+        if isinstance(event, (TalkPressed, TalkReleased, TalkCancelled)):
+            if not self.push_to_talk:
+                return self._ignore(event, "audio.input_mode vad")
+            return self._talk(event)
         if s == VisitState.IDLE:
             if isinstance(event, PersonArrived):
                 if now < self.cooldown_until:
@@ -350,6 +406,9 @@ class Session:
                 return self._think(question, "text")
         elif s == VisitState.LISTENING:
             if isinstance(event, Transcript):
+                if event.filtered_by is not None and self.push_to_talk:
+                    self.state = VisitState.READY  # tombol sudah dilepas; tidak menunggu lagi
+                    return [self._show(message=texts.NOT_HEARD_HOLD)]
                 if event.filtered_by is not None:
                     return self._ignore(event, f"tersaring {event.filtered_by}")
                 if event.ok and event.text.strip():
@@ -359,7 +418,8 @@ class Session:
                     return [self._show(message="berpikir", transcript=text),
                             self._listen("off"), speak, self._run(text, "voice")]  # fmt: skip
                 self.state = VisitState.READY
-                return [self._show(message=texts.NOT_HEARD)]
+                not_heard = texts.NOT_HEARD_HOLD if self.push_to_talk else texts.NOT_HEARD
+                return [self._show(message=not_heard)]
             if isinstance(event, (TopicTapped, TextSubmitted)):
                 question = _question(event)
                 if not question:
@@ -482,6 +542,24 @@ TRANSITIONS: tuple[Transition, ...] = (
                "Keputusan 17 Okt (N-10)"),
     Transition("T20", "READY", "TalkTapped", "-", ("ListenControl", "ShowView"), "READY",
                "Langkah 24 (push-to-talk, M-08)"),
+    Transition("P01", "IDLE", "TalkPressed", "input_mode push_to_talk; session_id baru",
+               ("ListenControl", "ShowView"), "LISTENING", "Langkah 42 (keputusan 18 Okt)"),
+    Transition("P02", "READY", "TalkPressed", "input_mode push_to_talk",
+               ("ListenControl", "ShowView"), "LISTENING", "Langkah 42 (keputusan 18 Okt)"),
+    Transition("P03", "GREETING / SPEAKING", "TalkPressed",
+               "input_mode push_to_talk; barge-in, SpeechDone nanti diabaikan",
+               ("StopSpeaking", "ListenControl", "ShowView"), "LISTENING",
+               "Langkah 42 (keputusan 18 Okt)"),
+    Transition("P04", "LISTENING", "TalkReleased", "input_mode push_to_talk",
+               ("ReleaseTalk", "ShowView"), "LISTENING", "Langkah 42 (keputusan 18 Okt)"),
+    Transition("P05", "LISTENING", "TalkCancelled", "input_mode push_to_talk",
+               ("ListenControl", "ShowView"), "READY", "Langkah 42 (keputusan 18 Okt)"),
+    Transition("P06", "LISTENING", "Transcript", "input_mode push_to_talk; filtered_by tidak None",
+               ("ShowView",), "READY", "Langkah 42 (keputusan 18 Okt)"),
+    Transition("P07", "THINKING / LISTENING", "TalkPressed",
+               "input_mode push_to_talk; tidak bisa merekam", ("Ignored",), "Tetap", "Langkah 42"),
+    Transition("P08", "Semua", "TalkPressed / TalkReleased / TalkCancelled",
+               "input_mode vad", ("Ignored",), "Tetap", "Langkah 42"),
     Transition("T16", "Semua", "SpeechStarted / Transcript / SpeechDone / AnswerReady",
                "session_id lama", ("Ignored",), "Tetap", "SDD 3.3, 5.2"),
     Transition("T17", "Semua", "Event lain", "-", ("Ignored",), "Tetap", "SDD 7.1"),

@@ -12,7 +12,20 @@ from typing import Any
 from mica.config import UiConfig
 from mica.core import texts
 from mica.core.controller import DebugInfo
-from mica.core.session import Event, StopTapped, TalkTapped, TextSubmitted, TopicTapped
+from mica.core.session import (
+    Event,
+    StopTapped,
+    TalkCancelled,
+    TalkPressed,
+    TalkReleased,
+    TalkTapped,
+    TextSubmitted,
+    TopicTapped,
+)
+
+# kalimat status dari pesan M-09 yang menggantikan kalimat bawaan pil (push-to-talk, Langkah 42)
+STATUS_FROM_MESSAGE = (texts.TALK_HOLD, texts.TALK_PROCESSING, texts.TALK_CANCELLED,
+                       texts.NOT_HEARD_HOLD)  # fmt: skip
 from mica.ui.viewmodel import ViewModel, source_line
 
 
@@ -29,6 +42,8 @@ def status_line(vm: ViewModel, pill: str) -> str:
     """Kalimat status di atas bilah input."""
     if pill == "thinking" and vm.answer_preparing:
         return texts.STATUS_PREPARING_ANSWER  # Langkah 40: pipeline masih dirakit
+    if vm.status_message in STATUS_FROM_MESSAGE and pill in ("listening", "ready"):
+        return vm.status_message
     if pill == "ready" and not vm.mic_ok:
         return texts.STATUS_READY_NO_MIC
     return texts.STATUS_LINES[pill]
@@ -98,9 +113,11 @@ def topic_question(ui: UiConfig, topic: str) -> str:
     return suggestions[0] if suggestions else topic
 
 
-def config_json(ui: UiConfig, dev: bool, trial: bool = False) -> dict[str, Any]:
+def config_json(ui: UiConfig, dev: bool, trial: bool = False,
+                input_mode: str = "vad") -> dict[str, Any]:  # fmt: skip
     return {
         "dev": dev,
+        "input_mode": input_mode,  # audio.input_mode: push_to_talk = tahan tombol Bicara
         "trial": trial and dev,  # nilai coba hanya ada di dev (mica.trial)
         "font_scale": ui.font_scale,
         "logo": "/logo" if ui.logo_path else None,
@@ -156,6 +173,12 @@ def event_from_message(msg: dict[str, Any], vm: ViewModel, ui: UiConfig) -> Even
         return TopicTapped(topic, question) if question in allowed else None
     if kind == "talk":
         return TalkTapped() if vm.mic_ok else None  # tombol bicara nonaktif tanpa mikrofon
+    if kind == "talk_press":  # push-to-talk (Langkah 42)
+        return TalkPressed() if vm.mic_ok else None
+    if kind == "talk_release":
+        return TalkReleased()
+    if kind == "talk_cancel":
+        return TalkCancelled()
     if kind == "stop":
         return StopTapped()
     return None

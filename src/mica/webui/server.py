@@ -59,8 +59,9 @@ class WebUi:
     def __init__(self, ui: UiConfig, dev: bool,
                  clock: Callable[[], float] = time.perf_counter,
                  render_clock: Callable[[], float] = time.monotonic,
-                 trial: bool = False) -> None:  # fmt: skip
+                 trial: bool = False, input_mode: str = "vad") -> None:  # fmt: skip
         self.ui = ui
+        self.input_mode = input_mode  # audio.input_mode (Langkah 42)
         self.dev = dev
         self.trial = trial  # --trial-values (Langkah 41): label "NILAI COBA (dev)" di header
         self.clock = clock
@@ -158,7 +159,14 @@ class WebUi:
     def serve_socket(self, ws: Any) -> None:
         with self.lock:
             self.sockets.add(ws)
-            ws.send(json.dumps({"type": "config", **config_json(self.ui, self.dev, self.trial)}))
+            ws.send(
+                json.dumps(
+                    {
+                        "type": "config",
+                        **config_json(self.ui, self.dev, self.trial, self.input_mode),
+                    }
+                )
+            )
             self._send_view([ws])
             if self.debug_text is not None:
                 ws.send(json.dumps({"type": "debug", "text": self.debug_text}))
@@ -230,8 +238,8 @@ class WebUi:
                     rendered(view[0], view[1], self.render_clock())  # respons pertama K-3
                 return
             event = event_from_message(data, self.vm, self.ui)
-        if kind == "talk":  # Langkah 42: diagnosis tombol Bicara
-            log.info("UI: tombol Bicara diterima server (mic_ok=%s, diteruskan=%s)",
+        if kind in ("talk", "talk_press", "talk_release", "talk_cancel"):  # Langkah 42
+            log.info("UI: tombol Bicara %s diterima server (mic_ok=%s, diteruskan=%s)", kind,
                      self.vm.mic_ok, event is not None)  # fmt: skip
         if event is not None and self.controller is not None:
             if self.on_event is not None:

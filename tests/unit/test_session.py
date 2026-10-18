@@ -30,6 +30,9 @@ from mica.core.session import (
     Session,
     ShowView,
     StopTapped,
+    TalkCancelled,
+    TalkPressed,
+    TalkReleased,
     TalkTapped,
     TextSubmitted,
     Tick,
@@ -133,6 +136,32 @@ def transcript(s, text="biaya kuliah berapa", ok=True, filtered=None):
     return Transcript(s.session_id, text, ok, 0.5, 1.5, False, filtered)
 
 
+def ptt(state):
+    """Session push-to-talk (audio.input_mode push_to_talk, Langkah 42) di state itu."""
+
+    def setup():
+        s = make(input_mode="push_to_talk")
+        if state == V.IDLE:
+            return s
+        s.handle(arrived(), 0.0)
+        if state == V.GREETING:
+            return s
+        s.handle(SpeechDone(s.session_id, s.greeting_uid, 0.2), 1.0)
+        if state == V.READY:
+            return s
+        s.handle(TalkPressed(), 2.0)
+        if state == V.LISTENING:
+            return s
+        s.handle(TalkReleased(), 2.5)
+        s.handle(Transcript(s.session_id, "biaya kuliah berapa", True, 0.5, 1.5), 3.0)
+        if state == V.THINKING:
+            return s
+        s.handle(AnswerReady(s.session_id, answer()), 4.0)
+        return s
+
+    return setup
+
+
 OK_CAM = CameraStatus(ok=True, message="kamera 0 terbuka")
 READY_AUDIO = AudioStatus(True, True, True, "siap")
 
@@ -162,6 +191,19 @@ CASES = {
     "T19": [(at(V.LISTENING), lambda s: TextSubmitted("Jalur masuk apa saja?"), 2.5),
             (at(V.LISTENING), lambda s: TopicTapped("Jalur", "Jalur masuk apa saja?"), 2.5)],
     "T20": [(at(V.READY), lambda s: TalkTapped(), 2.0)],
+    "P01": [(ptt(V.IDLE), lambda s: TalkPressed(), 0.0)],
+    "P02": [(ptt(V.READY), lambda s: TalkPressed(), 2.0)],
+    "P03": [(ptt(V.GREETING), lambda s: TalkPressed(), 0.5),
+            (ptt(V.SPEAKING), lambda s: TalkPressed(), 5.0)],
+    "P04": [(ptt(V.LISTENING), lambda s: TalkReleased(), 2.5)],
+    "P05": [(ptt(V.LISTENING), lambda s: TalkCancelled(), 2.5)],
+    "P06": [(ptt(V.LISTENING), lambda s, f=f: transcript(s, "", False, f), 3.0)
+            for f in ("no_voice", "min_speech", "no_speech")],
+    "P07": [(ptt(V.THINKING), lambda s: TalkPressed(), 3.5),
+            (ptt(V.LISTENING), lambda s: TalkPressed(), 2.2)],
+    "P08": [(at(V.READY), lambda s: TalkPressed(), 2.0),
+            (at(V.LISTENING), lambda s: TalkReleased(), 2.5),
+            (at(V.IDLE), lambda s: TalkCancelled(), 0.0)],
     "T16": [(at(V.LISTENING), lambda s: Transcript("lama", "x", True, 0.1, 0.1), 3.0),
             (at(V.READY), lambda s: SpeechStarted("lama", 2.0), 2.0),
             (at(V.SPEAKING), lambda s: SpeechDone("lama", s.answer_uid, 0.1), 5.0),
@@ -440,6 +482,7 @@ def test_transitions_markdown_export(tmp_path):
 
     md = transitions_markdown()
     assert md.count("\n| T") == 20 and md.count("\n| R0") == 6 and md.count("\n| D0") == 2
+    assert md.count("\n| P0") == 8
     out = tmp_path / "transitions.md"
     mod = runpy.run_path(str(ROOT / "scripts" / "session_table.py"))
     assert mod["main"](["--out", str(out)]) == 0

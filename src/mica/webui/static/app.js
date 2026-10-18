@@ -218,5 +218,61 @@ $("input").addEventListener("keydown", (e) => {
 });
 $("send_button").addEventListener("click", () => submitText($("input"), "text"));
 $("resend_button").addEventListener("click", () => submitText($("transcript_edit"), "resend"));
-$("talk_button").addEventListener("click", () => send({ type: "talk" }));
+// Bicara. audio.input_mode push_to_talk (Langkah 42): tahan untuk merekam, lepas untuk mengirim;
+// pointer keluar dari tombol atau pointercancel = dibatalkan. Spasi (dev) saat fokus bukan di
+// kotak ketik. Mode vad (lama): klik sekali.
+let talkHeld = false;
+
+function talkPress() {
+  if (talkHeld || $("talk_button").disabled) return;
+  talkHeld = true;
+  $("talk_button").classList.add("held");
+  send({ type: "talk_press" });
+}
+
+function talkEnd(type) {
+  if (!talkHeld) return;
+  talkHeld = false;
+  $("talk_button").classList.remove("held");
+  send({ type });
+}
+
+function insideTalk(e) {
+  const r = $("talk_button").getBoundingClientRect();
+  return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+}
+
+const talkButton = $("talk_button");
+talkButton.addEventListener("click", () => {
+  if (config && config.input_mode !== "push_to_talk") send({ type: "talk" });
+});
+talkButton.addEventListener("pointerdown", (e) => {
+  if (!config || config.input_mode !== "push_to_talk" || e.button > 0) return;
+  e.preventDefault();
+  talkButton.setPointerCapture(e.pointerId);
+  talkPress();
+});
+talkButton.addEventListener("pointermove", (e) => {
+  if (talkHeld && !insideTalk(e)) talkEnd("talk_cancel"); // keluar dari tombol
+});
+talkButton.addEventListener("pointerup", (e) => talkEnd(insideTalk(e) ? "talk_release" : "talk_cancel"));
+talkButton.addEventListener("pointercancel", () => talkEnd("talk_cancel"));
+talkButton.addEventListener("contextmenu", (e) => e.preventDefault()); // tekan lama di layar sentuh
+
+function typingTarget(el) {
+  return el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.code !== "Space" || !config || config.input_mode !== "push_to_talk") return;
+  if (typingTarget(document.activeElement)) return;
+  e.preventDefault();
+  if (!e.repeat) talkPress();
+});
+document.addEventListener("keyup", (e) => {
+  if (e.code !== "Space" || typingTarget(document.activeElement)) return;
+  e.preventDefault();
+  talkEnd("talk_release");
+});
+window.addEventListener("blur", () => talkEnd("talk_cancel")); // jendela kehilangan fokus
 $("stop_button").addEventListener("click", () => send({ type: "stop" }));

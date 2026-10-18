@@ -12,6 +12,12 @@ setara pengunjung berhenti bicara. waktu_sampai_teks = vad_end (akhir bicara -> 
 ucapan) + stt_s ucapan terakhir yang lolos. transkripsi_palsu (diam/bising) = 1 bila ada
 Transcript ok. Bila qid ada: retriever aktif (tanpa LLM) pada transkripsi dan referensi,
 hit@5 terhadap gold_chunk_ids. Pemenang tidak dipilih otomatis.
+
+input_mode push_to_talk (amandemen 1 E-05, Langkah 42; bawaan dari audio.input_mode): setiap
+rekaman = satu kali tombol ditahan. VAD hanya mengecek ada ucapan dan memangkas hening
+(push_to_talk_utterance); tanpa ucapan STT tidak dipanggil. Rekaman lebih panjang dari
+max_utterance_s dipotong (dikirim otomatis). vad_end_s = lama cek VAD, sehingga
+waktu_sampai_teks = tombol dilepas -> teks. input_mode vad = cara lama di atas.
 """
 
 from __future__ import annotations
@@ -27,7 +33,14 @@ from typing import Any, Literal
 import numpy as np
 
 from mica.audio.stt import SpeechToText, Transcript
-from mica.audio.vad import CHUNK_SAMPLES, SAMPLE_RATE, SpeechSegmenter, Utterance, is_too_short
+from mica.audio.vad import (
+    CHUNK_SAMPLES,
+    SAMPLE_RATE,
+    SpeechSegmenter,
+    Utterance,
+    is_too_short,
+    push_to_talk_utterance,
+)
 from mica.eval.metrics import hit_at, percentile
 from mica.eval.wer import cer, corpus_cer, corpus_wer, normalize_for_wer, wer
 from mica.rag.pii import scrub_pii
@@ -155,17 +168,36 @@ def segment(pcm: np.ndarray, segmenter: SpeechSegmenter) -> list[tuple[Utterance
     return out
 
 
+def push_to_talk(pcm: np.ndarray, segmenter: SpeechSegmenter) -> list[tuple[Utterance, float]]:
+    """Satu rekaman = satu kali tombol ditahan: [(ucapan, lama cek VAD)] atau [] tanpa ucapan."""
+    import time
+
+    audio = np.asarray(pcm, dtype=np.int16)
+    cut = len(audio) > segmenter.max_samples
+    t0 = time.perf_counter()
+    utt = push_to_talk_utterance(audio[: segmenter.max_samples], segmenter.prob,
+                                 segmenter.threshold, cut)  # fmt: skip
+    check_s = time.perf_counter() - t0
+    return [] if utt is None else [(utt, check_s)]
+
+
 def evaluate_item(
     item: SpeechItem,
     pcm: np.ndarray,
     segmenter: SpeechSegmenter,
     stt: SpeechToText,
     min_speech_ms: float | None,
+    input_mode: str = "vad",
 ) -> ItemResult:
     texts: list[str] = []
     filtered: list[str] = []
     stt_s = vad_end = None
-    utterances = segment(pcm, segmenter)
+    if input_mode == "push_to_talk":
+        utterances = push_to_talk(pcm, segmenter)
+        if not utterances:
+            filtered.append("no_voice")
+    else:
+        utterances = segment(pcm, segmenter)
     for utt, utt_vad_end in utterances:
         if is_too_short(utt, min_speech_ms):
             filtered.append("min_speech")
@@ -359,6 +391,7 @@ def run_eval(
     progress: Callable[[str], None] = print,
     loaded_modules: Callable[[], list[str]] | None = None,
     late_info: Callable[[], dict[str, Any]] | None = None,
+    input_mode: str = "vad",
 ) -> list[Summary]:
     """Dua fase supaya waktu STT tidak terganggu retriever (Langkah 27):
     fase 1 = VAD + STT semua kandidat dan rekaman (waktu diukur, retriever/torch belum dimuat);
@@ -374,7 +407,8 @@ def run_eval(
         segmenter = make_segmenter()
         results = []
         for item in items:
-            r = evaluate_item(item, audio[item.id], segmenter, cand.stt, min_speech_ms)
+            r = evaluate_item(item, audio[item.id], segmenter, cand.stt, min_speech_ms,
+                              input_mode)  # fmt: skip
             results.append(r)
             progress(f"  {item.id} ({item.kind}): ucapan {r.n_utterances}, "
                      f"tersaring {list(r.filtered_by) or '-'}")  # fmt: skip

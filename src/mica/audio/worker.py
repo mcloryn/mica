@@ -44,6 +44,7 @@ from mica.audio.messages import (
     AudioStatus,
     ListenControl,
     ListenMode,
+    ReleaseTalk,
     Speak,
     SpeechDone,
     SpeechStarted,
@@ -54,7 +55,13 @@ from mica.audio.player import SpeakerUnavailable
 from mica.audio.stt import DEFAULT_WHISPER_DIR, MODEL_FILES, SttModelMissing, whisper_dir
 from mica.audio.stt import Transcript as SttTranscript
 from mica.audio.tts import DEFAULT_VOICES_DIR, VoiceMissing, voice_path
-from mica.audio.vad import SpeechSegmenter, Utterance, is_too_short
+from mica.audio.vad import (
+    SAMPLE_RATE,
+    SpeechSegmenter,
+    Utterance,
+    is_too_short,
+    push_to_talk_utterance,
+)
 from mica.audio.vad import SpeechStarted as VadStarted
 from mica.config import Settings
 from mica.core.logsetup import configure_dev_logging
@@ -266,6 +273,13 @@ class AudioLoop:
         self.speaker_message = speaker_message
         self.clock = clock
         self.out = out
+        self.prob = prob
+        # push-to-talk (Langkah 42): potongan selama mode hold; dikirim saat ReleaseTalk atau
+        # saat audio.max_utterance_s tercapai, dibuang bila mode berubah (dibatalkan)
+        self.hold_chunks: list[Any] = []
+        self.hold_samples = 0
+        self.max_hold = int(cfg.values["max_utterance_s"] * SAMPLE_RATE)
+        self.release_at: float | None = None
         self.segmenter = SpeechSegmenter(
             threshold=cfg.values["vad.threshold"],
             min_silence_ms=cfg.values["vad.min_silence_ms"],
@@ -336,6 +350,8 @@ class AudioLoop:
                 continue
             if not self._should_listen():
                 continue  # mode/bicara berubah saat membaca: potongan dibuang
+            if self._hold_chunk(chunk):
+                continue
             for event in self.segmenter.feed(chunk):
                 if isinstance(event, VadStarted):
                     log.info("VAD: awal ucapan")
@@ -353,6 +369,47 @@ class AudioLoop:
                     self.tasks.put(("stt", event, session, self.clock()))
                     break
 
+    def _hold_chunk(self, chunk: Any) -> bool:
+        """Mode hold: simpan potongan (di memori saja); kirim pada potongan pertama setelah
+        tombol dilepas atau saat batas max_utterance_s tercapai."""
+        with self.lock:
+            if self.mode != "hold":
+                return False
+            self.hold_chunks.append(chunk)
+            self.hold_samples += len(chunk)
+            if self.release_at is not None:  # potongan ini = audio sampai tombol dilepas
+                task = self._take_hold(cut_by_max=False, released=self.release_at)
+            elif self.hold_samples >= self.max_hold:
+                task = self._take_hold(cut_by_max=True, released=self.clock())
+                log.info("push-to-talk: batas %.0f s tercapai, rekaman dikirim otomatis",
+                         self.max_hold / SAMPLE_RATE)  # fmt: skip
+            else:
+                return True
+        self.tasks.put(task)
+        return True
+
+    def _take_hold(self, cut_by_max: bool, released: float) -> tuple[Any, ...]:
+        """Dipanggil dengan self.lock dipegang: tutup rekaman hold menjadi tugas STT."""
+        import numpy as np
+
+        pcm = (np.concatenate(self.hold_chunks) if self.hold_chunks
+               else np.zeros(0, dtype=np.int16))  # fmt: skip
+        self.hold_chunks, self.hold_samples, self.release_at = [], 0, None
+        self.mode = "off"
+        self.transcribing = True
+        if self.mic is not None and self.mic_open:
+            self.mic.pause()
+            self.mic_open = False
+        log.info("push-to-talk: rekaman %.2f s dikirim ke cek VAD", len(pcm) / SAMPLE_RATE)
+        return ("ptt", pcm, self.session_id, released, cut_by_max)
+
+    def _drop_hold(self, reason: str) -> None:
+        """Dipanggil dengan self.lock dipegang: rekaman hold dibuang (dibatalkan)."""
+        if self.mode == "hold":
+            log.info("push-to-talk: rekaman dibatalkan (%s), %.2f s dibuang", reason,
+                     self.hold_samples / SAMPLE_RATE)  # fmt: skip
+        self.hold_chunks, self.hold_samples, self.release_at = [], 0, None
+
     # --- thread kerja -------------------------------------------------------------------
 
     def _work(self) -> None:
@@ -362,6 +419,8 @@ class AudioLoop:
                 return
             if task[0] == "stt":
                 self._transcribe(task[1], task[2], task[3])
+            elif task[0] == "ptt":
+                self._transcribe_hold(*task[1:])
             else:
                 self._speak(task[1], task[2], task[3])
 
@@ -383,6 +442,32 @@ class AudioLoop:
                 segments = getattr(self.stt, "last_segments", None)
                 for line in diagnose_lines(t, utt, segments):
                     self.out(f"[audio]{line}")
+        finally:
+            with self.lock:
+                self.transcribing = False
+            self.wake.set()
+
+    def _transcribe_hold(self, pcm: Any, session: str | None, released: float,
+                         cut_by_max: bool) -> None:  # fmt: skip
+        """Push-to-talk: cek VAD (ada ucapan? pangkas hening) lalu STT; tanpa ucapan STT tidak
+        dipanggil. vad_s = tombol dilepas sampai cek VAD selesai (amandemen 2 E-09)."""
+        try:
+            audio_s = len(pcm) / SAMPLE_RATE
+            utt = push_to_talk_utterance(pcm, self.prob, self.cfg.values["vad.threshold"],
+                                         cut_by_max)  # fmt: skip
+            checked = self.clock()
+            if utt is None:
+                t = SttTranscript("", False, 0.0, audio_s, filtered_by="no_voice")
+            elif is_too_short(utt, self.cfg.filters["vad.min_speech_ms"]):
+                t = SttTranscript("", False, 0.0, utt.audio_s, filtered_by="min_speech")
+            else:
+                t = self.stt.transcribe(utt.pcm16k)
+            log.info("push-to-talk: cek VAD %.3f s, ucapan=%s; STT ok=%s, %d karakter, %.2f s, "
+                     "tersaring=%s", checked - released, utt is not None, t.ok,
+                     len(t.text or ""), t.stt_s or 0.0, t.filtered_by)  # fmt: skip
+            self._send(Transcript(session, t.text if t.ok else "", t.ok, t.stt_s, t.audio_s,
+                                  cut_by_max, t.filtered_by, checked - released,
+                                  checked))  # fmt: skip
         finally:
             with self.lock:
                 self.transcribing = False
@@ -437,9 +522,18 @@ class AudioLoop:
             self.running = False
         elif isinstance(msg, ListenControl):
             with self.lock:
+                if self.mode == "hold" or msg.mode == "hold":
+                    self._drop_hold(f"ListenControl({msg.mode})")
                 self.mode = msg.mode
                 self.session_id = msg.session_id
             log.info("ListenControl(%s) diterima proses suara", msg.mode)
+        elif isinstance(msg, ReleaseTalk):
+            with self.lock:
+                if self.mode == "hold" and self.mic is not None and self.mic_open:
+                    self.release_at = self.clock()  # thread rekam menutup rekaman
+                elif self.mode == "hold":  # mikrofon belum sempat dibuka: rekaman kosong
+                    self.tasks.put(self._take_hold(cut_by_max=False, released=self.clock()))
+            log.info("ReleaseTalk diterima proses suara")
         elif isinstance(msg, Speak):
             with self.lock:
                 self.session_id = msg.session_id

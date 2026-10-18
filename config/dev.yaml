@@ -33,6 +33,7 @@ llm:
   temperature: 0.2                  # provisional dev, E-04
   reasoning_effort: low             # low | medium | high; provisional dev, E-04
 audio:
+  input_mode: push_to_talk          # keputusan desain pengguna 18 Okt 2026 (Langkah 42); vad = mode lama untuk perbandingan
   stt:
     backend: faster_whisper         # ADR-09; faster_whisper | groq_whisper (E-05)
     model: small

@@ -181,7 +181,8 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
     try:
         if record_resources is not None:
             check_allowed(settings.app.mode, e09)  # ditolak sebelum pekerja dimulai
-        webui = WebUi(settings.ui, dev=settings.app.mode == "dev", trial=trial)
+        webui = WebUi(settings.ui, dev=settings.app.mode == "dev", trial=trial,
+                      input_mode=settings.audio.input_mode)  # fmt: skip
         browser = (
             None
             if no_browser
