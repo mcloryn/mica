@@ -31,6 +31,7 @@ dev dan tes.
 from __future__ import annotations
 
 import importlib
+import logging
 import queue
 import threading
 import time
@@ -56,8 +57,10 @@ from mica.audio.tts import DEFAULT_VOICES_DIR, VoiceMissing, voice_path
 from mica.audio.vad import SpeechSegmenter, Utterance, is_too_short
 from mica.audio.vad import SpeechStarted as VadStarted
 from mica.config import Settings
+from mica.core.logsetup import configure_dev_logging
 
 VAD_KEYS = ("vad.threshold", "vad.min_silence_ms", "max_utterance_s")
+log = logging.getLogger(__name__)
 FILTER_KEYS = ("vad.min_speech_ms", "stt.no_speech_threshold")
 IDLE_WAIT_S = 0.05  # non-ADR: jeda cek ulang thread rekam saat tidak mendengarkan
 READ_TIMEOUT_S = 0.1  # non-ADR: batas tunggu satu potongan mikrofon supaya perubahan mode cepat
@@ -318,9 +321,11 @@ class AudioLoop:
                     self.segmenter.reset()  # start_s ucapan = waktu sejak mic resume
                     self.mic.resume()
                     self.mic_open = True
+                    log.info("mikrofon direkam (mode %s)", self.mode)
                 elif not want and self.mic_open:
                     self.mic.pause()
                     self.mic_open = False
+                    log.info("mikrofon dijeda (mode %s)", self.mode)
             if not want:
                 self.wake.wait(IDLE_WAIT_S)
                 self.wake.clear()
@@ -333,8 +338,11 @@ class AudioLoop:
                 continue  # mode/bicara berubah saat membaca: potongan dibuang
             for event in self.segmenter.feed(chunk):
                 if isinstance(event, VadStarted):
+                    log.info("VAD: awal ucapan")
                     self._send(SpeechStarted(self.session_id, self.clock()))
                 elif isinstance(event, Utterance):
+                    log.info("VAD: ucapan selesai (%.2f s, terpotong batas=%s)", event.audio_s,
+                             event.cut_by_max)  # fmt: skip
                     with self.lock:
                         session = self.session_id
                         self.transcribing = True
@@ -363,6 +371,9 @@ class AudioLoop:
                 t = SttTranscript("", False, 0.0, utt.audio_s, filtered_by="min_speech")
             else:
                 t = self.stt.transcribe(utt.pcm16k)
+            # tanpa teks transkripsi (N-09)
+            log.info("STT: ok=%s, %d karakter, %.2f s, tersaring=%s", t.ok, len(t.text or ""),
+                     t.stt_s or 0.0, t.filtered_by)  # fmt: skip
             self._send(Transcript(session, t.text if t.ok else "", t.ok, t.stt_s, t.audio_s,
                                   utt.cut_by_max, t.filtered_by, utt.trailing_silence_s,
                                   ended))  # fmt: skip
@@ -428,6 +439,7 @@ class AudioLoop:
             with self.lock:
                 self.mode = msg.mode
                 self.session_id = msg.session_id
+            log.info("ListenControl(%s) diterima proses suara", msg.mode)
         elif isinstance(msg, Speak):
             with self.lock:
                 self.session_id = msg.session_id
@@ -488,6 +500,8 @@ def run_audio_worker(cfg: AudioWorkerConfig, inbox: Any, outbox: Any) -> None:
     from mica.audio.mic import MicUnavailable
     from mica.core import startup
 
+    if cfg.mode == "dev":  # Langkah 42: log diagnosis proses anak terlihat di konsol dev
+        configure_dev_logging()
     startup.set_process("audio")
     startup.mark("proc_start")
     try:
@@ -510,8 +524,12 @@ def run_audio_worker(cfg: AudioWorkerConfig, inbox: Any, outbox: Any) -> None:
         try:
             mic = _make_mic(cfg)
             mic.pause()  # mode awal off
+            log.info("mikrofon terbuka: perangkat %s, %s Hz%s", cfg.mic_device or "bawaan",
+                     getattr(mic, "input_rate", "?"),
+                     " (resample ke 16 kHz)" if getattr(mic, "resampled", False) else "")  # fmt: skip
         except MicUnavailable as exc:
             mic_message = str(exc)  # sudah diawali MIC_DOWN
+            log.warning("mikrofon tidak tersedia: %s", exc)
         startup.mark("mic_open_done")
         player, speaker_message = None, ""
         try:

@@ -174,6 +174,10 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
     startup.begin()
     startup.mark("run_start")
     startup.init(Path(settings.logging.dir))
+    if settings.app.mode == "dev":  # Langkah 42: log diagnosis terlihat di konsol
+        from mica.core.logsetup import configure_dev_logging
+
+        configure_dev_logging()
     try:
         if record_resources is not None:
             check_allowed(settings.app.mode, e09)  # ditolak sebelum pekerja dimulai

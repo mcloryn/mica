@@ -24,6 +24,7 @@ docs/UI-WEB.md, "Catatan setelah tahap 1".
 from __future__ import annotations
 
 import json
+import logging
 import queue
 import threading
 import time
@@ -40,6 +41,8 @@ from mica.core.controller import DebugInfo, DisplayUpdate
 from mica.core.session import ClearScreen, Event, ShowView
 from mica.ui.viewmodel import ViewModel
 from mica.webui.state import config_json, event_from_message, format_debug, view_json
+
+log = logging.getLogger(__name__)
 
 HOST = "127.0.0.1"  # tidak pernah 0.0.0.0: UI hanya untuk laptop kiosk itu sendiri
 POLL_INTERVAL_S = 0.05  # SDD 3.3: setara QTimer 50 ms PySide6
@@ -227,6 +230,9 @@ class WebUi:
                     rendered(view[0], view[1], self.render_clock())  # respons pertama K-3
                 return
             event = event_from_message(data, self.vm, self.ui)
+        if kind == "talk":  # Langkah 42: diagnosis tombol Bicara
+            log.info("UI: tombol Bicara diterima server (mic_ok=%s, diteruskan=%s)",
+                     self.vm.mic_ok, event is not None)  # fmt: skip
         if event is not None and self.controller is not None:
             if self.on_event is not None:
                 self.on_event(event)

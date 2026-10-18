@@ -65,6 +65,7 @@ from mica.rag.prompts import UNAVAILABLE
 from mica.vision.types import CameraStatus, PersonArrived, PersonLeft
 
 log = logging.getLogger(__name__)
+UI_EVENTS = ("TalkTapped", "StopTapped", "TextSubmitted", "TopicTapped")
 
 
 class Pipeline(Protocol):
@@ -267,6 +268,8 @@ class KioskController:
             self.bus.send(target, msg)
 
     def _execute(self, action: Any) -> None:
+        if isinstance(action, ListenControl):  # Langkah 42: diagnosis mikrofon
+            log.info("ListenControl(%s) ke proses suara", action.mode)
         if isinstance(action, (Speak, StopSpeaking, ListenControl)):
             self._send("audio", action)
         elif isinstance(action, SetVisionRate):
@@ -276,8 +279,10 @@ class KioskController:
         elif isinstance(action, RunPipeline):
             self.pending.append(self.executor.submit(self._run, action))
         elif isinstance(action, Ignored):
-            # tanpa teks pertanyaan: hanya nama event, state, dan alasan
-            log.debug("diabaikan %s di %s: %s", action.event, action.state, action.reason)
+            # tanpa teks pertanyaan: hanya nama event, state, dan alasan. Tombol UI yang diabaikan
+            # dicatat INFO supaya terlihat (Langkah 42: Bicara diabaikan di luar READY)
+            level = logging.INFO if action.event in UI_EVENTS else logging.DEBUG
+            log.log(level, "diabaikan %s di %s: %s", action.event, action.state, action.reason)
         else:
             raise TypeError(f"aksi tidak dikenal: {type(action).__name__}")
 
