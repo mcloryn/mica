@@ -63,34 +63,38 @@ def build_controller(
             from mica.core.bus import start_workers
 
             bus = start_workers(settings)
-    watch = None
-    if startup.active():  # Langkah 40: pembungkus pasif, pesan bus tidak diubah
-        watch = bus = startup.StartupBus(bus)
-    try:
-        if pipeline is None:
+    # Langkah 40: pembungkus pasif (pesan bus tidak diubah) untuk tahap start-up dan untuk
+    # mengakhiri "Menyiapkan kamera/mikrofon..." saat status pertama pekerja datang
+    watch = bus = startup.StartupBus(bus, on_status=webui.device_status)
+    webui.expect_devices(watch.unreported)
+    if pipeline is None and fake_pipeline:
+        from mica.ui.devfakes import FakePipeline
+
+        pipeline = FakePipeline()
+        startup.mark("pipeline_ready")
+    if pipeline is None:
+        from mica.rag.background import BackgroundPipeline
+
+        def build() -> Any:
+            from mica.rag.pipeline import make_pipeline
+
             startup.mark("pipeline_build_start")
-            if fake_pipeline:
-                from mica.ui.devfakes import FakePipeline
-
-                pipeline = FakePipeline()
-            else:
-                from mica.rag.pipeline import make_pipeline
-
-                pipeline = make_pipeline(settings)  # baris giliran ditulis controller
+            built = make_pipeline(settings)  # baris giliran ditulis controller
             startup.mark("pipeline_ready")
-    except Exception:
-        stop = getattr(bus, "stop", None)
-        if stop is not None:
-            stop()
-        raise
-    if watch is not None:
+            return built
+
+        # Langkah 40: dirakit di thread latar supaya server + Edge tidak menunggu BGE-M3
+        pipeline = BackgroundPipeline(build, on_ready=watch.note_pipeline_ready,
+                                      on_failed=lambda _e: startup.mark("pipeline_failed"))  # fmt: skip
+        pipeline.start()
+    else:
         watch.note_pipeline_ready()
 
-        def first_render() -> None:
-            startup.mark("ui_first_render")
-            watch.note_ui_rendered()
+    def first_render() -> None:
+        startup.mark("ui_first_render")
+        watch.note_ui_rendered()
 
-        webui.on_first_render = first_render
+    webui.on_first_render = first_render
     controller = KioskController(bus, Session.from_settings(settings), pipeline, webui.show_item,
                                  clock, log, debug=webui.show_debug if dev else None,
                                  display=webui.show_display)  # fmt: skip
@@ -135,6 +139,9 @@ def serve(
         if pump is not None:
             pump.join(timeout=2)
         webui.close_sockets()
+        close = getattr(getattr(controller, "pipeline", None), "close", None)  # Langkah 40
+        if close is not None:
+            close()
         controller.shutdown()
         if browser is not None:
             browser.close()

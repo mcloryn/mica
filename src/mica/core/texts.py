@@ -72,6 +72,10 @@ STATUS_LINES = {  # kunci pil -> kalimat status di atas bilah input
     "speaking": "Menjawab...",
 }
 STATUS_READY_NO_MIC = "Silakan ketik pertanyaan"
+# UI web saat mulai (Langkah 40, N-10): UI tampil lebih dulu, kamera/suara/pipeline menyusul
+CAMERA_STARTING = "Menyiapkan kamera..."
+MIC_STARTING = "Menyiapkan mikrofon..."
+STATUS_PREPARING_ANSWER = "Menyiapkan jawaban..."
 MONTHS = ("Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus",
           "September", "Oktober", "November", "Desember")  # fmt: skip
 

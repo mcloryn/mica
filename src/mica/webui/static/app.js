@@ -112,17 +112,21 @@ function messageElement(m) {
   return box;
 }
 
-function indicator(id, ok, onLabel, offLabel) {
+function indicator(id, ok, label) {
   const node = $(id);
   node.classList.toggle("off", !ok);
-  node.querySelector(".label").textContent = ok ? onLabel : offLabel;
+  node.querySelector(".label").textContent = label; // termasuk "Menyiapkan ..." (Langkah 40)
 }
 
 function renderLeft(v) {
   const t = config.texts;
   const text = $("color_text");
   const swatch = $("swatch_big");
-  if (!v.camera_ok) {
+  if (v.camera_starting) { // Langkah 40: kamera belum melapor
+    swatch.hidden = true;
+    text.textContent = v.camera_label;
+    text.className = "quiet";
+  } else if (!v.camera_ok) {
     swatch.hidden = true;
     text.textContent = t.camera_unavailable; // N-10
     text.className = "quiet";
@@ -140,8 +144,9 @@ function renderLeft(v) {
 }
 
 function renderStatus(v) {
-  if (v.pill === shownStatus) return;
-  shownStatus = v.pill;
+  const key = `${v.pill}|${v.status_line}`; // kalimat bisa berubah dalam status yang sama
+  if (key === shownStatus) return;
+  shownStatus = key;
   $("status_icon").replaceChildren(icon(v.pill));
   $("status_text").textContent = v.status_line;
 }
@@ -153,12 +158,13 @@ function render(v) {
   if (v.session_color) document.body.dataset.color = v.session_color;
   else delete document.body.dataset.color; // sesi selesai/reset: kembali netral
   $("notice").textContent = v.notice; // N-08: selalu tampil
-  indicator("camera_indicator", v.camera_ok, t.camera_on, t.camera_off);
-  indicator("mic_indicator", v.mic_ok, t.mic_on, t.mic_off);
+  indicator("camera_indicator", v.camera_ok, v.camera_label);
+  indicator("mic_indicator", v.mic_ok, v.mic_label);
   const talk = $("talk_button");
   talk.disabled = !v.talk_enabled;
   talk.classList.toggle("btn-primary", v.talk_enabled);
-  $("talk_label").textContent = v.talk_enabled ? t.talk : t.mic_unavailable_button;
+  $("talk_label").textContent = v.talk_enabled ? t.talk
+    : v.mic_starting ? v.mic_label : t.mic_unavailable_button;
   $("send_button").classList.toggle("btn-primary", !v.talk_enabled); // utama bila tanpa mic
   $("send_button").disabled = !v.send_enabled;
   $("resend_button").disabled = !v.send_enabled;

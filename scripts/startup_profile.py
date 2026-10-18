@@ -2,7 +2,7 @@
 
 python scripts/startup_profile.py --label <nama> [--reps 5] [--warmup 1] [--timeout 420]
     [--config config/dev.yaml] [--out results/STARTUP] [--fake-camera] [--min-free-gb 1.0]
-    [--dry-run]
+    [--dry-run] [--note <teks>]
 
 Per ulangan:
 1. Salinan config di folder hasil: logging.dir ke folder ulangan, dan kunci TBD (null) yang
@@ -280,6 +280,7 @@ def main(argv: list[str] | None = None) -> int:
     # batas pengaman, bukan nilai eksperimen: aplikasi lengkap sendiri memakai +-2 GB
     parser.add_argument("--min-free-gb", type=float, default=1.0)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--note", default="", help="catatan kondisi, mis. mulai dingin")
     args = parser.parse_args(argv)
     stamp = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S")
     out = args.out / f"{stamp}-{args.label}"
@@ -315,6 +316,8 @@ def main(argv: list[str] | None = None) -> int:
             for row in r["rows"]:
                 w.writerow([r["name"], row["proc"], row["stage"], f"{row['s']:.4f}"])
     report, table = summarize(runs, args.label, args.reps)
+    if args.note:
+        report = report.replace("\n\n", f"\n\nCatatan: {args.note}\n\n", 1)
     with (out / "summary.csv").open("w", encoding="utf-8-sig", newline="") as f:
         w = csv.DictWriter(f, fieldnames=["kind", "label", "proc", "stage", "median", "min",
                                           "max", "n"])  # fmt: skip
@@ -327,7 +330,7 @@ def main(argv: list[str] | None = None) -> int:
     (out / "report.md").write_text(report, encoding="utf-8")
     from mica.eval.environment import collect_environment
 
-    info = {"label": args.label, "reps": args.reps, "warmup": args.warmup,
+    info = {"label": args.label, "note": args.note, "reps": args.reps, "warmup": args.warmup,
             "timeout_s": args.timeout, "config": args.config.as_posix(),
             "fake_camera": args.fake_camera, "trial_values_sdd_12": TRIAL_VALUES,
             "runs": [{k: v for k, v in r.items() if k != "rows"} for r in runs],

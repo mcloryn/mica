@@ -25,6 +25,15 @@ def status_label(vm: ViewModel) -> str:
     return status
 
 
+def status_line(vm: ViewModel, pill: str) -> str:
+    """Kalimat status di atas bilah input."""
+    if pill == "thinking" and vm.answer_preparing:
+        return texts.STATUS_PREPARING_ANSWER  # Langkah 40: pipeline masih dirakit
+    if pill == "ready" and not vm.mic_ok:
+        return texts.STATUS_READY_NO_MIC
+    return texts.STATUS_LINES[pill]
+
+
 def color_slug(name: str | None) -> str | None:
     """Nama warna van de Weijer (COLOR_NAMES) -> kunci token CSS (--c-<slug>-swatch/-tint)."""
     return None if not name else name.replace(" ", "-")
@@ -47,20 +56,26 @@ def view_json(vm: ViewModel) -> dict[str, Any]:
         "target_color": vm.target_color,
         # warna sesi: hanya saat target terkunci; None = netral (juga setelah sesi reset)
         "session_color": color_slug(vm.target_color) if vm.target_present else None,
-        "status_line": (
-            texts.STATUS_READY_NO_MIC
-            if pill == "ready" and not vm.mic_ok
-            else texts.STATUS_LINES[pill]
-        ),
+        "status_line": status_line(vm, pill),
         "preview": vm.preview,
         "notice": texts.NOTICE_SHORT if vm.camera_ok else texts.NOTICE_SHORT_NO_CAMERA,
         "status": vm.status.value,
         "status_label": status_label(vm),
-        "camera_label": texts.CAMERA_ON if vm.camera_ok else texts.CAMERA_OFF,
-        "mic_label": texts.MIC_ON if vm.mic_ok else texts.MIC_OFF,
+        "camera_label": (
+            texts.CAMERA_STARTING
+            if vm.camera_starting
+            else texts.CAMERA_ON
+            if vm.camera_ok
+            else texts.CAMERA_OFF
+        ),
+        "mic_label": (
+            texts.MIC_STARTING if vm.mic_starting else texts.MIC_ON if vm.mic_ok else texts.MIC_OFF
+        ),
         "camera_ok": vm.camera_ok,
         "mic_ok": vm.mic_ok,
-        "talk_enabled": vm.mic_ok,
+        "camera_starting": vm.camera_starting,
+        "mic_starting": vm.mic_starting,
+        "talk_enabled": vm.mic_ok and not vm.mic_starting,
         "send_enabled": vm.send_enabled,
         "home": vm.home,
         "last_transcript": vm.last_transcript,

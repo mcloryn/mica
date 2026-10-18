@@ -255,6 +255,31 @@ class WebUi:
                 for ws in list(self.sockets):
                     self._send(ws, {"type": "debug", "text": self.debug_text})
 
+    def expect_devices(self, names: set[str]) -> None:
+        """Langkah 40: pekerja yang statusnya belum datang tampil "Menyiapkan ..."."""
+        with self.lock:
+            self.vm.camera_starting = "vision" in names
+            self.vm.mic_starting = "audio" in names
+            self.dirty = True
+
+    def device_status(self, name: str) -> None:
+        """Status pertama pekerja datang (ok atau tidak): tampilan "Menyiapkan ..." selesai."""
+        with self.lock:
+            if name == "vision":
+                self.vm.camera_starting = False
+            elif name == "audio":
+                self.vm.mic_starting = False
+            self.dirty = True
+
+    def _sync_pipeline(self) -> None:
+        """Langkah 40: "Menyiapkan jawaban..." selama pipeline latar belum siap (bukan gagal)."""
+        pipeline = getattr(self.controller, "pipeline", None)
+        preparing = not getattr(pipeline, "ready", True) and not getattr(pipeline, "failed", False)
+        with self.lock:
+            if preparing != self.vm.answer_preparing:
+                self.vm.answer_preparing = preparing
+                self.dirty = True
+
     def tick(self) -> None:
         """Satu putaran thread poll: event browser -> controller, step, lalu siarkan."""
         if self.controller is not None:
@@ -265,6 +290,7 @@ class WebUi:
                     break
                 self.controller.submit(event)
             self.controller.step()
+            self._sync_pipeline()
         self.flush()
 
     def poll_loop(self, stop: threading.Event) -> None:

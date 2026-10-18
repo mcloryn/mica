@@ -46,6 +46,10 @@ class ViewModel:
     target_present: bool = False  # vision: target terkunci (PersonArrived, belum PersonLeft)
     target_color: str | None = None
     preview: str = "off"  # ui.camera_preview: off | public | debug
+    # UI web saat mulai (Langkah 40): status pertama pekerja belum datang / pipeline belum siap
+    camera_starting: bool = False
+    mic_starting: bool = False
+    answer_preparing: bool = False
 
     @property
     def home(self) -> bool:

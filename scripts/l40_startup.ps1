@@ -8,6 +8,8 @@
 #   powershell -ExecutionPolicy Bypass -File scripts\l40_startup.ps1 -Label sebelum
 #   powershell -ExecutionPolicy Bypass -File scripts\l40_startup.ps1 -Label sebelum -DryRun
 # Tanpa kamera: tambahkan -FakeCamera (kamera dan suara palsu, pipeline asli).
+# Mulai dingin (tepat setelah restart laptop, 1 ulangan tanpa pemanasan):
+#   powershell -ExecutionPolicy Bypass -File scripts\l40_startup.ps1 -Label dingin -Warmup 0 -Reps 1 -Note "mulai dingin: dijalankan tepat setelah restart laptop"
 
 param(
     [Parameter(Mandatory = $true)][string]$Label,
@@ -15,6 +17,7 @@ param(
     [int]$Warmup = 1,
     [double]$TimeoutS = 420,
     [double]$MinFreeGb = 1.0,
+    [string]$Note = "",
     [switch]$FakeCamera,
     [switch]$DryRun
 )
@@ -29,6 +32,7 @@ if (-not (Test-Path $Py)) { Write-Host "BERHENTI: $Py tidak ada"; exit 2 }
 $pyArgs = @("scripts\startup_profile.py", "--label", $Label, "--reps", "$Reps", "--warmup", "$Warmup",
             "--timeout", "$TimeoutS", "--min-free-gb", "$MinFreeGb")
 if ($FakeCamera) { $pyArgs += "--fake-camera" }
+if ($Note) { $pyArgs += @("--note", $Note) }
 if ($DryRun) { $pyArgs += "--dry-run" }
 Write-Host ("[{0}] MULAI profil waktu mulai: {1}" -f (Get-Date -Format "HH:mm:ss"), ($pyArgs -join " "))
 & $Py @pyArgs

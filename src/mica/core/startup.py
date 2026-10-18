@@ -11,6 +11,8 @@
 - StartupBus: pembungkus pasif Bus. poll() meneruskan semua pesan apa adanya dan mencatat
   CameraStatus(ok=True) / AudioStatus(ready=True) pertama, lalu "all_ready" bila UI sudah
   digambar, pipeline siap, dan pekerja yang ada sudah siap. Tidak mengubah pesan (M-09 tetap).
+  on_status(nama) dipanggil sekali saat status pertama pekerja itu datang (ok atau tidak), untuk
+  mengakhiri tampilan "Menyiapkan kamera/mikrofon..." di UI web.
 """
 
 from __future__ import annotations
@@ -22,6 +24,7 @@ import os
 import threading
 import time
 import uuid
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -106,12 +109,15 @@ def timed_import(module: str) -> Any:
 class StartupBus:
     """Pembungkus pasif Bus/FakeWorkerBus untuk tahap camera_ready, audio_ready, all_ready."""
 
-    def __init__(self, bus: Any) -> None:
+    def __init__(self, bus: Any, on_status: Callable[[str], None] | None = None) -> None:
         self._bus = bus
+        self._lock = threading.Lock()
+        self.on_status = on_status
         names = set(getattr(bus, "names", ()))
         self.waiting = {n for n in ("vision", "audio") if n in names}
         if getattr(bus, "vision", "absent") is None:  # FakeWorkerBus tanpa kamera palsu
             self.waiting.discard("vision")
+        self.unreported = set(self.waiting)  # pekerja yang statusnya belum pernah datang
         self.ui_rendered = False
         self.pipeline_ready = False
         self.all_ready_at: float | None = None
@@ -125,6 +131,12 @@ class StartupBus:
 
         out = self._bus.poll(*args, **kwargs)
         for msg in out:
+            kind = ("vision" if isinstance(msg, CameraStatus)
+                    else "audio" if isinstance(msg, AudioStatus) else None)  # fmt: skip
+            if kind in self.unreported:
+                self.unreported.discard(kind)
+                if self.on_status is not None:
+                    self.on_status(kind)
             if "vision" in self.waiting and isinstance(msg, CameraStatus) and msg.ok:
                 self.waiting.discard("vision")
                 mark("camera_ready")
@@ -145,6 +157,7 @@ class StartupBus:
             self._check()
 
     def _check(self) -> None:
-        if (self.all_ready_at is None and self.ui_rendered and self.pipeline_ready
-                and not self.waiting):  # fmt: skip
-            self.all_ready_at = mark("all_ready")
+        with self._lock:  # dipanggil dari thread poll dan thread muat pipeline
+            if (self.all_ready_at is None and self.ui_rendered and self.pipeline_ready
+                    and not self.waiting):  # fmt: skip
+                self.all_ready_at = mark("all_ready")
