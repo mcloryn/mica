@@ -15,6 +15,8 @@ python -m mica.eval latency --logs logs/ --label <label> [--resources <csv>] [--
     [--out results/E-09] [--tool-test]   (E-09, lihat mica/eval/latency.py)
 python -m mica.eval vision --config <yaml> --dataset data/eval/vision/<nama>
     [--models yolo26n,yolo26n-pose] [--conf 0.1,0.25,0.5] [--out results/E-07]   (docs/E-07.md)
+python -m mica.eval vision-scenarios --config <yaml> --dataset data/eval/vision_scenarios/<nama>
+    --model <pemenang> [--conf <terpilih>] [--grid default] [--out results/E-07]
 """
 
 from __future__ import annotations
@@ -182,6 +184,21 @@ def build_parser() -> argparse.ArgumentParser:
     vis.add_argument("--out", type=Path, default=Path("results/E-07"))
     vis.add_argument("--models-dir", type=Path, default=Path("models"))
     vis.add_argument("--note", help="catatan di run.json, mis. 'sintetis, bukan hasil E-07'")
+
+    from mica.eval.vision_scenarios import GRIDS, MIN_KP_CONF
+
+    scen = sub.add_parser("vision-scenarios", help="E-07: grid sapaan pada klip skenario")
+    scen.add_argument("--config", type=Path, required=True)
+    scen.add_argument("--dataset", type=Path, required=True,
+                      help="folder data/eval/vision_scenarios/<nama>")  # fmt: skip
+    scen.add_argument("--model", required=True, help="pemenang E-07 deteksi (varian -pose)")
+    scen.add_argument("--conf", type=float, help="conf terpilih E-07 (default vision.conf)")
+    scen.add_argument("--grid", choices=tuple(GRIDS), default="default")
+    scen.add_argument("--min-kp-conf", type=float, default=MIN_KP_CONF,
+                      help=f"keypoint_torso.min_kp_conf (default {MIN_KP_CONF}, docs/E-07.md)")  # fmt: skip
+    scen.add_argument("--out", type=Path, default=Path("results/E-07"))
+    scen.add_argument("--models-dir", type=Path, default=Path("models"))
+    scen.add_argument("--note", help="catatan di run.json, mis. 'sintetis, bukan hasil E-07'")
     return parser
 
 
@@ -346,6 +363,59 @@ def cmd_vision(args: argparse.Namespace) -> int:
         for m in args.models
     }
     ev.run_vision(frames, predictors, args.conf, run_dir, info)
+    print((run_dir / "verdict.md").read_text(encoding="utf-8"))
+    print(f"tersimpan: {run_dir.as_posix()}")
+    return 0
+
+
+def cmd_vision_scenarios(args: argparse.Namespace) -> int:
+    from mica.eval import vision_scenarios as es
+    from mica.eval.vision import VisionEvalError
+    from mica.vision.detector import ModelMissing, UltralyticsDetector, model_path
+
+    settings = _vision_settings(args, "vision-scenarios")
+    if not args.model.endswith("-pose"):
+        raise VisionEvalError(
+            f"model {args.model} tanpa keypoint: sinyal shoulder_width butuh varian -pose; grid "
+            "min_box_height_ratio belum ditetapkan (amandemen docs/E-07.md dulu)"
+        )
+    path = model_path(args.model, args.models_dir)
+    if not path.is_file():
+        raise ModelMissing(path)
+    clips = es.load_clips(args.dataset)
+    appearances = es.load_annotations(args.dataset / "annotations.jsonl", [c.id for c in clips])
+    vision = settings.vision
+    conf = args.conf if args.conf is not None else vision.conf
+    environment = collect_environment()
+    warning = dirty_warning(environment)
+    if warning:
+        print(warning, file=sys.stderr)
+    stamp = _run_stamp()
+    run_dir = Path(args.out) / f"vision-scenarios-{stamp}"
+    info = {
+        "note": args.note,
+        "model": args.model,
+        "conf": conf,
+        "imgsz": vision.imgsz,
+        "tracker": vision.tracker,
+        "presence_signal": "shoulder_width",
+        "model_file": _model_info(args.models_dir, args.model),
+        "dataset": {
+            "path": args.dataset.as_posix(),
+            "manifest_sha256": sha256_file(args.dataset / "manifest.jsonl"),
+            "annotations_sha256": sha256_file(args.dataset / "annotations.jsonl"),
+            "clip_sha256": {c.id: sha256_file(c.file) for c in clips},
+            "n_kemunculan": len(appearances),
+        },
+        "packages": _vision_packages(),
+        "environment": environment,
+        "started_at": stamp,
+    }
+    es.run_scenarios(
+        clips, appearances,
+        lambda: UltralyticsDetector(path, vision.tracker, conf, vision.imgsz),
+        es.GRIDS[args.grid], vision.fps_idle, run_dir, info, min_kp_conf=args.min_kp_conf,
+    )  # fmt: skip
     print((run_dir / "verdict.md").read_text(encoding="utf-8"))
     print(f"tersimpan: {run_dir.as_posix()}")
     return 0
@@ -825,6 +895,8 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
             return cmd_stt(args)
         if args.command == "vision":
             return cmd_vision(args)
+        if args.command == "vision-scenarios":
+            return cmd_vision_scenarios(args)
         if args.command == "latency":
             return cmd_latency(args)
         if args.command == "dataset":
