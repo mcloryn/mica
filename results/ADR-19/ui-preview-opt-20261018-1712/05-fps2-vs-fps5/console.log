@@ -1,0 +1,46 @@
+ 1 fps5 #1: USS 218.0 MB (GPU 38.2, renderer 22.2) | CPU 14.69% | p95 5.01 ms | ac
+ 2 fps2 #1: USS 213.7 MB (GPU 38.3, renderer 18.3) | CPU 11.61% | p95 3.30 ms | ac
+ 3 fps5 #2: USS 216.9 MB (GPU 38.2, renderer 22.2) | CPU 12.73% | p95 2.85 ms | ac
+ 4 fps2 #2: USS 213.0 MB (GPU 38.2, renderer 18.3) | CPU 5.81% | p95 3.31 ms | ac
+ 5 fps5 #3: USS 217.8 MB (GPU 38.1, renderer 22.4) | CPU 13.31% | p95 3.94 ms | ac
+ 6 fps2 #3: USS 212.8 MB (GPU 38.3, renderer 18.1) | CPU 9.82% | p95 3.01 ms | ac
+ 7 fps5 #4: USS 218.3 MB (GPU 38.2, renderer 22.0) | CPU 12.21% | p95 4.01 ms | ac
+ 8 fps2 #4: USS 212.5 MB (GPU 38.2, renderer 18.1) | CPU 6.61% | p95 3.65 ms | ac
+ 9 fps5 #5: USS 218.1 MB (GPU 38.1, renderer 22.3) | CPU 11.90% | p95 3.05 ms | ac
+10 fps2 #5: USS 213.6 MB (GPU 38.3, renderer 18.2) | CPU 8.23% | p95 3.03 ms | ac
+11 fps5 #6: USS 219.8 MB (GPU 38.4, renderer 22.2) | CPU 14.11% | p95 2.88 ms | ac
+12 fps2 #6: USS 211.4 MB (GPU 38.1, renderer 18.1) | CPU 5.44% | p95 3.02 ms | ac
+13 fps5 #7: USS 219.4 MB (GPU 38.3, renderer 22.4) | CPU 13.15% | p95 3.09 ms | ac
+14 fps2 #7: USS 213.3 MB (GPU 38.3, renderer 18.1) | CPU 7.89% | p95 3.04 ms | ac
+15 fps5 #8: USS 218.4 MB (GPU 38.3, renderer 22.3) | CPU 12.79% | p95 3.02 ms | ac
+16 fps2 #8: USS 211.6 MB (GPU 38.2, renderer 18.3) | CPU 5.21% | p95 3.12 ms | ac
+17 fps5 #9: USS 217.1 MB (GPU 38.3, renderer 22.3) | CPU 13.62% | p95 3.30 ms | ac
+18 fps2 #9: USS 212.9 MB (GPU 38.3, renderer 18.1) | CPU 10.62% | p95 3.81 ms | ac
+19 fps5 #10: USS 218.6 MB (GPU 38.2, renderer 22.3) | CPU 12.92% | p95 2.96 ms | ac
+20 fps2 #10: USS 213.1 MB (GPU 38.3, renderer 18.1) | CPU 7.55% | p95 3.34 ms | ac
+# fps2 vs fps5 (pembanding)
+
+10 ulangan per kondisi, selang-seling, daya AC. Kondisi:
+
+- fps5: {'name': 'fps5', 'static': '21e25ae', 'preview': 'public', 'preview_fps': 5.0, 'edge_extra': ['--disable-gpu-compositing']}
+- fps2: {'name': 'fps2', 'static': '21e25ae', 'preview': 'public', 'preview_fps': 2.0, 'edge_extra': ['--disable-gpu-compositing']}
+
+| metrik | fps5 median (min-maks) | fps2 median (min-maks) |
+| --- | --- | --- |
+| uss | 218.22 (216.87-219.77) | 212.96 (211.45-213.68) |
+| cpu | 13.03 (11.90-14.69) | 7.72 (5.21-11.61) |
+| p95 | 3.07 (2.85-5.01) | 3.21 (3.01-3.81) |
+| uss inti Python | 50.17 (49.55-50.62) | 50.04 (49.81-50.54) |
+| uss kamera | 42.44 (41.46-42.70) | 42.40 (42.26-42.48) |
+| uss Edge browser | 52.17 (51.40-53.19) | 50.67 (49.39-51.21) |
+| uss Edge GPU | 38.20 (38.06-38.36) | 38.25 (38.14-38.30) |
+| uss Edge renderer | 22.29 (22.05-22.38) | 18.12 (18.09-18.33) |
+| uss lainnya | 13.38 (13.34-13.44) | 13.41 (13.24-13.65) |
+| cpu inti Python | 0.85 (0.44-1.15) | 0.46 (0.08-0.83) |
+| cpu kamera | 1.42 (0.13-2.29) | 0.81 (0.08-1.69) |
+| cpu Edge browser | 4.44 (3.80-5.10) | 4.08 (2.60-4.84) |
+| cpu Edge GPU | 2.03 (1.61-2.32) | 0.85 (0.47-1.46) |
+| cpu Edge renderer | 4.00 (3.44-4.87) | 0.91 (0.18-3.49) |
+| cpu lainnya | 0.47 (0.34-0.70) | 0.48 (0.34-0.81) |
+
+Info saja (pra-registrasi): tanpa keputusan.

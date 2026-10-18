@@ -1,0 +1,56 @@
+ 1 base #1: USS 389.2 MB (GPU 211.2, renderer 20.8) | CPU 15.03% | p95 3.65 ms | ac
+ 2 k2 #1: USS 218.3 MB (GPU 38.1, renderer 22.3) | CPU 12.55% | p95 3.44 ms | ac
+ 3 base #2: USS 360.0 MB (GPU 199.2, renderer 18.0) | CPU 15.86% | p95 5.89 ms | ac
+ 4 k2 #2: USS 218.5 MB (GPU 38.3, renderer 22.3) | CPU 13.85% | p95 3.47 ms | ac
+ 5 base #3: USS 388.6 MB (GPU 211.6, renderer 20.9) | CPU 12.19% | p95 7.84 ms | ac
+ 6 k2 #3: USS 217.2 MB (GPU 38.2, renderer 22.4) | CPU 14.66% | p95 3.30 ms | ac
+ 7 base #4: USS 395.8 MB (GPU 217.4, renderer 21.0) | CPU 15.57% | p95 4.84 ms | ac
+ 8 k2 #4: USS 218.5 MB (GPU 38.3, renderer 22.3) | CPU 12.71% | p95 3.81 ms | ac
+ 9 base #5: USS 389.4 MB (GPU 211.3, renderer 21.0) | CPU 16.48% | p95 4.58 ms | ac
+10 k2 #5: USS 217.7 MB (GPU 38.2, renderer 22.0) | CPU 13.88% | p95 3.35 ms | ac
+11 base #6: USS 396.9 MB (GPU 217.8, renderer 21.1) | CPU 14.87% | p95 7.25 ms | ac
+12 k2 #6: USS 217.6 MB (GPU 38.3, renderer 22.3) | CPU 13.75% | p95 3.87 ms | ac
+13 base #7: USS 395.8 MB (GPU 216.6, renderer 20.9) | CPU 15.26% | p95 5.16 ms | ac
+14 k2 #7: USS 217.3 MB (GPU 38.3, renderer 22.4) | CPU 13.62% | p95 4.01 ms | ac
+15 base #8: USS 389.6 MB (GPU 211.2, renderer 21.1) | CPU 16.07% | p95 3.55 ms | ac
+16 k2 #8: USS 219.1 MB (GPU 38.3, renderer 22.4) | CPU 14.43% | p95 4.30 ms | ac
+17 base #9: USS 393.1 MB (GPU 215.7, renderer 21.0) | CPU 15.83% | p95 4.54 ms | ac
+18 k2 #9: USS 219.1 MB (GPU 38.5, renderer 22.2) | CPU 13.62% | p95 3.79 ms | ac
+19 base #10: USS 393.4 MB (GPU 215.2, renderer 21.0) | CPU 15.94% | p95 3.10 ms | ac
+20 k2 #10: USS 217.9 MB (GPU 38.3, renderer 22.2) | CPU 14.14% | p95 2.97 ms | ac
+# k2 vs base (pembanding)
+
+10 ulangan per kondisi, selang-seling, daya AC. Kondisi:
+
+- base: {'name': 'base', 'static': '21e25ae', 'preview': 'public', 'preview_fps': None, 'edge_extra': []}
+- k2: {'name': 'k2', 'static': '21e25ae', 'preview': 'public', 'preview_fps': None, 'edge_extra': ['--disable-gpu-compositing']}
+
+| metrik | base median (min-maks) | k2 median (min-maks) |
+| --- | --- | --- |
+| uss | 391.33 (359.96-396.88) | 218.08 (217.16-219.12) |
+| cpu | 15.70 (12.19-16.48) | 13.80 (12.55-14.66) |
+| p95 | 4.71 (3.10-7.84) | 3.63 (2.97-4.30) |
+| uss inti Python | 50.24 (47.22-50.55) | 49.99 (49.83-50.21) |
+| uss kamera | 42.42 (39.26-42.51) | 42.33 (41.53-42.52) |
+| uss Edge browser | 51.76 (46.09-52.30) | 51.98 (51.54-52.32) |
+| uss Edge GPU | 213.39 (199.16-217.82) | 38.28 (38.11-38.49) |
+| uss Edge renderer | 20.96 (17.97-21.14) | 22.28 (22.05-22.43) |
+| uss lainnya | 13.43 (10.26-13.62) | 13.41 (13.31-13.75) |
+| cpu inti Python | 0.76 (0.49-1.33) | 0.69 (0.39-1.15) |
+| cpu kamera | 1.68 (0.31-2.29) | 1.68 (0.81-2.92) |
+| cpu Edge browser | 4.28 (3.26-5.18) | 4.44 (3.93-5.49) |
+| cpu Edge GPU | 5.74 (5.18-6.54) | 1.98 (1.69-2.14) |
+| cpu Edge renderer | 2.57 (1.51-3.33) | 4.13 (3.67-4.69) |
+| cpu lainnya | 0.47 (0.44-0.76) | 0.57 (0.36-0.73) |
+
+Aturan (docs/UI-PREVIEW-OPT.md):
+- uss: median 218.084 vs pembanding min 359.965 / maks 396.883
+- cpu: median 13.802 vs pembanding min 12.187 / maks 16.484
+- p95: median 3.633 vs pembanding min 3.101 / maks 7.838
+
+**k2 LEBIH BAIK dari base.**
+- uss: median 218.084 vs pembanding min 359.965 / maks 396.883
+- cpu: median 13.802 vs pembanding min 12.187 / maks 16.484
+- p95: median 3.633 vs pembanding min 3.101 / maks 7.838
+k2 LOLOS aturan pra-registrasi vs base
+FINAL=akhir:static=21e25ae,preview=public,edge=--disable-gpu-compositing

@@ -1,0 +1,103 @@
+{
+ "condition": {
+  "name": "fps10",
+  "static": "21e25ae",
+  "preview": "public",
+  "preview_fps": 10.0,
+  "edge_extra": []
+ },
+ "minutes": 15.0,
+ "interval_s": 30.0,
+ "power": {
+  "source": "ac",
+  "battery_percent": 100,
+  "battery_saver": false
+ },
+ "per_metric": {
+  "uss_total_mb": {
+   "first5": 224.35617897727272,
+   "last5": 205.76100852272728,
+   "slope_mb_per_min": 0.4419135551948052,
+   "verdict": "mendatar (plafon)"
+  },
+  "uss_inti Python": {
+   "first5": 49.94708806818182,
+   "last5": 47.59623579545455,
+   "slope_mb_per_min": -0.0033583603896103894,
+   "verdict": "mendatar (plafon)"
+  },
+  "uss_kamera": {
+   "first5": 41.48117897727273,
+   "last5": 39.69424715909091,
+   "slope_mb_per_min": 0.009395292207792208,
+   "verdict": "mendatar (plafon)"
+  },
+  "uss_Edge browser": {
+   "first5": 51.07634943181818,
+   "last5": 49.36541193181818,
+   "slope_mb_per_min": 0.03044845779220779,
+   "verdict": "mendatar (plafon)"
+  },
+  "uss_Edge GPU": {
+   "first5": 38.09588068181818,
+   "last5": 26.567116477272727,
+   "slope_mb_per_min": -0.004099025974025974,
+   "verdict": "mendatar (plafon)"
+  },
+  "uss_Edge renderer": {
+   "first5": 26.541548295454547,
+   "last5": 31.806818181818183,
+   "slope_mb_per_min": 0.41762378246753246,
+   "verdict": "naik terus (bocor)"
+  },
+  "uss_lainnya": {
+   "first5": 17.214133522727273,
+   "last5": 10.731178977272727,
+   "slope_mb_per_min": -0.00809659090909091,
+   "verdict": "mendatar (plafon)"
+  }
+ },
+ "cpu_mean_pct": {
+  "inti Python": 0.6579885138718133,
+  "kamera": 1.8541732003746187,
+  "Edge browser": 1.9756892254674985,
+  "Edge GPU": 3.2743147271881257,
+  "Edge renderer": 8.66842852788464,
+  "lainnya": 0.09201209343170105,
+  "total": 16.522606288218398
+ },
+ "gc": {
+  "js_used_mb_before_gc": 0.6681175231933594,
+  "js_used_mb_after_gc": 0.5980873107910156,
+  "js_total_mb_after_gc": 1.5,
+  "dom_documents": 2,
+  "dom_nodes": 316,
+  "js_event_listeners": 20,
+  "renderer_after_30s_mb": 28.34375,
+  "renderer_after_60s_mb": 28.30078125,
+  "renderer_before_mb": 33.01171875,
+  "verdict": "turun lagi setelah GC (sampah GC)"
+ },
+ "lowest_free_gb": 6.406604766845703,
+ "environment": {
+  "python": "3.13.7",
+  "torch": "2.14.1+cpu",
+  "torch_num_threads": 14,
+  "sentence_transformers": "6.1.0",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+  "cpu_count_logical": 20,
+  "power": {
+   "source": "ac",
+   "battery_percent": 100,
+   "battery_saver": false
+  },
+  "power_plan": {
+   "guid": "bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b",
+   "name": "ASUS Recommended",
+   "raw": "Power Scheme GUID: bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b  (ASUS Recommended)"
+  },
+  "git_commit": "2a9bf5a3008a49c5ac40eba0c7afe6e9c31e8a42",
+  "git_dirty": false
+ }
+}

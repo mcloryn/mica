@@ -234,6 +234,7 @@ kotak ketik, Kirim). Layar < 1100 px (nilai desain): kolom kiri menjadi strip ke
   di-pixelate. Overlay public: kotak target + label warna, tanpa angka. `debug`: tanpa
   pixelate, semua kotak, area baju, label warna, skor, lebar bahu.
 - Nilai coba DESAIN (bukan hasil eksperimen): `ui.preview_pixel_block` 16, `ui.preview_fps` 5.
+  Sejak Langkah 38 `ui.preview_fps` 10 (keputusan desain pengguna; lihat bagian Langkah 38).
 - Jalur: antrean multiprocessing terpisah dari bus event (`Bus.preview`, maxsize 1, frame lama
   dibuang); bus event tetap tanpa frame (SDD M-13). Server memompa antrean ke WebSocket
   `/preview` (pesan biner), hanya 127.0.0.1 dengan cek Origin yang sama dengan `/ws`; CSP
@@ -369,3 +370,53 @@ M-09, event, dan pratinjau tidak diubah (kecuali label overlay debug).
   - Perkiraan +2 MB dari font tidak terlihat sebesar itu pada run ini.
   - Folder hasil semula bernama ui-37b-* karena label langkah di skrip baru ditambahkan
     (`--step`) saat run sudah berjalan; namanya diganti ke ui-37c dan judulnya dikoreksi.
+
+## Langkah 38: biaya pratinjau kamera (18 Okt 2026)
+
+Pra-registrasi: docs/UI-PREVIEW-OPT.md (5ac3e98, amandemen 1 53b0668, amandemen 2 cd8fa10).
+Hasil: results/ADR-19/ui-preview-opt-20261018-1712. Bench tahap 1 (Edge kiosk, diam 60 s lalu 20
+pertanyaan ketik, pekerja dan pipeline palsu, proses kamera asli dengan sumber dan detektor
+palsu), daya AC, 10 + 10 ulangan selang-seling; angka = median (min-maks).
+
+- Diagnosis (01, img + object URL, versi 37c): GPU Edge naik ke +-210 MB dalam menit pertama
+  lalu mendatar; renderer +0,3 MB/menit. Biaya ada di sisi tampil Edge, bukan pembuatan JPEG.
+- K1 canvas + createImageBitmap (02): TIDAK lolos. RAM 390,4 -> 445,2 MB (GPU 212,1 -> 273,4).
+  Kode dikembalikan ke img (tidak pernah di-commit).
+- K2 `--disable-gpu-compositing` (03): LOLOS. RAM 391,3 (360,0-396,9) -> 218,1 (217,2-219,1) MB,
+  GPU Edge 213,4 -> 38,3 MB; CPU 15,70 (12,19-16,48) -> 13,80 (12,55-14,66) %; p95 jeda 4,71
+  (3,10-7,84) -> 3,63 (2,97-4,30) ms. CPU renderer naik 2,57 -> 4,13 %, GPU turun 5,74 -> 1,98 %.
+- Diterapkan di `mica/webui/browser.py` `PREVIEW_SWITCHES`, HANYA bila `ui.camera_preview` bukan
+  `off`. Alasan: hanya kondisi itu yang diukur. Dengan pratinjau off, GPU Edge 53,5 MB dan CPU
+  renderer 0,00 % (04), jadi manfaatnya tidak terbukti, sedangkan switch memindahkan kerja
+  komposit ke CPU.
+- Konfigurasi akhir vs pratinjau off (04, laporan): RAM 178,7 -> 218,0 MB (+39,3), CPU 4,74 ->
+  13,31 %, p95 6,41 -> 3,38 ms. Biaya pratinjau turun dari +215 MB (Langkah 37) ke +39 MB.
+- `ui.preview_fps` (info, tanpa keputusan):
+  - 2 vs 5 (05): RAM 213,0 vs 218,2 MB, CPU 7,72 vs 13,03 %.
+  - 10 vs 5 (07): RAM 221,8 vs 218,3 MB, CPU 21,29 (20,36-22,58) vs 14,27 (12,40-15,00) %
+    (renderer 8,22 vs 4,32 %, GPU 3,63 vs 2,01 %), p95 3,52 vs 3,35 ms.
+- Keputusan desain pengguna 18 Okt 2026: pratinjau minimal 10 fps, `ui.preview_fps` 10 di
+  dev.yaml dan kiosk.yaml (bukan hasil eksperimen). Laju deteksi YOLO tidak diubah.
+- Laju kamera (09, `scripts/camera_rate.py`, laptop dev): kamera asli + YOLO asli 14,95 frame/s
+  terbaca, JPEG pratinjau 10,01/s, deteksi 5,01/s; sumber palsu 15,00 / 10,00 / 5,00. Jarak
+  antar-JPEG kamera asli median 99 ms, p95 192 ms, maks 234 ms (frame tertahan saat deteksi
+  berjalan). Kamera laptop kiosk dicek ulang di E-09.
+- Uji tumbuh 15 menit (aturan mekanis Diagnosis, tidak diubah):
+  - Akhir fps 5 (06): total, GPU, browser, kamera, inti Python "mendatar (plafon)"; renderer
+    23,7 -> 29,7 MB, +0,44 MB/menit, "naik terus (bocor)".
+  - fps 10 + GC paksa (08, dengan port DevTools 127.0.0.1, bench saja): sama, renderer 26,5 ->
+    31,8 MB, +0,42 MB/menit, "naik terus (bocor)". GC paksa (cara L31): renderer 33,0 -> 28,3 MB
+    (+30 s) -> 28,3 MB (+60 s), heap JS 0,67 -> 0,60 MB. Aturan amandemen 2: "turun lagi setelah
+    GC (sampah GC)". Pola: GC mengembalikan +-4,7 MB, tetapi renderer tetap di atas rata-rata 5
+    menit pertama (26,5 MB); sisa kenaikan belum terjelaskan dan perlu uji yang lebih panjang.
+
+### Keterbatasan pratinjau
+
+- Kotak target dan area tanpa pixelate diperbarui sesuai laju DETEKSI, bukan laju video 10 fps:
+  5 Hz saat menunggu (`vision.fps_idle`). Saat sesi berlangsung `vision.fps_busy` masih null
+  (TBD) dengan nilai coba 2 Hz yang diputuskan di E-09. Di antara deteksi, overlay dan area tanpa
+  pixelate memakai deteksi terakhir, jadi bisa tertinggal dari gerak pengunjung.
+- Sumber palsu hampir statis, sedangkan kamera asli selalu berubah. Biaya RAM/CPU dengan kamera
+  asli di laptop kiosk diukur di E-09.
+- K2 diukur di Edge laptop dev. Efeknya di Edge/GPU laptop kiosk perlu dicek ulang di E-09.
+

@@ -1,0 +1,201 @@
+{
+ "a": {
+  "name": "base",
+  "static": "21e25ae",
+  "preview": "public",
+  "preview_fps": null,
+  "edge_extra": []
+ },
+ "b": {
+  "name": "k1",
+  "static": "now",
+  "preview": "public",
+  "preview_fps": null,
+  "edge_extra": []
+ },
+ "reps": 10,
+ "summary": {
+  "base": {
+   "uss": {
+    "median": 390.443359375,
+    "min": 388.94921875,
+    "max": 392.6015625
+   },
+   "cpu": {
+    "median": 12.603976366590015,
+    "min": 9.739436917131716,
+    "max": 16.223800259439866
+   },
+   "p95": {
+    "median": 4.3050100073742215,
+    "min": 3.3001800038618967,
+    "max": 5.6856999872252345
+   },
+   "uss inti Python": {
+    "median": 50.43359375,
+    "min": 49.87109375,
+    "max": 50.6875
+   },
+   "cpu inti Python": {
+    "median": 0.8333255153525878,
+    "min": 0.46874432506869324,
+    "max": 1.0676968431358398
+   },
+   "uss kamera": {
+    "median": 42.451171875,
+    "min": 41.4375,
+    "max": 42.67578125
+   },
+   "cpu kamera": {
+    "median": 1.783837031178161,
+    "min": 0.6249906043079176,
+    "max": 2.8645554230150645
+   },
+   "uss Edge browser": {
+    "median": 51.259765625,
+    "min": 49.60546875,
+    "max": 52.57421875
+   },
+   "cpu Edge browser": {
+    "median": 4.80462129253606,
+    "min": 3.5676778950948806,
+    "max": 5.598903781347626
+   },
+   "uss Edge GPU": {
+    "median": 212.07421875,
+    "min": 211.140625,
+    "max": 213.9609375
+   },
+   "cpu Edge GPU": {
+    "median": 3.0077856145001123,
+    "min": 2.1353938926914036,
+    "max": 3.723924669054489
+   },
+   "uss Edge renderer": {
+    "median": 20.95703125,
+    "min": 20.85546875,
+    "max": 21.3203125
+   },
+   "cpu Edge renderer": {
+    "median": 2.395801162899229,
+    "min": 1.4843526852313045,
+    "max": 3.906214687819394
+   },
+   "uss lainnya": {
+    "median": 13.478515625,
+    "min": 13.31640625,
+    "max": 13.578125
+   },
+   "cpu lainnya": {
+    "median": 0.48176627293898094,
+    "min": 0.3906191276924485,
+    "max": 0.6510337848176295
+   }
+  },
+  "k1": {
+   "uss": {
+    "median": 445.234375,
+    "min": 444.64453125,
+    "max": 446.26171875
+   },
+   "cpu": {
+    "median": 9.999896047186883,
+    "min": 8.645737711475842,
+    "max": 11.223837172008562
+   },
+   "p95": {
+    "median": 4.135972502263028,
+    "min": 3.231984995363746,
+    "max": 5.192545015597716
+   },
+   "uss inti Python": {
+    "median": 50.1953125,
+    "min": 49.98828125,
+    "max": 50.37890625
+   },
+   "cpu inti Python": {
+    "median": 0.9374852227164354,
+    "min": 0.416662820174415,
+    "max": 1.2239447965041101
+   },
+   "uss kamera": {
+    "median": 42.345703125,
+    "min": 41.54296875,
+    "max": 42.66015625
+   },
+   "cpu kamera": {
+    "median": 1.8228985151556605,
+    "min": 0.4166620583843779,
+    "max": 2.604129575180338
+   },
+   "uss Edge browser": {
+    "median": 49.923828125,
+    "min": 49.3203125,
+    "max": 50.82421875
+   },
+   "cpu Edge browser": {
+    "median": 3.2291287277871197,
+    "min": 2.552059790581996,
+    "max": 3.802042290285963
+   },
+   "uss Edge GPU": {
+    "median": 273.373046875,
+    "min": 272.98046875,
+    "max": 273.94140625
+   },
+   "cpu Edge GPU": {
+    "median": 2.3567417237985473,
+    "min": 1.9270708555498763,
+    "max": 3.0468468725254096
+   },
+   "uss Edge renderer": {
+    "median": 16.3125,
+    "min": 15.84375,
+    "max": 16.44140625
+   },
+   "cpu Edge renderer": {
+    "median": 1.289042674438992,
+    "min": 0.963531010013874,
+    "max": 2.135396953393877
+   },
+   "uss lainnya": {
+    "median": 13.45703125,
+    "min": 13.3203125,
+    "max": 13.65234375
+   },
+   "cpu lainnya": {
+    "median": 0.45572444282891045,
+    "min": 0.3906194362770507,
+    "max": 0.5989493910191085
+   }
+  }
+ },
+ "better": false,
+ "reasons": [
+  "uss: median 445.234 vs pembanding min 388.949 / maks 392.602",
+  "cpu: median 10.000 vs pembanding min 9.739 / maks 16.224",
+  "p95: median 4.136 vs pembanding min 3.300 / maks 5.686"
+ ],
+ "environment": {
+  "python": "3.13.7",
+  "torch": "2.14.1+cpu",
+  "torch_num_threads": 14,
+  "sentence_transformers": "6.1.0",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+  "cpu_count_logical": 20,
+  "power": {
+   "source": "ac",
+   "battery_percent": 100,
+   "battery_saver": false
+  },
+  "power_plan": {
+   "guid": "bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b",
+   "name": "ASUS Recommended",
+   "raw": "Power Scheme GUID: bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b  (ASUS Recommended)"
+  },
+  "git_commit": "53b06683699297baf09d21cf78d990adba23f2b9",
+  "git_dirty": true
+ },
+ "finished_at": "2026-10-18T18:01:27+07:00"
+}

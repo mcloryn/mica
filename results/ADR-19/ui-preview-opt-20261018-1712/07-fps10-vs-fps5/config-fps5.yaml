@@ -1,0 +1,99 @@
+app:
+  mode: dev
+  version: 0.1.0
+kb:
+  active_id: dev-2026-10-15-v2
+  chunker: structure_then_fixed
+  chunk_tokens: 400
+  overlap_tokens: 50
+  embedder:
+    model: BAAI/bge-m3
+    revision: 9a0624b896d81da7492a910ffa53731274b6cf3d
+rag:
+  retriever: hybrid
+  top_k: 5
+  rrf_k: 60
+  candidates_per_retriever: 20
+  reranker:
+    enabled: false
+    model: BAAI/bge-reranker-v2-m3
+    revision: null
+  gate:
+    threshold: 0.5
+  fact_check:
+    enabled: true
+  followup_mode: concat
+  history_turns: 1
+  prompt_variant: paraphrase
+llm:
+  chain:
+  - groq:openai/gpt-oss-120b
+  - groq:openai/gpt-oss-20b
+  timeout_s: 10
+  temperature: 0.2
+  reasoning_effort: low
+audio:
+  stt:
+    backend: faster_whisper
+    model: small
+    compute_type: int8
+    threads: null
+    no_speech_threshold: null
+    groq_model: whisper-large-v3-turbo
+  vad:
+    threshold: null
+    min_silence_ms: null
+    min_speech_ms: null
+  max_utterance_s: null
+  tts:
+    voice: id_ID-news_tts-medium
+    length_scale: null
+vision:
+  model: yolo26n-pose
+  tracker: bytetrack.yaml
+  region: keypoint_torso
+  box_upper:
+    top: null
+    bottom: null
+    side: null
+  keypoint_torso:
+    min_kp_conf: null
+    shrink: null
+    torso_aspect: null
+  color:
+    method: lut_vote
+    min_majority: null
+  dwell_s: null
+  leave_s: null
+  presence_signal: shoulder_width
+  min_box_height_ratio: null
+  min_shoulder_ratio: null
+  conf: 0.1
+  imgsz: 640
+  fps_idle: 5
+  fps_busy: null
+  threads: null
+session:
+  idle_reset_s: null
+  regreet_cooldown_s: null
+ui:
+  backend: web
+  fullscreen: true
+  font_scale: 1.0
+  topics:
+  - Program Studi
+  - Biaya
+  - Beasiswa
+  - Pendaftaran
+  - Fasilitas
+  - Lokasi
+  logo_path: null
+  camera_preview: public
+  preview_pixel_block: 16
+  preview_fps: 5.0
+  suggestions: {}
+logging:
+  dir: logs/
+eval:
+  judge:
+    enabled: false

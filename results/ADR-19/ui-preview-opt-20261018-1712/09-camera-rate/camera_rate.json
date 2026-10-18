@@ -1,0 +1,20 @@
+{
+ "fake": false,
+ "camera_source": 0,
+ "model": "yolo26n-pose",
+ "detector": "YOLO asli",
+ "seconds": 30.0,
+ "warmup_s": 3.0,
+ "wall_s": 243.17970430000014,
+ "preview_fps_config": 10.0,
+ "fps_idle_config": 5.0,
+ "camera_read_fps": 14.949259078014292,
+ "detect_fps": 5.006117107990757,
+ "preview_jpeg_fps": 10.012220181724388,
+ "preview_gap_ms": {
+  "median": 98.60284999990654,
+  "p95": 191.57316499997705,
+  "max": 234.35669999980746
+ },
+ "camera_capable": true
+}

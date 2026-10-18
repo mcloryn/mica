@@ -1,0 +1,90 @@
+{
+ "condition": {
+  "name": "base",
+  "static": "now",
+  "preview": "public",
+  "preview_fps": null,
+  "edge_extra": []
+ },
+ "minutes": 15.0,
+ "interval_s": 30.0,
+ "power": {
+  "source": "ac",
+  "battery_percent": 100,
+  "battery_saver": false
+ },
+ "per_metric": {
+  "uss_total_mb": {
+   "first5": 375.7322443181818,
+   "last5": 381.19637784090907,
+   "slope_mb_per_min": 0.9441659902597402,
+   "verdict": "naik terus (bocor)"
+  },
+  "uss_inti Python": {
+   "first5": 49.97372159090909,
+   "last5": 47.57386363636363,
+   "slope_mb_per_min": -0.048802759740259744,
+   "verdict": "mendatar (plafon)"
+  },
+  "uss_kamera": {
+   "first5": 42.08913352272727,
+   "last5": 38.17436079545455,
+   "slope_mb_per_min": -0.06569602272727272,
+   "verdict": "mendatar (plafon)"
+  },
+  "uss_Edge browser": {
+   "first5": 49.86612215909091,
+   "last5": 48.453125,
+   "slope_mb_per_min": 0.002130681818181818,
+   "verdict": "mendatar (plafon)"
+  },
+  "uss_Edge GPU": {
+   "first5": 194.77592329545453,
+   "last5": 207.39524147727272,
+   "slope_mb_per_min": 0.7706270292207792,
+   "verdict": "naik terus (bocor)"
+  },
+  "uss_Edge renderer": {
+   "first5": 22.412642045454547,
+   "last5": 28.271306818181817,
+   "slope_mb_per_min": 0.31547280844155845,
+   "verdict": "naik terus (bocor)"
+  },
+  "uss_lainnya": {
+   "first5": 16.614701704545453,
+   "last5": 11.328480113636363,
+   "slope_mb_per_min": -0.029565746753246754,
+   "verdict": "mendatar (plafon)"
+  }
+ },
+ "cpu_mean_pct": {
+  "inti Python": 0.8732738922815472,
+  "kamera": 1.2812581371562333,
+  "Edge browser": 1.3108409518906436,
+  "Edge GPU": 2.82816023310417,
+  "Edge renderer": 2.456620892083235,
+  "lainnya": 0.19098603747346088,
+  "total": 8.94114014398929
+ },
+ "environment": {
+  "python": "3.13.7",
+  "torch": "2.14.1+cpu",
+  "torch_num_threads": 14,
+  "sentence_transformers": "6.1.0",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+  "cpu_count_logical": 20,
+  "power": {
+   "source": "ac",
+   "battery_percent": 100,
+   "battery_saver": false
+  },
+  "power_plan": {
+   "guid": "bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b",
+   "name": "ASUS Recommended",
+   "raw": "Power Scheme GUID: bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b  (ASUS Recommended)"
+  },
+  "git_commit": "5ac3e986195750c78d7328a6283cced756676cab",
+  "git_dirty": true
+ }
+}

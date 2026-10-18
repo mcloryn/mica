@@ -1,0 +1,31 @@
+﻿[19:15:39] Langkah 38 sisa: OutRoot=D:\SKRIPSI\mica\results\ADR-19\ui-preview-opt-20261018-1712 Reps=10 MinFreeGb=2.5 DryRun=False
+[19:15:39] MULAI (a) K2 vs pembanding -> D:\SKRIPSI\mica\results\ADR-19\ui-preview-opt-20261018-1712\03-k2-vs-base
+[19:37:52] OK (a) K2 vs pembanding
+[19:37:52] MULAI (b) keputusan dari D:\SKRIPSI\mica\results\ADR-19\ui-preview-opt-20261018-1712\03-k2-vs-base\summary.json
+[19:37:52] Konfigurasi akhir: akhir:static=21e25ae,preview=public,edge=--disable-gpu-compositing
+[19:37:52] MULAI (b) akhir vs off -> D:\SKRIPSI\mica\results\ADR-19\ui-preview-opt-20261018-1712\04-akhir-vs-off
+[20:00:04] OK (b) akhir vs off
+[20:00:04] MULAI (c) fps 2 vs 5 -> D:\SKRIPSI\mica\results\ADR-19\ui-preview-opt-20261018-1712\05-fps2-vs-fps5
+[20:22:07] OK (c) fps 2 vs 5
+[20:22:07] MULAI (d) uji tumbuh 15 menit -> D:\SKRIPSI\mica\results\ADR-19\ui-preview-opt-20261018-1712\06-grow-akhir
+[20:37:13] OK (d) uji tumbuh 15 menit
+[20:37:13] SELESAI
+[20:37:13] Konfigurasi akhir: akhir:static=21e25ae,preview=public,edge=--disable-gpu-compositing
+[20:37:13] (a) k2 vs base: LOLOS
+[20:37:13]   base: RAM 391.3 MB (360.0-396.9) | CPU 15.70% (12.19-16.48) | p95 4.71 ms (3.10-7.84)
+  k2: RAM 218.1 MB (217.2-219.1) | CPU 13.80% (12.55-14.66) | p95 3.63 ms (2.97-4.30)
+[20:37:13] (b) akhir vs off:
+[20:37:13]   off: RAM 178.7 MB (177.3-179.8) | CPU 4.74% (3.80-5.36) | p95 6.41 ms (3.30-7.65)
+  akhir: RAM 218.0 MB (216.5-219.2) | CPU 13.31% (11.87-14.53) | p95 3.38 ms (3.12-4.65)
+[20:37:13] (c) fps 2 vs 5 (info):
+[20:37:13]   fps5: RAM 218.2 MB (216.9-219.8) | CPU 13.03% (11.90-14.69) | p95 3.07 ms (2.85-5.01)
+  fps2: RAM 213.0 MB (211.4-213.7) | CPU 7.72% (5.21-11.61) | p95 3.21 ms (3.01-3.81)
+[20:37:13] (d) uji tumbuh 15 menit:
+[20:37:13]   uss_total_mb: 219.5 -> 204.8 MB, kemiringan +0.616 MB/menit, mendatar (plafon)
+[20:37:13]   uss_inti Python: 50.0 -> 48.0 MB, kemiringan +0.002 MB/menit, mendatar (plafon)
+[20:37:13]   uss_kamera: 41.7 -> 40.1 MB, kemiringan +0.030 MB/menit, mendatar (plafon)
+[20:37:13]   uss_Edge browser: 49.8 -> 48.5 MB, kemiringan +0.082 MB/menit, mendatar (plafon)
+[20:37:14]   uss_Edge GPU: 38.0 -> 27.3 MB, kemiringan +0.075 MB/menit, mendatar (plafon)
+[20:37:14]   uss_Edge renderer: 23.7 -> 29.7 MB, kemiringan +0.442 MB/menit, naik terus (bocor)
+[20:37:14]   uss_lainnya: 16.3 -> 11.2 MB, kemiringan -0.016 MB/menit, mendatar (plafon)
+[20:37:14] Hasil: D:\SKRIPSI\mica\results\ADR-19\ui-preview-opt-20261018-1712

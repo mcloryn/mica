@@ -1,0 +1,27 @@
+{
+ "a": {
+  "name": "base",
+  "static": "21e25ae",
+  "preview": "public",
+  "preview_fps": null,
+  "edge_extra": []
+ },
+ "b": {
+  "name": "k2",
+  "static": "21e25ae",
+  "preview": "public",
+  "preview_fps": null,
+  "edge_extra": [
+   "--disable-gpu-compositing"
+  ]
+ },
+ "reps": 10,
+ "better": true,
+ "reasons": [
+  "uss: median 218.084 vs pembanding min 359.965 / maks 396.883",
+  "cpu: median 13.802 vs pembanding min 12.187 / maks 16.484",
+  "p95: median 3.633 vs pembanding min 3.101 / maks 7.838"
+ ],
+ "final": "akhir:static=21e25ae,preview=public,edge=--disable-gpu-compositing",
+ "rule": "docs/UI-PREVIEW-OPT.md"
+}

@@ -1,0 +1,25 @@
+﻿[21:10:31] Langkah 38 fps10: OutRoot=D:\SKRIPSI\mica\results\ADR-19\ui-preview-opt-20261018-1712 Reps=10 MinFreeGb=2.5 DryRun=False
+[21:10:31] MULAI (a) fps10 vs fps5 -> D:\SKRIPSI\mica\results\ADR-19\ui-preview-opt-20261018-1712\07-fps10-vs-fps5
+[21:32:41] OK (a) fps10 vs fps5
+[21:32:41] MULAI (b) uji tumbuh 15 menit fps10 + GC -> D:\SKRIPSI\mica\results\ADR-19\ui-preview-opt-20261018-1712\08-grow-fps10-gc
+[21:48:48] OK (b) uji tumbuh 15 menit fps10 + GC
+[21:48:48] MULAI (c) laju kamera --seconds 30
+[21:52:59] (c) kode keluar 0 (0 = sanggup, 1 = tidak sanggup/galat; tidak menghentikan skrip)
+[21:52:59] MULAI (c) laju kamera --fake --seconds 30
+[21:53:33] (c) kode keluar 0 (0 = sanggup, 1 = tidak sanggup/galat; tidak menghentikan skrip)
+[21:53:33] SELESAI
+[21:53:33] (a) fps10 vs fps5 (info):
+[21:53:33]   fps5: RAM 218.3 MB (217.9-241.9) | CPU 14.27% (12.40-15.00) | p95 3.35 ms (2.80-4.28)
+[21:53:33]   fps10: RAM 221.8 MB (193.4-228.0) | CPU 21.29% (20.36-22.58) | p95 3.52 ms (3.01-4.39)
+[21:53:33] (b) uji tumbuh fps10:
+[21:53:33]   uss_total_mb: 224.4 -> 205.8 MB, kemiringan +0.442 MB/menit, mendatar (plafon)
+[21:53:33]   uss_inti Python: 49.9 -> 47.6 MB, kemiringan -0.003 MB/menit, mendatar (plafon)
+[21:53:33]   uss_kamera: 41.5 -> 39.7 MB, kemiringan +0.009 MB/menit, mendatar (plafon)
+[21:53:33]   uss_Edge browser: 51.1 -> 49.4 MB, kemiringan +0.030 MB/menit, mendatar (plafon)
+[21:53:33]   uss_Edge GPU: 38.1 -> 26.6 MB, kemiringan -0.004 MB/menit, mendatar (plafon)
+[21:53:33]   uss_Edge renderer: 26.5 -> 31.8 MB, kemiringan +0.418 MB/menit, naik terus (bocor)
+[21:53:33]   uss_lainnya: 17.2 -> 10.7 MB, kemiringan -0.008 MB/menit, mendatar (plafon)
+[21:53:33]   GC renderer: 33.0 MB -> +30 s 28.3 MB -> +60 s 28.3 MB: turun lagi setelah GC (sampah GC)
+[21:53:33] (c) camera_rate.json: frame 14.95/s, JPEG pratinjau 10.01/s, deteksi 5.01/s, sanggup=True
+[21:53:33] (c) camera_rate-fake.json: frame 15.00/s, JPEG pratinjau 10.00/s, deteksi 5.00/s, sanggup=True
+[21:53:33] Hasil: D:\SKRIPSI\mica\results\ADR-19\ui-preview-opt-20261018-1712

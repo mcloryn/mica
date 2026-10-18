@@ -1,0 +1,92 @@
+diff --git a/src/mica/webui/static/app.js b/src/mica/webui/static/app.js
+index 412ac7e..69479de 100644
+--- a/src/mica/webui/static/app.js
++++ b/src/mica/webui/static/app.js
+@@ -11,7 +11,7 @@ let rendered = 0; // jumlah pesan yang sudah menjadi elemen
+ let shownTranscript = null;
+ let shownStatus = null;
+ let previewSocket = null;
+-let previewUrl = null;
++let previewBusy = false; // satu frame pratinjau dalam proses decode/gambar
+ 
+ function send(msg) {
+   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
+@@ -75,20 +75,33 @@ function applyConfig(c) {
+ }
+ 
+ function openPreview() {
+-  // pratinjau kamera: JPEG biner dari /preview (127.0.0.1, Origin dicek server); hanya di memori
++  // pratinjau kamera (Langkah 38, K1): JPEG biner dari /preview (127.0.0.1, Origin dicek server)
++  // di-decode dengan createImageBitmap lalu digambar ke satu <canvas>; bitmap ditutup setelah
++  // digambar. Tanpa img src atau object URL. Frame yang datang saat frame sebelumnya belum
++  // selesai dibuang. Gambar hanya di memori.
++  const canvas = $("preview_canvas");
++  const ctx = canvas.getContext("2d", { alpha: false });
+   previewSocket = new WebSocket(`ws://${location.host}/preview`);
+   previewSocket.binaryType = "blob";
+   previewSocket.addEventListener("open", () => { window.__micaPreviewReady = true; });
+   previewSocket.addEventListener("message", (e) => {
+-    const img = $("preview_img");
+-    const old = previewUrl;
+-    previewUrl = URL.createObjectURL(e.data);
+-    img.src = previewUrl;
+-    if (old) URL.revokeObjectURL(old);
+-    if (view === null || view.camera_ok) {
+-      img.hidden = false;
+-      $("preview_empty").hidden = true;
+-    }
++    if (previewBusy) return; // frame lama dibuang
++    previewBusy = true;
++    createImageBitmap(e.data)
++      .then((bitmap) => {
++        if (canvas.width !== bitmap.width || canvas.height !== bitmap.height) {
++          canvas.width = bitmap.width;
++          canvas.height = bitmap.height;
++        }
++        ctx.drawImage(bitmap, 0, 0);
++        bitmap.close();
++        if (view === null || view.camera_ok) {
++          canvas.hidden = false;
++          $("preview_empty").hidden = true;
++        }
++      })
++      .catch(() => {}) // JPEG rusak: lewati frame ini
++      .finally(() => { previewBusy = false; });
+   });
+ }
+ 
+@@ -126,7 +139,7 @@ function renderLeft(v) {
+     swatch.hidden = true;
+     text.textContent = t.camera_unavailable; // N-10
+     text.className = "quiet";
+-    $("preview_img").hidden = true; // gambar terakhir tidak ditampilkan saat kamera mati
++    $("preview_canvas").hidden = true; // gambar terakhir tidak ditampilkan saat kamera mati
+     $("preview_empty").hidden = false;
+   } else if (v.target_present) {
+     swatch.hidden = !v.session_color; // memudar masuk 200 ms (CSS) saat muncul
+diff --git a/src/mica/webui/static/index.html b/src/mica/webui/static/index.html
+index e97333b..46a2b69 100644
+--- a/src/mica/webui/static/index.html
++++ b/src/mica/webui/static/index.html
+@@ -24,7 +24,7 @@
+   <section id="left" class="panel" aria-labelledby="camera_title">
+     <h2 id="camera_title" class="panel-head"></h2>
+     <div id="preview_frame">
+-      <img id="preview_img" alt="Pratinjau kamera" hidden>
++      <canvas id="preview_canvas" width="320" height="240" role="img" aria-label="Pratinjau kamera" hidden></canvas>
+       <div id="preview_empty"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h3l2-2h8l2 2h3v12H3z"/><circle cx="12" cy="13" r="3.5"/></svg></div>
+     </div>
+     <div id="color_info">
+diff --git a/src/mica/webui/static/style.css b/src/mica/webui/static/style.css
+index d1927ef..ba94f9c 100644
+--- a/src/mica/webui/static/style.css
++++ b/src/mica/webui/static/style.css
+@@ -78,7 +78,7 @@ body[data-color="kuning"] { --session-swatch: var(--c-kuning-swatch); --session-
+   border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg);
+   overflow: hidden;
+ }
+-#preview_img { width: 100%; height: 100%; object-fit: cover; display: block; }
++#preview_canvas { width: 100%; height: 100%; object-fit: cover; display: block; }
+ #preview_empty { position: absolute; inset: 0; display: flex; align-items: center;
+                  justify-content: center; color: var(--text-muted); }
+ #preview_empty svg { width: 40px; height: 40px; stroke-width: 1.25; }
