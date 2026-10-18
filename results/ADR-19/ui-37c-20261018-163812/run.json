@@ -1,0 +1,73 @@
+{
+ "step": "Langkah 37c",
+ "before_ref": "91327e0",
+ "static_before_files": [
+  "src/mica/webui/static/app.js",
+  "src/mica/webui/static/index.html",
+  "src/mica/webui/static/style.css",
+  "src/mica/webui/static/tokens.css"
+ ],
+ "reps": 10,
+ "camera_preview": "off",
+ "summary": {
+  "sebelum": {
+   "n_runs": 10,
+   "uss_idle_mb_median": 177.158203125,
+   "uss_idle_mb_min": 175.9765625,
+   "uss_idle_mb_max": 185.20703125,
+   "cpu_idle_pct_median": 4.257764236550024,
+   "cpu_idle_pct_min": 3.723905416637241,
+   "cpu_idle_pct_max": 8.56763843568281,
+   "startup_s_median": 2.4591064453125,
+   "startup_s_min": 2.4389572143554688,
+   "startup_s_max": 2.479769706726074,
+   "lat_p95_ms_median": 5.197995001799423,
+   "lat_p95_ms_min": 4.360250011086462,
+   "lat_p95_ms_max": 6.297610016190447,
+   "n_unacked": 0
+  },
+  "sesudah": {
+   "n_runs": 10,
+   "uss_idle_mb_median": 177.77734375,
+   "uss_idle_mb_min": 176.36328125,
+   "uss_idle_mb_max": 179.3359375,
+   "cpu_idle_pct_median": 4.700473082843284,
+   "cpu_idle_pct_min": 3.749960675411258,
+   "cpu_idle_pct_max": 5.859334531528307,
+   "startup_s_median": 2.463786005973816,
+   "startup_s_min": 2.428361177444458,
+   "startup_s_max": 2.5122525691986084,
+   "lat_p95_ms_median": 4.03757500025676,
+   "lat_p95_ms_min": 3.1773700146004527,
+   "lat_p95_ms_max": 5.316539993509649,
+   "n_unacked": 0
+  }
+ },
+ "verdicts": {
+  "uss_idle_mb": "tetap",
+  "cpu_idle_pct": "tetap",
+  "startup_s": "tetap",
+  "lat_p95_ms": "turun"
+ },
+ "environment": {
+  "python": "3.13.7",
+  "torch": "2.14.1+cpu",
+  "torch_num_threads": 14,
+  "sentence_transformers": "6.1.0",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+  "cpu_count_logical": 20,
+  "power": {
+   "source": "ac",
+   "battery_percent": 100,
+   "battery_saver": false
+  },
+  "power_plan": {
+   "guid": "bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b",
+   "name": "ASUS Recommended",
+   "raw": "Power Scheme GUID: bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b  (ASUS Recommended)"
+  },
+  "git_commit": "456f81e267a032b237d25aa4cd11a4e9290bc65b",
+  "git_dirty": true
+ }
+}

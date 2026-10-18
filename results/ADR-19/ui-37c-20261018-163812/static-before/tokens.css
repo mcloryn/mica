@@ -1,0 +1,52 @@
+/* Token desain MICA (Langkah 37b: gaya web konvensional). Satu-satunya tempat warna, jarak,
+   radius, dan ukuran huruf. Palet netral dengan satu warna aksen (--accent, biru tua) untuk
+   tombol utama dan tautan; ganti nilainya dengan warna resmi Mikroskil nanti. Rasio kontras
+   dihitung dengan rumus WCAG 2.1 (scripts/ui_contrast.py, docs/UI-WEB.md); semua pasangan
+   teks >= 4,5:1 (SC 1.4.3 AA). Font: font sistem (Segoe UI di Windows), tanpa file font. */
+
+:root {
+  /* warna */
+  --bg: #f6f7f9;              /* latar halaman */
+  --surface: #ffffff;         /* panel */
+  --border: #d0d7de;          /* garis 1 px */
+  --text: #1f2328;
+  --text-muted: #57606a;      /* teks sekunder 14 px */
+  --accent: #1f4e8c;          /* tombol utama dan tautan */
+  --accent-hover: #183d6e;
+  --on-accent: #ffffff;
+  --bubble-visitor: #e7eef8;  /* gelembung pengunjung */
+  --bubble-mica: #f3f4f6;     /* gelembung MICA */
+  --dot-ready: #8c959f;       /* titik status (bukan teks) */
+  --dot-listening: #1a7f37;
+  --dot-thinking: #bf8700;
+  --dot-speaking: var(--accent);
+  --dot-off: #cf222e;
+
+  /* jarak: skala rapat 4/8/12/16/24 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+
+  /* radius kecil; gelembung chat maksimal 10 px; tanpa bayangan */
+  --radius: 4px;
+  --radius-m: 6px;
+  --radius-bubble: 10px;
+
+  /* huruf: dasar 16 px (100% x ui.font_scale, diatur app.js) */
+  --font: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --fs-xs: 0.8125rem;   /* 13 px: panel debug */
+  --fs-s: 0.875rem;     /* 14 px: teks sekunder */
+  --fs-m: 1rem;         /* 16 px: dasar */
+  --fs-answer: 1.0625rem; /* 17 px: teks percakapan */
+  --fs-title: 1.125rem; /* 18 px: judul navbar dan sapaan */
+  --line: 1.5;
+
+  /* target sentuh minimal 44 x 44 px CSS (WCAG 2.1 SC 2.5.5, w3.org/TR/WCAG21, dicek 18 Okt 2026) */
+  --touch-min: 44px;
+
+  /* tata letak: lebar maksimum isi; 1100 px = titik layar sempit (nilai desain) */
+  --content-max: 1440px;
+  --left-col: 35%;
+}

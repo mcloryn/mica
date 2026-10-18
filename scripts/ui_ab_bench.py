@@ -60,11 +60,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--reps", type=int, default=10)
     parser.add_argument("--config", type=Path, default=ROOT / "config/dev.yaml")
     parser.add_argument("--out", type=Path, default=ROOT / "results/ADR-19")
+    parser.add_argument("--step", default="37b", help="label langkah di nama folder dan judul")
     args = parser.parse_args(argv)
     from mica.eval.environment import collect_environment
 
     stamp = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S")
-    run_dir = args.out / f"ui-37b-{stamp}"
+    run_dir = args.out / f"ui-{args.step}-{stamp}"
     run_dir.mkdir(parents=True)
     static_before = run_dir / "static-before"
     files = export_static(args.before, static_before)
@@ -99,7 +100,7 @@ def main(argv: list[str] | None = None) -> int:
         for c, s in summary.items():
             w.writerow({"condition": c, **s})
     verdicts = {}
-    lines = ["# Langkah 37b: A/B gaya UI web (pratinjau off)", "",
+    lines = [f"# Langkah {args.step}: A/B gaya UI web (pratinjau off)", "",
              (f"Sebelum = static {args.before}; sesudah = pohon kerja sekarang; {args.reps} "
              "ulangan per kondisi, selang-seling, daya AC. Aturan putaran 2."), "",
              "| metrik | sebelum median | sebelum maks | sesudah median | hasil |",
@@ -117,7 +118,7 @@ def main(argv: list[str] | None = None) -> int:
     ]
     (run_dir / "comparison.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     (run_dir / "run.json").write_text(json.dumps({
-        "step": "Langkah 37b", "before_ref": args.before, "static_before_files": files,
+        "step": f"Langkah {args.step}", "before_ref": args.before, "static_before_files": files,
         "reps": args.reps, "camera_preview": "off", "summary": summary, "verdicts": verdicts,
         "environment": collect_environment(),
     }, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")  # fmt: skip

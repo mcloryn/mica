@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MICA</title>
+<link rel="stylesheet" href="/static/tokens.css">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body data-status="ready">
+<header id="navbar">
+  <div id="brand">
+    <span id="logo_text" class="logo-placeholder">MICA</span>
+    <img id="logo_img" alt="Logo" hidden>
+    <span id="app_title"></span>
+  </div>
+  <div id="indicators">
+    <span id="status_pill" class="status" role="status" aria-live="polite"><span class="dot"></span><span class="label"></span></span>
+    <span id="camera_indicator" class="indicator"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h3l2-2h8l2 2h3v12H3z"/><circle cx="12" cy="13" r="3.5"/></svg><span class="label"></span></span>
+    <span id="mic_indicator" class="indicator"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span class="label"></span></span>
+  </div>
+</header>
+<p id="notice"></p>
+
+<main id="layout">
+  <section id="left" class="panel" aria-labelledby="camera_title">
+    <div class="panel-head">
+      <h2 id="camera_title">Kamera</h2>
+      <span id="camera_badge" class="badge"></span>
+    </div>
+    <div id="preview_frame">
+      <img id="preview_img" alt="Pratinjau kamera" hidden>
+      <div id="preview_empty"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h3l2-2h8l2 2h3v12H3z"/><circle cx="12" cy="13" r="3.5"/></svg></div>
+    </div>
+    <p id="target_info"><span id="target_dot" class="swatch" hidden></span><span id="target_text"></span></p>
+    <p id="camera_message"></p>
+    <details id="debug_dock" hidden>
+      <summary>Debug (dev)</summary>
+      <pre id="debug_panel"></pre>
+    </details>
+  </section>
+
+  <section id="right" class="panel" aria-label="Percakapan">
+    <div id="conversation" aria-live="polite">
+      <div id="greeting_msg" class="msg mica">
+        <div class="who">MICA</div>
+        <div class="bubble"><p id="greeting"></p><p id="topics_hint" class="hint"></p></div>
+      </div>
+      <div id="messages"></div>
+      <div id="thinking_msg" class="msg mica" aria-hidden="true"><div class="bubble typing"><span></span><span></span><span></span></div></div>
+    </div>
+    <div id="topics" role="group" aria-label="Topik"></div>
+    <div id="transcript_row" hidden>
+      <label id="transcript_label" for="transcript_edit"></label>
+      <input id="transcript_edit" type="text">
+      <button id="resend_button" type="button" class="btn"></button>
+    </div>
+    <div id="bottom_bar">
+      <button id="talk_button" type="button" class="btn btn-icon">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span id="talk_label"></span>
+      </button>
+      <input id="input" type="text" autocomplete="off">
+      <button id="send_button" type="button" class="btn btn-primary"></button>
+      <button id="stop_button" type="button" class="btn" hidden></button>
+    </div>
+  </section>
+</main>
+<template id="info_icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg></template>
+<script src="/static/app.js"></script>
+</body>
+</html>

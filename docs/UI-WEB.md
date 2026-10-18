@@ -360,3 +360,12 @@ M-09, event, dan pratinjau tidak diubah (kecuali label overlay debug).
     otomatis.
 - Label overlay debug: teks putih di atas kotak gelap semi-pekat (alfa 0,75); mode public tidak
   berubah.
+- Ukur ulang (`python scripts/ui_ab_bench.py --before 91327e0 --reps 10`,
+  results/ADR-19/ui-37c-20261018-163812; AC, pratinjau off, selang-seling, aturan putaran 2):
+  - RAM USS diam: median 177,16 -> 177,78 MB (+0,6 MB, tetap; maksimum sebelum 185,21).
+  - CPU diam: 4,26 -> 4,70% (tetap; maksimum sebelum 8,57).
+  - Waktu mulai: 2,459 -> 2,464 s (tetap).
+  - p95 jeda tampil: 5,20 -> 4,04 ms (turun).
+  - Perkiraan +2 MB dari font tidak terlihat sebesar itu pada run ini.
+  - Folder hasil semula bernama ui-37b-* karena label langkah di skrip baru ditambahkan
+    (`--step`) saat run sudah berjalan; namanya diganti ke ui-37c dan judulnya dikoreksi.

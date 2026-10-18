@@ -41,7 +41,6 @@ SIZES = ((1366, 768), (1920, 1080))  # Langkah 37b
 NARROW = ((1000, 700),)
 CHUNK = Chunk("03#2", "03", "Biaya Kuliah dan Syarat Masuk", "Biaya S1", date(2026, 9, 29),
               "dev", "isi", False)  # fmt: skip
-GREET = "Halo, selamat datang di Universitas Mikroskil. Kamu yang berbaju biru, ada yang bisa saya bantu?"
 ANSWER = ("Biaya kuliah S1 Teknik Informatika adalah Rp7.500.000 per semester, sudah termasuk "
           "biaya praktikum. Pembayaran bisa dicicil tiga kali.")  # fmt: skip
 REFUSAL = ("Maaf, informasi itu belum ada di dokumen resmi PMB yang saya punya. Silakan tanyakan "
@@ -59,17 +58,25 @@ class NullController:
         pass
 
 
-def _greeted(w: WebUi) -> None:
-    w.show_display(DisplayUpdate(target_present=True, target_color="biru"))
-    w.show_display(DisplayUpdate(greeting=GREET))
+def _greeted(w: WebUi, color: str | None = "biru") -> None:
+    from mica.core.texts import greeting
+
+    w.show_display(DisplayUpdate(target_present=True, target_color=color))
+    w.show_display(DisplayUpdate(greeting=greeting(color)))
     w.show_item(ShowView(V.READY, message="Silakan bertanya"))
 
 
-def _conversation(w: WebUi, answer: str, sources: tuple[Chunk, ...]) -> None:
-    _greeted(w)
+def _conversation(w: WebUi, answer: str, sources: tuple[Chunk, ...], color: str = "biru") -> None:
+    _greeted(w, color)
     q = "Berapa biaya kuliah Teknik Informatika?"
     w.show_item(ShowView(V.THINKING, message="berpikir", transcript=q, send_enabled=False))
     w.show_item(ShowView(V.SPEAKING, transcript=q, answer=answer, sources=sources))
+
+
+def _answered(w: WebUi, color: str) -> None:
+    _conversation(w, ANSWER, (CHUNK,), color)
+    w.show_item(ShowView(V.READY, message="Silakan bertanya", transcript="Berapa biaya kuliah "
+                         "Teknik Informatika?", answer=ANSWER, sources=(CHUNK,)))  # fmt: skip
 
 
 @dataclass
@@ -80,19 +87,25 @@ class Scene:
     preview: str | None = None  # None = pratinjau mati; public | debug = sumber palsu
 
 
-SCENES = [
-    Scene("01-siap-tanpa-orang", lambda w: w.show_item(ShowView(V.IDLE))),
-    Scene("02-sapaan-topik", _greeted),
-    Scene("03-percakapan-jawaban-sumber", lambda w: _conversation(w, ANSWER, (CHUNK,))),
+SCENES = [  # Langkah 37c
+    Scene("01-sambut-tanpa-orang", lambda w: w.show_item(ShowView(V.IDLE))),
+    Scene("02-sambut-target-biru", _greeted),
+    Scene("03-percakapan-jawaban-sumber", lambda w: _answered(w, "biru")),
     Scene("04-penolakan", lambda w: _conversation(w, REFUSAL, ())),
     Scene(
         "05-mendengarkan",
-        lambda w: (_greeted(w), w.show_item(ShowView(V.LISTENING, message="mendengarkan"))),
+        lambda w: (
+            _answered(w, "biru"),
+            w.show_item(ShowView(V.LISTENING, message="mendengarkan")),
+        ),
     ),
     Scene("06-kamera-mati", lambda w: w.show_item(ShowView(V.READY, camera_ok=False))),
-    Scene("07-preview-public", _greeted, preview="public"),
-    Scene("08-preview-debug", _greeted, preview="debug"),
-    Scene("09-layar-sempit", lambda w: _conversation(w, ANSWER, (CHUNK,)), sizes=NARROW),
+    Scene(
+        "07-mic-tidak-tersedia",
+        lambda w: (_greeted(w), w.show_item(ShowView(V.READY, mic_ok=False))),
+    ),
+    Scene("08-target-hitam", lambda w: _answered(w, "hitam")),
+    Scene("09-target-putih", lambda w: _answered(w, "putih")),
 ]
 
 
