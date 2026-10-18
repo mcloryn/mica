@@ -17,3 +17,11 @@ data/eval/speech/contoh/*
 
 # ringkasan tugas untuk pemilik proyek, tidak di-commit
 RINGKASAN.md
+
+# E-07/E-08: frame dan klip relawan (wajah/tubuh) tidak pernah di-commit (docs/E-07.md)
+data/eval/vision/*
+!data/eval/vision/README.md
+!data/eval/vision/.gitkeep
+data/eval/vision_scenarios/*
+!data/eval/vision_scenarios/README.md
+!data/eval/vision_scenarios/.gitkeep

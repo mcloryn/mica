@@ -13,6 +13,8 @@ python -m mica.eval dataset lock --dataset data/eval/official/test.jsonl --reaso
 python -m mica.eval dataset status          (set resmi, docs/DATASET.md)
 python -m mica.eval latency --logs logs/ --label <label> [--resources <csv>] [--from --to]
     [--out results/E-09] [--tool-test]   (E-09, lihat mica/eval/latency.py)
+python -m mica.eval vision --config <yaml> --dataset data/eval/vision/<nama>
+    [--models yolo26n,yolo26n-pose] [--conf 0.1,0.25,0.5] [--out results/E-07]   (docs/E-07.md)
 """
 
 from __future__ import annotations
@@ -171,6 +173,15 @@ def build_parser() -> argparse.ArgumentParser:
     lat.add_argument("--config", type=Path, help="wajib untuk --split test (cek KB official)")
     lat.add_argument("--tool-test", action="store_true",
                      help="tandai sebagai uji alat (bukan hasil E-09) di run.json dan verdict")  # fmt: skip
+
+    vis = sub.add_parser("vision", help="E-07: mAP, IoU, FPS deteksi orang (docs/E-07.md)")
+    vis.add_argument("--config", type=Path, required=True)
+    vis.add_argument("--dataset", type=Path, required=True, help="folder data/eval/vision/<nama>")
+    vis.add_argument("--models", type=_name_list, default=["yolo26n", "yolo26n-pose"])
+    vis.add_argument("--conf", type=_float_list, default=[0.1, 0.25, 0.5])
+    vis.add_argument("--out", type=Path, default=Path("results/E-07"))
+    vis.add_argument("--models-dir", type=Path, default=Path("models"))
+    vis.add_argument("--note", help="catatan di run.json, mis. 'sintetis, bukan hasil E-07'")
     return parser
 
 
@@ -232,6 +243,112 @@ def _threads_list(value: str) -> list[int]:
     if not threads or any(t <= 0 for t in threads):
         raise argparse.ArgumentTypeError(f"thread harus > 0: {value!r}")
     return list(dict.fromkeys(threads))
+
+
+def _name_list(value: str) -> list[str]:
+    names = list(dict.fromkeys(v.strip() for v in value.split(",") if v.strip()))
+    if not names:
+        raise argparse.ArgumentTypeError(f"daftar kosong: {value!r}")
+    return names
+
+
+def _float_list(value: str) -> list[float]:
+    try:
+        values = [float(v) for v in value.split(",") if v.strip()]
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"harus angka dipisah koma: {value!r}") from None
+    if not values or any(not 0 < v < 1 for v in values):
+        raise argparse.ArgumentTypeError(f"nilai harus di antara 0 dan 1: {value!r}")
+    return sorted(set(values))
+
+
+def _run_stamp() -> str:
+    from datetime import datetime
+
+    return datetime.now().astimezone().strftime("%Y%m%d-%H%M%S")
+
+
+def _vision_settings(args: argparse.Namespace, command: str) -> Any:
+    """Eval vision/warna membaca frame dan klip relawan: hanya mode dev (docs/E-07.md)."""
+    from mica.eval.vision import VisionEvalError
+
+    settings = load_settings(args.config)
+    if settings.app.mode != "dev":
+        raise VisionEvalError(
+            f"eval {command} hanya boleh saat app.mode: dev (frame relawan ditolak di mode kiosk)"
+        )
+    return settings
+
+
+def _model_info(models_dir: Path, model: str) -> dict[str, Any]:
+    from mica.vision.detector import MODEL_SHA256, YOLO_RELEASE_TAG, model_path
+    from mica.vision.detector import sha256_file as model_sha
+
+    path = model_path(model, models_dir)
+    sha = model_sha(path) if path.is_file() else None
+    expected = MODEL_SHA256.get(model)
+    if sha is not None and expected is not None and sha != expected:
+        print(f"peringatan: sha256 {path.as_posix()} tidak sama dengan rilis "
+              f"{YOLO_RELEASE_TAG}", file=sys.stderr)  # fmt: skip
+    return {"file": path.as_posix(), "sha256": sha, "sha256_expected": expected,
+            "release_tag": YOLO_RELEASE_TAG}  # fmt: skip
+
+
+def _vision_packages() -> dict[str, str | None]:
+    from mica.kb.index import package_version
+
+    return {name: package_version(name) for name in ("ultralytics", "opencv-python", "numpy")}
+
+
+def cmd_vision(args: argparse.Namespace) -> int:
+    from mica.eval import vision as ev
+    from mica.vision.detector import model_path
+
+    settings = _vision_settings(args, "vision")
+    frames = ev.load_frames(args.dataset)
+    imgsz = settings.vision.imgsz
+    low = min(args.conf)
+    if ev.DEFAULT_CONF not in args.conf:
+        print(f"peringatan: conf {ev.DEFAULT_CONF} tidak ada di --conf; aturan model E-07 "
+              "tidak bisa diterapkan", file=sys.stderr)  # fmt: skip
+    for model in args.models:
+        path = model_path(model, args.models_dir)
+        if not path.is_file():
+            from mica.vision.detector import ModelMissing
+
+            raise ModelMissing(path)
+    environment = collect_environment()
+    warning = dirty_warning(environment)
+    if warning:
+        print(warning, file=sys.stderr)
+    stamp = _run_stamp()
+    run_dir = Path(args.out) / f"vision-{stamp}"
+    info = {
+        "note": args.note,
+        "dataset": {
+            "path": args.dataset.as_posix(),
+            "manifest_sha256": sha256_file(args.dataset / "manifest.jsonl"),
+            "n_frame": len(frames),
+            "relawan": sorted({r for f in frames for r in f.relawan.split(",")} - {"-"}),
+            "image_sha256": {f.id: sha256_file(f.file) for f in frames},
+            "label_sha256": {f.id: sha256_file(f.label_file) for f in frames},
+        },
+        "models": {m: _model_info(args.models_dir, m) for m in args.models},
+        "conf": args.conf,
+        "imgsz": imgsz,
+        "device": "cpu",
+        "packages": _vision_packages(),
+        "environment": environment,
+        "started_at": stamp,
+    }
+    predictors = {
+        m: (lambda m=m: ev.ultralytics_predictor(model_path(m, args.models_dir), low, imgsz))
+        for m in args.models
+    }
+    ev.run_vision(frames, predictors, args.conf, run_dir, info)
+    print((run_dir / "verdict.md").read_text(encoding="utf-8"))
+    print(f"tersimpan: {run_dir.as_posix()}")
+    return 0
 
 
 def _retriever_list(value: str) -> list[str]:
@@ -700,10 +817,14 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
     from mica.audio.stt import SttModelMissing
     from mica.eval.copy_rate import RunMismatch
     from mica.eval.stt import ManifestError
+    from mica.eval.vision import VisionEvalError
+    from mica.vision.detector import ModelMissing
 
     try:
         if args.command == "stt":
             return cmd_stt(args)
+        if args.command == "vision":
+            return cmd_vision(args)
         if args.command == "latency":
             return cmd_latency(args)
         if args.command == "dataset":
@@ -721,7 +842,8 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
         return cmd_import(args)
     except (ConfigError, KbLoadError, DatasetError, FileExistsError, ValueError, CacheMiss,
             SttEvalError, ManifestError, ListenError, SttModelMissing, RunMismatch,
-            KeyError, OfficialDatasetError, SplitRefused) as exc:  # fmt: skip
+            KeyError, OfficialDatasetError, SplitRefused, VisionEvalError,
+            ModelMissing) as exc:  # fmt: skip
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
