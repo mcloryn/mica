@@ -58,6 +58,7 @@ TPM_LIMIT = 6000
 FIRST_ESTIMATE_TOKENS = 2500
 MAX_429_RETRIES = 5
 DEFAULT_RETRY_AFTER_S = 10.0  # bila 429 tanpa header retry-after
+MAX_RETRY_DELAY_S = 60.0  # retryDelay lebih lama, atau kuota harian: run dihentikan
 SWEEP_THRESHOLDS: tuple[float | None, ...] = (None, 0.45, 0.48, 0.50, 0.52, 0.55)
 MAX_FALSE_REJECT = 0.10
 REFUSED = ("refused_gate", "refused_llm", "refused_check")
@@ -130,6 +131,33 @@ def print_progress(message: str) -> None:
 
 class CacheMiss(RuntimeError):
     """--cache-only: respons tidak ada di cache; run dihentikan sebelum memanggil API."""
+
+
+class QuotaExhausted(RuntimeError):
+    """429 kuota harian (quotaId ...PerDay...) atau retryDelay > MAX_RETRY_DELAY_S: run dihentikan.
+
+    Jawaban sebelumnya sudah tersimpan di cache; run berikutnya melanjutkan dari sana.
+    done/total diisi answer_questions.
+    """
+
+    def __init__(self, provider: str, quota_id: str | None, retry_delay_s: float | None):
+        super().__init__(
+            f"{provider}: kuota habis (quotaId {quota_id}, retryDelay {retry_delay_s} s)"
+        )
+        self.provider = provider
+        self.quota_id = quota_id
+        self.retry_delay_s = retry_delay_s
+        self.done = 0
+        self.total = 0
+
+
+def is_hard_quota(exc: ProviderFailed) -> bool:
+    """429 yang tidak layak ditunggu: kuota harian atau retryDelay > MAX_RETRY_DELAY_S."""
+    if exc.status != 429:
+        return False
+    if exc.quota_id and "PerDay" in exc.quota_id:
+        return True
+    return exc.retry_delay_s is not None and exc.retry_delay_s > MAX_RETRY_DELAY_S
 
 
 class TokenRateLimiter:
@@ -270,8 +298,10 @@ class EvalLlm:
             try:
                 answer = self.provider.generate(request, timeout_s)
             except ProviderFailed as exc:
+                if is_hard_quota(exc):
+                    raise QuotaExhausted(self.name, exc.quota_id, exc.retry_delay_s) from None
                 if exc.status == 429 and attempt < self.max_retries:
-                    delay = _retry_after_s(exc.retry_after)
+                    delay = _retry_after_s(exc.retry_after, exc.retry_delay_s)
                     self.stats.retries_429 += 1
                     self.stats.wait_429_s += delay
                     self.sleep(delay)
@@ -288,11 +318,13 @@ class EvalLlm:
         return answer
 
 
-def _retry_after_s(value: str | None) -> float:
+def _retry_after_s(value: str | None, retry_delay_s: float | None = None) -> float:
+    """Header retry-after, lalu retryDelay di badan respons (Gemini), lalu bawaan 10 detik."""
+    fallback = retry_delay_s if retry_delay_s is not None else DEFAULT_RETRY_AFTER_S
     try:
-        return max(float(value), 0.0) if value is not None else DEFAULT_RETRY_AFTER_S
+        return max(float(value), 0.0) if value is not None else fallback
     except ValueError:
-        return DEFAULT_RETRY_AFTER_S
+        return fallback
 
 
 # --- per pertanyaan ---------------------------------------------------------------
@@ -431,8 +463,12 @@ def answer_questions(
             )
         return row
 
-    for q in questions:
-        run(q)
+    try:
+        for q in questions:
+            run(q)
+    except QuotaExhausted as exc:
+        exc.done, exc.total = len(done), total
+        raise
     return [done[q["qid"]] for q in questions]
 
 

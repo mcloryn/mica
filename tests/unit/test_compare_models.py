@@ -1,4 +1,4 @@
-"""scripts/compare_models.py: banding dua run dari per_question.csv sintetis."""
+"""scripts/compare_models.py: banding dua run atau lebih dari per_question.csv sintetis."""
 
 from __future__ import annotations
 
@@ -100,3 +100,37 @@ def test_compare_models_rejects_mismatched_ids() -> None:
     runs = {"A": {"q1": {}}, "B": {"q2": {}}}
     with pytest.raises(ValueError):
         cm.per_question(runs, [None])
+
+
+def test_compare_models_three_runs_and_429_from_run_json(tmp_path: Path) -> None:
+    import json
+
+    runs = [_write_run(tmp_path / n, w) for n, w in (("a", 0), ("b", 1), ("c", 1))]
+    calls = {"retries_429": 3, "wait_429_s": 30.0}
+    (runs[2] / "run.json").write_text(json.dumps({"llm_calls": calls}), encoding="utf-8")
+    argv = [
+        *map(str, runs),
+        "--labels",
+        "A",
+        "B",
+        "C",
+        "--out-dir",
+        str(tmp_path),
+        "--prefix",
+        "c3",
+    ]
+    assert cm.main(argv) == 0
+    with open(tmp_path / "c3.csv", encoding="utf-8") as f:
+        rows = {r["id"]: r for r in csv.DictReader(f)}
+    assert rows["q5"]["status_C"] == "false_premise" and rows["q5"]["benar_A"] == "gagal"
+    with open(tmp_path / "c3-summary.csv", encoding="utf-8") as f:
+        summ = {r["model"]: r for r in csv.DictReader(f)}
+    assert list(summ) == ["A", "B", "C"]
+    assert (summ["C"]["retries_429"], summ["C"]["wait_429_s"]) == ("3", "30.0")
+    assert summ["A"]["retries_429"] == ""
+
+
+def test_compare_models_rejects_label_count(tmp_path: Path) -> None:
+    runs = [str(_write_run(tmp_path / n, 0)) for n in ("a", "b")]
+    with pytest.raises(SystemExit):
+        cm.main([*runs, "--labels", "A", "--out-dir", str(tmp_path), "--prefix", "x"])

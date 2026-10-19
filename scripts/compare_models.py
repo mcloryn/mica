@@ -1,8 +1,9 @@
-"""E-04: banding dua model dari per_question.csv dua run eval generation (offline, tanpa API).
+"""E-04: banding dua model atau lebih dari per_question.csv run eval generation (offline, tanpa API).
 
 Pakai:
-  python scripts/compare_models.py RUN_A RUN_B --labels 20b 120b --thresholds 0.55 \
-      --out-dir results/E-04 --prefix compare-dev-v2 [--notes results/E-04/compare-dev-v2-notes.csv]
+  python scripts/compare_models.py RUN_A RUN_B [RUN_C ...] --labels 20b 120b [gemini] \
+      --thresholds 0.55 --out-dir results/E-04 --prefix compare-dev-v2 \
+      [--notes results/E-04/compare-dev-v2-notes.csv]
 
 Ambang null selalu dihitung; --thresholds menambah ambang lain. Status pada ambang t mengikuti
 ScoreThresholdGate: gate_score < t -> refused_gate, selain itu final_status_check_on (cek angka on).
@@ -13,6 +14,7 @@ Aturan nilai pra-registrasi:
 - false_premise: false_premise = terbaik, refused_* = aman, selain itu gagal.
 
 Keluaran: <prefix>.csv (satu baris per pertanyaan) dan <prefix>-summary.csv (per model x ambang).
+Kolom retries_429 dan wait_429_s diambil dari run.json (kosong bila tidak ada).
 --notes: CSV berkolom id,catatan; bila diberikan, kolom catatan ditambahkan di <prefix>.csv.
 """
 
@@ -20,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import sys
 from pathlib import Path
 
@@ -29,6 +32,14 @@ ANSWER_TYPES = ("answerable", "followup")
 def load_run(run_dir: Path) -> dict[str, dict[str, str]]:
     with open(run_dir / "per_question.csv", encoding="utf-8-sig") as f:
         return {r["qid"]: r for r in csv.DictReader(f)}
+
+
+def load_calls(run_dir: Path) -> dict[str, object]:
+    """llm_calls dari run.json (coba ulang 429); kosong bila run.json tidak ada."""
+    path = run_dir / "run.json"
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8")).get("llm_calls") or {}
 
 
 def status_at(row: dict[str, str], threshold: float | None) -> str:
@@ -90,10 +101,13 @@ def per_question(
 
 
 def summary(
-    runs: dict[str, dict[str, dict[str, str]]], thresholds: list[float | None]
+    runs: dict[str, dict[str, dict[str, str]]],
+    thresholds: list[float | None],
+    calls: dict[str, dict[str, object]] | None = None,
 ) -> list[dict[str, object]]:
     out: list[dict[str, object]] = []
     for label, run in runs.items():
+        run_calls = (calls or {}).get(label, {})
         rs = list(run.values())
         for t in thresholds:
             st = {r["qid"]: status_at(r, t) for r in rs}
@@ -127,6 +141,8 @@ def summary(
                     "premis_gagal": fp.count("gagal"),
                     "gagal_skema": sum(r["error_code"] == "LLM_BAD_OUTPUT" for r in called),
                     "unavailable": sum(r["error_code"] == "LLM_UNAVAILABLE" for r in called),
+                    "retries_429": run_calls.get("retries_429", ""),
+                    "wait_429_s": run_calls.get("wait_429_s", ""),
                     "llm_dipanggil": len(called),
                     "prompt_tokens": ptok,
                     "completion_tokens": ctok,
@@ -163,20 +179,24 @@ def load_notes(path: Path) -> dict[str, str]:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("run_a", type=Path)
-    ap.add_argument("run_b", type=Path)
-    ap.add_argument("--labels", nargs=2, required=True, metavar=("A", "B"))
+    ap.add_argument("runs", type=Path, nargs="+", help="folder run, minimal dua")
+    ap.add_argument("--labels", nargs="+", required=True, help="satu label per run, urutan sama")
     ap.add_argument("--thresholds", nargs="*", type=float, default=[])
     ap.add_argument("--out-dir", type=Path, required=True)
     ap.add_argument("--prefix", required=True)
     ap.add_argument("--notes", type=Path)
     args = ap.parse_args(argv)
 
-    runs = {args.labels[0]: load_run(args.run_a), args.labels[1]: load_run(args.run_b)}
+    if len(args.runs) < 2 or len(args.labels) != len(args.runs):
+        ap.error("butuh minimal dua run dan satu label per run")
+    if len(set(args.labels)) != len(args.labels):
+        ap.error("label harus unik")
+    runs = {label: load_run(path) for label, path in zip(args.labels, args.runs, strict=True)}
+    calls = {label: load_calls(path) for label, path in zip(args.labels, args.runs, strict=True)}
     thresholds: list[float | None] = [None, *args.thresholds]
     notes = load_notes(args.notes) if args.notes else None
     _write(args.out_dir / f"{args.prefix}.csv", per_question(runs, thresholds, notes))
-    summ = summary(runs, thresholds)
+    summ = summary(runs, thresholds, calls)
     _write(args.out_dir / f"{args.prefix}-summary.csv", summ)
 
     for s in summ:

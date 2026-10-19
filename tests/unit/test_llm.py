@@ -16,6 +16,7 @@ from mica.rag.llm import (
     GeminiProvider,
     GroqProvider,
     ProviderChain,
+    ProviderFailed,
     make_llm,
     output_schema,
 )
@@ -371,3 +372,41 @@ def test_citation_schema_empty_when_no_chunks(kind):
         cites = server.bodies()[0]["generationConfig"]["responseSchema"]["properties"]
     assert cites["citations"]["maxItems"] == 0
     assert "enum" not in cites["citations"]["items"]
+
+
+def _gemini_429(quota_id="GenerateRequestsPerDayPerProjectPerModel-FreeTier", delay="67854s"):
+    details = [{"@type": "type.googleapis.com/google.rpc.Help", "links": []}]
+    if quota_id is not None:
+        details.append({"@type": "type.googleapis.com/google.rpc.QuotaFailure",
+                        "violations": [{"quotaId": quota_id, "quotaValue": "20"}]})  # fmt: skip
+    if delay is not None:
+        details.append({"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": delay})
+    body = {"error": {"code": 429, "status": "RESOURCE_EXHAUSTED", "details": details}}
+    return httpx.Response(429, json=body)
+
+
+def test_gemini_429_reads_retry_delay_and_quota_id():
+    server = Server({"m": [_gemini_429()]})
+    provider = GeminiProvider("m", mode="dev", api_key=SecretStr(KEY), client=server.client())
+    with pytest.raises(ProviderFailed) as exc:
+        provider.generate(REQUEST, 5)
+    assert exc.value.status == 429 and exc.value.retry_delay_s == 67854.0
+    assert exc.value.quota_id == "GenerateRequestsPerDayPerProjectPerModel-FreeTier"
+    assert "PerDay" in exc.value.reason
+
+
+@pytest.mark.parametrize("reply", [httpx.Response(429, json={}), httpx.Response(429, text="x")])
+def test_gemini_429_without_details(reply):
+    server = Server({"m": [reply]})
+    provider = GeminiProvider("m", mode="dev", api_key=SecretStr(KEY), client=server.client())
+    with pytest.raises(ProviderFailed) as exc:
+        provider.generate(REQUEST, 5)
+    assert (exc.value.retry_delay_s, exc.value.quota_id) == (None, None)
+
+
+def test_gemini_429_fractional_delay_without_quota():
+    server = Server({"m": [_gemini_429(quota_id=None, delay="12.5s")]})
+    provider = GeminiProvider("m", mode="dev", api_key=SecretStr(KEY), client=server.client())
+    with pytest.raises(ProviderFailed) as exc:
+        provider.generate(REQUEST, 5)
+    assert (exc.value.retry_delay_s, exc.value.quota_id) == (12.5, None)

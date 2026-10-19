@@ -44,6 +44,7 @@ from mica.eval.generation import (
     PROMPT_VARIANTS,
     SWEEP_COLUMNS,
     CacheMiss,
+    QuotaExhausted,
     run_generation,
 )
 from mica.eval.official import (
@@ -1029,7 +1030,13 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
         if args.command == "gate":
             return cmd_gate(args, embedder_factory)
         if args.command == "generation":
-            return cmd_generation(args, embedder_factory)
+            try:
+                return cmd_generation(args, embedder_factory)
+            except QuotaExhausted as exc:
+                print(f"BERHENTI: {exc}\n{exc.done}/{exc.total} pertanyaan selesai; jawaban "
+                      f"tersimpan di cache {args.cache_dir.as_posix()}. Folder run tidak dibuat. "
+                      "Ulangi perintah yang sama setelah kuota pulih.", file=sys.stderr)  # fmt: skip
+                return 3
         if args.action == "export":
             return cmd_export(args, embedder_factory)
         return cmd_import(args)

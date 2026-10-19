@@ -13,6 +13,7 @@ from mica.eval.generation import (
     EvalLlm,
     GenerationRow,
     LlmCache,
+    QuotaExhausted,
     TokenRateLimiter,
     effective_settings,
     run_generation,
@@ -168,6 +169,32 @@ def test_429_gives_up_after_five_retries():
     with pytest.raises(LlmUnavailable):
         llm.generate(REQUEST, 5)
     assert len(provider.requests) == 6 and llm.stats.retries_429 == 5
+
+
+PER_DAY = "GenerateRequestsPerDayPerProjectPerModel-FreeTier"
+
+
+@pytest.mark.parametrize(
+    ("quota_id", "delay"), [(PER_DAY, 30.0), (PER_DAY, None), ("PerMinute", 61.0), (None, 3600.0)]
+)
+def test_hard_quota_stops_without_retry(quota_id, delay):
+    clock = FakeClock()
+    failure = ProviderFailed("HTTP 429", 429, None, retry_delay_s=delay, quota_id=quota_id)
+    provider = FakeProvider(failures=[failure] * 6)
+    llm = EvalLlm(provider, TokenRateLimiter(clock=clock, sleep=clock.sleep), sleep=clock.sleep)
+    with pytest.raises(QuotaExhausted) as exc:
+        llm.generate(REQUEST, 5)
+    assert len(provider.requests) == 1 and clock.sleeps == []
+    assert (exc.value.quota_id, exc.value.retry_delay_s) == (quota_id, delay)
+
+
+def test_short_retry_delay_from_body_is_waited():
+    clock = FakeClock()
+    failure = ProviderFailed("HTTP 429", 429, None, retry_delay_s=60.0, quota_id="PerMinute")
+    provider = FakeProvider(failures=[failure])
+    llm = EvalLlm(provider, TokenRateLimiter(clock=clock, sleep=clock.sleep), sleep=clock.sleep)
+    assert llm.generate(REQUEST, 5).provider == "groq:fake"
+    assert clock.sleeps == [60.0] and llm.stats.retries_429 == 1
 
 
 def test_other_failure_not_retried():
@@ -541,3 +568,45 @@ def test_run_generation_experiment_label(env):
 def test_run_generation_experiment_validated(env):
     with pytest.raises(ValueError):
         _run(env, FakeProvider(_rule), gate_off=True, experiment="../x")
+
+
+def test_run_generation_stops_on_daily_quota_and_resumes_from_cache(env):
+    tmp = env[3]
+    failure = ProviderFailed("HTTP 429", 429, None, retry_delay_s=67854.0, quota_id=PER_DAY)
+
+    class QuotaAfter(FakeProvider):
+        def __init__(self, ok):
+            super().__init__(_rule)
+            self.ok = ok
+
+        def generate(self, request, timeout_s):
+            if self.ok <= 0:
+                self.requests.append(request)
+                raise failure
+            self.ok -= 1
+            return super().generate(request, timeout_s)
+
+    with pytest.raises(QuotaExhausted) as exc:
+        _run(env, QuotaAfter(2), gate_off=True)
+    assert 0 < exc.value.done < exc.value.total
+    assert not (tmp / "out").exists()  # folder run tidak dibuat
+    resumed = QuotaAfter(10**6)
+    run_dir, rows, _ = _run(env, resumed, gate_off=True)
+    assert len(rows) == exc.value.total
+    run = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
+    assert run["llm_calls"]["from_cache"] >= 2
+
+
+def test_cli_generation_quota_exit_code(monkeypatch, capsys):
+    import mica.eval.__main__ as cli
+
+    def boom(args, factory):
+        exc = QuotaExhausted("gemini:m", PER_DAY, 67854.0)
+        exc.done, exc.total = 9, 45
+        raise exc
+
+    monkeypatch.setattr(cli, "cmd_generation", boom)
+    argv = ["generation", "--config", "c.yaml", "--dataset", "d.jsonl", "--out", "o"]
+    assert cli.main(argv) == 3
+    err = capsys.readouterr().err
+    assert "9/45 pertanyaan selesai" in err and PER_DAY in err

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import time
 from typing import Any, Literal, Protocol
 
@@ -93,11 +94,21 @@ class LLMProvider(Protocol):
 class ProviderFailed(Exception):
     """Satu penyedia gagal dan rantai boleh pindah ke penyedia berikutnya."""
 
-    def __init__(self, reason: str, status: int | None = None, retry_after: str | None = None):
+    def __init__(
+        self,
+        reason: str,
+        status: int | None = None,
+        retry_after: str | None = None,
+        retry_delay_s: float | None = None,
+        quota_id: str | None = None,
+    ):
         super().__init__(reason)
         self.reason = reason
         self.status = status
         self.retry_after = retry_after
+        # dari badan respons 429 Gemini (RetryInfo.retryDelay, QuotaFailure.quotaId); None bila tidak ada
+        self.retry_delay_s = retry_delay_s
+        self.quota_id = quota_id
 
 
 class _BadOutput(Exception):
@@ -169,6 +180,10 @@ class _HttpProvider:
     def _schema_mismatch(self, response: httpx.Response) -> bool:
         return False
 
+    def _quota_info(self, response: httpx.Response) -> tuple[float | None, str | None]:
+        """(retry_delay_s, quota_id) dari badan respons galat; bawaan: tidak ada."""
+        return None, None
+
     def _content_and_usage(self, data: Any) -> tuple[str, dict[str, int] | None]:
         raise NotImplementedError
 
@@ -192,10 +207,13 @@ class _HttpProvider:
             return response
         if response.status_code == 400 and self._schema_mismatch(response):
             raise _BadOutput("HTTP 400: keluaran tidak cocok skema")
+        retry_delay_s, quota_id = self._quota_info(response)
         raise ProviderFailed(
-            f"HTTP {response.status_code}",
+            f"HTTP {response.status_code}" + (f" ({quota_id})" if quota_id else ""),
             status=response.status_code,
             retry_after=response.headers.get("retry-after"),
+            retry_delay_s=retry_delay_s,
+            quota_id=quota_id,
         )
 
     def generate(self, request: LlmRequest, timeout_s: float) -> LlmAnswer:
@@ -344,6 +362,28 @@ class GeminiProvider(_HttpProvider):
             "contents": [{"role": "user", "parts": [{"text": request.user}]}],
             "generationConfig": config,
         }
+
+    def _quota_info(self, response: httpx.Response) -> tuple[float | None, str | None]:
+        """google.rpc.RetryInfo.retryDelay ("67854s") dan QuotaFailure.violations[0].quotaId."""
+        try:
+            details = response.json()["error"]["details"]
+        except (ValueError, KeyError, TypeError):
+            return None, None
+        delay: float | None = None
+        quota_id: str | None = None
+        for item in details if isinstance(details, list) else ():
+            if not isinstance(item, dict):
+                continue
+            kind = str(item.get("@type", ""))
+            if kind.endswith("RetryInfo"):
+                match = re.fullmatch(r"(\d+(?:\.\d+)?)s", str(item.get("retryDelay", "")))
+                if match:
+                    delay = float(match.group(1))
+            elif kind.endswith("QuotaFailure"):
+                violations = item.get("violations") or []
+                if violations and isinstance(violations[0], dict):
+                    quota_id = violations[0].get("quotaId")
+        return delay, quota_id
 
     def _content_and_usage(self, data: Any) -> tuple[str, dict[str, int] | None]:
         try:
