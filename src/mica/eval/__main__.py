@@ -20,7 +20,8 @@ python -m mica.eval vision-scenarios --config <yaml> --dataset data/eval/vision_
     --model <pemenang> [--conf <terpilih>] [--grid default] [--out results/E-07]
 python -m mica.eval color --config <yaml> --dataset data/eval/vision/<nama> [--labels colors.csv]
     [--labels2 colors_rater2.csv] [--out results/E-08]   (docs/E-08.md)
-python -m mica.eval annotation --run <folder run generation>   (ringkasan anotasi halusinasi)
+python -m mica.eval annotation --run <folder run generation> [--compare-saran]
+    (ringkasan anotasi halusinasi; --compare-saran: jumlah identik dengan saran Claude)
 """
 
 from __future__ import annotations
@@ -221,6 +222,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     ann = sub.add_parser("annotation", help="E-02/E-04: tingkat halusinasi + CI 95% Wilson")
     ann.add_argument("--run", type=Path, required=True, help="folder run generation")
+    ann.add_argument("--compare-saran", action="store_true",
+                     help="bandingkan dengan annotate_generation_saran_claude.csv")  # fmt: skip
     return parser
 
 
@@ -257,6 +260,14 @@ def cmd_annotation(args: argparse.Namespace) -> int:
     print(f"{s.get('model')}: n={s['n']} benar={s['benar']} halusinasi={s['halusinasi']} "
           f"tingkat={s['hallucination_rate']:.4f} CI95 Wilson [{low:.4f}, {high:.4f}]")  # fmt: skip
     print(f"tersimpan: {(args.run / SUMMARY_FILE).as_posix()}")
+    if args.compare_saran:
+        from mica.eval.annotation import COMPARED_COLUMNS, compare_suggestions
+
+        cmp = compare_suggestions(args.run)
+        for col in COMPARED_COLUMNS:
+            c = cmp[col]
+            print(f"identik dengan saran Claude, {col}: {c['identical']}/{cmp['n']}"
+                  f"{' berbeda: ' + ','.join(c['different_qids']) if c['different_qids'] else ''}")  # fmt: skip
     return 0
 
 

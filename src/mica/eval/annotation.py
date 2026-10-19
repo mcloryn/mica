@@ -15,6 +15,8 @@ from typing import Any
 
 ANNOTATION_FILE = "annotate_generation.csv"
 SUMMARY_FILE = "annotation_summary.json"
+SUGGESTION_FILE = "annotate_generation_saran_claude.csv"
+COMPARED_COLUMNS = ("benar", "halusinasi", "catatan")
 Z_95 = 1.959963984540054
 
 
@@ -66,6 +68,29 @@ def summarize(rows: list[dict[str, str]]) -> dict[str, Any]:
         "halusinasi_qids": [r["qid"] for r in rows if r["halusinasi"].strip() == "1"],
         "salah_qids": [r["qid"] for r in rows if r["benar"].strip() == "0"],
     }
+
+
+def compare_suggestions(run_dir: Path) -> dict[str, Any]:
+    """Hitung baris annotate_generation.csv yang identik dengan saran_<kolom> di file saran Claude.
+
+    Pasangan baris lewat qid; qid harus sama persis di kedua file. Teks dibandingkan setelah
+    spasi di ujung dibuang. Hasil: jumlah identik per kolom dan qid yang berbeda.
+    """
+    final = {r["qid"]: r for r in load_annotations(run_dir / ANNOTATION_FILE)}
+    with (run_dir / SUGGESTION_FILE).open(encoding="utf-8-sig", newline="") as f:
+        saran = {r["qid"]: r for r in csv.DictReader(f)}
+    if set(final) != set(saran):
+        missing = sorted(set(final) ^ set(saran))
+        raise AnnotationError(f"{run_dir}: qid berbeda antara anotasi dan saran: {missing}")
+    result: dict[str, Any] = {"n": len(final)}
+    for col in COMPARED_COLUMNS:
+        differ = [
+            q
+            for q in final
+            if (final[q].get(col) or "").strip() != (saran[q].get(f"saran_{col}") or "").strip()
+        ]
+        result[col] = {"identical": len(final) - len(differ), "different_qids": differ}
+    return result
 
 
 def run_annotation(run_dir: Path) -> dict[str, Any]:

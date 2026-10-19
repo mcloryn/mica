@@ -5,7 +5,9 @@ import pytest
 
 from mica.eval.__main__ import main
 from mica.eval.annotation import (
+    SUGGESTION_FILE,
     AnnotationError,
+    compare_suggestions,
     load_annotations,
     run_annotation,
     summarize,
@@ -80,3 +82,39 @@ def test_cli_annotation(tmp_path, capsys):
     assert "halusinasi=0" in capsys.readouterr().out
     _write(tmp_path / "annotate_generation.csv", [("1", "")])
     assert main(["annotation", "--run", str(tmp_path)]) == 2
+
+
+def _write_saran(path, rows):
+    cols = ("qid", "saran_benar", "saran_halusinasi", "saran_catatan")
+    with path.open("w", encoding="utf-8-sig", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(cols)
+        w.writerows(rows)
+
+
+def test_compare_suggestions_counts_identical(tmp_path):
+    _write(tmp_path / "annotate_generation.csv", [("1", "0"), ("0", "1"), ("1", "0")])
+    _write_saran(
+        tmp_path / SUGGESTION_FILE,
+        [("d001", "1", "0", ""), ("d002", "1", "1", "x"), ("d003", "1", "0", " ")],
+    )
+    r = compare_suggestions(tmp_path)
+    assert r["n"] == 3
+    assert r["benar"] == {"identical": 2, "different_qids": ["d002"]}
+    assert r["halusinasi"] == {"identical": 3, "different_qids": []}
+    assert r["catatan"] == {"identical": 2, "different_qids": ["d002"]}
+
+
+def test_compare_suggestions_rejects_qid_mismatch(tmp_path):
+    _write(tmp_path / "annotate_generation.csv", [("1", "0")])
+    _write_saran(tmp_path / SUGGESTION_FILE, [("d099", "1", "0", "")])
+    with pytest.raises(AnnotationError, match="d001"):
+        compare_suggestions(tmp_path)
+
+
+def test_cli_compare_saran(tmp_path, capsys):
+    _write(tmp_path / "annotate_generation.csv", [("1", "0")])
+    _write_saran(tmp_path / SUGGESTION_FILE, [("d001", "1", "0", "")])
+    assert main(["annotation", "--run", str(tmp_path), "--compare-saran"]) == 0
+    out = capsys.readouterr().out
+    assert "halusinasi: 1/1" in out
