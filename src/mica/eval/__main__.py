@@ -1,5 +1,5 @@
 """CLI evaluasi (M-12): annotate, retrieval, gate, generation, copy, stt, latency, dataset,
-vision, vision-scenarios, dan color.
+vision, vision-scenarios, color, dan annotation.
 
 python -m mica.eval annotate export --config <yaml> --dataset <jsonl> --out <pool.csv> [--force]
 python -m mica.eval annotate import --dataset <jsonl> --pool <pool.csv>
@@ -20,6 +20,7 @@ python -m mica.eval vision-scenarios --config <yaml> --dataset data/eval/vision_
     --model <pemenang> [--conf <terpilih>] [--grid default] [--out results/E-07]
 python -m mica.eval color --config <yaml> --dataset data/eval/vision/<nama> [--labels colors.csv]
     [--labels2 colors_rater2.csv] [--out results/E-08]   (docs/E-08.md)
+python -m mica.eval annotation --run <folder run generation>   (ringkasan anotasi halusinasi)
 """
 
 from __future__ import annotations
@@ -217,6 +218,9 @@ def build_parser() -> argparse.ArgumentParser:
     col.add_argument("--out", type=Path, default=Path("results/E-08"))
     col.add_argument("--models-dir", type=Path, default=Path("models"))
     col.add_argument("--note", help="catatan di run.json, mis. 'sintetis, bukan hasil E-08'")
+
+    ann = sub.add_parser("annotation", help="E-02/E-04: tingkat halusinasi + CI 95% Wilson")
+    ann.add_argument("--run", type=Path, required=True, help="folder run generation")
     return parser
 
 
@@ -242,6 +246,17 @@ def cmd_dataset(args: argparse.Namespace) -> int:
         return 0
     for line in status_lines(lock_status(args.lock), args.official_dir):
         print(line)
+    return 0
+
+
+def cmd_annotation(args: argparse.Namespace) -> int:
+    from mica.eval.annotation import SUMMARY_FILE, run_annotation
+
+    s = run_annotation(args.run)
+    low, high = s["hallucination_rate_ci95_wilson"]
+    print(f"{s.get('model')}: n={s['n']} benar={s['benar']} halusinasi={s['halusinasi']} "
+          f"tingkat={s['hallucination_rate']:.4f} CI95 Wilson [{low:.4f}, {high:.4f}]")  # fmt: skip
+    print(f"tersimpan: {(args.run / SUMMARY_FILE).as_posix()}")
     return 0
 
 
@@ -979,6 +994,8 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
     from mica.vision.detector import ModelMissing
 
     try:
+        if args.command == "annotation":
+            return cmd_annotation(args)
         if args.command == "stt":
             return cmd_stt(args)
         if args.command == "vision":
