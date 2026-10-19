@@ -8,7 +8,7 @@ python -m mica.eval retrieval --config <yaml> --dataset <jsonl> --out <folder>
 python -m mica.eval gate --config <yaml> --dataset <jsonl> --out <folder>
 python -m mica.eval generation --config <yaml> --dataset <jsonl> --out <folder> [--gate-off]
     [--no-cache] [--cache-only] [--cache-dir data/cache/llm] [--env-file .env]
-    [--model penyedia:id_model] [--experiment E-02]
+    [--model penyedia:id_model] [--experiment E-02] [--timeout-s 60]
 python -m mica.eval dataset split --input <file resmi> --out-dir data/eval/official/
 python -m mica.eval dataset lock --dataset data/eval/official/test.jsonl --reason "<teks>"
 python -m mica.eval dataset status          (set resmi, docs/DATASET.md)
@@ -127,6 +127,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="ganti llm.chain menjadi satu model ini saja untuk run ini, misalnya "
         "groq:openai/gpt-oss-20b",
     )
+    gen.add_argument("--timeout-s", type=float,
+                     help="timpa llm.timeout_s untuk run ini (dicatat di run.json)")  # fmt: skip
     gen.add_argument(
         "--experiment",
         default=EXPERIMENT,
@@ -656,6 +658,7 @@ def cmd_generation(args: argparse.Namespace, embedder_factory: EmbedderFactory |
         split=args.split,
         split_info=split_info,
         prompt_variant=args.prompt_variant,
+        timeout_s=args.timeout_s,
     )
     print(f"KB {kb.kb_id} | {len(rows)} pertanyaan -> {run_dir}")
     print(" | ".join(SWEEP_COLUMNS))

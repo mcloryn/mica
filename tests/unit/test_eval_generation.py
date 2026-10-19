@@ -454,6 +454,16 @@ def test_effective_settings_model_replaces_chain():
     assert settings.llm.chain != (MODEL_20B,)  # config asli tidak berubah
 
 
+def test_effective_settings_timeout_override():
+    settings = load_settings(DEV_YAML)
+    eff = effective_settings(settings, True, MODEL_20B, timeout_s=60)
+    assert eff.llm.timeout_s == 60 and eff.llm.chain == (MODEL_20B,)
+    assert effective_settings(settings, True, timeout_s=60).llm.chain == settings.llm.chain
+    assert effective_settings(settings, True).llm.timeout_s == settings.llm.timeout_s
+    with pytest.raises(ValueError):
+        effective_settings(settings, True, timeout_s=0)
+
+
 def test_effective_settings_model_validated():
     settings = load_settings(DEV_YAML)
     with pytest.raises(ValueError):
@@ -492,6 +502,7 @@ def test_run_generation_model_uses_only_that_model(env, monkeypatch):
     assert run["llm"]["chain_effective"] == [MODEL_20B]
     assert run["llm"]["model_override"] == MODEL_20B
     assert run["llm"]["provider"] == MODEL_20B
+    assert run["llm"]["timeout_source"] == "config"
 
 
 def test_run_generation_model_guard_stops_other_chain(env, monkeypatch):

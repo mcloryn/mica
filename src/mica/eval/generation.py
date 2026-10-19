@@ -328,11 +328,13 @@ class GenerationRow:
 
 
 def effective_settings(settings: Settings, gate_off: bool, model: str | None = None,
-                       prompt_variant: str | None = None) -> Settings:  # fmt: skip
+                       prompt_variant: str | None = None,
+                       timeout_s: float | None = None) -> Settings:  # fmt: skip
     """Konfigurasi run ini: cek angka selalu menyala (status 'off' dihitung offline).
 
     model ("penyedia:id_model") mengganti llm.chain menjadi satu model itu saja.
     prompt_variant (--prompt-variant) menimpa rag.prompt_variant.
+    timeout_s (--timeout-s) menimpa llm.timeout_s (E-04 Gemini, docs/E-04.md).
     """
     rag = settings.rag
     gate = rag.gate.model_copy(update={"threshold": None}) if gate_off else rag.gate
@@ -344,13 +346,16 @@ def effective_settings(settings: Settings, gate_off: bool, model: str | None = N
         rag_update["prompt_variant"] = prompt_variant
     rag = rag.model_copy(update=rag_update)
     update: dict[str, Any] = {"rag": rag}
-    if model is not None:
+    if model is not None or timeout_s is not None:
         data = settings.llm.model_dump()
-        data["chain"] = [model]
-        llm = LlmConfig.model_validate(data)  # format 'penyedia:id_model' tetap divalidasi
-        if model.partition(":")[0] == "gemini" and settings.app.mode != "dev":
-            raise ValueError("--model: penyedia gemini hanya boleh saat app.mode: dev")
-        update["llm"] = llm
+        if model is not None:
+            data["chain"] = [model]
+            if model.partition(":")[0] == "gemini" and settings.app.mode != "dev":
+                raise ValueError("--model: penyedia gemini hanya boleh saat app.mode: dev")
+        if timeout_s is not None:
+            data["timeout_s"] = timeout_s
+        # format 'penyedia:id_model' dan timeout > 0 tetap divalidasi
+        update["llm"] = LlmConfig.model_validate(data)
     return settings.model_copy(update=update)
 
 
@@ -614,13 +619,14 @@ def run_generation(
     split: str = SPLIT,
     split_info: dict[str, Any] | None = None,
     prompt_variant: str | None = None,
+    timeout_s: float | None = None,
 ) -> tuple[Path, list[GenerationRow], list[dict[str, Any]]]:
     if not re.fullmatch(r"E-\d{2}", experiment):
         raise ValueError(f"--experiment {experiment!r} harus berformat E-NN, misalnya E-04")
     started_at = started_at or datetime.now().astimezone()
     clock_start = time.perf_counter()
     environment = environment if environment is not None else collect_environment()
-    eff = effective_settings(settings, gate_off, model, prompt_variant)
+    eff = effective_settings(settings, gate_off, model, prompt_variant, timeout_s)
     questions = dev_questions(load_questions(dataset), split)
 
     if provider is None:
@@ -693,6 +699,8 @@ def run_generation(
             "reasoning_effort": eff.llm.reasoning_effort,
             "temperature": eff.llm.temperature,
             "timeout_s": eff.llm.timeout_s,
+            "timeout_s_config": settings.llm.timeout_s,
+            "timeout_source": "--timeout-s" if timeout_s is not None else "config",
             "fallback_chain": "dimatikan; hanya model pertama llm.chain",
             "chain_effective": list(eff.llm.chain),
             "chain_config": list(settings.llm.chain),

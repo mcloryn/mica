@@ -239,6 +239,26 @@ def test_gemini_success_and_body():
     config = body["generationConfig"]
     assert config["temperature"] == 0.2 and config["responseMimeType"] == "application/json"
     assert config["responseSchema"]["required"] == ["status", "answer", "citations"]
+    assert "thinkingConfig" not in config  # tanpa reasoning_effort: bawaan Gemini
+
+
+def test_gemini_reasoning_effort_sent_as_thinking_level():
+    server = Server({"gemini-x": [_gemini_ok()]})
+    provider = GeminiProvider("gemini-x", mode="dev", api_key=SecretStr(KEY),
+                              reasoning_effort="low", client=server.client())  # fmt: skip
+    provider.generate(REQUEST, 5)
+    config = json.loads(server.requests[0].content)["generationConfig"]
+    assert config["thinkingConfig"] == {"thinkingLevel": "low"}
+
+
+def test_make_llm_passes_reasoning_effort_to_gemini():
+    from mica.config import ApiKeys
+
+    settings = load_settings(DEV_YAML, env_file=None)
+    llm = settings.llm.model_copy(update={"chain": ("gemini:gemini-x",), "reasoning_effort": "low"})
+    settings = settings.model_copy(update={"llm": llm, "api_keys": ApiKeys(gemini="x")})
+    (provider,) = make_llm(settings).providers
+    assert provider.reasoning_effort == "low"
 
 
 def test_gemini_rejected_in_kiosk():

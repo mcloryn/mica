@@ -301,7 +301,11 @@ class GroqProvider(_HttpProvider):
 
 
 class GeminiProvider(_HttpProvider):
-    """Khusus mode dev; ditolak di mode kiosk (N-09, SDD 8.2)."""
+    """Khusus mode dev; ditolak di mode kiosk (N-09, SDD 8.2).
+
+    reasoning_effort (llm.reasoning_effort) dikirim sebagai thinkingConfig.thinkingLevel
+    (keputusan pengguna 19 Okt 2026, E-04: padanan reasoning_effort gpt-oss di Groq).
+    """
 
     provider = "gemini"
 
@@ -312,11 +316,13 @@ class GeminiProvider(_HttpProvider):
         mode: Literal["kiosk", "dev"],
         api_key: SecretStr,
         temperature: float | None = None,
+        reasoning_effort: ReasoningEffort | None = None,
         client: httpx.Client | None = None,
     ) -> None:
         if mode != "dev":
             raise ConfigError(CFG_GEMINI_IN_KIOSK, "GeminiProvider hanya boleh saat app.mode: dev")
         super().__init__(model, api_key=api_key, temperature=temperature, client=client)
+        self.reasoning_effort = reasoning_effort
 
     def _url(self) -> str:
         return GEMINI_URL.format(model=self.model)
@@ -331,6 +337,8 @@ class GeminiProvider(_HttpProvider):
         }
         if self.temperature is not None:
             config["temperature"] = self.temperature
+        if self.reasoning_effort is not None:
+            config["thinkingConfig"] = {"thinkingLevel": self.reasoning_effort}
         return {
             "systemInstruction": {"parts": [{"text": request.system}]},
             "contents": [{"role": "user", "parts": [{"text": request.user}]}],
@@ -406,6 +414,7 @@ def make_llm(settings: Settings, client: httpx.Client | None = None) -> Provider
                     mode=settings.app.mode,
                     api_key=key,
                     temperature=llm.temperature,
+                    reasoning_effort=llm.reasoning_effort,
                     client=client,
                 )
             )
