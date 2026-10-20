@@ -32,6 +32,8 @@ llm:
   timeout_s: null                   # E-04, dari anggaran 4 detik
   temperature: null                 # ditetapkan rendah, E-04
   reasoning_effort: null            # low | medium | high; E-04
+  prompt_variants: {}               # docs/PROMPT-V4.md; {} = semua rag.prompt_variant. Rencana bila anotasi 120b
+                                    # halusinasi 0/28: {groq:openai/gpt-oss-120b: v4, groq:openai/gpt-oss-20b: paraphrase}
 audio:
   input_mode: push_to_talk          # keputusan desain pengguna 18 Okt 2026 (Langkah 42); vad = mode lama untuk perbandingan
   stt:

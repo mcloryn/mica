@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
@@ -23,6 +23,7 @@ from mica.core.types import (
     GateDecision,
     LlmAnswer,
     LlmBadOutput,
+    LlmRequest,
     LlmUnavailable,
     ScoredChunk,
     ScrubbedText,
@@ -132,7 +133,7 @@ class AnswerPipeline:
             )
 
         recent = list(history[-rag.history_turns :]) if rag.history_turns > 0 else []
-        request = build_prompt(q, recent, trace.hits, rag.prompt_variant, self.settings.ui.topics)
+        request = self._request(q, recent, trace.hits)
         try:
             trace.out = self.llm.generate(request, self.timeout_s)
         except LlmUnavailable:
@@ -189,6 +190,24 @@ class AnswerPipeline:
             follow_up_topic=out.follow_up_topic, items=out.items,
         )  # fmt: skip
 
+    def _variant(self, provider: str | None) -> Any:
+        """Varian prompt penyedia ini (llm.prompt_variants), atau penyedia pertama rantai."""
+        llm = self.settings.llm
+        name = provider if provider is not None else llm.chain[0]
+        return llm.prompt_variant_for(name, self.settings.rag.prompt_variant)
+
+    def _request(self, q: ScrubbedText, recent: list[Turn], hits: list[ScoredChunk]) -> LlmRequest:
+        """Request penyedia pertama + alternatif untuk penyedia lain yang variannya berbeda."""
+        topics = self.settings.ui.topics
+        first = self._variant(None)
+        request = build_prompt(q, recent, hits, first, topics)
+        alternates = []
+        for name in self.settings.llm.chain[1:]:
+            variant = self._variant(name)
+            if variant != first:
+                alternates.append((name, build_prompt(q, recent, hits, variant, topics)))
+        return replace(request, alternates=tuple(alternates)) if alternates else request
+
     def _finish(
         self,
         trace: _Trace,
@@ -237,7 +256,7 @@ class AnswerPipeline:
             llm_usage=out.usage if out else None,
             citations=out.citations if out else (),
             error_code=str(trace.error_code) if trace.error_code else None,
-            prompt_version=prompt_version(self.settings.rag.prompt_variant),
+            prompt_version=prompt_version(self._variant(out.provider if out else None)),
         )
         if self.log is not None:
             self.log.log_turn(record)

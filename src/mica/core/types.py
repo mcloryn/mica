@@ -102,6 +102,13 @@ class LlmRequest:
     follow_up_topics: tuple[str, ...] = ()
     # prompt v4: field items (larik string, boleh kosong) wajib di skema; False = tidak dikirim
     items_field: bool = False
+    # llm.prompt_variants: request lain untuk penyedia tertentu di rantai (nama "groq:<id>"),
+    # misalnya cadangan 20b memakai v2 sementara 120b memakai v4; kosong = semua pakai request ini
+    alternates: tuple[tuple[str, LlmRequest], ...] = ()
+
+    def for_provider(self, name: str) -> LlmRequest:
+        """Request untuk penyedia ini: alternatif bila ada, selain itu request ini."""
+        return dict(self.alternates).get(name, self)
 
 
 @dataclass(frozen=True)
@@ -138,6 +145,19 @@ class FinalAnswer:
     # prompt v4: butir daftar yang tampil di bawah text (UI <ul>, TTS "A, B, dan C."); kosong bila
     # tidak ada atau menolak. Teks lengkap untuk log, riwayat, dan cek = joined_answer(text, items)
     items: tuple[str, ...] = ()
+
+
+def _squash(text: str) -> str:
+    return "".join(text.split()).casefold()
+
+
+def visible_items(answer: str, items: tuple[str, ...] | list[str]) -> tuple[str, ...]:
+    """Items yang ditampilkan dan dibacakan (prompt v4): kosong bila SEMUA item sudah ada di
+    answer (tanpa beda huruf besar-kecil dan spasi), supaya daftar tidak tampil dua kali."""
+    squashed = _squash(answer)
+    if items and all(_squash(i) in squashed for i in items):
+        return ()
+    return tuple(items)
 
 
 def joined_answer(answer: str, items: tuple[str, ...] | list[str]) -> str:

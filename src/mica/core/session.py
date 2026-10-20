@@ -48,7 +48,7 @@ from mica.config import Settings
 from mica.core import texts
 from mica.core.bus import SetVisionRate
 from mica.core.spoken import spoken_with_items
-from mica.core.types import Chunk, FinalAnswer, Turn, joined_answer
+from mica.core.types import Chunk, FinalAnswer, Turn, joined_answer, visible_items
 from mica.rag.pii import scrub_pii
 from mica.vision.types import CameraStatus, PersonArrived, PersonLeft
 
@@ -436,7 +436,7 @@ class Session:
                 answer = event.answer
                 # TTS: baris "- " jadi satu kalimat, lalu items (v4), lalu tawaran topik (v3);
                 # layar tetap answer.text (+ items sebagai daftar)
-                spoken = spoken_with_items(answer.text, answer.items)
+                spoken = spoken_with_items(answer.text, visible_items(answer.text, answer.items))
                 if answer.follow_up_topic:
                     spoken = f"{spoken} {texts.follow_up_offer(answer.follow_up_topic)}"
                 speak, self.answer_uid = self._speak(spoken)

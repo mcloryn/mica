@@ -107,6 +107,22 @@ class LlmConfig(_Model):
     temperature: NonNegativeFloat | None = None
     # gpt-oss di Groq; Gemini: thinkingConfig.thinkingLevel (dev); E-04
     reasoning_effort: Literal["low", "medium", "high"] | None = None
+    # varian prompt per entri rantai ("groq:<id>" -> varian), menimpa rag.prompt_variant untuk
+    # penyedia itu (docs/PROMPT-V4.md: 120b v4, cadangan 20b v2); {} = semua pakai rag.prompt_variant
+    prompt_variants: dict[str, Literal["paraphrase", "plain", "v3", "v4"]] = Field(
+        default_factory=dict
+    )
+
+    @model_validator(mode="after")
+    def _prompt_variants_in_chain(self) -> LlmConfig:
+        unknown = sorted(set(self.prompt_variants) - set(self.chain))
+        if unknown:
+            raise ValueError(f"llm.prompt_variants punya entri di luar llm.chain: {unknown}")
+        return self
+
+    def prompt_variant_for(self, entry: str, default: str) -> str:
+        """Varian prompt untuk satu entri rantai; default = rag.prompt_variant."""
+        return self.prompt_variants.get(entry, default)
 
     @field_validator("chain")
     @classmethod

@@ -16,7 +16,7 @@ from typing import Literal
 from mica.core import texts
 from mica.core.controller import DisplayUpdate
 from mica.core.session import ClearScreen, ShowView, VisitState
-from mica.core.types import Chunk
+from mica.core.types import Chunk, visible_items
 
 
 @dataclass(frozen=True)
@@ -85,7 +85,14 @@ class ViewModel:
         if item.answer is not None and self.turn_open:
             sources = tuple(_source(c) for c in item.sources)
             self.messages.append(
-                Message("mica", item.answer, sources, item.follow_up_topic, item.items)
+                # v4: items yang semuanya sudah ada di answer tidak ditampilkan lagi
+                Message(
+                    "mica",
+                    item.answer,
+                    sources,
+                    item.follow_up_topic,
+                    visible_items(item.answer, item.items),
+                )
             )
             self.turn_open = False
         self.status = item.status

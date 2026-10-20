@@ -298,6 +298,7 @@ class EvalLlm:
         self.last_from_cache = False
 
     def generate(self, request: LlmRequest, timeout_s: float) -> LlmAnswer:
+        request = request.for_provider(self.provider.name)  # llm.prompt_variants
         key = cache_key(self.provider, request)
         if self.cache is not None and self.read_cache:
             cached = self.cache.get(key)
@@ -395,10 +396,16 @@ def effective_settings(settings: Settings, gate_off: bool, model: str | None = N
         rag_update["prompt_variant"] = prompt_variant
     rag = rag.model_copy(update=rag_update)
     update: dict[str, Any] = {"rag": rag}
-    if model is not None or timeout_s is not None:
+    if model is not None or timeout_s is not None or prompt_variant is not None:
         data = settings.llm.model_dump()
+        if prompt_variant is not None:  # --prompt-variant menang atas llm.prompt_variants
+            data["prompt_variants"] = {}
         if model is not None:
             data["chain"] = [model]
+            # llm.prompt_variants hanya untuk model ini (entri lain sudah tidak ada di rantai)
+            data["prompt_variants"] = {
+                k: v for k, v in data["prompt_variants"].items() if k == model
+            }
             if model.partition(":")[0] == "gemini" and settings.app.mode != "dev":
                 raise ValueError("--model: penyedia gemini hanya boleh saat app.mode: dev")
         if timeout_s is not None:

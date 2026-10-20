@@ -480,7 +480,8 @@ class ProviderChain:
         failures: list[str] = []
         for i, provider in enumerate(self.providers):
             try:
-                return provider.generate(request, timeout_s)
+                # llm.prompt_variants: penyedia ini bisa punya request (varian prompt) sendiri
+                return provider.generate(request.for_provider(provider.name), timeout_s)
             except ProviderFailed as exc:
                 failures.append(f"{provider.name}: {exc.reason}")
                 has_next = i + 1 < len(self.providers)

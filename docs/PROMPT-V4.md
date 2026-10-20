@@ -116,3 +116,23 @@ Bagian di atas tidak diubah. Rincian ada di `results/E-02/compare-dev-v4.md`.
 - Kendala kuota: run 20b sempat berhenti di 44/45 karena batas token harian Groq. Sejak
   langkah ini, `eval generation` juga berhenti (kode 3) bila 429 Groq membawa `retry-after` lebih
   dari 60 detik, alih-alih menunggu.
+
+## Keputusan setelah data (20 Okt 2026)
+
+Ditulis setelah hasil dev v4 ada. Bagian ini bukan bagian dari pra-registrasi di atas.
+
+- Pengguna memilih v4 berdasarkan uji coba langsung di UI web
+  (`python -m mica.webui --prompt-variant v4`).
+- Cadangan 20b memakai v2, karena 20b v4 gagal syarat tolak benar (14/17), sedangkan v2 lolos
+  (16/17). Konfigurasinya `llm.prompt_variants` (varian prompt per entri rantai). Saat 120b
+  gagal, 20b menerima request v2 yang sama persis dengan request `paraphrase`, sehingga kunci
+  cache v2 tetap berlaku. Jawaban v2 tanpa items dan follow_up_topic tetap ditangani UI dan TTS.
+- Daftar dobel (d014, d021: semua item sudah ditulis di answer) diperbaiki **hanya di
+  tampilan**. Bila semua item ada di answer (tanpa beda huruf besar-kecil dan spasi), `<ul>`
+  tidak ditampilkan dan items tidak dibacakan lagi (`mica.core.types.visible_items`). Teks prompt
+  v2, v3, dan v4 tidak diubah.
+- v4 resmi dipakai hanya bila anotasi halusinasi 120b v4 = 0/28. Penilaiannya oleh dua penilai
+  independen, hasa dan Claude, yang menilai terpisah, dan kesepakatan antarpenilai dilaporkan.
+  Sampai itu, bawaan `config/dev.yaml` dan `config/kiosk.yaml` tetap `rag.prompt_variant:
+  paraphrase` dengan `llm.prompt_variants: {}`. Nilai yang disiapkan (tertulis di komentar
+  config): `{groq:openai/gpt-oss-120b: v4, groq:openai/gpt-oss-20b: paraphrase}`.
