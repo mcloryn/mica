@@ -15,6 +15,12 @@ Aturan nilai pra-registrasi:
 
 Keluaran: <prefix>.csv (satu baris per pertanyaan) dan <prefix>-summary.csv (per model x ambang).
 Kolom retries_429 dan wait_429_s diambil dari run.json (kosong bila tidak ada).
+Bisa juga membandingkan varian prompt (mis. --labels v2-120b v3-120b; docs/PROMPT-V3.md).
+pipeline_latency_*: t_scrub + t_retrieval + t_gate + t_check + llm_latency_s, dari pertanyaan yang
+memanggil LLM. t_total eval tidak dipakai karena t_llm memuat waktu tunggu pembatas laju
+(TokenRateLimiter, sampai sekitar 60 detik), yang tidak ada di kiosk.
+follow_up_tidak_null: keluaran LLM dengan follow_up_topic terisi (prompt v3; kolom tidak ada = 0);
+follow_up_tampil: yang juga berstatus answered/false_premise, jadi tawarannya tampil di UI.
 --notes: CSV berkolom id,catatan; bila diberikan, kolom catatan ditambahkan di <prefix>.csv.
 """
 
@@ -68,6 +74,14 @@ def percentile(values: list[float], p: float) -> float:
     lo = int(pos)
     hi = min(lo + 1, len(xs) - 1)
     return xs[lo] + (xs[hi] - xs[lo]) * (pos - lo)
+
+
+NON_LLM_STAGES = ("t_scrub", "t_retrieval", "t_gate", "t_check")
+
+
+def pipeline_latency(row: dict[str, str]) -> float:
+    """Latensi pipeline tanpa tunggu pembatas laju: tahap non-LLM + latensi LLM penyedia."""
+    return sum(float(row.get(k) or 0) for k in NON_LLM_STAGES) + float(row["llm_latency_s"])
 
 
 def _suffix(threshold: float | None) -> str:
@@ -124,6 +138,8 @@ def summary(
             # token dan latensi hanya dari pertanyaan yang benar-benar memanggil LLM
             called = [r for r in rs if st[r["qid"]] != "refused_gate"]
             lat = [float(r["llm_latency_s"]) for r in called if r["llm_latency_s"]]
+            total = [pipeline_latency(r) for r in called if r["llm_latency_s"]]
+            follow = [r for r in called if r.get("follow_up_topic")]
             ptok = sum(int(r["prompt_tokens"] or 0) for r in called)
             ctok = sum(int(r["completion_tokens"] or 0) for r in called)
             out.append(
@@ -149,6 +165,12 @@ def summary(
                     "total_tokens": ptok + ctok,
                     "llm_latency_p50_s": f"{percentile(lat, 50):.3f}" if lat else "",
                     "llm_latency_p95_s": f"{percentile(lat, 95):.3f}" if lat else "",
+                    "pipeline_latency_p50_s": f"{percentile(total, 50):.3f}" if total else "",
+                    "pipeline_latency_p95_s": f"{percentile(total, 95):.3f}" if total else "",
+                    "follow_up_tidak_null": len(follow),
+                    "follow_up_tampil": sum(
+                        st[r["qid"]] in ("answered", "false_premise") for r in follow
+                    ),
                 }
             )
     return out

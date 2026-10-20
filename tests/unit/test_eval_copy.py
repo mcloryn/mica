@@ -120,6 +120,32 @@ def test_load_run_rejects_changed_dataset(tmp_path):
         cr.load_run(run, None, SimpleNamespace(kb_id="kb2"), tmp_path, None)
 
 
+def test_load_run_uses_prompt_variant_of_run(tmp_path, monkeypatch):
+    # rekonstruksi cache-only harus memakai varian prompt run itu (mis. v3), bukan config
+    import mica.eval.generation as gen
+    from mica.eval.retrieval import sha256_file
+
+    dataset = tmp_path / "q.jsonl"
+    dataset.write_text("{}\n", encoding="utf-8")
+    run = tmp_path / "run"
+    run.mkdir()
+    (run / "run.json").write_text(json.dumps({
+        "llm": {"model_override": "groq:openai/gpt-oss-20b", "provider": "x"},
+        "kb_id": "kb1", "gate_off": True, "prompt_variant": "v3",
+        "dataset": {"path": str(dataset), "sha256": sha256_file(dataset)},
+    }), encoding="utf-8")  # fmt: skip
+    seen = []
+
+    def fake_effective(settings, gate_off, model=None, prompt_variant=None, timeout_s=None):
+        seen.append(prompt_variant)
+        raise RuntimeError("berhenti di sini")
+
+    monkeypatch.setattr(gen, "effective_settings", fake_effective)
+    with pytest.raises(RuntimeError, match="berhenti"):
+        cr.load_run(run, None, SimpleNamespace(kb_id="kb1"), tmp_path, None)
+    assert seen == ["v3"]
+
+
 # --- metrik pendamping tanpa entitas (SDD 9.5) -------------------------------------------
 
 

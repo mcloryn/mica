@@ -377,7 +377,8 @@ def load_run(run_dir: Path, settings: Any, kb: Any, cache_dir: Path,
     dataset = Path(run["dataset"]["path"])
     if sha256_file(dataset) != run["dataset"]["sha256"]:
         raise RunMismatch(f"{run_dir.name}: {dataset} berubah sejak run (sha256 berbeda)")
-    eff = effective_settings(settings, bool(run["gate_off"]), model)
+    # varian prompt run itu (v3: docs/PROMPT-V3.md); run lama tanpa field = config
+    eff = effective_settings(settings, bool(run["gate_off"]), model, run.get("prompt_variant"))
     provider = make_llm(eff).providers[0]
     llm = EvalLlm(provider, TokenRateLimiter(), cache=LlmCache(cache_dir), cache_only=True)
     retriever = make_retriever(eff, kb, embedder_factory=lambda m, r: embedder)

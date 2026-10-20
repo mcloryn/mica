@@ -91,3 +91,15 @@ v2 vs v3, latensi pipeline p50/p95 (`t_total`) dan latensi LLM, token, dan jumla
   dihentikan. Lihat docs/E-04.md, amandemen 2.
 - Bila v3 dipakai, protokol E-03 (paraphrase vs plain) perlu dicek ulang oleh pengguna, karena
   aturan parafrase v3 berbeda dari `paraphrase`.
+
+## Hasil dev (ditambahkan setelah data, 20 Okt 2026)
+
+Bagian di atas tidak diubah. Rincian ada di `results/E-02/compare-dev-v3.md`.
+
+- 120b: salah tolak 0/25 = 0/25, tolak benar 16/17 = 16/17, premis diluruskan 2 = 2, JSON gagal
+  0 = 0. Halusinasi v3 belum dianotasi (v2: 0/28). **Keputusan: menunggu anotasi.** Sampai
+  keputusan ada, prompt utama tetap v2 (`rag.prompt_variant: paraphrase`).
+- 20b (pendamping): syarat premis gagal (1 jadi 0, d029). Syarat lain seri.
+- Deskriptif: v3 lebih pendek. Namun 120b dan 20b tidak pernah memakai baris "- " atau "kamu",
+  dan density salin naik (120b 3,32 jadi 3,86; 20b 4,36 jadi 5,29). Tawaran topik tampil pada
+  27 jawaban per model.

@@ -26,6 +26,9 @@ FIELDS = [
     "prompt_tokens",
     "completion_tokens",
     "llm_latency_s",
+    "t_retrieval",
+    "t_llm",
+    "follow_up_topic",
 ]
 # qid, type, oos_level, gate, status A, status B
 ROWS = [
@@ -56,6 +59,9 @@ def _write_run(path: Path, which: int) -> Path:
                     "prompt_tokens": 100,
                     "completion_tokens": 10,
                     "llm_latency_s": f"{i + 1:.1f}",
+                    "t_retrieval": "0.5",
+                    "t_llm": "60.0",  # memuat tunggu pembatas laju: tidak dipakai
+                    "follow_up_topic": "Biaya" if q in ("q1", "q3") else "",
                 }
             )
     return path
@@ -88,6 +94,11 @@ def test_compare_models_end_to_end(tmp_path: Path) -> None:
     # ambang 0.55 menahan q2 dan q3: hanya 3 pertanyaan memanggil LLM
     assert a_055["llm_dipanggil"] == "3" and a_055["total_tokens"] == "330"
     assert a_null["llm_latency_p50_s"] == "3.000" and a_null["llm_latency_p95_s"] == "4.800"
+    assert a_null["pipeline_latency_p50_s"] == "3.500"
+    assert a_null["pipeline_latency_p95_s"] == "5.300"
+    # q1 answered (tampil), q3 refused_llm (tidak tampil); ambang 0.55 menahan q3 sebelum LLM
+    assert (a_null["follow_up_tidak_null"], a_null["follow_up_tampil"]) == ("2", "1")
+    assert (a_055["follow_up_tidak_null"], a_055["follow_up_tampil"]) == ("1", "1")
 
 
 def test_compare_models_without_notes_has_no_catatan(tmp_path: Path) -> None:
