@@ -136,3 +136,25 @@ Ditulis setelah hasil dev v4 ada. Bagian ini bukan bagian dari pra-registrasi di
   Sampai itu, bawaan `config/dev.yaml` dan `config/kiosk.yaml` tetap `rag.prompt_variant:
   paraphrase` dengan `llm.prompt_variants: {}`. Nilai yang disiapkan (tertulis di komentar
   config): `{groq:openai/gpt-oss-120b: v4, groq:openai/gpt-oss-20b: paraphrase}`.
+
+## Hasil anotasi (20 Okt 2026)
+
+- Penilai 1: Claude Code (LLM-as-judge, bukan manusia), 28 jawaban 120b v4 di set dev
+  (`results/E-02/20261020-130025-E-02-dev-hybrid-gpt-oss-120b-gateoff`). Setiap klaim disertai
+  kutipan bukti dari cited_chunks. Hasil: benar 27/28, **halusinasi 2/28** (0,071; CI 95% Wilson
+  0,020 sampai 0,227).
+  - d008: "(Information Technology)" hanya ada di potongan yang tidak dikutip.
+  - d019: "Gedung A" tidak didukung untuk lab komputer.
+  - Kedua kasus RAGU: klaim d008 benar menurut KB.
+  - d040 benar 0 (substitusi sebagian, RAGU).
+- **Keputusan: belum diambil.** SDD ADR-18 dan syarat 4 pra-registrasi menuntut anotasi manusia,
+  dan bagian "Keputusan setelah data" menuntut dua penilai independen. Pengguna (20 Okt 2026)
+  memutuskan menunggu penilaian buta hasa (`annotate_generation_hasa.csv`) dan menghitung
+  kesepakatannya dulu. `llm.prompt_variants` di `config/dev.yaml` dan `config/kiosk.yaml` tetap
+  `{}`.
+- Bila nilai Claude dipertahankan, syarat 4 **gagal** (2/28 > 0/28 pada v2), sehingga prompt
+  tetap v2 + formatter tampilan. Pembanding v2 (0/28) adalah saran Claude yang diperiksa rekan.
+  Jawaban v2 d008 dan d019 tidak memuat kedua klaim itu ("Kampus A, tepatnya di lantai 2, 3, dan
+  4"; tanpa nama Inggris), jadi perbedaannya tidak berasal dari kriteria yang lebih ketat.
+- Nama varian `paraphrase` adalah prompt v2: hash teksnya sama dengan hash v2 yang dicatat
+  sebelum v3 (`tests/unit/test_prompt_v3.py`, `tests/unit/test_annotation_v4_sheet.py`).

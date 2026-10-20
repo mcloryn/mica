@@ -1,0 +1,22 @@
+{
+  "run": "results/E-02/20261020-130025-E-02-dev-hybrid-gpt-oss-120b-gateoff",
+  "source": "annotate_generation.csv",
+  "experiment": "E-02",
+  "split": "dev",
+  "model": "openai/gpt-oss-120b",
+  "n": 28,
+  "benar": 27,
+  "halusinasi": 2,
+  "hallucination_rate": 0.07142857142857142,
+  "hallucination_rate_ci95_wilson": [
+    0.019812064115305755,
+    0.22645362568399052
+  ],
+  "halusinasi_qids": [
+    "d008",
+    "d019"
+  ],
+  "salah_qids": [
+    "d040"
+  ]
+}
