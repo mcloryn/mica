@@ -207,7 +207,7 @@ def test_resend_edited_transcript_same_event(qtbot):
 # --- statis: tanpa aset internet ----------------------------------------------------------
 
 
-PAGE_FILES = {"index.html", "tokens.css", "style.css", "app.js"}
+PAGE_FILES = {"index.html", "tokens.css", "style.css", "app.js", "answer_format.js"}
 
 
 def test_static_files_have_no_external_urls():

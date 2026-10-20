@@ -1,6 +1,6 @@
 """Tangkapan layar otomatis UI web (Langkah 37) lewat Edge headless + Chrome DevTools Protocol.
 
-python scripts/ui_screens.py [--out docs/ui-screens] [--only nama,...]
+python scripts/ui_screens.py [--out docs/ui-screens] [--only nama,...] [--answer-format]
 
 Setiap adegan: WebUi dengan controller tiruan (tanpa pekerja, tanpa pipeline), ViewModel diisi
 ShowView/DisplayUpdate yang sama dengan yang dikirim M-09/controller, lalu halaman difoto di
@@ -108,6 +108,63 @@ SCENES = [  # Langkah 37c
     Scene("09-target-putih", lambda w: _answered(w, "putih")),
 ]
 
+# Format jawaban (tampilan saja): tiga jawaban panjang dari cache run E-04 (per_question.csv),
+# 1366 x 768, --answer-format. 20b = 20261016-220121-E-04-dev-hybrid-gpt-oss-20b-gateoff,
+# gemini = 20261019-113211-E-04-dev-hybrid-gemini-3.8-flash-gateoff (dev saja).
+LONG_ANSWERS = (
+    (
+        "a1-langkah-bernomor-20b",
+        "Daftarnya gimana sih, langkahnya apa aja?",
+        (
+            "Langkah pendaftaran di Universitas Mikroskil adalah: 1. Daftar online menggunakan akun "
+            "Google. 2. Registrasi dan isi data diri. 3. Pilih jalur pendaftaran, lengkapi data pribadi, "
+            "dan unggah dokumen yang dibutuhkan. 4. Verifikasi berkas (untuk S2, pendaftar juga wajib "
+            "mengikuti Ujian Saring Masuk). 5. Daftar ulang dengan membayar daftar ulang dan melengkapi "
+            "data lanjutan. 6. Daftar berhasil dan resmi menjadi mahasiswa baru."
+        ),
+    ),
+    (
+        "a2-tahapan-gemini",
+        "Daftarnya gimana sih, langkahnya apa aja?",
+        (
+            "Pendaftaran dilakukan secara daring di situs daftar.mikroskil.ac.id melalui enam tahapan. "
+            "Pertama, kamu mendaftar secara daring memakai akun Google. Kedua, lakukan registrasi dengan "
+            "mengisi data diri. Ketiga, pilih jalur pendaftaran, lengkapi data pribadi, serta unggah "
+            "dokumen yang diminta. Keempat, tunggu verifikasi berkas, dan khusus pendaftar S2 wajib "
+            "mengikuti Ujian Saring Masuk. Kelima, lakukan daftar ulang dengan membayar biaya daftar "
+            "ulang dan melengkapi data lanjutan. Terakhir, setelah pendaftaran berhasil, kamu resmi "
+            "menjadi mahasiswa baru dan tinggal mengikuti panduan persiapan perkuliahan."
+        ),
+    ),
+    (
+        "a3-biaya-20b",
+        "Biaya kuliah di USU berapa per tahun?",
+        (
+            "Biaya kuliah S1 di Universitas Mikroskil per tahun bervariasi tergantung program dan kelas. "
+            "Untuk program Teknik Informatika, Sistem Informasi, dan Teknologi Informasi, kelas pagi "
+            "dikenai Rp14.000.000 per tahun dan kelas sore Rp15.000.000 per tahun. Program Manajemen dan "
+            "Akuntansi memungut Rp12.500.000 per tahun untuk kelas pagi dan Rp13.500.000 per tahun untuk "
+            "kelas sore. Program Hukum Bisnis memiliki tarif tunggal Rp12.500.000 per tahun. Sedangkan "
+            "untuk program S2, biaya dihitung per semester: Magister Teknologi Informasi Rp12.000.000 per "
+            "semester, dan Magister Manajemen reguler Rp12.000.000 per semester atau eksekutif "
+            "Rp15.000.000 per semester."
+        ),
+    ),
+)
+
+
+def _long_answer(w: WebUi, question: str, answer: str) -> None:
+    _greeted(w)
+    w.show_item(ShowView(V.THINKING, message="berpikir", transcript=question, send_enabled=False))
+    w.show_item(ShowView(V.READY, message="Silakan bertanya", transcript=question, answer=answer,
+                         sources=(CHUNK,)))  # fmt: skip
+
+
+ANSWER_SCENES = [
+    Scene(name, lambda w, q=q, a=a: _long_answer(w, q, a), sizes=((1366, 768),))
+    for name, q, a in LONG_ANSWERS
+]
+
 
 def _preview_jpeg(mode: str, settings: Any) -> bytes:
     """Satu JPEG dari sumber palsu, lewat render pratinjau yang sama dengan proses kamera."""
@@ -196,6 +253,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--config", type=Path, default=ROOT / "config/dev.yaml")
     parser.add_argument("--out", type=Path, default=ROOT / "docs/ui-screens")
     parser.add_argument("--only", help="nama adegan dipisah koma")
+    parser.add_argument("--answer-format", action="store_true",
+                        help="hanya adegan jawaban panjang (docs/ui-screens/answer-format)")  # fmt: skip
     args = parser.parse_args(argv)
     settings = load_settings(args.config)
     args.out.mkdir(parents=True, exist_ok=True)
@@ -208,7 +267,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         cdp = Cdp(CDP_PORT)
         try:
-            for scene in SCENES:
+            for scene in ANSWER_SCENES if args.answer_format else SCENES:
                 if wanted and scene.name not in wanted:
                     continue
                 for size in scene.sizes:

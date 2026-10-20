@@ -94,6 +94,17 @@ function openPreview() {
   });
 }
 
+function answerBlocks(text) {
+  // hanya createElement/textContent; teks LLM tidak pernah diurai sebagai HTML
+  return window.MicaAnswerFormat.formatAnswer(text).map((b) => {
+    if (b.type === "p") return el("p", "", b.text);
+    const list = el("ol");
+    if (b.start !== 1) list.start = b.start;
+    list.append(...b.items.map((x) => el("li", "", x)));
+    return list;
+  });
+}
+
 function messageElement(m) {
   const box = el("div", `msg ${m.kind === "visitor" ? "visitor" : "mica"}`);
   box.append(el("div", "who", m.who));
@@ -102,8 +113,11 @@ function messageElement(m) {
     const line = el("div", "notice-line");
     line.append(icon("info"), el("span", "", m.text));
     bubble.append(line);
-  } else {
+  } else if (m.kind === "visitor") {
     bubble.textContent = m.text;
+  } else { // jawaban: paragraf/daftar dari answer_format.js (tampilan saja; m.text tetap utuh)
+    bubble.classList.add("answer");
+    bubble.append(...answerBlocks(m.text));
   }
   box.append(bubble);
   if (m.sources.length) {

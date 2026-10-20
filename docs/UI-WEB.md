@@ -420,3 +420,46 @@ palsu), daya AC, 10 + 10 ulangan selang-seling; angka = median (min-maks).
   asli di laptop kiosk diukur di E-09.
 - K2 diukur di Edge laptop dev. Efeknya di Edge/GPU laptop kiosk perlu dicek ulang di E-09.
 
+
+## Format jawaban di gelembung percakapan (tampilan saja, 20 Okt 2026)
+
+Masalah: jawaban MICA tampil sebagai satu paragraf panjang. Perbaikan hanya di lapisan tampilan:
+prompt, pipeline RAG, JSON ViewModel (`messages[].text`), dan teks TTS (`Speak.text`) tidak
+berubah. Browser memecah `text` menjadi blok di `static/answer_format.js`
+(`MicaAnswerFormat.formatAnswer`, fungsi murni); `app.js` membangun `<p>`/`<ol>`/`<li>` dengan
+`createElement` + `textContent`, tanpa `innerHTML`. Hanya pesan `kind: answer`; gelembung
+pengunjung dan penolakan (`notice`) tetap teks biasa.
+
+Temuan awal (run E-02 120b `20261017-122758-E-02-dev-hybrid-gpt-oss-120b-gateoff`): 26 dari 45
+jawaban tidak kosong, tidak satu pun berisi baris baru atau pola nomor `1.`/`1)`/`(1)`, dan
+semuanya 1-2 kalimat (terpanjang 422 karakter, satu kalimat dengan "pertama, ..., kedua, ...").
+Gelembung sudah `white-space: pre-wrap`, jadi baris baru tidak digabung CSS; jawaban panjang
+satu blok berasal dari teks LLM itu sendiri. Jawaban panjang/bernomor muncul di run lain
+(E-04 20b dan Gemini, dev).
+
+Aturan, berurutan:
+
+1. Baris baru asli dipertahankan: setiap baris jadi blok sendiri; baris kosong dibuang; baris
+   berawalan nomor yang berurutan (`1. ...`, `2) ...`, `(3) ...`) digabung jadi satu daftar.
+2. Enumerasi dalam kalimat (`1) ... 2) ...`, `1. ... 2. ...`, `(1) ... (2) ...`) jadi daftar
+   bernomor bila ada minimal dua penanda berurutan mulai 1 dengan gaya yang sama, diawali awal
+   teks atau spasi. Teks sebelum nomor 1 jadi paragraf pembuka; kalimat setelah kalimat pertama
+   butir terakhir jadi paragraf penutup. Pada akhir butir hanya spasi, `;`, dan `,` yang dibuang;
+   kata (termasuk "dan") tidak dibuang.
+3. Blok yang masih lebih dari 2 kalimat dipecah jadi paragraf berisi paling banyak 2 kalimat.
+   **Angka 2 adalah nilai desain tampilan, bukan hasil ukur** (`MAX_SENTENCES_PER_PARAGRAPH`).
+
+Pemecah kalimat: akhir kalimat = `.`/`!`/`?` (+ kutip/kurung penutup), spasi, lalu huruf besar,
+angka, atau pembuka kutip/kurung. Titik setelah singkatan (Rp., No., dll., dsb., dst., Jl.,
+Prof., Dr., hlm., ...) atau gelar bersusun (S.Kom., S.E., S.Ak., M.Kom., M.Sc., Ph.D., T.A.)
+bukan akhir kalimat. Angka desimal (3,5 / 3.5), jam (09.30), tanggal (17.10.2026), URL, dan email
+tidak punya spasi setelah titik, jadi tidak pernah dipecah. Keterbatasan: kalimat yang memang
+berakhir dengan singkatan (mis. "... Ph.D. Beliau ...") tidak dipecah; akibatnya paling buruk dua
+kalimat bergabung, tidak ada kata yang terpotong.
+
+Uji: `tests/unit/test_answer_format.py`. Versi acuan Python `mica.webui.answer_format` diuji
+pytest (26 jawaban nyata 120b, singkatan, angka, enumerasi, baris baru); kesetaraan JS = Python
+dicek dengan menjalankan `answer_format.js` di Edge headless (`--dump-dom`, file lokal; dilewati
+bila Edge tidak ada). Repo belum punya runner JS, jadi tidak ada library baru. Teks TTS dan JSON
+ViewModel dicek identik dengan teks jawaban. Tangkapan layar sebelum/sesudah:
+`docs/ui-screens/answer-format/` (`python scripts/ui_screens.py --answer-format --out ...`).
