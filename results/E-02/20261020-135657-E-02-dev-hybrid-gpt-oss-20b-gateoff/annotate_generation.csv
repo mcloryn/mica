@@ -1,0 +1,627 @@
+﻿qid,type,question,reference_answer,answer,status,cited_chunks,benar,halusinasi,catatan
+d001,answerable,Biaya kuliah Sistem Informasi kelas pagi berapa setahun?,"Rp14.000.000 per tahun untuk kelas pagi (kelas sore Rp15.000.000 per tahun), menurut brosur yang tidak mencantumkan tahun ajaran berlaku.",Biaya kuliah S1 Sistem Informasi kelas pagi Rp14.000.000 per tahun.,answered,"[03_biaya_kuliah_dan_syarat_masuk#2] Biaya Kuliah dan Syarat Masuk
+Program Studi | Fakultas | Kelas Pagi | Kelas Sore
+S1 Teknik Informatika (Computer Science) | Informatika | Rp14.000.000 per tahun | Rp15.000.000 per tahun
+S1 Sistem Informasi | Informatika | Rp14.000.000 per tahun | Rp15.000.000 per tahun
+S1 Teknologi Informasi | Informatika | Rp14.000.000 per tahun | Rp15.000.000 per tahun
+S1 Manajemen | Bisnis dan Hukum | Rp12.500.000 per tahun | Rp13.500.000 per tahun
+S1 Akuntansi | Bisnis dan Hukum | Rp12.500.000 per tahun | Rp13.500.000 per tahun
+S1 Hukum Bisnis | Bisnis dan Hukum | Rp12.500.000 per tahun (satu tarif) | Tidak dicantumkan terpisah",,,
+d002,answerable,Kalau ambil Akuntansi kelas sore bayarnya berapa?,"Rp13.500.000 per tahun (brosur, tahun berlaku tidak tertulis).",Biaya kuliah S1 Akuntansi kelas sore Rp13.500.000 per tahun.,answered,"[03_biaya_kuliah_dan_syarat_masuk#2] Biaya Kuliah dan Syarat Masuk
+Program Studi | Fakultas | Kelas Pagi | Kelas Sore
+S1 Teknik Informatika (Computer Science) | Informatika | Rp14.000.000 per tahun | Rp15.000.000 per tahun
+S1 Sistem Informasi | Informatika | Rp14.000.000 per tahun | Rp15.000.000 per tahun
+S1 Teknologi Informasi | Informatika | Rp14.000.000 per tahun | Rp15.000.000 per tahun
+S1 Manajemen | Bisnis dan Hukum | Rp12.500.000 per tahun | Rp13.500.000 per tahun
+S1 Akuntansi | Bisnis dan Hukum | Rp12.500.000 per tahun | Rp13.500.000 per tahun
+S1 Hukum Bisnis | Bisnis dan Hukum | Rp12.500.000 per tahun (satu tarif) | Tidak dicantumkan terpisah
+
+[05_prodi_fakultas_bisnis_dan_hukum#14] Program Studi School of Business and Law (Fakultas Bisnis dan Hukum)
+- **Nama (Inggris):** Accounting
+- **Expertise:** Accounting for Taxation / Managerial
+- **Deskripsi:** membekali mahasiswa dengan keterampilan analitis, teknis, dan manajerial di bidang akuntansi dan keuangan agar siap menjadi profesional maupun wirausahawan yang inovatif dan adaptif.
+- **Career path:** Accountant, Auditor, Financial Accounting Manager, Researcher/Academician, Tax Accounting Specialist, Managerial Accounting Specialist, Entrepreneur
+- **Biaya:** Pagi Rp12.500.000 / tahun; Sore Rp13.500.000 / tahun",,,
+d003,answerable,Pendaftaran S1 gelombang satu sampai kapan?,Gelombang 1 S1 T.A. 2027/2028 berlangsung 17 September 2026 sampai 31 Mei 2027.,Pendaftaran S1 gelombang satu berlangsung dari 17 September 2026 sampai 31 Mei 2027.,answered,"[14_faq_calon_mahasiswa#3] FAQ Calon Mahasiswa Universitas Mikroskil
+**Q: Bagaimana cara mendaftar di Universitas Mikroskil?**
+Pendaftaran dilakukan online di daftar.mikroskil.ac.id dengan 6 langkah: (1) daftar online memakai akun Google, (2) registrasi dan isi data diri, (3) pilih jalur, lengkapi data pribadi, dan unggah dokumen, (4) verifikasi berkas, (5) daftar ulang dengan membayar daftar ulang dan melengkapi data lanjutan, (6) daftar berhasil dan resmi menjadi mahasiswa baru. Khusus S2, pendaftar wajib mengikuti Ujian Saring Masuk pada tahap verifikasi.
+
+**Q: Kapan pendaftaran S1 dibuka dan ditutup?**
+Untuk S1 T.A. 2027/2028, periode pendaftaran tercatat 17 September 2026 sampai 4 September 2027, dan kuliah perdana 4 September 2027. Gelombang 1 berlangsung 17 September 2026 sampai 31 Mei 2027, Gelombang 2 berlangsung 2 Juni 2027 sampai 4 September 2027. Tanggal penutupan sama dengan tanggal kuliah perdana, jadi sebaiknya dikonfirmasi ke Admisi.
+
+**Q: Kapan pendaftaran S2 dibuka dan ditutup?**
+Untuk S2 T.A. 2026/2027, periode pendaftaran tercatat 2 Oktober 2026 sampai 5 Februari 2027. Matrikulasi 22 sampai 27 Februari 2027, dan kuliah perdana 5 Maret 2027. Gelombang 1 (jalur Reguler) tercatat sampai 20 Februari 2027, yang berbeda dengan penutupan periode pendaftaran (5 Februari 2027). Konfirmasi tanggal penutupan ke Admisi.
+
+**Q: Jalur pendaftaran apa saja yang tersedia?**
+Untuk S1 ada tiga jalur: Prestasi, Minat Bakat, dan Reguler. Untuk S2 hanya jalur Reguler. Rincian syarat dan berkas tiap jalur belum tersedia di data dan dapat ditanyakan ke Admisi.
+
+[02_pendaftaran_dan_jadwal#3] Pendaftaran Mahasiswa Baru dan Jadwal
+Gelombang | Periode | Jalur
+Gelombang 1 | 17 September 2026 sampai 31 Mei 2027 | Prestasi, Minat Bakat, Reguler
+Gelombang 2 | 2 Juni 2027 sampai 4 September 2027 | Prestasi, Minat Bakat, Reguler",,,
+d004,answerable,Jalur masuk S1 ada apa aja?,"Ada tiga jalur: Prestasi, Minat Bakat, dan Reguler.","Jalur masuk S1 di Universitas Mikroskil terdiri dari Prestasi, Minat Bakat, dan Reguler.",answered,"[02_pendaftaran_dan_jadwal#10] Pendaftaran Mahasiswa Baru dan Jadwal
+Rincian syarat dan berkas per jalur S1 (Prestasi, Minat Bakat, Reguler), syarat berkas pendaftaran S1, dan mekanisme Ujian Saring Masuk S2 (materi, jadwal, biaya) belum tersedia. Informasi tersebut dapat ditanyakan ke Admisi.
+
+[14_faq_calon_mahasiswa#3] FAQ Calon Mahasiswa Universitas Mikroskil
+**Q: Bagaimana cara mendaftar di Universitas Mikroskil?**
+Pendaftaran dilakukan online di daftar.mikroskil.ac.id dengan 6 langkah: (1) daftar online memakai akun Google, (2) registrasi dan isi data diri, (3) pilih jalur, lengkapi data pribadi, dan unggah dokumen, (4) verifikasi berkas, (5) daftar ulang dengan membayar daftar ulang dan melengkapi data lanjutan, (6) daftar berhasil dan resmi menjadi mahasiswa baru. Khusus S2, pendaftar wajib mengikuti Ujian Saring Masuk pada tahap verifikasi.
+
+**Q: Kapan pendaftaran S1 dibuka dan ditutup?**
+Untuk S1 T.A. 2027/2028, periode pendaftaran tercatat 17 September 2026 sampai 4 September 2027, dan kuliah perdana 4 September 2027. Gelombang 1 berlangsung 17 September 2026 sampai 31 Mei 2027, Gelombang 2 berlangsung 2 Juni 2027 sampai 4 September 2027. Tanggal penutupan sama dengan tanggal kuliah perdana, jadi sebaiknya dikonfirmasi ke Admisi.
+
+**Q: Kapan pendaftaran S2 dibuka dan ditutup?**
+Untuk S2 T.A. 2026/2027, periode pendaftaran tercatat 2 Oktober 2026 sampai 5 Februari 2027. Matrikulasi 22 sampai 27 Februari 2027, dan kuliah perdana 5 Maret 2027. Gelombang 1 (jalur Reguler) tercatat sampai 20 Februari 2027, yang berbeda dengan penutupan periode pendaftaran (5 Februari 2027). Konfirmasi tanggal penutupan ke Admisi.
+
+**Q: Jalur pendaftaran apa saja yang tersedia?**
+Untuk S1 ada tiga jalur: Prestasi, Minat Bakat, dan Reguler. Untuk S2 hanya jalur Reguler. Rincian syarat dan berkas tiap jalur belum tersedia di data dan dapat ditanyakan ke Admisi.",,,
+d005,answerable,"Daftarnya gimana sih, langkahnya apa aja?","Online di daftar.mikroskil.ac.id dalam 6 langkah: daftar online dengan akun Google, registrasi data diri, pilih jalur dan unggah dokumen, verifikasi berkas, daftar ulang (bayar dan lengkapi data), lalu daftar berhasil.","Berikut langkah pendaftaran di Universitas Mikroskil: Daftar online memakai akun Google; Registrasi dan isi data diri; Pilih jalur, lengkapi data pribadi, dan unggah dokumen; Verifikasi berkas; Daftar ulang dengan membayar dan melengkapi data lanjutan; Daftar berhasil dan resmi menjadi mahasiswa baru",answered,"[14_faq_calon_mahasiswa#3] FAQ Calon Mahasiswa Universitas Mikroskil
+**Q: Bagaimana cara mendaftar di Universitas Mikroskil?**
+Pendaftaran dilakukan online di daftar.mikroskil.ac.id dengan 6 langkah: (1) daftar online memakai akun Google, (2) registrasi dan isi data diri, (3) pilih jalur, lengkapi data pribadi, dan unggah dokumen, (4) verifikasi berkas, (5) daftar ulang dengan membayar daftar ulang dan melengkapi data lanjutan, (6) daftar berhasil dan resmi menjadi mahasiswa baru. Khusus S2, pendaftar wajib mengikuti Ujian Saring Masuk pada tahap verifikasi.
+
+**Q: Kapan pendaftaran S1 dibuka dan ditutup?**
+Untuk S1 T.A. 2027/2028, periode pendaftaran tercatat 17 September 2026 sampai 4 September 2027, dan kuliah perdana 4 September 2027. Gelombang 1 berlangsung 17 September 2026 sampai 31 Mei 2027, Gelombang 2 berlangsung 2 Juni 2027 sampai 4 September 2027. Tanggal penutupan sama dengan tanggal kuliah perdana, jadi sebaiknya dikonfirmasi ke Admisi.
+
+**Q: Kapan pendaftaran S2 dibuka dan ditutup?**
+Untuk S2 T.A. 2026/2027, periode pendaftaran tercatat 2 Oktober 2026 sampai 5 Februari 2027. Matrikulasi 22 sampai 27 Februari 2027, dan kuliah perdana 5 Maret 2027. Gelombang 1 (jalur Reguler) tercatat sampai 20 Februari 2027, yang berbeda dengan penutupan periode pendaftaran (5 Februari 2027). Konfirmasi tanggal penutupan ke Admisi.
+
+**Q: Jalur pendaftaran apa saja yang tersedia?**
+Untuk S1 ada tiga jalur: Prestasi, Minat Bakat, dan Reguler. Untuk S2 hanya jalur Reguler. Rincian syarat dan berkas tiap jalur belum tersedia di data dan dapat ditanyakan ke Admisi.
+
+[02_pendaftaran_dan_jadwal#2] Pendaftaran Mahasiswa Baru dan Jadwal
+1. **Daftar Online:** mendaftar menggunakan akun Google.
+2. **Registrasi:** mengisi data diri.
+3. **Pilih Jalur dan Isi Data Pribadi:** memilih jalur pendaftaran, melengkapi data pribadi, dan mengunggah dokumen yang dibutuhkan.
+4. **Verifikasi Berkas:** dokumen diverifikasi. Khusus S2, pendaftar wajib mengikuti Ujian Saring Masuk.
+5. **Daftar Ulang:** membayar daftar ulang dan melengkapi data lanjutan.
+6. **Daftar Berhasil:** resmi menjadi mahasiswa baru dan mengikuti panduan persiapan perkuliahan.",,,
+d006,answerable,Nomor WA admisi berapa ya?,WhatsApp Admisi 0811 602 5151.,Nomor WhatsApp untuk konsultasi admisi adalah 0811 602 5151.,answered,"[13_kontak_lengkap#17] Kontak Lengkap
+Email Admisi: admission@mikroskil.ac.id. Email Pendaftaran: daftar@mikroskil.ac.id. WhatsApp konsultasi pendaftaran: 0811 602 5151. Jam layanan Admisi: Senin sampai Jumat 09.00 sampai 20.30 WIB, Sabtu 09.00 sampai 17.00 WIB, istirahat 12.00 sampai 13.00.
+
+[13_kontak_lengkap#2] Kontak Lengkap
+Bagian | Email | WhatsApp | Keterangan
+Pemasaran dan Admisi | admission@mikroskil.ac.id (admisi), marketing@mikroskil.ac.id dan ma.office@mikroskil.ac.id (pemasaran) | Admisi: 0811 602 5151; Pemasaran: 0851 7346 3468 | Kepala: Enjelin, S.Kom., M.Kom. (enjelin.huang@mikroskil.ac.id); Plt. Kasubag Admisi: Richard Aurelio Angsari, S.Kom. (richard.angsari@mikroskil.ac.id)
+Pendaftaran | daftar@mikroskil.ac.id | 0811 602 5151 (konsultasi online) | Situs: daftar.mikroskil.ac.id
+Keuangan | fin@mikroskil.ac.id | tidak tercatat | 
+Kemahasiswaan | sa.office@mikroskil.ac.id | +6283843673179 (Pusat Bantuan); +6281170703990 (halaman unit) | Kepala: Steffany, S.Kom. (steffany@mikroskil.ac.id). Lokasi: Kampus C, Ruang O2 Lt 2, Jl. M. H. Thamrin No. 108
+Kemampuan Kerja Global / Kemitraan Korporasi | ge.office@mikroskil.ac.id | tidak tercatat | Personel: Clara Nathasya Jap, S.Kom. (clara.nathasya@mikroskil.ac.id)",,,
+d007,answerable,Admisi buka hari Sabtu nggak?,"Buka. Sabtu pukul 09.00 sampai 17.00 WIB (Senin sampai Jumat 09.00 sampai 20.30 WIB), istirahat 12.00 sampai 13.00.",Admisi buka pada hari Sabtu dari jam 09.00 sampai 17.00 WIB.,answered,"[13_kontak_lengkap#4] Kontak Lengkap
+Jam layanan kantor (Pemasaran): Senin sampai Jumat 09.00 sampai 17.00 WIB, Sabtu 09.00 sampai 15.00, istirahat 12.00 sampai 13.00. Admisi: Senin sampai Jumat 09.00 sampai 20.30 WIB, Sabtu 09.00 sampai 17.00. Kemahasiswaan: Senin sampai Jumat 09.00 sampai 17.00 (di luar masa perkuliahan) dan lebih panjang saat masa perkuliahan (lihat halaman unit di file `08`).
+
+[13_kontak_lengkap#17] Kontak Lengkap
+Email Admisi: admission@mikroskil.ac.id. Email Pendaftaran: daftar@mikroskil.ac.id. WhatsApp konsultasi pendaftaran: 0811 602 5151. Jam layanan Admisi: Senin sampai Jumat 09.00 sampai 20.30 WIB, Sabtu 09.00 sampai 17.00 WIB, istirahat 12.00 sampai 13.00.
+
+[02_pendaftaran_dan_jadwal#8] Pendaftaran Mahasiswa Baru dan Jadwal
+Layanan | Kontak | Jam layanan
+Admisi dan konsultasi pendaftaran | WhatsApp 0811 602 5151; admission@mikroskil.ac.id; daftar@mikroskil.ac.id | Senin sampai Jumat 09.00 sampai 20.30 WIB; Sabtu 09.00 sampai 17.00 WIB; istirahat 12.00 sampai 13.00
+Pemasaran | WhatsApp 0851 7346 3468; marketing@mikroskil.ac.id | Senin sampai Jumat 09.00 sampai 17.00 WIB; Sabtu 09.00 sampai 15.00 WIB; istirahat 12.00 sampai 13.00
+
+[14_faq_calon_mahasiswa#10] FAQ Calon Mahasiswa Universitas Mikroskil
+**Q: Bagaimana menghubungi Admisi?**
+WhatsApp 0811 602 5151 (konsultasi online), email admission@mikroskil.ac.id (admisi) atau daftar@mikroskil.ac.id (pendaftaran). Jam layanan Admisi: Senin sampai Jumat 09.00 sampai 20.30 WIB, Sabtu 09.00 sampai 17.00 WIB, istirahat 12.00 sampai 13.00.
+
+**Q: Bagaimana menghubungi Pemasaran?**
+Email marketing@mikroskil.ac.id, WhatsApp +62 851 7346 3468. Jam layanan: Senin sampai Jumat 09.00 sampai 17.00 WIB, Sabtu 09.00 sampai 15.00 WIB.
+
+**Q: Bagaimana menghubungi universitas secara umum?**
+Telepon (061) 4573767, email info@mikroskil.ac.id, situs mikroskil.ac.id.
+
+**Q: Bagaimana menghubungi prodi tertentu?**
+Teknik Informatika: cs.program@mikroskil.ac.id. Sistem Informasi: is.program@mikroskil.ac.id. Teknologi Informasi: it.program@mikroskil.ac.id. Magister Teknologi Informasi: mit.program@mikroskil.ac.id. Manajemen: mgt.program@mikroskil.ac.id. Akuntansi: acc.program@mikroskil.ac.id. Hukum Bisnis: bl.program@mikroskil.ac.id. Magister Manajemen: mm.program@mikroskil.ac.id.
+
+**Q: Bagaimana menghubungi bagian Keuangan atau Kemahasiswaan?**
+Keuangan: fin@mikroskil.ac.id. Kemahasiswaan: sa.office@mikroskil.ac.id.
+
+---",,,
+d008,answerable,Bedanya Teknik Informatika sama Teknologi Informasi apa?,Teknik Informatika berfokus pada pengembangan perangkat lunak berskala besar dan berbasis AI; Teknologi Informasi berfokus pada keamanan siber dan big data. Keduanya bergelar S.Kom.,"Teknik Informatika (Computer Science) fokus pada pengembangan perangkat lunak berbasis AI dan berskala besar, sedangkan Teknologi Informasi fokus pada keamanan siber dan big data.",answered,"[14_faq_calon_mahasiswa#7] FAQ Calon Mahasiswa Universitas Mikroskil
+**Q: Apa bedanya Teknik Informatika, Sistem Informasi, dan Teknologi Informasi?**
+Teknik Informatika (Computer Science) berfokus pada pengembangan perangkat lunak berbasis AI dan berskala besar. Sistem Informasi berfokus pada sistem perusahaan (ERP) dan bisnis digital. Teknologi Informasi berfokus pada keamanan siber dan big data. Ketiganya bergelar S.Kom. (Sarjana Komputer).
+
+**Q: Apa peluang karier lulusan Teknik Informatika?**
+Software Engineer, Data Scientist/Data Engineer, Game Developer, Software Developer, Technopreneur, Researcher, dan Akademisi. Prodi ini terakreditasi B.
+
+**Q: Apa peluang karier lulusan Sistem Informasi?**
+ERP Consultant, Business Analyst, Business Process Analyst, System Analyst, Digital Transformation Specialist, dan Technopreneur/Founder startup. Prodi ini terakreditasi B.
+
+**Q: Apa peluang karier lulusan Teknologi Informasi?**
+Data Analyst, Big Data Engineer, Cyber Security Analyst, IT Security Specialist, Web Developer, Mobile Developer, IoT Developer, IT Consultant, dan IT-preneur. Prodi S1 Teknologi Informasi terakreditasi Baik Sekali.
+
+**Q: Apa peminatan S1 Manajemen?**
+Manajemen (bergelar S.M.) memiliki peminatan International Business dan Culinary Business. Lulusan dapat berkarier sebagai manajer profesional, konsultan manajemen, wirausaha, atau spesialis bisnis internasional dan kuliner. Prodi S1 Manajemen terakreditasi Baik Sekali. Kurikulum dirancang selesai paling cepat 7 semester.
+
+**Q: Apa peminatan S1 Akuntansi?**
+Akuntansi (bergelar S.Ak.) memiliki peminatan Accounting for Taxation dan Managerial. Prodi ini terakreditasi B. Karier: akuntan, auditor, financial accounting manager, spesialis perpajakan, atau akuntansi manajerial.
+
+[14_faq_calon_mahasiswa#1] FAQ Calon Mahasiswa Universitas Mikroskil
+- **SBL** = School of Business and Law = Fakultas Bisnis dan Hukum.
+- **Prodi** = program studi. **T.A.** = tahun akademik. **Gelombang** = periode pendaftaran.
+- **Teknik Informatika** = Computer Science. **Teknologi Informasi** = Information Technology (prodi berbeda dari Teknik Informatika).
+- **Kelas Eksekutif** (S2 Manajemen) = kelas untuk pekerja, kuliah Jumat sore dan Sabtu.
+- **MTI** = Magister Teknologi Informasi. **MM** = Magister Manajemen.
+
+---",,,
+d009,answerable,Di fakultas bisnis ada prodi apa aja?,"S1 Manajemen, S1 Akuntansi, S1 Hukum Bisnis, dan S2 Magister Manajemen (School of Business and Law).","Di Fakultas Bisnis dan Hukum ada empat program studi: Magister Manajemen, Manajemen, Akuntansi, dan Hukum Bisnis. Magister Manajemen; Manajemen; Akuntansi; Hukum Bisnis",answered,"[05_prodi_fakultas_bisnis_dan_hukum#0] Program Studi School of Business and Law (Fakultas Bisnis dan Hukum)
+- **Kategori:** Program studi
+- **Cakupan:** Fakultas Bisnis dan Hukum dan 4 prodi: Magister Manajemen, Manajemen, Akuntansi, Hukum Bisnis
+- **Sumber data:** Situs sbl.mikroskil.ac.id dan brosur
+- **Tanggal pengambilan data:** 29 September 2026
+
+---
+
+> Informasi bertanda **[Brosur]** berasal dari file `Brosur_Pendaftaran_Mikroskil.pdf`. Brosur tidak mencantumkan tahun ajaran berlaku (memuat data tracer study 2025 dan foto kegiatan 2025), jadi angka biaya perlu dikonfirmasi ke Admisi sebelum dipakai.",,,
+d010,answerable,Akreditasi prodi Teknologi Informasi apa?,S1 Teknologi Informasi terakreditasi Baik Sekali.,Prodi S1 Teknologi Informasi terakreditasi Baik Sekali.,answered,"[14_faq_calon_mahasiswa#7] FAQ Calon Mahasiswa Universitas Mikroskil
+**Q: Apa bedanya Teknik Informatika, Sistem Informasi, dan Teknologi Informasi?**
+Teknik Informatika (Computer Science) berfokus pada pengembangan perangkat lunak berbasis AI dan berskala besar. Sistem Informasi berfokus pada sistem perusahaan (ERP) dan bisnis digital. Teknologi Informasi berfokus pada keamanan siber dan big data. Ketiganya bergelar S.Kom. (Sarjana Komputer).
+
+**Q: Apa peluang karier lulusan Teknik Informatika?**
+Software Engineer, Data Scientist/Data Engineer, Game Developer, Software Developer, Technopreneur, Researcher, dan Akademisi. Prodi ini terakreditasi B.
+
+**Q: Apa peluang karier lulusan Sistem Informasi?**
+ERP Consultant, Business Analyst, Business Process Analyst, System Analyst, Digital Transformation Specialist, dan Technopreneur/Founder startup. Prodi ini terakreditasi B.
+
+**Q: Apa peluang karier lulusan Teknologi Informasi?**
+Data Analyst, Big Data Engineer, Cyber Security Analyst, IT Security Specialist, Web Developer, Mobile Developer, IoT Developer, IT Consultant, dan IT-preneur. Prodi S1 Teknologi Informasi terakreditasi Baik Sekali.
+
+**Q: Apa peminatan S1 Manajemen?**
+Manajemen (bergelar S.M.) memiliki peminatan International Business dan Culinary Business. Lulusan dapat berkarier sebagai manajer profesional, konsultan manajemen, wirausaha, atau spesialis bisnis internasional dan kuliner. Prodi S1 Manajemen terakreditasi Baik Sekali. Kurikulum dirancang selesai paling cepat 7 semester.
+
+**Q: Apa peminatan S1 Akuntansi?**
+Akuntansi (bergelar S.Ak.) memiliki peminatan Accounting for Taxation dan Managerial. Prodi ini terakreditasi B. Karier: akuntan, auditor, financial accounting manager, spesialis perpajakan, atau akuntansi manajerial.",,,
+d011,answerable,Syarat masuk Magister Manajemen apa aja?,"Lulusan S1, IPK minimal 2,75, akreditasi prodi asal minimal Baik/B/Terakreditasi, TOEFL minimal 475, dan mengikuti Ujian Saring Masuk.","Syarat masuk Magister Manajemen adalah: lulus S1, IPK minimal 2,75, akreditasi program studi asal minimal Baik/B/Terakreditasi, dan skor TOEFL minimal 475, serta mengikuti Ujian Saring Masuk.",answered,"[14_faq_calon_mahasiswa#6] FAQ Calon Mahasiswa Universitas Mikroskil
+**Q: Apa syarat masuk Magister Teknologi Informasi?**
+Lulus S1 dari prodi terakreditasi di bidang komputer, teknik, ekonomi, MIPA, atau lainnya (brosur menulis ""dengan pengalaman kerja di bidang TI minimal 3 tahun"" setelah daftar bidang S1, belum jelas berlaku untuk siapa), IPK S1 minimal 2,75, dan skor TOEFL minimal 475. Pendaftar juga mengikuti Ujian Saring Masuk.
+
+**Q: Apa syarat masuk Magister Manajemen?**
+Lulusan S1, IPK minimal 2,75, akreditasi prodi asal minimal Baik/B/Terakreditasi, dan skor TOEFL minimal 475. Pendaftar juga mengikuti Ujian Saring Masuk.
+
+**Q: Kapan jadwal kuliah S2 Manajemen?**
+Kelas Reguler: Senin sampai Kamis pukul 18.00 sampai 20.00. Kelas Eksekutif: Jumat sore 18.00 sampai 20.00 dan Sabtu (3 sesi, pukul 09.30 sampai 17.00).
+
+---
+
+[03_biaya_kuliah_dan_syarat_masuk#6] Biaya Kuliah dan Syarat Masuk
+Semua pendaftar S2 (Magister Teknologi Informasi dan Magister Manajemen) wajib mengikuti Ujian Saring Masuk.
+
+**Syarat Magister Teknologi Informasi:**
+- Lulus S1 dari program studi terakreditasi bidang komputer, teknik, ekonomi, MIPA, atau bidang lainnya (brosur menulis ""dengan pengalaman kerja di bidang TI minimal 3 tahun"" langsung setelah daftar bidang S1; belum jelas apakah berlaku untuk semua latar belakang atau hanya S1 non-komputer).
+- IPK S1 minimal 2,75.
+- Skor TOEFL minimal 475.
+
+**Syarat Magister Manajemen:**
+- Lulusan Sarjana (S1).
+- IPK Sarjana minimal 2,75.
+- Akreditasi program studi asal minimal Baik / B / Terakreditasi.
+- Skor TOEFL minimal 475 ke atas.",,,
+d012,answerable,TOEFL minimal buat Magister TI berapa?,Skor TOEFL minimal 475.,Skor TOEFL minimal 475 untuk masuk Magister Teknologi Informasi.,answered,"[03_biaya_kuliah_dan_syarat_masuk#6] Biaya Kuliah dan Syarat Masuk
+Semua pendaftar S2 (Magister Teknologi Informasi dan Magister Manajemen) wajib mengikuti Ujian Saring Masuk.
+
+**Syarat Magister Teknologi Informasi:**
+- Lulus S1 dari program studi terakreditasi bidang komputer, teknik, ekonomi, MIPA, atau bidang lainnya (brosur menulis ""dengan pengalaman kerja di bidang TI minimal 3 tahun"" langsung setelah daftar bidang S1; belum jelas apakah berlaku untuk semua latar belakang atau hanya S1 non-komputer).
+- IPK S1 minimal 2,75.
+- Skor TOEFL minimal 475.
+
+**Syarat Magister Manajemen:**
+- Lulusan Sarjana (S1).
+- IPK Sarjana minimal 2,75.
+- Akreditasi program studi asal minimal Baik / B / Terakreditasi.
+- Skor TOEFL minimal 475 ke atas.",,,
+d013,answerable,Kelas eksekutif S2 manajemen kuliahnya hari apa?,"Jumat sore pukul 18.00 sampai 20.00 dan Sabtu (3 sesi, 09.30 sampai 17.00).",Kelas Eksekutif S2 Manajemen kuliah pada hari Jumat sore dan Sabtu.,answered,"[14_faq_calon_mahasiswa#1] FAQ Calon Mahasiswa Universitas Mikroskil
+- **SBL** = School of Business and Law = Fakultas Bisnis dan Hukum.
+- **Prodi** = program studi. **T.A.** = tahun akademik. **Gelombang** = periode pendaftaran.
+- **Teknik Informatika** = Computer Science. **Teknologi Informasi** = Information Technology (prodi berbeda dari Teknik Informatika).
+- **Kelas Eksekutif** (S2 Manajemen) = kelas untuk pekerja, kuliah Jumat sore dan Sabtu.
+- **MTI** = Magister Teknologi Informasi. **MM** = Magister Manajemen.
+
+---
+
+[14_faq_calon_mahasiswa#6] FAQ Calon Mahasiswa Universitas Mikroskil
+**Q: Apa syarat masuk Magister Teknologi Informasi?**
+Lulus S1 dari prodi terakreditasi di bidang komputer, teknik, ekonomi, MIPA, atau lainnya (brosur menulis ""dengan pengalaman kerja di bidang TI minimal 3 tahun"" setelah daftar bidang S1, belum jelas berlaku untuk siapa), IPK S1 minimal 2,75, dan skor TOEFL minimal 475. Pendaftar juga mengikuti Ujian Saring Masuk.
+
+**Q: Apa syarat masuk Magister Manajemen?**
+Lulusan S1, IPK minimal 2,75, akreditasi prodi asal minimal Baik/B/Terakreditasi, dan skor TOEFL minimal 475. Pendaftar juga mengikuti Ujian Saring Masuk.
+
+**Q: Kapan jadwal kuliah S2 Manajemen?**
+Kelas Reguler: Senin sampai Kamis pukul 18.00 sampai 20.00. Kelas Eksekutif: Jumat sore 18.00 sampai 20.00 dan Sabtu (3 sesi, pukul 09.30 sampai 17.00).
+
+---
+
+[03_biaya_kuliah_dan_syarat_masuk#5] Biaya Kuliah dan Syarat Masuk
+Jadwal kuliah Magister Manajemen: Reguler Senin sampai Kamis pukul 18.00 sampai 20.00; Eksekutif Jumat sore pukul 18.00 sampai 20.00 dan Sabtu (3 sesi, pukul 09.30 sampai 17.00).",,,
+d014,answerable,Beasiswa apa aja yang ada di sini?,"Beasiswa Akademik, Beasiswa Minat Bakat, dan KIP Kuliah (dikelola Bagian Kemahasiswaan); brosur juga menyebut Beasiswa IP4. Syarat dan nominal tidak tercatat, hubungi sa.office@mikroskil.ac.id.","Universitas Mikroskil mengelola Beasiswa Akademik, Beasiswa Minat Bakat, KIP Kuliah, dan Beasiswa IP4 (berdasarkan testimoni mahasiswa).",answered,"[08_kemahasiswaan_organisasi_beasiswa#3] Kemahasiswaan, Organisasi, dan Beasiswa
+Informasi beasiswa dalam data **sangat terbatas**:
+
+1. **Situs (Bagian Kemahasiswaan):** mengelola Beasiswa Akademik, Beasiswa Minat Bakat, dan KIP Kuliah, serta membantu proses aplikasi dan pemantauan penerimaan beasiswa.
+2. **Situs pendaftaran:** jalur pendaftaran S1 terdiri dari Prestasi, Minat Bakat, dan Reguler. Belum ada penjelasan apakah jalur Prestasi/Minat Bakat berhubungan dengan potongan biaya atau beasiswa.
+3. **Brosur:** testimoni mahasiswa Sistem Informasi mencantumkan penerimaan ""Beasiswa IP4"" pada beberapa semester (2022/2023 sampai 2024/2025). Nama beasiswa ini mengindikasikan hubungan dengan capaian IP semester, tetapi syarat resmi dan nominalnya tidak tertulis.
+4. **Newsletter alumni Edisi III (2025):** ada artikel berjudul ""Potongan Uang Kuliah Bagi Alumni dan Saudara Kandung"". Isi artikel tidak terbaca.
+
+**Tidak ada di data:** syarat, nominal, jadwal, dan cara pengajuan tiap beasiswa. Informasi tersebut dapat ditanyakan ke Bagian Kemahasiswaan (sa.office@mikroskil.ac.id) atau Admisi (admission@mikroskil.ac.id).
+
+[03_biaya_kuliah_dan_syarat_masuk#8] Biaya Kuliah dan Syarat Masuk
+- Bagian Kemahasiswaan mengelola Beasiswa Akademik, Beasiswa Minat Bakat, dan KIP Kuliah (situs).
+- Brosur menyebut penerima ""Beasiswa IP4"" per semester pada testimoni mahasiswa. Syarat dan nominalnya tidak dijelaskan.
+- Newsletter alumni Edisi III memuat artikel tentang potongan uang kuliah bagi alumni dan saudara kandung, tetapi isinya tidak terbaca di data.
+- Syarat, nominal, dan cara pengajuan beasiswa belum tersedia. Kontak: sa.office@mikroskil.ac.id (Kemahasiswaan). Detail lain ada di file kemahasiswaan.",,,
+d015,answerable,Mikroskil berdiri dari tahun berapa?,Universitas Mikroskil terbentuk tahun 2021 dari penggabungan STMIK Mikroskil (1997) dan STIE Mikroskil (2008); cikal bakalnya kursus komputer IMC tahun 1992.,Universitas Mikroskil terbentuk pada tahun 2021 dari penggabungan STMIK Mikroskil (berdiri 1997) dan STIE Mikroskil (berdiri 2008).,answered,"[01_profil_universitas#1] Profil Universitas Mikroskil
+Universitas Mikroskil adalah perguruan tinggi swasta di Medan, Sumatera Utara, dengan penekanan pada teknologi informasi dan bisnis. Universitas ini didirikan oleh Yayasan Bina Pertiwi Medan dan terbentuk pada tahun 2021 dari penggabungan STMIK Mikroskil (berdiri 1997) dan STIE Mikroskil (berdiri 2008). Motto: ""Berkualitas, Berteknologi & Berkarakter!"" (brosur). Universitas Mikroskil memiliki dua fakultas: Fakultas Informatika dan Fakultas Bisnis dan Hukum (School of Business and Law, disingkat SBL).
+
+[14_faq_calon_mahasiswa#2] FAQ Calon Mahasiswa Universitas Mikroskil
+**Q: Apa itu Universitas Mikroskil dan di mana lokasinya?**
+Universitas Mikroskil adalah perguruan tinggi swasta di Medan, Sumatera Utara, dengan penekanan pada teknologi informasi dan bisnis. Mikroskil terbentuk dari penggabungan STMIK Mikroskil (berdiri 1997) dan STIE Mikroskil (berdiri 2008) pada tahun 2021, dan didirikan oleh Yayasan Bina Pertiwi Medan. Kampus berada di Jl. Thamrin, Medan. Kantor fakultas dan prodi tercatat di Kampus C, Jl. Thamrin No. 112 Medan 20212. Alamat pada brosur adalah Kampus B, Lt 2, Jl. Thamrin No. 140. Konfirmasi lokasi tujuan ke kampus sebelum berkunjung.
+
+**Q: Fakultas dan program studi apa saja yang ada di Mikroskil?**
+Ada dua fakultas. Fakultas Informatika memiliki Teknik Informatika (S1), Sistem Informasi (S1), Teknologi Informasi (S1), dan Magister Teknologi Informasi (S2). School of Business and Law (Fakultas Bisnis dan Hukum) memiliki Manajemen (S1), Akuntansi (S1), Hukum Bisnis (S1), dan Magister Manajemen (S2).
+
+**Q: Apa visi Universitas Mikroskil?**
+Menjadi Perguruan Tinggi Kelas Dunia melalui keunggulan pengajaran, kewirausahaan, dan inovasi.
+
+---",,,
+d016,answerable,Rektornya siapa?,"Hardy, S.Kom., M.Sc., Ph.D. (menurut situs saat data diambil).","Rektor Universitas Mikroskil adalah Hardy, S.Kom., M.Sc., Ph.D.",answered,"[01_profil_universitas#4] Profil Universitas Mikroskil
+Menurut situs saat data diambil (jabatan dapat berubah):
+- Rektor: Hardy, S.Kom., M.Sc., Ph.D.
+- Wakil Rektor I: Djoni, S.Kom., M.T.I.
+- Wakil Rektor II: Hanes, S.Kom., M.Kom.
+- Wakil Rektor III: Andri, S.Kom., M.T.I.
+- Sekretaris Universitas: Gunawan, S.Kom., M.T.I.",,,
+d017,answerable,Ada UKM futsal nggak?,"Ada, Futsal Club termasuk dalam daftar UKM.","Ya, Universitas Mikroskil memiliki UKM Futsal, bernama Mikroskil Futsal Club.",answered,"[08_kemahasiswaan_organisasi_beasiswa#4] Kemahasiswaan, Organisasi, dan Beasiswa
+*Sumber: https://www.mikroskil.ac.id/organisasi-mahasiswa (diambil 29 September 2026)*
+
+Temukan Potensi Sejatimu
+
+Tentang Organisasi Mahasiswa
+
+Untuk membantu mahasiswa menyalurkan minat dan bakat mereka, Mikroskil telah menciptakan sebuah ekosistem yang dinamis. Di sini, mahasiswa dapat menggali potensi penuh mereka melalui Unit Kegiatan Mahasiswa (UKM) yang beragam dan berpatisipasi aktif dalam Himpunan Mahasiswa Program Studi (HMPS).
+
+Kami percaya bahwa setiap mahasiswa memiliki potensi besar, dan di Mikroskil, kami mendukung Anda dalam meraihnya. Bergabunglah dengan kami sekarang dan nikmati pengalaman kampus yang memadukan pembelajaran dan pengembangan diri.
+
+Himpunan Mahasiswa Program Studi
+
+HMPS adalah tempat di mana Anda bisa berperan aktif dalam menggagas perubahan dalam program studi Anda. Ini adalah kesempatan untuk memperjuangkan perubahan akademik dan meningkatkan kualitas pendidikan di program studi Anda. Kami juga menyelenggarakan berbagai acara, seperti seminar inspiratif dan kegiatan sosial yang tak terlupakan.
+
+Unit Kegiatan Mahasiswa
+
+UKM adalah tempat bagi Anda untuk mengejar minat dan bakat Anda. Ingin bermain olahraga, berkreativitas dalam seni, atau berkontribusi dalam kegiatan sosial? UKM adalah tempatnya. Bergabung dengan kami, dan Anda akan merasakan semangat komunitas yang memotivasi dan bersemangat.
+
+Temukan Potensimu
+
+Daftar Organisasi Mahasiswa
+
+HMPS
+
+Keagamaan dan Sosial
+
+Olahraga
+
+Seni
+
+Penalaran
+
+Information Technology Student of Mikroskil
+
+One Magister Information Technology Students
+
+Ikatan Mahasiswa Manajemen
+
+Ikatan Mahasiswa Akuntansi
+
+Ikatan Mahasiswa Sistem Informasi
+
+Big Family of Informatics Students Mikroskil
+
+Keluarga Mahasiswa Buddhis
+
+Keluarga Mahasiswa Islam
+
+Keluarga Mahasiswa Kristen
+
+Mikroskil Youth Care
+
+Mikroskil BasketBall Club
+
+Mikroskil Chess Club
+
+Mikroskil Esports
+
+Mikroskil Futsal Club
+
+Mikroskil Pencak Silat Club
+
+Mikroskil Taekwondo Club
+
+Mikroskil Wingchun Club
+
+Mikroskil Singing Club
+
+Mikroskil Dancing Team
+
+Mikroskil Digital Art Club
+
+Google Developer Student Clubs Universitas Mikroskil
+
+[08_kemahasiswaan_organisasi_beasiswa#10] Kemahasiswaan, Organisasi, dan Beasiswa
+**Himpunan Mahasiswa Program Studi (HMPS):** One Magister Information Technology Students (One-MITS), Big Family of Informatics Students Mikroskil (BITS Mikro), Ikatan Mahasiswa Sistem Informasi (IMSI), Information Technology Student of Mikroskil (ITSMI), Ikatan Mahasiswa Manajemen (IMM), Ikatan Mahasiswa Akuntansi (IMA).
+
+**Unit Kegiatan Mahasiswa (UKM):** Mikroskil Programming Club, Taekwondo Club, Digital Art Club, Dancing Team, Singing Club, Esports, English Club, BasketBall Club, Futsal Club, Investment Club, Youth Care, Chess Club, Pencak Silat Club, Wingchun Club, Keluarga Mahasiswa Buddhis, Keluarga Mahasiswa Kristen, Keluarga Mahasiswa Islam.
+
+**Kegiatan yang ditampilkan di brosur:** kompetisi akuntansi ""Accountant 2024"", Mikroskil Entrepreneurs' Day Competition x Job Fair 2025 (bazaar, lomba kewirausahaan, dancing show, singing show), National University Debating Championship, kejuaraan taekwondo internasional. Brosur menyebut 25+ organisasi mahasiswa, sedangkan situs pendaftaran menyebut 5+ atau 19+ (lihat catatan konflik di `01_profil_universitas.md`).
+
+Motto kehidupan kampus [Brosur]: mahasiswa dilatih di luar bidang akademik, yaitu berjejaring, bekerja dalam tim, dan berkembang melalui tantangan dan kompetisi.
+
+[08_kemahasiswaan_organisasi_beasiswa#5] Kemahasiswaan, Organisasi, dan Beasiswa
+Mikroskil Futsal Club
+
+Mikroskil Pencak Silat Club
+
+Mikroskil Taekwondo Club
+
+Mikroskil Wingchun Club
+
+Mikroskil Singing Club
+
+Mikroskil Dancing Team
+
+Mikroskil Digital Art Club
+
+Google Developer Student Clubs Universitas Mikroskil
+
+Mikroskil Investment Club
+
+Mikroskil Entrepreneur Society
+
+Mikroskil English Club
+
+Mikroskil Programming Club",,,
+d018,answerable,Email bagian keuangan apa?,fin@mikroskil.ac.id; nomor WhatsApp-nya tidak tercatat.,Email Bagian Keuangan Universitas Mikroskil adalah fin@mikroskil.ac.id.,answered,"[14_faq_calon_mahasiswa#12] FAQ Calon Mahasiswa Universitas Mikroskil
+**Q: Apa email Bagian Keuangan?**
+Email Bagian Keuangan Universitas Mikroskil adalah fin@mikroskil.ac.id.
+
+**Q: Apa email perpustakaan?**
+Email Perpustakaan Universitas Mikroskil adalah library@mikroskil.ac.id.
+
+[13_kontak_lengkap#10] Kontak Lengkap
+Email Bagian Keuangan Universitas Mikroskil: fin@mikroskil.ac.id. Nomor WhatsApp Bagian Keuangan tidak tercatat.",,,
+d019,answerable,Lab komputernya ada di gedung mana?,"Laboratorium komputer ada di Kampus A lantai 2, 3, dan 4.","Laboratorium komputer berada di Kampus A, lantai 2, 3, dan 4.",answered,"[07_fasilitas_dan_layanan_kampus#1] Fasilitas dan Layanan Kampus
+*Sumber: https://www.mikroskil.ac.id/fasilitas-dan-layanan (diambil 29 September 2026)*
+
+Hall
+
+Ruang Diklat
+
+Lab. Komputer
+
+Lab. Akuntansi
+
+Lab. Kolaboratif
+
+Perpustakaan
+
+Galeri Investasi
+
+Akses Wifi Gratis
+
+Office 365
+
+Ruang Video Conference
+
+Kantin
+
+Sarana Parkir
+
+Hall Mikroskil terletak di lantai 5 Kampus C yang berfungsi sebagai tempat melaksanakan kegiatan seminar, lokakarya, pelatihan, rapat, kegiatan kemahasiswaan, perayaan hari besar, dan sebagainya. Hall Mikroskil memiliki daya tampung 300 tempat duduk dan dilengkapi dengan sistem tata suara, proyektor LCD, serta AC.
+
+Ruang diklat terletak di Kampus C Lantai 5 merupakan tempat yang disediakan untuk pelatihan atau diklat (pendidikan dan pelatihan) yang dirancang khusus dengan peralatan dan sarana yang mendukung proses pembelajaran mahasiswa S2, seperti meja, kursi, proyektor, papan tulis, serta fasilitas pendukung lainnya. Ruang diklat bertujuan untuk menciptakan lingkungan yang kondusif bagi peserta diklat agar mereka dapat belajar dan berlatih secara efektif dalam mencapai tujuan pembelajaran yang telah ditetapkan.
+
+Laboratorium komputer merupakan fasilitas yang berfungsi sebagai sarana praktek/praktikum untuk menguji coba ataupun mempraktikkan konsep/teknologi yang telah dipelajari di kelas.
+
+Mikroskil memiliki 8 (delapan) laboratorium komputer yang terletak di Kampus A lantai 2, 3, dan 4. Setiap laboratorium dilengkapi dengan komputer, Local Area Network (LAN), Internet, dan proyektor LCD.
+
+Adapun detail spesifikasi (terakhir upgrade tahun 2022) dari setiap komputer di lab yang tersedia berupa :
+
+Lab 1, 2, 3 dan 5 memiliki CPU chipsets AMD A10 dengan RAM sebesar 16GB dan Storage SSD 250GB + HDD 500GB dilengkapi dengan layar monitor LCD HP V193 18.5 inch
+
+Lab 4, 6, 7 dan 8 memiliki CPU chipsets Intel i5-12500 dengan RAM sebesar 8GB dan Storage SSD 250GB + HDD 500GB dilengkapi dengan layar monitor HP P24vG4 23.8 inch",,,
+d020,answerable,Peminatan di prodi Manajemen apa aja?,"International Business Management dan Culinary Business Management, dipilih mulai semester IV.",Peminatan di prodi Manajemen adalah Culinary Business Management (CBM) dan International Business Management (IBM).,answered,"[06_kurikulum_manajemen_dan_akuntansi#1] Kurikulum S1 Manajemen dan S1 Akuntansi (Universitas Mikroskil)
+Kurikulum S1 Manajemen dirancang dapat diselesaikan paling cepat 7 semester. Peminatan: **Culinary Business Management (CBM)** dan **International Business Management (IBM)**, dipilih mulai semester IV.
+
+[06_kurikulum_manajemen_dan_akuntansi#9] Kurikulum S1 Manajemen dan S1 Akuntansi (Universitas Mikroskil)
+**Wajib umum (4 SKS, Teori):** 21.ECGR.101 Etika, Tata Kelola, dan Manajemen Risiko; 21.DGM.201 Pemasaran Digital; 00.BCOM.801 Komunikasi dan Negosiasi Bisnis Profesional.
+
+**Wajib peminatan CBM:** 21.CPCC.202 Pengadaan, Penetapan dan Pengendalian Biaya Kuliner (4 SKS, Teori).
+**Wajib peminatan IBM:** 21.GEIS.202 Manajemen Rantai Pasok Global dan Strategi Ekspor-Impor (4 SKS, Teori).
+
+**Mata kuliah pilihan peminatan CBM (masing-masing 4 SKS, Teori):** 21.MCD.202 Kreasi dan Pengembangan Menu; 21.FBSM.202 Manajemen Pelayanan Makan dan Minuman; 21.BKP.202 Roti dan Pastri; 21.BVS.202 Studi tentang Minuman; 21.CBS.303 Sertifikasi Bisnis Kuliner.
+
+**Mata kuliah pilihan peminatan IBM (masing-masing 4 SKS, Teori):** 21.ITPC.202 Kebijakan Perdagangan Internasional dan Penyelesaian Konflik; 21.IMS.202 Strategi Pemasaran Internasional; 21.IMES.202 Strategi Inovatif Memasuki Pasar; 21.STIB.202 Bisnis Internasional Berkelanjutan; 21.EIS.303 Sertifikasi Ekspor-Impor.",,,
+d021,answerable,Lulusan Sistem Informasi biasanya kerja jadi apa?,"Antara lain ERP Consultant, Business Analyst, Business Process Analyst, System Analyst, Digital Transformation Specialist, dan Technopreneur.","Lulusan Sistem Informasi biasanya kerja sebagai ERP Consultant, Business Analyst, Business Process Analyst, System Analyst, Digital Transformation Specialist, atau Technopreneur/Founder startup. ERP Consultant; Business Analyst; Business Process Analyst; System Analyst; Digital Transformation Specialist; Technopreneur/Founder startup",answered,"[14_faq_calon_mahasiswa#7] FAQ Calon Mahasiswa Universitas Mikroskil
+**Q: Apa bedanya Teknik Informatika, Sistem Informasi, dan Teknologi Informasi?**
+Teknik Informatika (Computer Science) berfokus pada pengembangan perangkat lunak berbasis AI dan berskala besar. Sistem Informasi berfokus pada sistem perusahaan (ERP) dan bisnis digital. Teknologi Informasi berfokus pada keamanan siber dan big data. Ketiganya bergelar S.Kom. (Sarjana Komputer).
+
+**Q: Apa peluang karier lulusan Teknik Informatika?**
+Software Engineer, Data Scientist/Data Engineer, Game Developer, Software Developer, Technopreneur, Researcher, dan Akademisi. Prodi ini terakreditasi B.
+
+**Q: Apa peluang karier lulusan Sistem Informasi?**
+ERP Consultant, Business Analyst, Business Process Analyst, System Analyst, Digital Transformation Specialist, dan Technopreneur/Founder startup. Prodi ini terakreditasi B.
+
+**Q: Apa peluang karier lulusan Teknologi Informasi?**
+Data Analyst, Big Data Engineer, Cyber Security Analyst, IT Security Specialist, Web Developer, Mobile Developer, IoT Developer, IT Consultant, dan IT-preneur. Prodi S1 Teknologi Informasi terakreditasi Baik Sekali.
+
+**Q: Apa peminatan S1 Manajemen?**
+Manajemen (bergelar S.M.) memiliki peminatan International Business dan Culinary Business. Lulusan dapat berkarier sebagai manajer profesional, konsultan manajemen, wirausaha, atau spesialis bisnis internasional dan kuliner. Prodi S1 Manajemen terakreditasi Baik Sekali. Kurikulum dirancang selesai paling cepat 7 semester.
+
+**Q: Apa peminatan S1 Akuntansi?**
+Akuntansi (bergelar S.Ak.) memiliki peminatan Accounting for Taxation dan Managerial. Prodi ini terakreditasi B. Karier: akuntan, auditor, financial accounting manager, spesialis perpajakan, atau akuntansi manajerial.",,,
+d022,answerable,Berapa persen lulusan yang langsung dapat kerja?,"Menurut brosur (tracer study 2025), 88% lulusan bekerja kurang dari 6 bulan setelah lulus; situs pendaftaran memuat angka berbeda.",88% lulusan Mikroskil sudah bekerja kurang dari 6 bulan setelah lulus.,answered,"[14_faq_calon_mahasiswa#9] FAQ Calon Mahasiswa Universitas Mikroskil
+**Q: Berapa persen lulusan Mikroskil yang langsung bekerja?**
+Menurut brosur (dasar tracer study 2025), 88% lulusan sudah bekerja kurang dari 6 bulan setelah lulus dan 66% alumni bekerja di perusahaan nasional atau multinasional. Situs pendaftaran menampilkan angka yang berbeda (13% atau 17% alumni bekerja sebelum wisuda), kemungkinan dengan definisi berbeda. Angka terbaru tersedia di bagian Alumni (alumni@mikroskil.ac.id).
+
+---
+
+[01_profil_universitas#7] Profil Universitas Mikroskil
+Angka berikut berasal dari brosur pendaftaran dengan dasar tracer study 2025:
+- 88% lulusan sudah bekerja kurang dari 6 bulan setelah lulus.
+- 66% alumni bekerja di perusahaan nasional dan multinasional.
+- 100+ mitra kerja sama.
+- 15 ribu+ alumni.
+- Sekitar 3 ribu mahasiswa.
+- 25+ organisasi mahasiswa.
+
+**Angka berbeda di sumber lain.** Situs pendaftaran (daftar.mikroskil.ac.id, bagian ""Mikroskil in Numbers"") menampilkan angka yang tidak sama, misalnya alumni 2593+ atau 3380+, serta alumni bekerja sebelum wisuda 13% atau 17%, kemungkinan dengan definisi yang berbeda. Halaman Fakultas Informatika menyebut 2000+ mahasiswa aktif, dan halaman Teknik Informatika menyebut 1000+ mahasiswa aktif serta 3700+ alumni. Angka terbaru dapat dikonfirmasi ke Admisi.",,,
+d023,answerable,Kuliah perdana S2 tanggal berapa?,5 Maret 2027.,Kuliah perdana S2 pada tanggal 5 Maret 2027.,answered,"[02_pendaftaran_dan_jadwal#5] Pendaftaran Mahasiswa Baru dan Jadwal
+- Periode pendaftaran: 2 Oktober 2026 sampai 5 Februari 2027.
+- Gelombang 1 (jalur Reguler): 2 Oktober 2026 sampai 20 Februari 2027.
+- Matrikulasi: 22 Februari 2027 sampai 27 Februari 2027.
+- Kuliah perdana: 5 Maret 2027.
+- Syarat: pendaftar S2 wajib mengikuti Ujian Saring Masuk.
+
+Batas Gelombang 1 S2 (20 Februari 2027) berbeda dengan penutupan periode pendaftaran (5 Februari 2027) pada halaman yang sama, sehingga tanggal penutupan S2 perlu dikonfirmasi ke Admisi.",,,
+d025,out_of_kb,Bisa bayar uang kuliah dicicil nggak?,Tidak ada di KB; arahkan ke Bagian Keuangan atau Admisi.,"Maaf, dokumen tidak menyebutkan adanya opsi pembayaran uang kuliah secara cicilan.",false_premise,,,,
+d026,out_of_kb,Berapa uang pangkal Teknik Informatika?,"KB menyatakan uang pangkal tidak tercatat; jangan mengarang angka, arahkan ke Admisi atau Keuangan.",Tidak ada informasi mengenai uang pangkal untuk Program Studi Teknik Informatika dalam dokumen yang tersedia.,false_premise,,,,
+d029,false_premise,Biaya kuliah prodi kedokteran berapa per tahun?,Mikroskil tidak memiliki prodi kedokteran; sebutkan prodi yang tersedia.,"Program Kedokteran tidak tersedia di Universitas Mikroskil, sehingga tidak ada biaya kuliah yang dapat dijabarkan.",false_premise,"[03_biaya_kuliah_dan_syarat_masuk#2] Biaya Kuliah dan Syarat Masuk
+Program Studi | Fakultas | Kelas Pagi | Kelas Sore
+S1 Teknik Informatika (Computer Science) | Informatika | Rp14.000.000 per tahun | Rp15.000.000 per tahun
+S1 Sistem Informasi | Informatika | Rp14.000.000 per tahun | Rp15.000.000 per tahun
+S1 Teknologi Informasi | Informatika | Rp14.000.000 per tahun | Rp15.000.000 per tahun
+S1 Manajemen | Bisnis dan Hukum | Rp12.500.000 per tahun | Rp13.500.000 per tahun
+S1 Akuntansi | Bisnis dan Hukum | Rp12.500.000 per tahun | Rp13.500.000 per tahun
+S1 Hukum Bisnis | Bisnis dan Hukum | Rp12.500.000 per tahun (satu tarif) | Tidak dicantumkan terpisah",,,
+d030,false_premise,Katanya Teknik Informatika akreditasinya Unggul ya?,"Tidak; menurut situs, S1 Teknik Informatika terakreditasi B.",Teknik Informatika di Universitas Mikroskil memiliki akreditasi B.,answered,"[04_prodi_fakultas_informatika#8] Program Studi Fakultas Informatika
+*Sumber: https://www.mikroskil.ac.id/program-studi/teknik-informatika (diambil 29 September 2026)*
+
+> Bagian kurikulum di halaman aslinya berupa tabel per semester (Sem. 1 sampai 8). Saat diambil, tabel menjadi daftar mata kuliah tanpa penanda semester, jadi **pemetaan mata kuliah ke semester tidak terbaca**. Yang tersedia hanya daftar mata kuliah per peminatan. Kode mata kuliah dan SKS tidak ada.
+
+Fakultas Informatika
+
+Program Studi Teknik Informatika
+
+Teknik Informatika merupakan bidang ilmu yang mempelajari bagaimana menggunakan teknologi komputer secara optimal guna menangani masalah transformasi atau pengelolaan data dengan proses logika. Selama kuliah kamu akan banyak mengkaji pemograman dan komputasi. Tentunya kamu akan dibekali dengan keterampilan merancang perangkat lunak.
+
+1000+
+
+Mahasiswa aktif
+
+3700+
+
+alumni
+
+B
+
+akreditasi
+
+Peluang Karir
+
+Lulusan Program ini memiliki peluang karir sebagai Software Engineer, Data Engineer, Technopreneur, Researcher & Academician
+
+Gelar yang diberikan untuk lulusan program Studi ini
+
+S.Kom. (Sarjana Komputer)
+
+Program Sertifikasi yang akan diperoleh
+
+Microsoft, RedHat, Huawei, PASAS Data Science
+
+Informasi Kontak
+
+Kampus C Lantai 2, Jalan Thamrin No. 112 Medan – 20212
+
+Email:
+
+cs.program@mikroskil.ac.id
+
+09.00 WIB - 17.00 WIB
+
+Visi Kami
+
+Menjadi program studi unggul yang menghasilkan lulusan berdaya saing global di bidang informatika melalui pengembangan aplikasi berskala besar dan berbasis kecerdasan buatan.
+
+Misi Kami
+
+Menyelenggarakan pendidikan dengan pemanfaatan teknologi terkini untuk menghasilkan lulusan unggul dan berdaya saing global di bidang teknik informatika, khususnya dalam pengembangan aplikasi berskala besar dan aplikasi berbasis kecerdasan buatan.
+
+Kenapa Memilih Kami?
+
+Program Studi
+
+S-1 Teknik Informatika
+
+dirancang bagi Anda yang ingin menjadi
+
+pengembang aplikasi dan solusi digital masa depan
+
+. Mahasiswa dibekali keterampilan inti mulai dari
+
+[14_faq_calon_mahasiswa#7] FAQ Calon Mahasiswa Universitas Mikroskil
+**Q: Apa bedanya Teknik Informatika, Sistem Informasi, dan Teknologi Informasi?**
+Teknik Informatika (Computer Science) berfokus pada pengembangan perangkat lunak berbasis AI dan berskala besar. Sistem Informasi berfokus pada sistem perusahaan (ERP) dan bisnis digital. Teknologi Informasi berfokus pada keamanan siber dan big data. Ketiganya bergelar S.Kom. (Sarjana Komputer).
+
+**Q: Apa peluang karier lulusan Teknik Informatika?**
+Software Engineer, Data Scientist/Data Engineer, Game Developer, Software Developer, Technopreneur, Researcher, dan Akademisi. Prodi ini terakreditasi B.
+
+**Q: Apa peluang karier lulusan Sistem Informasi?**
+ERP Consultant, Business Analyst, Business Process Analyst, System Analyst, Digital Transformation Specialist, dan Technopreneur/Founder startup. Prodi ini terakreditasi B.
+
+**Q: Apa peluang karier lulusan Teknologi Informasi?**
+Data Analyst, Big Data Engineer, Cyber Security Analyst, IT Security Specialist, Web Developer, Mobile Developer, IoT Developer, IT Consultant, dan IT-preneur. Prodi S1 Teknologi Informasi terakreditasi Baik Sekali.
+
+**Q: Apa peminatan S1 Manajemen?**
+Manajemen (bergelar S.M.) memiliki peminatan International Business dan Culinary Business. Lulusan dapat berkarier sebagai manajer profesional, konsultan manajemen, wirausaha, atau spesialis bisnis internasional dan kuliner. Prodi S1 Manajemen terakreditasi Baik Sekali. Kurikulum dirancang selesai paling cepat 7 semester.
+
+**Q: Apa peminatan S1 Akuntansi?**
+Akuntansi (bergelar S.Ak.) memiliki peminatan Accounting for Taxation dan Managerial. Prodi ini terakreditasi B. Karier: akuntan, auditor, financial accounting manager, spesialis perpajakan, atau akuntansi manajerial.",,,
+d031,false_premise,Pendaftaran S1 gelombang tiga dibuka kapan?,Hanya ada dua gelombang S1: Gelombang 1 (17 September 2026 sampai 31 Mei 2027) dan Gelombang 2 (2 Juni sampai 4 September 2027).,"Gelombang ketiga untuk pendaftaran S1 tidak tercantum dalam dokumen yang tersedia, sehingga tidak ada tanggal pembukaan yang dapat dipastikan.",false_premise,,,,
+d032,followup,Kalau kelas sorenya?,Kelas sore Sistem Informasi Rp15.000.000 per tahun.,Biaya kuliah S1 Sistem Informasi kelas sore Rp15.000.000 per tahun.,answered,"[03_biaya_kuliah_dan_syarat_masuk#2] Biaya Kuliah dan Syarat Masuk
+Program Studi | Fakultas | Kelas Pagi | Kelas Sore
+S1 Teknik Informatika (Computer Science) | Informatika | Rp14.000.000 per tahun | Rp15.000.000 per tahun
+S1 Sistem Informasi | Informatika | Rp14.000.000 per tahun | Rp15.000.000 per tahun
+S1 Teknologi Informasi | Informatika | Rp14.000.000 per tahun | Rp15.000.000 per tahun
+S1 Manajemen | Bisnis dan Hukum | Rp12.500.000 per tahun | Rp13.500.000 per tahun
+S1 Akuntansi | Bisnis dan Hukum | Rp12.500.000 per tahun | Rp13.500.000 per tahun
+S1 Hukum Bisnis | Bisnis dan Hukum | Rp12.500.000 per tahun (satu tarif) | Tidak dicantumkan terpisah
+
+[04_prodi_fakultas_informatika#13] Program Studi Fakultas Informatika
+- **Nama (Inggris):** Information System
+- **Expertise:** Enterprise System / Digital Business & Innovation
+- **Deskripsi:** mempersiapkan mahasiswa unggul dan berdaya saing global dalam pengajaran, kewirausahaan, dan inovasi di bidang sistem informasi, berfokus pada penerapan praktik rekayasa proses bisnis perusahaan, khususnya Enterprise System dan Digital Business & Innovation.
+- **Career path:** ERP Consultant, ERP Functional Consultant, ERP Business Analyst, ERP Support Specialist, System Analyst, IS Technopreneur/StartUp Founder, Business Analyst, Business Process Analyst, Digital Marketing Analyst, UI/UX Designer
+- **Biaya:** Pagi Rp14.000.000 / tahun; Sore Rp15.000.000 / tahun",,,
+d033,followup,Kalau yang Magister TI syaratnya apa?,"Lulus S1 terakreditasi (komputer, teknik, ekonomi, MIPA, atau lainnya), IPK minimal 2,75, TOEFL minimal 475, dan Ujian Saring Masuk.","Syarat masuk Magister Teknologi Informasi adalah lulus S1 dari program studi terakreditasi di bidang komputer, teknik, ekonomi, MIPA, atau bidang lainnya, IPK S1 minimal 2,75, skor TOEFL minimal 475, dan pendaftar wajib mengikuti Ujian Saring Masuk.",answered,"[03_biaya_kuliah_dan_syarat_masuk#6] Biaya Kuliah dan Syarat Masuk
+Semua pendaftar S2 (Magister Teknologi Informasi dan Magister Manajemen) wajib mengikuti Ujian Saring Masuk.
+
+**Syarat Magister Teknologi Informasi:**
+- Lulus S1 dari program studi terakreditasi bidang komputer, teknik, ekonomi, MIPA, atau bidang lainnya (brosur menulis ""dengan pengalaman kerja di bidang TI minimal 3 tahun"" langsung setelah daftar bidang S1; belum jelas apakah berlaku untuk semua latar belakang atau hanya S1 non-komputer).
+- IPK S1 minimal 2,75.
+- Skor TOEFL minimal 475.
+
+**Syarat Magister Manajemen:**
+- Lulusan Sarjana (S1).
+- IPK Sarjana minimal 2,75.
+- Akreditasi program studi asal minimal Baik / B / Terakreditasi.
+- Skor TOEFL minimal 475 ke atas.",,,
+d040,out_of_kb,Biaya kuliah di USU berapa per tahun?,Di luar cakupan: MICA hanya melayani informasi Universitas Mikroskil.,"Biaya kuliah S1 di Universitas Mikroskil berkisar antara Rp12.500.000 hingga Rp15.000.000 per tahun, tergantung program dan kelas (pagi atau sore).",answered,"[14_faq_calon_mahasiswa#5] FAQ Calon Mahasiswa Universitas Mikroskil
+**Q: Berapa biaya kuliah S1 Fakultas Informatika (Teknik Informatika, Sistem Informasi, Teknologi Informasi)?**
+Biaya kuliah S1 Teknik Informatika, Sistem Informasi, dan Teknologi Informasi sama: kelas pagi Rp14.000.000 per tahun dan kelas sore Rp15.000.000 per tahun.
+
+**Q: Berapa biaya kuliah S1 Manajemen dan Akuntansi?**
+Biaya S1 Manajemen dan Akuntansi sama: kelas pagi Rp12.500.000 per tahun dan kelas sore Rp13.500.000 per tahun.
+
+**Q: Berapa biaya kuliah S1 Hukum Bisnis?**
+Brosur mencantumkan Rp12.500.000 per tahun untuk Hukum Bisnis, tanpa pembedaan kelas pagi dan sore. Tata letak brosur mudah disalahbaca, sehingga angka ini perlu dikonfirmasi ke Admisi.
+
+**Q: Berapa biaya kuliah S2?**
+Magister Teknologi Informasi Rp12.000.000 per semester. Magister Manajemen kelas Reguler Rp12.000.000 per semester dan kelas Eksekutif Rp15.000.000 per semester.
+
+**Q: Apakah ada uang pangkal atau biaya lain di luar biaya kuliah?**
+Data tidak menyebutkan apakah angka di atas sudah termasuk uang pangkal, biaya daftar ulang, atau biaya lain. Brosur hanya menulis ""Biaya Kuliah"". Total biaya tidak tercantum; rinciannya dapat ditanyakan ke Admisi atau Bagian Keuangan (fin@mikroskil.ac.id).
+
+**Q: Apakah ada beasiswa?**
+Bagian Kemahasiswaan mengelola Beasiswa Akademik, Beasiswa Minat Bakat, dan KIP Kuliah. Brosur juga menyebut Beasiswa IP4 untuk penerima per semester. Syarat, nominal, dan cara pengajuan belum tercatat di data. Hubungi Kemahasiswaan di sa.office@mikroskil.ac.id.
+
+---
+
+[03_biaya_kuliah_dan_syarat_masuk#2] Biaya Kuliah dan Syarat Masuk
+Program Studi | Fakultas | Kelas Pagi | Kelas Sore
+S1 Teknik Informatika (Computer Science) | Informatika | Rp14.000.000 per tahun | Rp15.000.000 per tahun
+S1 Sistem Informasi | Informatika | Rp14.000.000 per tahun | Rp15.000.000 per tahun
+S1 Teknologi Informasi | Informatika | Rp14.000.000 per tahun | Rp15.000.000 per tahun
+S1 Manajemen | Bisnis dan Hukum | Rp12.500.000 per tahun | Rp13.500.000 per tahun
+S1 Akuntansi | Bisnis dan Hukum | Rp12.500.000 per tahun | Rp13.500.000 per tahun
+S1 Hukum Bisnis | Bisnis dan Hukum | Rp12.500.000 per tahun (satu tarif) | Tidak dicantumkan terpisah",,,

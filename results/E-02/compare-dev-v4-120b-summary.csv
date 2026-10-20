@@ -1,0 +1,7 @@
+model,threshold,fact_check,salah_tolak,salah_tolak_rate,tolak_benar,tolak_benar_jauh,tolak_benar_dekat,premis_terbaik,premis_aman,premis_gagal,gagal_skema,unavailable,retries_429,wait_429_s,llm_dipanggil,prompt_tokens,completion_tokens,total_tokens,llm_latency_p50_s,llm_latency_p95_s,pipeline_latency_p50_s,pipeline_latency_p95_s,follow_up_tidak_null,follow_up_tampil,items_tidak_kosong
+v2-120b,null,on,0/25,0.0000,16/17,6/6,10/11,2,1,0,0,0,0,0.0,45,94231,4896,99127,0.817,1.204,0.880,1.266,0,0,0
+v2-120b,0.50,on,0/25,0.0000,16/17,6/6,10/11,2,1,0,0,0,0,0.0,40,83226,4647,87873,0.821,1.225,0.888,1.286,0,0,0
+v3-120b,null,on,0/25,0.0000,16/17,6/6,10/11,2,1,0,0,0,0,0.0,45,104307,5270,109577,0.838,1.277,0.918,1.343,37,27,0
+v3-120b,0.50,on,0/25,0.0000,16/17,6/6,10/11,2,1,0,0,0,0,0.0,40,92182,4966,97148,0.839,1.329,0.920,1.395,36,27,0
+v4-120b,null,on,0/25,0.0000,16/17,6/6,10/11,2,1,0,0,0,0,0.0,45,112903,6391,119294,0.928,1.479,1.002,1.535,37,28,6
+v4-120b,0.50,on,0/25,0.0000,16/17,6/6,10/11,2,1,0,0,0,0,0.0,40,99828,6056,105884,0.944,1.540,1.039,1.595,37,28,6

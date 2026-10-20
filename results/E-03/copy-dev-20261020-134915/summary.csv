@@ -1,0 +1,7 @@
+﻿model,sumber,n,n_tanpa_kutipan,n_dikecualikan,coverage_mean,coverage_median,coverage_p90,density_mean,density_median,density_p90,n_tanpa_entitas,n_kosong_tanpa_entitas,n_token_total,n_token_entitas_total,coverage_tanpa_entitas_mean,coverage_tanpa_entitas_median,coverage_tanpa_entitas_p90,density_tanpa_entitas_mean,density_tanpa_entitas_median,density_tanpa_entitas_p90
+groq:openai/gpt-oss-120b,kutip,27,1,17,0.8082,0.8136,0.9413,3.3221,2.9231,5.2131,27,0,497,69,0.7706,0.8000,0.9143,2.4862,1.8000,5.2903
+groq:openai/gpt-oss-120b,konteks,28,,17,0.8791,0.9045,1.0000,3.3766,3.0714,5.2490,28,0,523,69,0.8585,0.8889,1.0000,2.6061,2.1385,5.3417
+groq:openai/gpt-oss-120b,kutip,27,1,17,0.8471,0.8222,1.0000,3.8619,2.9231,7.1818,27,0,413,65,0.8057,0.8000,1.0000,2.6124,2.1111,5.3624
+groq:openai/gpt-oss-120b,konteks,28,,17,0.9045,0.9091,1.0000,3.9465,3.2308,7.1364,28,0,432,65,0.8860,0.8889,1.0000,2.8057,2.1556,5.3854
+groq:openai/gpt-oss-120b,kutip,28,0,17,0.8742,0.8875,0.9860,3.9824,3.2154,6.8250,28,0,531,83,0.8466,0.8571,0.9833,2.9201,2.6077,5.3926
+groq:openai/gpt-oss-120b,konteks,28,,17,0.9209,0.9199,1.0000,4.0774,3.2404,6.8250,28,0,531,83,0.9014,0.8889,1.0000,3.0329,2.6077,5.4519

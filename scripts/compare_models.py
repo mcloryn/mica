@@ -21,6 +21,7 @@ memanggil LLM. t_total eval tidak dipakai karena t_llm memuat waktu tunggu pemba
 (TokenRateLimiter, sampai sekitar 60 detik), yang tidak ada di kiosk.
 follow_up_tidak_null: keluaran LLM dengan follow_up_topic terisi (prompt v3; kolom tidak ada = 0);
 follow_up_tampil: yang juga berstatus answered/false_premise, jadi tawarannya tampil di UI.
+items_tidak_kosong (prompt v4): jawaban answered/false_premise dengan kolom items terisi.
 --notes: CSV berkolom id,catatan; bila diberikan, kolom catatan ditambahkan di <prefix>.csv.
 """
 
@@ -170,6 +171,10 @@ def summary(
                     "follow_up_tidak_null": len(follow),
                     "follow_up_tampil": sum(
                         st[r["qid"]] in ("answered", "false_premise") for r in follow
+                    ),
+                    "items_tidak_kosong": sum(
+                        bool(r.get("items")) and st[r["qid"]] in ("answered", "false_premise")
+                        for r in called
                     ),
                 }
             )

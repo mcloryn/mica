@@ -100,3 +100,19 @@ topik yang tampil.
   ada varian baru.
 - Satu run per prompt per model. Temperature 0,2 tidak menjamin hasil deterministik.
 - Run Gemini E-04 memakai prompt final (docs/E-04.md, amandemen 2).
+
+## Hasil dev (ditambahkan setelah data, 20 Okt 2026)
+
+Bagian di atas tidak diubah. Rincian ada di `results/E-02/compare-dev-v4.md`.
+
+- 120b v4 vs v2: salah tolak 0/25 = 0/25, tolak benar 16/17 = 16/17, premis diluruskan 2 = 2,
+  JSON gagal 0 = 0. Halusinasi v4 belum dianotasi (v2: 0/28). **Keputusan: menunggu
+  anotasi.** Sampai keputusan ada, prompt utama tetap v2.
+- 20b (pendamping): tolak benar 16/17 menjadi 14/17 (d025, d026 berstatus false_premise), jadi
+  gagal. Premis diluruskan naik 1 menjadi 2.
+- Deskriptif: items dipakai pada 6 jawaban 120b dan 3 jawaban 20b. Dua jawaban 120b masih
+  mengulang daftar di answer. Arahan kontak d014 tidak muncul. Density salin 120b naik (3,32
+  menjadi 3,98), dan latensi pipeline p50 naik (0,880 menjadi 1,002 detik).
+- Kendala kuota: run 20b sempat berhenti di 44/45 karena batas token harian Groq. Sejak
+  langkah ini, `eval generation` juga berhenti (kode 3) bila 429 Groq membawa `retry-after` lebih
+  dari 60 detik, alih-alih menunggu.

@@ -29,6 +29,7 @@ FIELDS = [
     "t_retrieval",
     "t_llm",
     "follow_up_topic",
+    "items",
 ]
 # qid, type, oos_level, gate, status A, status B
 ROWS = [
@@ -62,6 +63,7 @@ def _write_run(path: Path, which: int) -> Path:
                     "t_retrieval": "0.5",
                     "t_llm": "60.0",  # memuat tunggu pembatas laju: tidak dipakai
                     "follow_up_topic": "Biaya" if q in ("q1", "q3") else "",
+                    "items": "A; B; C" if q in ("q1", "q2") else "",
                 }
             )
     return path
@@ -99,6 +101,8 @@ def test_compare_models_end_to_end(tmp_path: Path) -> None:
     # q1 answered (tampil), q3 refused_llm (tidak tampil); ambang 0.55 menahan q3 sebelum LLM
     assert (a_null["follow_up_tidak_null"], a_null["follow_up_tampil"]) == ("2", "1")
     assert (a_055["follow_up_tidak_null"], a_055["follow_up_tampil"]) == ("1", "1")
+    # items: q1 dan q2 answered di A (ambang null); ambang 0.55 menahan q2
+    assert (a_null["items_tidak_kosong"], a_055["items_tidak_kosong"]) == ("2", "1")
 
 
 def test_compare_models_without_notes_has_no_catatan(tmp_path: Path) -> None:

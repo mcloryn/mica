@@ -1,0 +1,75 @@
+{
+ "experiment": "E-03",
+ "metric": "coverage dan density extractive fragments (Grusky dkk. 2018 [43]; Ladhak dkk. 2022 [42])",
+ "tokenization": "mica.kb.index.tokenize (huruf kecil + \\w+), sama dengan BM25 M-03",
+ "counted_llm_status": [
+  "answered",
+  "false_premise"
+ ],
+ "sources": {
+  "kutip": "potongan di citations jawaban",
+  "konteks": "semua potongan yang dikirim ke LLM (top-k retriever)"
+ },
+ "boundary": "potongan digabung dengan pemisah yang tidak pernah cocok",
+ "kb_id": "dev-2026-10-15-v2",
+ "source_runs": [
+  {
+   "run": "results/E-02/20261017-122758-E-02-dev-hybrid-gpt-oss-120b-gateoff",
+   "model": "groq:openai/gpt-oss-120b",
+   "gate_off": true,
+   "prompt_version": "v2",
+   "n_questions": 45,
+   "llm_api_calls": 0,
+   "from_cache": 45,
+   "context_source": "rekonstruksi pipeline cache-only; request = kunci cache run",
+   "n_excluded": 17
+  },
+  {
+   "run": "results/E-02/20261020-113556-E-02-dev-hybrid-gpt-oss-120b-gateoff",
+   "model": "groq:openai/gpt-oss-120b",
+   "gate_off": true,
+   "prompt_version": "v3",
+   "n_questions": 45,
+   "llm_api_calls": 0,
+   "from_cache": 45,
+   "context_source": "rekonstruksi pipeline cache-only; request = kunci cache run",
+   "n_excluded": 17
+  },
+  {
+   "run": "results/E-02/20261020-130025-E-02-dev-hybrid-gpt-oss-120b-gateoff",
+   "model": "groq:openai/gpt-oss-120b",
+   "gate_off": true,
+   "prompt_version": "v4",
+   "n_questions": 45,
+   "llm_api_calls": 0,
+   "from_cache": 45,
+   "context_source": "rekonstruksi pipeline cache-only; request = kunci cache run",
+   "n_excluded": 17
+  }
+ ],
+ "environment": {
+  "python": "3.13.7",
+  "torch": "2.14.1+cpu",
+  "torch_num_threads": 14,
+  "sentence_transformers": "6.1.0",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+  "cpu_count_logical": 20,
+  "power": {
+   "source": "ac",
+   "battery_percent": 100,
+   "battery_saver": false
+  },
+  "power_plan": {
+   "guid": "bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b",
+   "name": "ASUS Recommended",
+   "raw": "Power Scheme GUID: bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b  (ASUS Recommended)"
+  },
+  "git_commit": "5f6432c3892310e599985b19f0b82aa83853206d",
+  "git_dirty": true
+ },
+ "split": "dev",
+ "lock": null,
+ "threshold": "tidak ada ambang bagus/buruk",
+ "companion_metric": "coverage/density tanpa entitas (SDD 9.5): token dari span email, URL (http://, https://, www.), atau kata berdigit tidak boleh masuk fragmen; penyebut |S| - |E|; |S| - |E| = 0 -> kosong, dikeluarkan dari rata-rata. Nama tidak di-mask."
+}

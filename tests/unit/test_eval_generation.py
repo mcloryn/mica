@@ -188,6 +188,24 @@ def test_hard_quota_stops_without_retry(quota_id, delay):
     assert (exc.value.quota_id, exc.value.retry_delay_s) == (quota_id, delay)
 
 
+def test_long_groq_retry_after_header_stops_without_retry():
+    # Groq batas token per hari: 429 dengan header retry-after panjang -> berhenti, bukan tidur
+    clock = FakeClock()
+    provider = FakeProvider(failures=[ProviderFailed("HTTP 429", 429, "3600")] * 6)
+    llm = EvalLlm(provider, TokenRateLimiter(clock=clock, sleep=clock.sleep), sleep=clock.sleep)
+    with pytest.raises(QuotaExhausted):
+        llm.generate(REQUEST, 5)
+    assert len(provider.requests) == 1 and clock.sleeps == []
+
+
+@pytest.mark.parametrize("header", ["60", "7", "bukan-angka"])
+def test_short_or_invalid_retry_after_header_is_waited(header):
+    clock = FakeClock()
+    provider = FakeProvider(failures=[ProviderFailed("HTTP 429", 429, header)])
+    llm = EvalLlm(provider, TokenRateLimiter(clock=clock, sleep=clock.sleep), sleep=clock.sleep)
+    assert llm.generate(REQUEST, 5).provider == "groq:fake" and llm.stats.retries_429 == 1
+
+
 def test_short_retry_delay_from_body_is_waited():
     clock = FakeClock()
     failure = ProviderFailed("HTTP 429", 429, None, retry_delay_s=60.0, quota_id="PerMinute")

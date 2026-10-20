@@ -155,12 +155,18 @@ class QuotaExhausted(RuntimeError):
 
 
 def is_hard_quota(exc: ProviderFailed) -> bool:
-    """429 yang tidak layak ditunggu: kuota harian atau retryDelay > MAX_RETRY_DELAY_S."""
+    """429 yang tidak layak ditunggu: kuota harian, atau retryDelay (Gemini) / header retry-after
+    (Groq, mis. batas token per hari) > MAX_RETRY_DELAY_S."""
     if exc.status != 429:
         return False
     if exc.quota_id and "PerDay" in exc.quota_id:
         return True
-    return exc.retry_delay_s is not None and exc.retry_delay_s > MAX_RETRY_DELAY_S
+    if exc.retry_delay_s is not None and exc.retry_delay_s > MAX_RETRY_DELAY_S:
+        return True
+    try:
+        return exc.retry_after is not None and float(exc.retry_after) > MAX_RETRY_DELAY_S
+    except ValueError:
+        return False
 
 
 class TokenRateLimiter:
