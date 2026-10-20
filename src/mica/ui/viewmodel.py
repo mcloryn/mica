@@ -30,6 +30,7 @@ class Message:
     role: Literal["visitor", "mica"]
     text: str
     sources: tuple[Source, ...] = ()
+    follow_up_topic: str | None = None  # prompt v3: label topik untuk tawaran di bawah jawaban
 
 
 @dataclass
@@ -82,7 +83,7 @@ class ViewModel:
             self.turn_open = True
         if item.answer is not None and self.turn_open:
             sources = tuple(_source(c) for c in item.sources)
-            self.messages.append(Message("mica", item.answer, sources))
+            self.messages.append(Message("mica", item.answer, sources, item.follow_up_topic))
             self.turn_open = False
         self.status = item.status
         self.status_message = item.message

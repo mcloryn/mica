@@ -98,6 +98,8 @@ class LlmRequest:
     system: str
     user: str  # pertanyaan + potongan bernomor
     allowed_chunk_ids: tuple[str, ...]
+    # prompt v3: nilai enum follow_up_topic (label ui.topics); kosong = field tidak dikirim (v2)
+    follow_up_topics: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -109,6 +111,7 @@ class LlmAnswer:
     latency_s: float
     # prompt_tokens, completion_tokens, total_tokens dari respons penyedia; None bila tidak ada
     usage: dict[str, int] | None = None
+    follow_up_topic: str | None = None  # prompt v3; selalu None untuk v2
 
 
 class LlmUnavailable(Exception):
@@ -127,3 +130,5 @@ class FinalAnswer:
     text: str  # yang ditampilkan dan dibacakan
     sources: tuple[Chunk, ...]  # kosong bila menolak
     timings: dict[str, float]
+    # prompt v3: label topik lanjutan untuk tawaran UI/TTS; None bila tidak ada atau menolak
+    follow_up_topic: str | None = None

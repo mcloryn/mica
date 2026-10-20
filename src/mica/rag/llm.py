@@ -71,17 +71,34 @@ def _citations_schema(allowed: tuple[str, ...], array: str, string: str) -> dict
     return {"type": array, "items": {"type": string, "enum": list(allowed)}}
 
 
-def output_schema(allowed: tuple[str, ...]) -> dict[str, Any]:
+# Prompt v3 (docs/PROMPT-V3.md): field tambahan follow_up_topic = salah satu label ui.topics atau
+# null. Deviasi dari skema SDD 5.3, hanya bila request membawa follow_up_topics; tanpa itu (v2)
+# skema dan badan request sama persis seperti sebelumnya, jadi kunci cache v2 tidak berubah.
+FOLLOW_UP_FIELD = "follow_up_topic"
+
+
+def output_schema(allowed: tuple[str, ...], topics: tuple[str, ...] = ()) -> dict[str, Any]:
     """OUTPUT_SCHEMA dengan citations.items.enum = allowed_chunk_ids request ini (Groq)."""
     schema = json.loads(json.dumps(OUTPUT_SCHEMA))
     schema["properties"]["citations"] = _citations_schema(allowed, "array", "string")
+    if topics:  # strict Groq: semua field wajib, nilai opsional lewat gabungan dengan null
+        schema["properties"][FOLLOW_UP_FIELD] = {
+            "anyOf": [{"type": "string", "enum": list(topics)}, {"type": "null"}]
+        }
+        schema["required"].append(FOLLOW_UP_FIELD)
     return schema
 
 
-def gemini_schema(allowed: tuple[str, ...]) -> dict[str, Any]:
+def gemini_schema(allowed: tuple[str, ...], topics: tuple[str, ...] = ()) -> dict[str, Any]:
     """GEMINI_SCHEMA dengan citations dibatasi seperti output_schema."""
     schema = json.loads(json.dumps(GEMINI_SCHEMA))
     schema["properties"]["citations"] = _citations_schema(allowed, "ARRAY", "STRING")
+    if topics:  # Schema Gemini: format enum + nullable
+        schema["properties"][FOLLOW_UP_FIELD] = {
+            "type": "STRING", "format": "enum", "enum": list(topics), "nullable": True
+        }  # fmt: skip
+        schema["required"].append(FOLLOW_UP_FIELD)
+        schema["propertyOrdering"].append(FOLLOW_UP_FIELD)
     return schema
 
 
@@ -115,18 +132,24 @@ class _BadOutput(Exception):
     """Keluaran tidak sesuai skema; penyedia yang sama dicoba ulang sekali."""
 
 
-def parse_output(content: str) -> tuple[str, str, tuple[str, ...]]:
-    """Validasi keluaran terhadap skema SDD 5.3; field tambahan juga ditolak."""
+def parse_output(
+    content: str, topics: tuple[str, ...] = ()
+) -> tuple[str, str, tuple[str, ...], str | None]:
+    """Validasi keluaran terhadap skema SDD 5.3; field tambahan juga ditolak.
+
+    topics tidak kosong (prompt v3): follow_up_topic wajib ada, berisi salah satu topics atau null.
+    """
     try:
         data = json.loads(content)
     except (TypeError, ValueError) as exc:
         raise _BadOutput(f"bukan JSON valid: {exc}") from None
     if not isinstance(data, dict):
         raise _BadOutput("keluaran bukan objek JSON")
-    missing = [k for k in OUTPUT_SCHEMA["required"] if k not in data]
+    required = [*OUTPUT_SCHEMA["required"], *([FOLLOW_UP_FIELD] if topics else [])]
+    missing = [k for k in required if k not in data]
     if missing:
         raise _BadOutput(f"field hilang: {missing}")
-    extra = sorted(set(data) - set(OUTPUT_SCHEMA["properties"]))
+    extra = sorted(set(data) - set(required))
     if extra:
         raise _BadOutput(f"field tidak dikenal: {extra}")
     status, answer, citations = data["status"], data["answer"], data["citations"]
@@ -136,7 +159,10 @@ def parse_output(content: str) -> tuple[str, str, tuple[str, ...]]:
         raise _BadOutput("answer bukan string")
     if not isinstance(citations, list) or not all(isinstance(c, str) for c in citations):
         raise _BadOutput("citations bukan array string")
-    return status, answer, tuple(citations)
+    follow_up = data.get(FOLLOW_UP_FIELD)
+    if follow_up is not None and follow_up not in topics:
+        raise _BadOutput(f"follow_up_topic tidak dikenal: {follow_up!r}")
+    return status, answer, tuple(citations), follow_up
 
 
 class _HttpProvider:
@@ -227,7 +253,9 @@ class _HttpProvider:
                 except ValueError:
                     raise _BadOutput("badan respons bukan JSON") from None
                 content, usage = self._content_and_usage(data)
-                status, answer, citations = parse_output(content)
+                status, answer, citations, follow_up = parse_output(
+                    content, request.follow_up_topics
+                )
             except _BadOutput as exc:
                 last = self._redact(str(exc))
                 logger.warning(
@@ -241,6 +269,7 @@ class _HttpProvider:
                 provider=self.name,
                 latency_s=time.perf_counter() - start,
                 usage=usage,
+                follow_up_topic=follow_up,
             )
         raise LlmBadOutput(f"{self.name}: keluaran tidak valid setelah coba ulang ({last})")
 
@@ -286,7 +315,7 @@ class GroqProvider(_HttpProvider):
                 "json_schema": {
                     "name": "mica_answer",
                     "strict": True,
-                    "schema": output_schema(request.allowed_chunk_ids),
+                    "schema": output_schema(request.allowed_chunk_ids, request.follow_up_topics),
                 },
             },
             "stream": False,
@@ -351,7 +380,7 @@ class GeminiProvider(_HttpProvider):
     def _body(self, request: LlmRequest) -> dict[str, Any]:
         config: dict[str, Any] = {
             "responseMimeType": "application/json",
-            "responseSchema": gemini_schema(request.allowed_chunk_ids),
+            "responseSchema": gemini_schema(request.allowed_chunk_ids, request.follow_up_topics),
         }
         if self.temperature is not None:
             config["temperature"] = self.temperature

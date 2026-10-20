@@ -7,7 +7,7 @@ menjadi blok paragraf/daftar tanpa menambah atau mengganti kata.
 
 Aturan berurutan:
   a. baris baru asli dipertahankan (setiap baris jadi blok sendiri; baris bernomor berurutan
-     jadi satu daftar bernomor);
+     jadi satu daftar bernomor; baris "- " berurutan jadi satu daftar poin, bentuk prompt v3);
   b. enumerasi dalam kalimat ("1) ... 2) ...", "1. ... 2. ...", "(1) ... (2) ...") jadi daftar
      bernomor; teks sebelum nomor 1 jadi paragraf pembuka, kalimat setelah kalimat pertama
      butir terakhir jadi paragraf penutup;
@@ -47,10 +47,14 @@ ENUM_STYLES = (
 )
 # Baris yang diawali nomor (aturan a): "1. ...", "1) ...", "(1) ...".
 LINE_ITEM = re.compile(r"^\s*(?:\((\d{1,2})\)|(\d{1,2})[.)])\s+(.*\S)\s*$")
+# Baris poin (aturan a, prompt v3): "- ...".
+BULLET_ITEM = re.compile(r"^\s*-\s+(.*\S)\s*$")
 ITEM_TRAIL = re.compile(r"[\s;,]+$")
 NEWLINE = re.compile(r"\r\n|\r|\n")
 
-Block = dict  # {"type": "p", "text": str} | {"type": "ol", "start": int, "items": list[str]}
+# {"type": "p", "text": str} | {"type": "ol", "start": int, "items": list[str]}
+# | {"type": "ul", "items": list[str]}
+Block = dict
 
 
 def split_sentences(text: str) -> list[str]:
@@ -115,8 +119,15 @@ def format_answer(text: str) -> list[Block]:
     """Blok tampilan untuk satu jawaban; gabungan teks blok = teks asli (hanya spasi berubah)."""
     blocks: list[Block] = []
     for line in NEWLINE.split(text):
+        bullet = BULLET_ITEM.match(line)
         m = LINE_ITEM.match(line) if _enumeration(line) is None else None
-        if m:  # aturan a: baris bernomor berurutan digabung jadi satu daftar
+        if bullet:  # aturan a: baris "- " berurutan digabung jadi satu daftar poin
+            prev = blocks[-1] if blocks else None
+            if prev and prev["type"] == "ul":
+                prev["items"].append(bullet.group(1))
+            else:
+                blocks.append({"type": "ul", "items": [bullet.group(1)]})
+        elif m:  # aturan a: baris bernomor berurutan digabung jadi satu daftar
             number = int(m.group(1) or m.group(2))
             prev = blocks[-1] if blocks else None
             if prev and prev["type"] == "ol" and prev["start"] + len(prev["items"]) == number:

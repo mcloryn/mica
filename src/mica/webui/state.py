@@ -61,6 +61,11 @@ def message_kind(m: Any) -> str:
     return "answer" if m.sources else "notice"
 
 
+def _follow_up(topic: str | None) -> dict[str, str] | None:
+    """Prompt v3: tawaran topik lanjutan (teks tetap dari texts.py), atau None."""
+    return {"topic": topic, "text": texts.follow_up_offer(topic)} if topic else None
+
+
 def view_json(vm: ViewModel) -> dict[str, Any]:
     pill, pill_label = texts.PILLS[vm.status.value]
     return {
@@ -101,6 +106,7 @@ def view_json(vm: ViewModel) -> dict[str, Any]:
                 "who": texts.VISITOR if m.role == "visitor" else texts.MICA,
                 "text": m.text,
                 "sources": [source_line(s) for s in m.sources],
+                "follow_up": _follow_up(m.follow_up_topic),
             }
             for m in vm.messages
         ],

@@ -26,6 +26,7 @@ window.MicaAnswerFormat = (() => {
     /(?:^|(?<=\s))(\d{1,2})\.\s+/g, // 1. 2.
   ];
   const LINE_ITEM = /^\s*(?:\((\d{1,2})\)|(\d{1,2})[.)])\s+(.*\S)\s*$/;
+  const BULLET_ITEM = /^\s*-\s+(.*\S)\s*$/; // baris poin "- " (prompt v3)
   const ITEM_TRAIL = /[\s;,]+$/;
   const NEWLINE = /\r\n|\r|\n/;
 
@@ -86,8 +87,13 @@ window.MicaAnswerFormat = (() => {
   function formatAnswer(text) {
     const blocks = [];
     for (const line of text.split(NEWLINE)) {
+      const bullet = BULLET_ITEM.exec(line);
       const m = enumeration(line) === null ? LINE_ITEM.exec(line) : null;
-      if (m) { // aturan a: baris bernomor berurutan digabung jadi satu daftar
+      if (bullet) { // aturan a: baris "- " berurutan digabung jadi satu daftar poin
+        const prev = blocks.length ? blocks[blocks.length - 1] : null;
+        if (prev && prev.type === "ul") prev.items.push(bullet[1]);
+        else blocks.push({ type: "ul", items: [bullet[1]] });
+      } else if (m) { // aturan a: baris bernomor berurutan digabung jadi satu daftar
         const number = Number(m[1] || m[2]);
         const prev = blocks.length ? blocks[blocks.length - 1] : null;
         if (prev && prev.type === "ol" && prev.start + prev.items.length === number) prev.items.push(m[3]);

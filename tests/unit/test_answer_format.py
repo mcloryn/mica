@@ -247,7 +247,9 @@ def test_view_json_answer_text_unformatted():
     vm.apply(ShowView(VisitState.SPEAKING, transcript="langkah?", answer=LONG, sources=(chunk,)))
     msg = state.view_json(vm)["messages"][-1]
     assert msg["text"] == LONG and msg["kind"] == "answer"
-    assert set(msg) == {"role", "kind", "who", "text", "sources"}  # skema JSON tetap
+    # skema JSON: field lama tetap; follow_up (prompt v3) null bila tidak ada tawaran
+    assert set(msg) == {"role", "kind", "who", "text", "sources", "follow_up"}
+    assert msg["follow_up"] is None
 
 
 def test_app_js_builds_dom_without_inner_html():
@@ -279,6 +281,8 @@ def parity_cases() -> list[str]:
         "Rektornya Hardy, S.Kom., M.Kom., Ph.D. Beliau mengajar. Buka 09.30! Ada? Ya.",
         "Biaya Rp. 5.000 di Jl. Thamrin No. 1. Situs daftar.mikroskil.ac.id. Email a@b.id. Oke.",
         "Ada 1) gedung A tahun 2021) baru, 2) gedung B.",
+        "Ada tiga jalur masuk S1.\n- Jalur Prestasi\n- Jalur Minat Bakat\n- Jalur Reguler",
+        "Pembuka.\n- satu\n- dua\nPenutup. Dua. Tiga.\n1. a\n2. b",
         "",
         LONG,
     ]

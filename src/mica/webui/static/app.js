@@ -98,8 +98,8 @@ function answerBlocks(text) {
   // hanya createElement/textContent; teks LLM tidak pernah diurai sebagai HTML
   return window.MicaAnswerFormat.formatAnswer(text).map((b) => {
     if (b.type === "p") return el("p", "", b.text);
-    const list = el("ol");
-    if (b.start !== 1) list.start = b.start;
+    const list = el(b.type); // ol (bernomor) atau ul (baris "- ", prompt v3)
+    if (b.type === "ol" && b.start !== 1) list.start = b.start;
     list.append(...b.items.map((x) => el("li", "", x)));
     return list;
   });
@@ -124,6 +124,11 @@ function messageElement(m) {
     const src = el("div", "sources");
     src.append(icon("doc"), el("span", "", `${config.texts.sources_label} ${m.sources.join("; ")}`));
     box.append(src);
+  }
+  if (m.follow_up) { // prompt v3: tawaran topik lanjutan; tombol = chip topik (mengisi kotak)
+    const offer = el("div", "follow-up");
+    offer.append(el("span", "", m.follow_up.text), topicButton(m.follow_up.topic, false));
+    box.append(offer);
   }
   return box;
 }

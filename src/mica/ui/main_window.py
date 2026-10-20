@@ -61,6 +61,12 @@ class MessageWidget(QFrame):
             sources.setWordWrap(True)
             sources.setTextFormat(Qt.TextFormat.PlainText)
             layout.addWidget(sources)
+        if message.follow_up_topic:  # prompt v3: tawaran topik lanjutan (teks saja di Qt)
+            offer = QLabel(texts.follow_up_offer(message.follow_up_topic))
+            offer.setObjectName("follow_up")
+            offer.setWordWrap(True)
+            offer.setTextFormat(Qt.TextFormat.PlainText)
+            layout.addWidget(offer)
 
 
 class MainWindow(QMainWindow):

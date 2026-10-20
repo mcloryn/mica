@@ -76,9 +76,11 @@ def test_view_json_answer_with_sources():
     v = state.view_json(vm)
     assert v["status"] == "SPEAKING" and v["status_label"] == "Berbicara" and not v["home"]
     assert v["messages"] == [
-        {"role": "visitor", "kind": "visitor", "who": "Kamu", "text": "Biaya?", "sources": []},
+        {"role": "visitor", "kind": "visitor", "who": "Kamu", "text": "Biaya?", "sources": [],
+         "follow_up": None},
         {"role": "mica", "kind": "answer", "who": "MICA", "text": "Rp14.000.000.",
-         "sources": ["Biaya Kuliah dan Syarat Masuk (berlaku 29 September 2026)"]},
+         "sources": ["Biaya Kuliah dan Syarat Masuk (berlaku 29 September 2026)"],
+         "follow_up": None},
     ]  # fmt: skip
     assert v["last_transcript"] == "Biaya?" and v["send_enabled"]
     json.dumps(v)  # hanya teks/angka/bool: bisa dikirim lewat WebSocket

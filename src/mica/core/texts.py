@@ -88,3 +88,12 @@ MONTHS = ("Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agust
 
 def greeting(color: str | None) -> str:
     return GREETING_COLOR.format(warna=color) if color else GREETING
+
+
+# prompt v3 (docs/PROMPT-V3.md): tawaran topik lanjutan, dibacakan setelah jawaban; topik = label
+# ui.topics yang dipilih LLM lewat follow_up_topic
+FOLLOW_UP_OFFER = "Mau tahu soal {topik} juga?"
+
+
+def follow_up_offer(topic: str) -> str:
+    return FOLLOW_UP_OFFER.format(topik=topic.lower())

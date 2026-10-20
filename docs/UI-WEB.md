@@ -463,3 +463,8 @@ dicek dengan menjalankan `answer_format.js` di Edge headless (`--dump-dom`, file
 bila Edge tidak ada). Repo belum punya runner JS, jadi tidak ada library baru. Teks TTS dan JSON
 ViewModel dicek identik dengan teks jawaban. Tangkapan layar sebelum/sesudah:
 `docs/ui-screens/answer-format/` (`python scripts/ui_screens.py --answer-format --out ...`).
+
+Tambahan prompt v3 (20 Okt 2026, docs/PROMPT-V3.md): baris berawalan `- ` yang berurutan menjadi
+satu daftar poin (`{"type": "ul"}`) di Python dan JS. Uji kesetaraan Edge memuat kasus ini. Pesan
+jawaban di JSON ViewModel mendapat field `follow_up` (`{"topic", "text"}` atau `null`). UI web
+menampilkan teks tawaran dan tombol topik yang mengisi kotak pertanyaan, sama dengan chip.

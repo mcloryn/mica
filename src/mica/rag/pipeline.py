@@ -32,7 +32,7 @@ from mica.rag.checker import FactChecker
 from mica.rag.gate import RelevanceGate
 from mica.rag.llm import LLMProvider
 from mica.rag.pii import scrub_pii
-from mica.rag.prompts import PROMPT_VERSION, REFUSAL, UNAVAILABLE, build_prompt
+from mica.rag.prompts import REFUSAL, UNAVAILABLE, build_prompt, prompt_version
 from mica.rag.retriever import Retriever
 
 Status = Literal[
@@ -131,7 +131,7 @@ class AnswerPipeline:
             )
 
         recent = list(history[-rag.history_turns :]) if rag.history_turns > 0 else []
-        request = build_prompt(q, recent, trace.hits, rag.prompt_variant)
+        request = build_prompt(q, recent, trace.hits, rag.prompt_variant, self.settings.ui.topics)
         try:
             trace.out = self.llm.generate(request, self.timeout_s)
         except LlmUnavailable:
@@ -181,8 +181,9 @@ class AnswerPipeline:
                 )
 
         return self._finish(
-            trace, out.status, out.answer, sources, q, history, session_id, input_mode
-        )
+            trace, out.status, out.answer, sources, q, history, session_id, input_mode,
+            follow_up_topic=out.follow_up_topic,
+        )  # fmt: skip
 
     def _finish(
         self,
@@ -194,9 +195,11 @@ class AnswerPipeline:
         history: Sequence[Turn],
         session_id: str,
         input_mode: Literal["voice", "text"],
+        follow_up_topic: str | None = None,
     ) -> tuple[FinalAnswer, TurnRecord]:
         trace.timings["total"] = time.perf_counter() - trace.started
-        final = FinalAnswer(status=status, text=text, sources=sources, timings=dict(trace.timings))
+        final = FinalAnswer(status=status, text=text, sources=sources, timings=dict(trace.timings),
+                            follow_up_topic=follow_up_topic)  # fmt: skip
         out = trace.out
         gate = trace.gate
         record = TurnRecord(
@@ -229,7 +232,7 @@ class AnswerPipeline:
             llm_usage=out.usage if out else None,
             citations=out.citations if out else (),
             error_code=str(trace.error_code) if trace.error_code else None,
-            prompt_version=PROMPT_VERSION,
+            prompt_version=prompt_version(self.settings.rag.prompt_variant),
         )
         if self.log is not None:
             self.log.log_turn(record)

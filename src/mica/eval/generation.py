@@ -47,12 +47,12 @@ from mica.rag.gate import make_gate
 from mica.rag.llm import ProviderFailed, make_llm
 from mica.rag.pii import scrub_pii
 from mica.rag.pipeline import AnswerPipeline
-from mica.rag.prompts import PROMPT_VERSION
+from mica.rag.prompts import prompt_version
 from mica.rag.retriever import embedder_for_kb, make_retriever
 
 EXPERIMENT = "E-02"
 SPLIT = "dev"
-PROMPT_VARIANTS = ("paraphrase", "plain")  # RagConfig.prompt_variant (ADR-07, E-03)
+PROMPT_VARIANTS = ("paraphrase", "plain", "v3")  # RagConfig.prompt_variant (ADR-07, E-03; v3)
 DEFAULT_CACHE_DIR = Path("data/cache/llm")
 TPM_LIMIT = 6000
 FIRST_ESTIMATE_TOKENS = 2500
@@ -85,6 +85,7 @@ PER_QUESTION_COLUMNS = (
     "error_code",
     "llm_latency_s",
     "from_cache",
+    "follow_up_topic",  # prompt v3 (docs/PROMPT-V3.md); kosong untuk v2
 )
 SWEEP_COLUMNS = (
     "threshold",
@@ -222,6 +223,7 @@ class LlmCache:
             provider=data["provider"],
             latency_s=data["latency_s"],
             usage=data.get("usage"),
+            follow_up_topic=data.get("follow_up_topic"),
         )
 
     def put(self, key: str, answer: LlmAnswer) -> None:
@@ -234,6 +236,8 @@ class LlmCache:
             "latency_s": answer.latency_s,
             "usage": answer.usage,
         }
+        if answer.follow_up_topic is not None:  # v3; berkas cache v2 tetap berformat sama
+            data["follow_up_topic"] = answer.follow_up_topic
         tmp = self.root / f"{key}.json.tmp"
         tmp.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
         os.replace(tmp, self.root / f"{key}.json")
@@ -352,6 +356,7 @@ class GenerationRow:
     error_code: str | None
     llm_latency_s: float | None
     from_cache: bool
+    follow_up_topic: str | None = None  # dari keluaran LLM (v3), sebelum cek angka
     retrieved_ids: tuple[str, ...] = field(default_factory=tuple)
 
     @property
@@ -451,6 +456,7 @@ def answer_questions(
             error_code=record.error_code,
             llm_latency_s=out.latency_s if out else None,
             from_cache=llm.last_from_cache,
+            follow_up_topic=out.follow_up_topic if out else None,
             retrieved_ids=tuple(r["chunk_id"] for r in record.retrieved),
         )
         done[q["qid"]] = row
@@ -588,6 +594,7 @@ def _per_question_row(r: GenerationRow) -> dict[str, Any]:
         "error_code": r.error_code or "",
         "llm_latency_s": _fmt(r.llm_latency_s, 3),
         "from_cache": int(r.from_cache),
+        "follow_up_topic": r.follow_up_topic or "",
     }
     for stage in STAGES:
         row[f"t_{stage}"] = _fmt(r.timings.get(stage), 4)
@@ -723,7 +730,7 @@ def run_generation(
         "prompt_variant": eff.rag.prompt_variant,
         "prompt_variant_config": settings.rag.prompt_variant,
         "prompt_variant_source": "--prompt-variant" if prompt_variant is not None else "config",
-        "prompt_version": PROMPT_VERSION,
+        "prompt_version": prompt_version(eff.rag.prompt_variant),
         "config_hash": eff.config_hash(),
         "config_hash_file": settings.config_hash(),
         "kb_id": kb.kb_id,
