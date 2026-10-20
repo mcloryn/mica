@@ -29,6 +29,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from mica.core.types import joined_answer
 from mica.eval.metrics import percentile
 from mica.kb.index import tokenize
 
@@ -396,9 +397,12 @@ def load_run(run_dir: Path, settings: Any, kb: Any, cache_dir: Path,
     items = []
     for r in rows:
         row = saved.get(r.qid)
-        if row is None or row["answer"] != r.answer or row["llm_status"] != (r.llm_status or ""):
+        if (row is None or row["answer"] != r.answer or row["llm_status"] != (r.llm_status or "")
+                or row.get("items", "") != "; ".join(r.items)):  # fmt: skip
             raise RunMismatch(f"{run_dir.name} {r.qid}: jawaban rekonstruksi beda dengan run")
-        items.append(AnswerItem(r.qid, model, row["llm_status"], row["answer"],
+        # prompt v4: teks yang dinilai = answer + items (joined_answer), sama dengan cek angka
+        text = joined_answer(row["answer"], r.items)
+        items.append(AnswerItem(r.qid, model, row["llm_status"], text,
                                 _split_ids(row["citations"]), tuple(r.retrieved_ids)))  # fmt: skip
     info = {"run": run_dir.as_posix(), "model": model, "gate_off": run["gate_off"],
             "prompt_version": run.get("prompt_version"), "n_questions": len(items),

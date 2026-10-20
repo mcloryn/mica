@@ -54,6 +54,12 @@ class MessageWidget(QFrame):
         body.setWordWrap(True)
         body.setTextFormat(Qt.TextFormat.PlainText)
         layout.addWidget(body)
+        if message.items:  # prompt v4: butir daftar di bawah jawaban
+            items = QLabel("\n".join(f"• {i}" for i in message.items))
+            items.setObjectName("items")
+            items.setWordWrap(True)
+            items.setTextFormat(Qt.TextFormat.PlainText)
+            layout.addWidget(items)
         if message.sources:
             lines = [texts.SOURCES_LABEL, *(f"• {source_line(s)}" for s in message.sources)]
             sources = QLabel("\n".join(lines))

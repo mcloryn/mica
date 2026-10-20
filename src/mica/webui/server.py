@@ -59,11 +59,13 @@ class WebUi:
     def __init__(self, ui: UiConfig, dev: bool,
                  clock: Callable[[], float] = time.perf_counter,
                  render_clock: Callable[[], float] = time.monotonic,
-                 trial: bool = False, input_mode: str = "vad") -> None:  # fmt: skip
+                 trial: bool = False, input_mode: str = "vad",
+                 prompt_label: str | None = None) -> None:  # fmt: skip
         self.ui = ui
         self.input_mode = input_mode  # audio.input_mode (Langkah 42)
         self.dev = dev
         self.trial = trial  # --trial-values (Langkah 41): label "NILAI COBA (dev)" di header
+        self.prompt_label = prompt_label  # --prompt-variant v2|v3|v4: label "PROMPT v4 (dev)"
         self.clock = clock
         # K-3 (E-09): jam yang sama dengan controller dan pekerja (monotonic), bukan perf_counter
         self.render_clock = render_clock
@@ -163,7 +165,9 @@ class WebUi:
                 json.dumps(
                     {
                         "type": "config",
-                        **config_json(self.ui, self.dev, self.trial, self.input_mode),
+                        **config_json(
+                            self.ui, self.dev, self.trial, self.input_mode, self.prompt_label
+                        ),
                     }
                 )
             )

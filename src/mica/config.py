@@ -88,7 +88,7 @@ class RagConfig(_Model):
     fact_check: FactCheckConfig
     followup_mode: Literal["concat", "llm_rewrite"]
     history_turns: NonNegativeInt
-    prompt_variant: Literal["paraphrase", "plain", "v3"]  # v3: docs/PROMPT-V3.md
+    prompt_variant: Literal["paraphrase", "plain", "v3", "v4"]  # docs/PROMPT-V3.md, PROMPT-V4.md
 
     @model_validator(mode="after")
     def _gate_needs_dense(self) -> RagConfig:

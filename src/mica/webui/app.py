@@ -166,7 +166,7 @@ def serve(
 def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool = False,
         fake_camera: bool = False, fake_voice: bool = False, no_browser: bool = False,
         port: int = 0, record_resources: Path | None = None, resource_interval: float = 5.0,
-        e09: bool = False, trial: bool = False) -> int:  # fmt: skip
+        e09: bool = False, trial: bool = False, prompt_label: str | None = None) -> int:  # fmt: skip
     """Rakit lalu jalankan sampai Edge ditutup atau Ctrl+C (dipakai python -m mica dan main)."""
     from mica.eval.resources import RecorderRefused, check_allowed
     from mica.webui.browser import EdgeBrowser, EdgeMissing
@@ -182,7 +182,7 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
         if record_resources is not None:
             check_allowed(settings.app.mode, e09)  # ditolak sebelum pekerja dimulai
         webui = WebUi(settings.ui, dev=settings.app.mode == "dev", trial=trial,
-                      input_mode=settings.audio.input_mode)  # fmt: skip
+                      input_mode=settings.audio.input_mode, prompt_label=prompt_label)  # fmt: skip
         browser = (
             None
             if no_browser
@@ -215,6 +215,18 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
     return 0
 
 
+# --prompt-variant: label uji coba -> rag.prompt_variant (v2 = paraphrase, docs/PROMPT-V4.md)
+PROMPT_VARIANTS = {"v2": "paraphrase", "v3": "v3", "v4": "v4"}
+
+
+def with_prompt_variant(settings: Settings, label: str) -> Settings:
+    """Settings dengan rag.prompt_variant dari --prompt-variant; hanya app.mode: dev."""
+    if settings.app.mode != "dev":
+        raise WebUiError("--prompt-variant hanya boleh saat app.mode: dev (ditolak di kiosk)")
+    rag = settings.rag.model_copy(update={"prompt_variant": PROMPT_VARIANTS[label]})
+    return settings.model_copy(update={"rag": rag})
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m mica.webui")
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
@@ -235,6 +247,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="isi kunci null dengan nilai coba SDD bagian 12 di memori (dev saja)",
     )
+    parser.add_argument(
+        "--prompt-variant",
+        choices=tuple(PROMPT_VARIANTS),
+        help="uji coba langsung varian prompt (v2 = paraphrase); dev saja, kiosk ditolak",
+    )
     parser.add_argument("--no-browser", action="store_true", help="jangan luncurkan Edge")
     parser.add_argument("--port", type=int, default=0, help="0 = port acak bebas")
     from mica.eval.resources import add_arguments
@@ -251,9 +268,15 @@ def main(argv: list[str] | None = None) -> int:
     except ConfigError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
+    if args.prompt_variant is not None:
+        try:
+            settings = with_prompt_variant(settings, args.prompt_variant)
+        except WebUiError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
     return run(settings, fake_workers=args.fake_workers, fake_pipeline=args.fake_pipeline,
                fake_camera=args.fake_camera, fake_voice=args.fake_voice,
                no_browser=args.no_browser, port=args.port,
                record_resources=args.record_resources,
                resource_interval=args.resource_interval, e09=args.e09,
-               trial=args.trial_values)  # fmt: skip
+               trial=args.trial_values, prompt_label=args.prompt_variant)  # fmt: skip

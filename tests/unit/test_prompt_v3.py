@@ -98,7 +98,7 @@ def test_v2_output_with_follow_up_field_still_rejected():
     with pytest.raises(_BadOutput, match="tidak dikenal"):
         parse_output(content)
     ok = json.dumps({"status": "answered", "answer": "x", "citations": ["a"]})
-    assert parse_output(ok) == ("answered", "x", ("a",), None)
+    assert parse_output(ok) == ("answered", "x", ("a",), None, ())
 
 
 def test_v2_pipeline_final_answer_has_no_follow_up(tmp_path):
@@ -142,7 +142,7 @@ def test_v3_needs_topics():
 def test_v3_variant_accepted_by_config_and_eval(tmp_path):
     assert "v3" in PROMPT_VARIANTS
     assert _settings(tmp_path, prompt_variant="v3").rag.prompt_variant == "v3"
-    assert PER_QUESTION_COLUMNS[-1] == "follow_up_topic"
+    assert "follow_up_topic" in PER_QUESTION_COLUMNS
 
 
 # --- v3: skema enum -----------------------------------------------------------------------
@@ -180,7 +180,7 @@ def test_v3_request_bodies_carry_schema():
 def test_v3_parse_output_accepts_topic_or_null(value):
     content = json.dumps({"status": "answered", "answer": "x", "citations": ["a"],
                           "follow_up_topic": value})  # fmt: skip
-    assert parse_output(content, TOPICS) == ("answered", "x", ("a",), value)
+    assert parse_output(content, TOPICS) == ("answered", "x", ("a",), value, ())
 
 
 @pytest.mark.parametrize(

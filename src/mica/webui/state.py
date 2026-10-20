@@ -107,6 +107,7 @@ def view_json(vm: ViewModel) -> dict[str, Any]:
                 "text": m.text,
                 "sources": [source_line(s) for s in m.sources],
                 "follow_up": _follow_up(m.follow_up_topic),
+                "items": list(m.items),  # prompt v4: <ul> di bawah jawaban
             }
             for m in vm.messages
         ],
@@ -120,9 +121,13 @@ def topic_question(ui: UiConfig, topic: str) -> str:
 
 
 def config_json(ui: UiConfig, dev: bool, trial: bool = False,
-                input_mode: str = "vad") -> dict[str, Any]:  # fmt: skip
+                input_mode: str = "vad", prompt_label: str | None = None) -> dict[str, Any]:  # fmt: skip
     return {
         "dev": dev,
+        # --prompt-variant (dev saja): "PROMPT v4 (dev)" di header; null = tanpa label
+        "prompt_badge": texts.PROMPT_BADGE.format(versi=prompt_label)
+        if prompt_label and dev
+        else None,
         "input_mode": input_mode,  # audio.input_mode: push_to_talk = tahan tombol Bicara
         "trial": trial and dev,  # nilai coba hanya ada di dev (mica.trial)
         "font_scale": ui.font_scale,

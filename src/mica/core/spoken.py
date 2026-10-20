@@ -44,3 +44,34 @@ def spoken_answer(text: str) -> str:
     if items:
         parts.append(_join_items(items))
     return " ".join(parts)
+
+
+# --- prompt v4 (docs/PROMPT-V4.md): field items dibacakan setelah answer ----------------------
+
+# Heuristik langkah: kalimat pengantar menyebut langkah/tahap/urutan/alur -> dibaca berurutan
+STEPS = re.compile(r"\b(langkah|tahap|tahapan|urutan|alur)\w*", re.IGNORECASE)
+ORDINALS = ("Pertama", "kedua", "ketiga", "keempat", "kelima", "keenam", "ketujuh", "kedelapan",
+            "kesembilan")  # fmt: skip
+
+
+def _steps(items: list[str]) -> str:
+    """ "Pertama A, kedua B, ..., terakhir F." (maksimal 10 item: 9 ordinal + terakhir)."""
+    head = [f"{ORDINALS[i]} {item}" for i, item in enumerate(items[:-1])]
+    return ", ".join([*head, f"terakhir {items[-1]}"]) + "."
+
+
+def spoken_items(items: tuple[str, ...] | list[str], steps: bool = False) -> str:
+    """Butir items sebagai satu kalimat: "A, B, dan C." atau, untuk langkah, berurutan."""
+    cleaned = [ITEM_END.sub("", i.strip()) for i in items if i.strip()]
+    if not cleaned:
+        return ""
+    if steps and len(cleaned) >= 2:
+        return _steps(cleaned)
+    return _join_items(cleaned)
+
+
+def spoken_with_items(text: str, items: tuple[str, ...] | list[str]) -> str:
+    """Teks Speak: answer (lewat spoken_answer) lalu items; tanpa items = spoken_answer(text)."""
+    spoken = spoken_answer(text)
+    said = spoken_items(items, steps=bool(STEPS.search(text)))
+    return f"{spoken} {said}" if said else spoken

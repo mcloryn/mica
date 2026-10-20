@@ -248,8 +248,9 @@ def test_view_json_answer_text_unformatted():
     msg = state.view_json(vm)["messages"][-1]
     assert msg["text"] == LONG and msg["kind"] == "answer"
     # skema JSON: field lama tetap; follow_up (prompt v3) null bila tidak ada tawaran
-    assert set(msg) == {"role", "kind", "who", "text", "sources", "follow_up"}
-    assert msg["follow_up"] is None
+    # items (prompt v4) kosong bila tidak ada
+    assert set(msg) == {"role", "kind", "who", "text", "sources", "follow_up", "items"}
+    assert msg["follow_up"] is None and msg["items"] == []
 
 
 def test_app_js_builds_dom_without_inner_html():

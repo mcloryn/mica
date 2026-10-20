@@ -1,6 +1,6 @@
 # Anotasi halusinasi: gpt-oss-20b, prompt v3 (set dev)
 
-- Status: **belum dianotasi** (20 Okt 2026). Aturan keputusan: docs/PROMPT-V3.md, syarat 4.
+- Status: **tidak dianotasi**. Keputusan pengguna 20 Okt 2026: v3 tidak dipakai (docs/PROMPT-V4.md).
 - File: `annotate_generation.csv` (27 baris, dibuat `eval generation`). Isi kolom `benar` dan
   `halusinasi` dengan 0/1 dan `catatan` bila perlu. Lalu jalankan
   `python -m mica.eval annotation --run <folder ini>` untuk membuat `annotation_summary.json`.

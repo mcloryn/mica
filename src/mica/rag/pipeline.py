@@ -27,6 +27,7 @@ from mica.core.types import (
     ScoredChunk,
     ScrubbedText,
     Turn,
+    joined_answer,
 )
 from mica.rag.checker import FactChecker
 from mica.rag.gate import RelevanceGate
@@ -167,7 +168,10 @@ class AnswerPipeline:
 
         if rag.fact_check.enabled:  # juga untuk false_premise (SDD 7.3)
             premise = q if out.status == "false_premise" else None
-            result = self.checker.check(out.answer, list(sources), premise)
+            # prompt v4: angka di items juga dicek
+            result = self.checker.check(
+                joined_answer(out.answer, out.items), list(sources), premise
+            )
             trace.fact_check = {
                 "passed": result.passed,
                 "checked": result.checked,
@@ -182,7 +186,7 @@ class AnswerPipeline:
 
         return self._finish(
             trace, out.status, out.answer, sources, q, history, session_id, input_mode,
-            follow_up_topic=out.follow_up_topic,
+            follow_up_topic=out.follow_up_topic, items=out.items,
         )  # fmt: skip
 
     def _finish(
@@ -196,10 +200,11 @@ class AnswerPipeline:
         session_id: str,
         input_mode: Literal["voice", "text"],
         follow_up_topic: str | None = None,
+        items: tuple[str, ...] = (),
     ) -> tuple[FinalAnswer, TurnRecord]:
         trace.timings["total"] = time.perf_counter() - trace.started
         final = FinalAnswer(status=status, text=text, sources=sources, timings=dict(trace.timings),
-                            follow_up_topic=follow_up_topic)  # fmt: skip
+                            follow_up_topic=follow_up_topic, items=items)  # fmt: skip
         out = trace.out
         gate = trace.gate
         record = TurnRecord(
@@ -220,7 +225,7 @@ class AnswerPipeline:
             llm_provider=out.provider if out else None,
             llm_status=out.status if out else None,
             final_status=status,
-            answer=text,
+            answer=joined_answer(text, items),  # v4: log memuat items
             sources=tuple(c.chunk_id for c in sources),
             fact_check=trace.fact_check
             if trace.fact_check is not None

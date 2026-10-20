@@ -100,6 +100,8 @@ class LlmRequest:
     allowed_chunk_ids: tuple[str, ...]
     # prompt v3: nilai enum follow_up_topic (label ui.topics); kosong = field tidak dikirim (v2)
     follow_up_topics: tuple[str, ...] = ()
+    # prompt v4: field items (larik string, boleh kosong) wajib di skema; False = tidak dikirim
+    items_field: bool = False
 
 
 @dataclass(frozen=True)
@@ -112,6 +114,7 @@ class LlmAnswer:
     # prompt_tokens, completion_tokens, total_tokens dari respons penyedia; None bila tidak ada
     usage: dict[str, int] | None = None
     follow_up_topic: str | None = None  # prompt v3; selalu None untuk v2
+    items: tuple[str, ...] = ()  # prompt v4: daftar terstruktur; kosong untuk v2/v3
 
 
 class LlmUnavailable(Exception):
@@ -132,3 +135,11 @@ class FinalAnswer:
     timings: dict[str, float]
     # prompt v3: label topik lanjutan untuk tawaran UI/TTS; None bila tidak ada atau menolak
     follow_up_topic: str | None = None
+    # prompt v4: butir daftar yang tampil di bawah text (UI <ul>, TTS "A, B, dan C."); kosong bila
+    # tidak ada atau menolak. Teks lengkap untuk log, riwayat, dan cek = joined_answer(text, items)
+    items: tuple[str, ...] = ()
+
+
+def joined_answer(answer: str, items: tuple[str, ...] | list[str]) -> str:
+    """answer + items digabung "; " (prompt v4): dipakai cek angka, eval copy, anotasi, riwayat."""
+    return f"{answer} {'; '.join(items)}" if items else answer

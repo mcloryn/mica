@@ -73,6 +73,8 @@ function applyConfig(c) {
   $("debug_dock").hidden = !c.dev;
   $("trial_badge").textContent = t.trial_badge;
   $("trial_badge").hidden = !c.trial; // --trial-values (Langkah 41)
+  $("prompt_badge").textContent = c.prompt_badge || "";
+  $("prompt_badge").hidden = !c.prompt_badge; // --prompt-variant (dev saja)
   if (c.preview !== "off" && previewSocket === null) openPreview();
 }
 
@@ -118,6 +120,11 @@ function messageElement(m) {
   } else { // jawaban: paragraf/daftar dari answer_format.js (tampilan saja; m.text tetap utuh)
     bubble.classList.add("answer");
     bubble.append(...answerBlocks(m.text));
+    if (m.items.length) { // prompt v4: items -> <ul> (textContent)
+      const list = el("ul", "answer-items");
+      list.append(...m.items.map((x) => el("li", "", x)));
+      bubble.append(list);
+    }
   }
   box.append(bubble);
   if (m.sources.length) {

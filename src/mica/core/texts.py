@@ -82,6 +82,7 @@ CAMERA_STARTING = "Menyiapkan kamera..."
 MIC_STARTING = "Menyiapkan mikrofon..."
 STATUS_PREPARING_ANSWER = "Menyiapkan jawaban..."
 TRIAL_BADGE = "NILAI COBA (dev)"  # --trial-values (Langkah 41)
+PROMPT_BADGE = "PROMPT {versi} (dev)"  # python -m mica.webui --prompt-variant (dev saja)
 MONTHS = ("Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus",
           "September", "Oktober", "November", "Desember")  # fmt: skip
 

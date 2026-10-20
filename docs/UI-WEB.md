@@ -468,3 +468,9 @@ Tambahan prompt v3 (20 Okt 2026, docs/PROMPT-V3.md): baris berawalan `- ` yang b
 satu daftar poin (`{"type": "ul"}`) di Python dan JS. Uji kesetaraan Edge memuat kasus ini. Pesan
 jawaban di JSON ViewModel mendapat field `follow_up` (`{"topic", "text"}` atau `null`). UI web
 menampilkan teks tawaran dan tombol topik yang mengisi kotak pertanyaan, sama dengan chip.
+
+Tambahan prompt v4 (20 Okt 2026, docs/PROMPT-V4.md): pesan jawaban di JSON ViewModel mendapat
+`items` (larik string, kosong bila tidak ada). Gelembung jawaban merender answer lewat formatter
+tampilan, lalu `<ul class="answer-items">` dari items dengan `textContent`. Uji coba langsung:
+`python -m mica.webui --prompt-variant v2|v3|v4` (dev saja, kiosk ditolak kode 2), dengan label
+header "PROMPT v4 (dev)".

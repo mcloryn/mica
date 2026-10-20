@@ -47,8 +47,8 @@ from mica.audio.messages import (
 from mica.config import Settings
 from mica.core import texts
 from mica.core.bus import SetVisionRate
-from mica.core.spoken import spoken_answer
-from mica.core.types import Chunk, FinalAnswer, Turn
+from mica.core.spoken import spoken_with_items
+from mica.core.types import Chunk, FinalAnswer, Turn, joined_answer
 from mica.rag.pii import scrub_pii
 from mica.vision.types import CameraStatus, PersonArrived, PersonLeft
 
@@ -153,6 +153,7 @@ class ShowView:
     answer: str | None = None
     sources: tuple[Chunk, ...] = ()  # F-09
     follow_up_topic: str | None = None  # prompt v3: tawaran topik lanjutan di bawah jawaban
+    items: tuple[str, ...] = ()  # prompt v4: butir daftar di bawah jawaban
     send_enabled: bool = True  # tombol kirim nonaktif saat THINKING
     camera_ok: bool = True
     mic_ok: bool = True
@@ -246,7 +247,8 @@ class Session:
         """Tampilan sama, hanya status, kamera, dan mikrofon yang diperbarui."""
         return self._show(message=self.view.message, transcript=self.view.transcript,
                           answer=self.view.answer, sources=self.view.sources,
-                          follow_up_topic=self.view.follow_up_topic)  # fmt: skip
+                          follow_up_topic=self.view.follow_up_topic,
+                          items=self.view.items)  # fmt: skip
 
     def _busy_rate(self) -> list[Action]:
         return [] if self.fps_busy is None else [SetVisionRate(self.fps_busy)]
@@ -432,16 +434,21 @@ class Session:
         elif s == VisitState.THINKING:
             if isinstance(event, AnswerReady):
                 answer = event.answer
-                # TTS: baris "- " jadi satu kalimat, lalu tawaran topik (v3); layar tetap answer.text
-                spoken = spoken_answer(answer.text)
+                # TTS: baris "- " jadi satu kalimat, lalu items (v4), lalu tawaran topik (v3);
+                # layar tetap answer.text (+ items sebagai daftar)
+                spoken = spoken_with_items(answer.text, answer.items)
                 if answer.follow_up_topic:
                     spoken = f"{spoken} {texts.follow_up_offer(answer.follow_up_topic)}"
                 speak, self.answer_uid = self._speak(spoken)
-                self.history = (*self.history, Turn(scrub_pii(self.question or ""), answer.text))
+                self.history = (
+                    *self.history,
+                    Turn(scrub_pii(self.question or ""), joined_answer(answer.text, answer.items)),
+                )
                 self.state = VisitState.SPEAKING
                 return [self._show(transcript=self.view.transcript, answer=answer.text,
                                    sources=answer.sources,
-                                   follow_up_topic=answer.follow_up_topic), speak]  # fmt: skip
+                                   follow_up_topic=answer.follow_up_topic,
+                                   items=answer.items), speak]  # fmt: skip
             if isinstance(event, TextSubmitted):
                 return self._ignore(event, "menunggu jawaban; tombol kirim nonaktif")
         elif s == VisitState.SPEAKING:

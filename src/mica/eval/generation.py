@@ -36,6 +36,7 @@ from mica.core.types import (
     LlmRequest,
     LlmUnavailable,
     Turn,
+    joined_answer,
 )
 from mica.eval.dataset import Question, load_questions
 from mica.eval.environment import collect_environment
@@ -52,7 +53,7 @@ from mica.rag.retriever import embedder_for_kb, make_retriever
 
 EXPERIMENT = "E-02"
 SPLIT = "dev"
-PROMPT_VARIANTS = ("paraphrase", "plain", "v3")  # RagConfig.prompt_variant (ADR-07, E-03; v3)
+PROMPT_VARIANTS = ("paraphrase", "plain", "v3", "v4")  # RagConfig.prompt_variant (ADR-07, E-03; v3)
 DEFAULT_CACHE_DIR = Path("data/cache/llm")
 TPM_LIMIT = 6000
 FIRST_ESTIMATE_TOKENS = 2500
@@ -86,6 +87,7 @@ PER_QUESTION_COLUMNS = (
     "llm_latency_s",
     "from_cache",
     "follow_up_topic",  # prompt v3 (docs/PROMPT-V3.md); kosong untuk v2
+    "items",  # prompt v4 (docs/PROMPT-V4.md): items digabung "; "; kosong untuk v2/v3
 )
 SWEEP_COLUMNS = (
     "threshold",
@@ -224,6 +226,7 @@ class LlmCache:
             latency_s=data["latency_s"],
             usage=data.get("usage"),
             follow_up_topic=data.get("follow_up_topic"),
+            items=tuple(data.get("items", ())),
         )
 
     def put(self, key: str, answer: LlmAnswer) -> None:
@@ -238,6 +241,8 @@ class LlmCache:
         }
         if answer.follow_up_topic is not None:  # v3; berkas cache v2 tetap berformat sama
             data["follow_up_topic"] = answer.follow_up_topic
+        if answer.items:  # v4; berkas cache v2/v3 tetap berformat sama
+            data["items"] = list(answer.items)
         tmp = self.root / f"{key}.json.tmp"
         tmp.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
         os.replace(tmp, self.root / f"{key}.json")
@@ -357,6 +362,7 @@ class GenerationRow:
     llm_latency_s: float | None
     from_cache: bool
     follow_up_topic: str | None = None  # dari keluaran LLM (v3), sebelum cek angka
+    items: tuple[str, ...] = ()  # dari keluaran LLM (v4), sebelum cek angka
     retrieved_ids: tuple[str, ...] = field(default_factory=tuple)
 
     @property
@@ -449,7 +455,7 @@ def answer_questions(
             check_unsupported=tuple(fact.get("unsupported", ())),
             status_on=final.status,
             status_off=status_off or final.status,
-            final_text=final.text,
+            final_text=joined_answer(final.text, final.items),
             provider=record.llm_provider,
             usage=record.llm_usage,
             timings=dict(final.timings),
@@ -457,6 +463,7 @@ def answer_questions(
             llm_latency_s=out.latency_s if out else None,
             from_cache=llm.last_from_cache,
             follow_up_topic=out.follow_up_topic if out else None,
+            items=out.items if out else (),
             retrieved_ids=tuple(r["chunk_id"] for r in record.retrieved),
         )
         done[q["qid"]] = row
@@ -595,6 +602,7 @@ def _per_question_row(r: GenerationRow) -> dict[str, Any]:
         "llm_latency_s": _fmt(r.llm_latency_s, 3),
         "from_cache": int(r.from_cache),
         "follow_up_topic": r.follow_up_topic or "",
+        "items": "; ".join(r.items),
     }
     for stage in STAGES:
         row[f"t_{stage}"] = _fmt(r.timings.get(stage), 4)
@@ -628,7 +636,7 @@ def annotation_rows(rows: list[GenerationRow], kb: KnowledgeBase) -> list[dict[s
             "type": r.type,
             "question": r.question,
             "reference_answer": r.reference_answer,
-            "answer": r.answer,
+            "answer": joined_answer(r.answer, r.items),  # v4: items digabung "; "
             "status": r.status_off,
             "cited_chunks": _cited_text(r, chunks),
             "benar": "",
