@@ -1,0 +1,199 @@
+{
+ "source": "results/cpu-threads/20261021-guided/B-tts1-vision7/live.jsonl",
+ "offset_note": "fase suara dipetakan lewat selisih Speak pertama vs detik sintesis pertama (±1 s)",
+ "phases": {
+  "idle": {
+   "n_seconds": 42,
+   "drawn_fps_median": 7.8,
+   "drawn_fps_min": 0.0,
+   "gap_p95_ms": 211.0,
+   "gap_max_ms": 1966,
+   "tts_seconds": 0,
+   "gap_p95_tts_ms": null,
+   "gap_max_tts_ms": null,
+   "capture_fps_median": 28.1,
+   "detect_ms_median": 61.4,
+   "cpu_utama": 6.8,
+   "cpu_vision": 627.5,
+   "cpu_suara": 1.5,
+   "cpu_edge": 12.1,
+   "cpu_total": 43.2,
+   "first_audio_s": [],
+   "speaks": 0,
+   "speaks_interrupted": 0,
+   "flow": {
+    "greeting_seen": false,
+    "target_seen": false,
+    "transcript_seen": false,
+    "n_visitor_max": 0,
+    "n_with_sources_max": 0,
+    "statuses": [
+     "IDLE"
+    ],
+    "ends_idle_empty": true
+   }
+  },
+  "disapa": {
+   "n_seconds": 44,
+   "drawn_fps_median": 9.7,
+   "drawn_fps_min": 6.8,
+   "gap_p95_ms": 205.0,
+   "gap_max_ms": 251,
+   "tts_seconds": 1,
+   "gap_p95_tts_ms": 172.5,
+   "gap_max_tts_ms": 178,
+   "capture_fps_median": 27.8,
+   "detect_ms_median": 61.8,
+   "cpu_utama": 6.0,
+   "cpu_vision": 628.4,
+   "cpu_suara": 1.5,
+   "cpu_edge": 9.9,
+   "cpu_total": 41.8,
+   "first_audio_s": [
+    0.43
+   ],
+   "speaks": 1,
+   "speaks_interrupted": 0,
+   "flow": {
+    "greeting_seen": true,
+    "target_seen": true,
+    "transcript_seen": false,
+    "n_visitor_max": 0,
+    "n_with_sources_max": 0,
+    "statuses": [
+     "GREETING",
+     "IDLE",
+     "READY"
+    ],
+    "ends_idle_empty": false
+   }
+  },
+  "ketik": {
+   "n_seconds": 88,
+   "drawn_fps_median": 9.9,
+   "drawn_fps_min": 8.9,
+   "gap_p95_ms": 179.0,
+   "gap_max_ms": 214,
+   "tts_seconds": 7,
+   "gap_p95_tts_ms": 180.0,
+   "gap_max_tts_ms": 207,
+   "capture_fps_median": 27.8,
+   "detect_ms_median": 62.3,
+   "cpu_utama": 4.6,
+   "cpu_vision": 627.0,
+   "cpu_suara": 1.5,
+   "cpu_edge": 15.2,
+   "cpu_total": 42.3,
+   "first_audio_s": [
+    2.87,
+    0.35,
+    1.84,
+    0.21,
+    1.17
+   ],
+   "speaks": 5,
+   "speaks_interrupted": 2,
+   "flow": {
+    "greeting_seen": true,
+    "target_seen": true,
+    "transcript_seen": true,
+    "n_visitor_max": 1,
+    "n_with_sources_max": 1,
+    "statuses": [
+     "GREETING",
+     "IDLE",
+     "LISTENING",
+     "READY",
+     "SPEAKING",
+     "THINKING"
+    ],
+    "ends_idle_empty": false
+   }
+  },
+  "suara": {
+   "n_seconds": 74,
+   "drawn_fps_median": 7.9,
+   "drawn_fps_min": 6.8,
+   "gap_p95_ms": 211.0,
+   "gap_max_ms": 245,
+   "tts_seconds": 5,
+   "gap_p95_tts_ms": 211.9,
+   "gap_max_tts_ms": 245,
+   "capture_fps_median": 27.9,
+   "detect_ms_median": 61.8,
+   "cpu_utama": 6.0,
+   "cpu_vision": 624.6,
+   "cpu_suara": 1.5,
+   "cpu_edge": 12.2,
+   "cpu_total": 43.2,
+   "first_audio_s": [
+    0.22,
+    1.56,
+    0.25,
+    2.54
+   ],
+   "speaks": 4,
+   "speaks_interrupted": 0,
+   "flow": {
+    "greeting_seen": false,
+    "target_seen": true,
+    "transcript_seen": true,
+    "n_visitor_max": 3,
+    "n_with_sources_max": 0,
+    "statuses": [
+     "IDLE",
+     "LISTENING",
+     "READY",
+     "SPEAKING",
+     "THINKING"
+    ],
+    "ends_idle_empty": true
+   }
+  },
+  "pergi": {
+   "n_seconds": 44,
+   "drawn_fps_median": 7.8,
+   "drawn_fps_min": 6.8,
+   "gap_p95_ms": 209.0,
+   "gap_max_ms": 235,
+   "tts_seconds": 0,
+   "gap_p95_tts_ms": null,
+   "gap_max_tts_ms": null,
+   "capture_fps_median": 28.8,
+   "detect_ms_median": 60.2,
+   "cpu_utama": 4.6,
+   "cpu_vision": 625.8,
+   "cpu_suara": 0.0,
+   "cpu_edge": 7.7,
+   "cpu_total": 40.8,
+   "first_audio_s": [],
+   "speaks": 0,
+   "speaks_interrupted": 0,
+   "flow": {
+    "greeting_seen": false,
+    "target_seen": false,
+    "transcript_seen": false,
+    "n_visitor_max": 0,
+    "n_with_sources_max": 0,
+    "statuses": [
+     "IDLE"
+    ],
+    "ends_idle_empty": true
+   }
+  }
+ },
+ "first_audio_all": {
+  "n": 10,
+  "median": 0.8,
+  "p95": 2.7,
+  "max": 2.87
+ },
+ "tts_threads": {
+  "logical_cores": 20,
+  "physical_cores": 14,
+  "intra_op_num_threads": 1,
+  "inter_op_num_threads": 1,
+  "execution_mode": "ExecutionMode.ORT_SEQUENTIAL",
+  "allow_spinning": "bawaan"
+ }
+}
