@@ -165,13 +165,13 @@ class MainWindow(QMainWindow):
         grid = QGridLayout()
         self.topic_buttons: dict[str, QPushButton] = {}
         self.suggestion_buttons: list[QPushButton] = []
-        for col, topic in enumerate(ui.topics):
+        for col, item in enumerate(ui.topics):
+            topic = item.label
             button = QPushButton(topic)
             button.setObjectName("topic")
             suggestions = ui.suggestions.get(topic, ())
-            # tanpa saran (ui.suggestions kosong) nama topik dikirim sebagai pertanyaan
-            first = suggestions[0] if suggestions else topic
-            button.clicked.connect(lambda _=False, t=topic, q=first: self._topic(t, q))
+            # tombol topik mengirim ui.topics[].question (Langkah 53)
+            button.clicked.connect(lambda _=False, t=topic, q=item.question: self._topic(t, q))
             grid.addWidget(button, 0, col)
             self.topic_buttons[topic] = button
             for r, question in enumerate(suggestions, start=1):

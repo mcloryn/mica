@@ -257,13 +257,26 @@ class SessionConfig(_Model):
 LOGO_SUFFIXES = {".png", ".svg", ".jpg", ".jpeg", ".webp"}
 
 
+class TopicConfig(_Model):
+    # F-14 (Langkah 53): label kartu/chip dan satu pertanyaan lengkap yang dikirim saat diklik
+    label: str
+    question: str
+
+    @field_validator("label", "question")
+    @classmethod
+    def _not_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("tidak boleh kosong")
+        return value
+
+
 class UiConfig(_Model):
     # ADR-19: web = Flask + Edge kiosk, UI utama (keputusan pemilik proyek 17 Okt 2026);
     # pyside6 = cadangan beku, keputusan hapus setelah E-09 (docs/UI-WEB.md).
     backend: Literal["pyside6", "web"]
     fullscreen: bool
     font_scale: PositiveFloat
-    topics: tuple[str, ...] = Field(strict=False)
+    topics: tuple[TopicConfig, ...] = Field(strict=False)
     # saran pertanyaan per topik (F-14); kosong = tombol topik mengirim nama topik sebagai
     # pertanyaan. Diisi pengembang, bukan dikarang kode.
     suggestions: dict[str, Annotated[tuple[str, ...], Field(strict=False)]] = Field(
@@ -289,9 +302,20 @@ class UiConfig(_Model):
             raise ValueError(f"ui.logo_path harus salah satu {sorted(LOGO_SUFFIXES)}")
         return value
 
+    @property
+    def topic_labels(self) -> tuple[str, ...]:
+        """Label ui.topics (enum follow_up_topic di prompt v3/v4, kartu UI)."""
+        return tuple(t.label for t in self.topics)
+
+    def topic_question(self, label: str) -> str | None:
+        return next((t.question for t in self.topics if t.label == label), None)
+
     @model_validator(mode="after")
     def _suggestions_match_topics(self) -> UiConfig:
-        unknown = sorted(set(self.suggestions) - set(self.topics))
+        labels = self.topic_labels
+        if len(set(labels)) != len(labels):
+            raise ValueError(f"ui.topics punya label ganda: {list(labels)}")
+        unknown = sorted(set(self.suggestions) - set(labels))
         if unknown:
             raise ValueError(f"ui.suggestions punya topik di luar ui.topics: {unknown}")
         return self

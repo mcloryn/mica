@@ -198,7 +198,7 @@ class AnswerPipeline:
 
     def _request(self, q: ScrubbedText, recent: list[Turn], hits: list[ScoredChunk]) -> LlmRequest:
         """Request penyedia pertama + alternatif untuk penyedia lain yang variannya berbeda."""
-        topics = self.settings.ui.topics
+        topics = self.settings.ui.topic_labels
         first = self._variant(None)
         request = build_prompt(q, recent, hits, first, topics)
         alternates = []

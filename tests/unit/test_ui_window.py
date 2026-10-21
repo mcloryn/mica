@@ -53,7 +53,8 @@ def _answer(w, question="Biaya kuliah berapa?", answer="Rp7.500.000 per tahun.")
 
 def test_topic_click_emits_topic_tapped(window, qtbot):
     qtbot.mouseClick(window.topic_buttons["Biaya"], Qt.MouseButton.LeftButton)
-    assert window.events == [TopicTapped("Biaya", "Biaya")]  # ui.suggestions kosong
+    # Langkah 53: tombol topik mengirim ui.topics[].question, bukan nama topik
+    assert window.events == [TopicTapped("Biaya", _ui().topic_question("Biaya"))]
 
 
 def test_suggestion_buttons_from_config(qtbot):
@@ -64,7 +65,8 @@ def test_suggestion_buttons_from_config(qtbot):
     (hint,) = w.suggestion_buttons
     qtbot.mouseClick(hint, Qt.MouseButton.LeftButton)
     qtbot.mouseClick(w.topic_buttons["Biaya"], Qt.MouseButton.LeftButton)
-    assert events == [TopicTapped("Biaya", "Biaya kuliah S1 berapa?")] * 2
+    assert events == [TopicTapped("Biaya", "Biaya kuliah S1 berapa?"),
+                      TopicTapped("Biaya", _ui().topic_question("Biaya"))]  # fmt: skip
 
 
 def test_type_and_enter_emits_text_submitted(window, qtbot):
@@ -168,7 +170,7 @@ def test_debug_panel_only_in_dev(qtbot):
 
 def test_topic_buttons_match_config(window):
     labels = [b.text() for b in window.findChildren(QPushButton, "topic")]
-    assert labels == list(_ui().topics)
+    assert labels == list(_ui().topic_labels)
 
 
 def test_ui_modules_import_no_heavy_modules():

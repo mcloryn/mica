@@ -344,6 +344,40 @@ def test_ui_suggestions_empty_and_must_match_topics(tmp_path):
         load_settings(_write(tmp_path, raw))
 
 
+@pytest.mark.parametrize("path", [DEV_YAML, KIOSK_YAML])
+def test_ui_topics_have_label_and_question(path):
+    # Langkah 53: label tetap, question satu kalimat tanya; ditandai sementara di komentar
+    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    topics = raw["ui"]["topics"]
+    assert [t["label"] for t in topics] == [
+        "Program Studi",
+        "Biaya",
+        "Beasiswa",
+        "Pendaftaran",
+        "Fasilitas",
+        "Lokasi",
+    ]
+    assert all(t["question"].strip().endswith("?") for t in topics)
+    assert "sementara, ganti dengan pertanyaan nyata staf PMB" in path.read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    "topic",
+    [{"label": "Biaya"}, {"label": "Biaya", "question": "  "}, "Biaya"],
+    ids=["tanpa-question", "question-kosong", "format-lama"],
+)
+def test_ui_topic_without_question_rejected_at_start(tmp_path, topic):
+    from mica.check import _check_config
+
+    raw = _dev_raw()
+    raw["ui"]["topics"][1] = topic
+    path = _write(tmp_path, raw)
+    with pytest.raises(ConfigError, match="ui.topics"):
+        load_settings(path)
+    row, settings = _check_config(path, None)  # python -m mica menjalankan check dulu
+    assert row.status == "GAGAL" and settings is None
+
+
 def test_stt_filters_null_in_dev():
     audio = load_settings(DEV_YAML).audio
     assert audio.vad.min_speech_ms is None and audio.stt.no_speech_threshold is None

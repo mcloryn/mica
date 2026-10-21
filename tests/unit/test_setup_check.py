@@ -374,12 +374,12 @@ def test_check_no_leak_ok_and_no_row_without_test_set(tmp_path, locked, monkeypa
                                (tmp_path / "msedge.exe",), test_set=path)[0]  # fmt: skip
 
     leak = {r.item: r for r in run(test_set)}["kebocoran set uji"]
-    assert leak.status == "OK" and "1 pertanyaan uji" in leak.message
+    assert leak.status == "OK" and "1 pertanyaan tidak identik/mirip" in leak.message
     assert "kebocoran set uji" not in {r.item for r in run(tmp_path / "tidak-ada.jsonl")}
 
 
 def test_check_catches_test_question_in_topic_cards(tmp_path, locked, monkeypatch):
-    # kartu topik UI web mengisi kotak pertanyaan dengan nama topik: ikut dicek
+    # label kartu topik UI web ikut dicek
     config = _with_suggestions(tmp_path, {})
     _models(tmp_path, locked, load_settings(config))
     test_set = _test_set(tmp_path / "test.jsonl", ["Beasiswa?", "Ada asrama?"])
@@ -388,3 +388,61 @@ def test_check_catches_test_question_in_topic_cards(tmp_path, locked, monkeypatc
                               (tmp_path / "msedge.exe",), test_set=test_set)  # fmt: skip
     leak = {r.item: r for r in rows}["kebocoran set uji"]
     assert leak.status == "GAGAL" and "o-test-001" in leak.message and "ui.topics" in leak.message
+
+
+def _with_topic_question(tmp_path, label, question):
+    path = _dev_config(tmp_path)
+    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    for item in raw["ui"]["topics"]:
+        if item["label"] == label:
+            item["question"] = question
+    path.write_text(yaml.safe_dump(raw, allow_unicode=True), encoding="utf-8")
+    return path
+
+
+def _run_leak(tmp_path, locked, monkeypatch, config, test_set, dev_sets):
+    _models(tmp_path, locked, load_settings(config))
+    monkeypatch.setenv("GROQ_API_KEY", FAKE_KEY)
+    rows, _ = check.run_check(config, None, tmp_path, ROOT / "data" / "kb", lambda: DEVICES,
+                              (tmp_path / "msedge.exe",), test_set=test_set,
+                              dev_sets=dev_sets)  # fmt: skip
+    return {r.item: r for r in rows}, rows
+
+
+def test_check_catches_topic_question_identical_to_dev_and_test(tmp_path, locked, monkeypatch):
+    # Langkah 53: question chip yang identik (setelah normalisasi) dengan set dev atau uji GAGAL
+    config = _with_topic_question(tmp_path, "Beasiswa", "beasiswa APA aja yang ada di sini")
+    dev_set = _test_set(tmp_path / "dev.jsonl", ["Beasiswa apa aja yang ada di sini?"])
+    test_set = _test_set(tmp_path / "test.jsonl", ["Beasiswa apa aja yang ada di sini?"])
+    by_item, rows = _run_leak(tmp_path, locked, monkeypatch, config, test_set, (dev_set,))
+    for item in ("kebocoran set dev", "kebocoran set uji"):
+        assert by_item[item].status == "GAGAL" and "o-test-001" in by_item[item].message
+        assert "1.00" in by_item[item].message
+    assert check.failed(rows)
+
+
+def test_check_catches_similar_topic_question(tmp_path, locked, monkeypatch):
+    # kemiripan token tinggi (bukan identik) juga GAGAL; kalimat lain tetap OK
+    config = _with_topic_question(tmp_path, "Biaya", "Biaya kuliah S1 berapa per tahun ya?")
+    dev_set = _test_set(tmp_path / "dev.jsonl", ["Biaya kuliah S1 berapa per tahun?",
+                                                 "Cuaca di Medan hari ini gimana?"])  # fmt: skip
+    by_item, _ = _run_leak(tmp_path, locked, monkeypatch, config, tmp_path / "x.jsonl", (dev_set,))
+    leak = by_item["kebocoran set dev"]
+    assert leak.status == "GAGAL" and "o-test-001" in leak.message
+    assert "o-test-002" not in leak.message and "kebocoran set uji" not in by_item
+
+
+def test_repo_topic_questions_pass_leak_check_against_data_eval():
+    # pertanyaan chip di config/dev.yaml dan kiosk.yaml tidak identik/mirip data/eval
+    from mica.eval.dataset import load_questions
+
+    sets = [ROOT / "data/eval/questions.jsonl", ROOT / "data/eval/official/dev.jsonl",
+            ROOT / "data/eval/official/test.jsonl"]  # fmt: skip
+    questions = [q for p in sets if p.is_file() for q in load_questions(p)]
+    assert questions
+    for name in ("dev.yaml", "kiosk.yaml"):
+        raw = yaml.safe_load((ROOT / "config" / name).read_text(encoding="utf-8"))
+        hints = [t["question"] for t in raw["ui"]["topics"]] + [
+            t["label"] for t in raw["ui"]["topics"]
+        ]
+        assert check.find_leaks(hints, questions) == [], name

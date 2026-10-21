@@ -106,11 +106,14 @@ def test_view_json_matches_pyside6_render(qtbot, scene):
 
 
 def test_config_json_topics_and_texts():
-    c = state.config_json(_ui(suggestions={"Biaya": ("Biaya S1 berapa?",)}), dev=True)
+    ui = _ui(suggestions={"Biaya": ("Biaya S1 berapa?",)})
+    c = state.config_json(ui, dev=True)
     biaya = next(t for t in c["topics"] if t["topic"] == "Biaya")
-    assert biaya == {"topic": "Biaya", "question": "Biaya S1 berapa?",
+    # Langkah 53: question = ui.topics[].question (bukan saran pertama atau nama topik)
+    assert biaya == {"topic": "Biaya", "question": ui.topic_question("Biaya"),
                      "suggestions": ["Biaya S1 berapa?"]}  # fmt: skip
-    assert [t["topic"] for t in c["topics"]] == list(_ui().topics)
+    assert biaya["question"] != "Biaya" and biaya["question"].endswith("?")
+    assert [t["topic"] for t in c["topics"]] == list(_ui().topic_labels)
     assert "Gambar tidak disimpan" in c["texts"]["notice"] and c["dev"] is True
 
 
@@ -763,3 +766,54 @@ def test_token_contrast_at_least_aa():
     rows = mod.rows()
     assert len(rows) == len(mod.PAIRS) and all(r >= 4.5 for *_, r in rows)
     assert mod.ratio("#ffffff", "#000000") == pytest.approx(21.0)
+
+
+# --- Langkah 53: chip topik langsung mengirim question -----------------------------------
+
+
+def test_chip_sends_configured_question_as_visitor_message():
+    ui = _ui()
+    for item in ui.topics:
+        event = _web_event({"type": "topic", "topic": item.label, "question": item.question}, ui)
+        assert event == TopicTapped(item.label, item.question)
+    # nama topik saja (perilaku lama) atau pertanyaan karangan browser ditolak
+    assert _web_event({"type": "topic", "topic": "Biaya", "question": "Biaya"}, ui) is None
+    # pertanyaan chip tampil sebagai pesan pengunjung, sama seperti pertanyaan ketik
+    from mica.core.session import Session
+
+    def actions(event):
+        ids = (f"s{i}" for i in range(10))
+        session = Session(5.0, None, None, None, None, new_session_id=lambda: next(ids))
+        return session.handle(event, 0.0)
+
+    question = ui.topic_question("Biaya")
+    out = actions(TopicTapped("Biaya", question))
+    assert out == actions(TextSubmitted(question))
+    vm = ViewModel()
+    for item in out:
+        if isinstance(item, ShowView):
+            vm.apply(item)
+    msgs = state.view_json(vm)["messages"]
+    assert msgs[-1]["kind"] == "visitor" and msgs[-1]["text"] == question
+
+
+def test_chip_ignored_while_answering():
+    ui = _ui()
+    busy = [ShowView(V.THINKING, transcript="x", send_enabled=False)]
+    question = ui.topic_question("Biaya")
+    msg = {"type": "topic", "topic": "Biaya", "question": question}
+    assert _web_event(msg, ui, busy) is None
+    assert _web_event(msg, ui) == TopicTapped("Biaya", question)
+
+
+def test_app_js_chip_sends_question_and_follows_send_enabled():
+    js = (STATIC_DIR / "app.js").read_text(encoding="utf-8")
+    send_topic = js[js.index("function sendTopic") : js.index("function topicButton")]
+    assert 'type: "topic"' in send_topic and "item.question" in send_topic
+    assert "view.send_enabled" in send_topic
+    button = js[js.index("function topicButton") : js.index("function applyConfig")]
+    assert "sendTopic(topic)" in button and "b.disabled" in button and "fillQuestion" not in js
+    # chip (grid, baris chip, tawaran topik lanjut) ikut nonaktif seperti tombol Kirim
+    assert 'querySelectorAll("button[data-topic]")) b.disabled = !v.send_enabled' in js
+    assert "topicButton(m.follow_up.topic, false)" in js
+    assert "innerHTML" not in js

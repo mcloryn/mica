@@ -5,8 +5,9 @@ config (M-01; di kiosk semua null wajib terisi), file model dan sha256, KB aktif
 embedder-nya, keberadaan GROQ_API_KEY (nilainya tidak pernah dicetak), daftar perangkat
 audio dari sounddevice.query_devices() (tanpa membuka stream), kamera (hanya "diperiksa saat
 start"), folder log bisa ditulis, bila ui.backend: web, msedge.exe ditemukan (Edge tidak
-dijalankan), dan bila data/eval/official/test.jsonl ada, tidak ada pertanyaan uji yang sama
-dengan isi ui.suggestions (docs/DATASET.md, larangan bocor). Kode keluar 0 bila semua OK, 1 bila ada GAGAL.
+dijalankan), dan tidak ada pertanyaan set uji (data/eval/official/test.jsonl) maupun set dev
+(data/eval/questions.jsonl, official/dev.jsonl) yang identik atau mirip dengan teks
+ui.suggestions/ui.topics (docs/DATASET.md, larangan bocor). Kode keluar 0 bila semua OK, 1 bila ada GAGAL.
 """
 
 from __future__ import annotations
@@ -136,26 +137,64 @@ def _check_browser(edge_paths: tuple[Path, ...]) -> CheckRow:
         return CheckRow("Microsoft Edge", "GAGAL", f"{exc}; ui.backend: web butuh Edge")
 
 
-def _check_test_leak(settings: Settings, test_set: Path) -> CheckRow | None:
-    """Pertanyaan set uji resmi tidak boleh muncul di ui.suggestions maupun teks kartu topik UI
-    web (ui.topics; kartu mengisi kotak pertanyaan dengan nama topik), setelah normalisasi."""
-    if not test_set.is_file():
-        return None
-    from mica.eval.dataset import DatasetError, load_questions
+# Langkah 53: teks UI dianggap mirip bila Jaccard token (setelah normalize_question) >= nilai
+# ini. NILAI PENGAMAN PENGEMBANG, bukan hasil eksperimen; pertanyaan chip saat ini <= 0,33.
+LEAK_TOKEN_JACCARD = 0.5
+
+
+def token_jaccard(a: str, b: str) -> float:
     from mica.eval.official import normalize_question
 
-    item = "kebocoran set uji"
-    try:
-        questions = load_questions(test_set)
-    except DatasetError as exc:
-        return CheckRow(item, "GAGAL", f"{test_set.as_posix()} tidak terbaca ({exc})")
-    test = {normalize_question(q["question"]): q["qid"] for q in questions}
-    hints = [h for hs in settings.ui.suggestions.values() for h in hs] + list(settings.ui.topics)
-    leaked = sorted({test[n] for hint in hints if (n := normalize_question(hint)) in test})
-    if leaked:
-        return CheckRow(item, "GAGAL", f"{len(leaked)} pertanyaan uji ada di ui.suggestions/ui.topics: "
-                        + ", ".join(leaked) + " (hapus dari config)")  # fmt: skip
-    return CheckRow(item, "OK", f"{len(test)} pertanyaan uji tidak ada di ui.suggestions/ui.topics")
+    ta, tb = set(normalize_question(a).split()), set(normalize_question(b).split())
+    return len(ta & tb) / len(ta | tb) if ta | tb else 1.0
+
+
+def ui_texts(settings: Settings) -> list[str]:
+    """Teks yang bisa dikirim UI tanpa diketik pengunjung: saran, label, dan question topik."""
+    ui = settings.ui
+    return ([h for hs in ui.suggestions.values() for h in hs]
+            + list(ui.topic_labels) + [t.question for t in ui.topics])  # fmt: skip
+
+
+def find_leaks(hints: list[str], questions: list[dict[str, Any]]) -> list[tuple[str, str, float]]:
+    """(qid, teks UI, skor) untuk setiap pasangan identik setelah normalisasi atau mirip."""
+    from mica.eval.official import normalize_question
+
+    found = []
+    for q in questions:
+        for hint in hints:
+            same = normalize_question(hint) == normalize_question(q["question"])
+            score = 1.0 if same else token_jaccard(hint, q["question"])
+            if score >= LEAK_TOKEN_JACCARD:
+                found.append((q["qid"], hint, score))
+    return found
+
+
+def _check_leak(settings: Settings, item: str, sets: tuple[Path, ...]) -> CheckRow | None:
+    """Pertanyaan set evaluasi tidak boleh identik atau mirip dengan teks yang dikirim UI
+    (ui.suggestions, label dan question ui.topics), docs/DATASET.md larangan bocor."""
+    present = [p for p in sets if p.is_file()]
+    if not present:
+        return None
+    from mica.eval.dataset import DatasetError, load_questions
+
+    questions: list[dict[str, Any]] = []
+    for path in present:
+        try:
+            questions += load_questions(path)
+        except DatasetError as exc:
+            return CheckRow(item, "GAGAL", f"{path.as_posix()} tidak terbaca ({exc})")
+    leaks = find_leaks(ui_texts(settings), questions)
+    if leaks:
+        detail = "; ".join(f"{qid} ~ {hint!r} ({score:.2f})" for qid, hint, score in leaks)
+        return CheckRow(item, "GAGAL", f"{len(leaks)} teks ui.suggestions/ui.topics identik atau "
+                        f"mirip pertanyaan evaluasi: {detail} (tulis ulang di config)")  # fmt: skip
+    return CheckRow(item, "OK", f"{len(questions)} pertanyaan tidak identik/mirip dengan "
+                    f"ui.suggestions/ui.topics (Jaccard < {LEAK_TOKEN_JACCARD})")  # fmt: skip
+
+
+def _check_test_leak(settings: Settings, test_set: Path) -> CheckRow | None:
+    return _check_leak(settings, "kebocoran set uji", (test_set,))
 
 
 def run_check(
@@ -166,6 +205,10 @@ def run_check(
     query_devices: Callable[[], Any] = _query_devices,
     edge_paths: tuple[Path, ...] | None = None,
     test_set: Path = Path("data/eval/official/test.jsonl"),
+    dev_sets: tuple[Path, ...] = (
+        Path("data/eval/questions.jsonl"),
+        Path("data/eval/official/dev.jsonl"),
+    ),
 ) -> tuple[list[CheckRow], Settings | None]:
     """Settings dikembalikan bila semua OK (dipakai python -m mica), selain itu tetap
     dikembalikan bila terbaca supaya pemanggil bisa menampilkan detail."""
@@ -186,9 +229,10 @@ def run_check(
             from mica.webui.browser import EDGE_PATHS
 
             rows.append(_check_browser(EDGE_PATHS if edge_paths is None else edge_paths))
-        leak = _check_test_leak(settings, Path(test_set))
-        if leak is not None:
-            rows.append(leak)
+        for leak in (_check_test_leak(settings, Path(test_set)),
+                     _check_leak(settings, "kebocoran set dev", tuple(map(Path, dev_sets)))):  # fmt: skip
+            if leak is not None:
+                rows.append(leak)
     return rows, settings
 
 

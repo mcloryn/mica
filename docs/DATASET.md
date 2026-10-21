@@ -69,9 +69,14 @@ setelah data resmi datang; penyimpangan wajib ditulis di hasil dan diungkap di B
 
 - Pertanyaan set uji tidak boleh muncul di `ui.suggestions`, di prompt (`rag/prompts.py`), atau
   di dokumen KB.
-- `python -m mica check` membandingkan setiap pertanyaan `data/eval/official/test.jsonl` dengan
-  isi `ui.suggestions` setelah normalisasi (huruf kecil, tanpa tanda baca, spasi dirapikan).
-  Bila ada yang sama, hasilnya GAGAL.
+- `python -m mica check` membandingkan setiap pertanyaan set uji (`data/eval/official/test.jsonl`)
+  dan set dev (`data/eval/questions.jsonl`, `data/eval/official/dev.jsonl`) dengan semua teks
+  yang bisa dikirim UI tanpa diketik: `ui.suggestions`, label `ui.topics`, dan `ui.topics[].question`
+  (Langkah 53). Teks dinormalisasi dulu (huruf kecil, tanpa tanda baca, spasi dirapikan). Hasilnya
+  GAGAL bila ada yang identik atau bila Jaccard token >= 0,5 (`LEAK_TOKEN_JACCARD`, nilai pengaman
+  pengembang, bukan hasil eksperimen).
+- Pertanyaan chip `ui.topics[].question` saat ini buatan pengembang (sementara). Nanti diganti
+  pertanyaan nyata staf PMB, dan penggantinya harus lolos cek yang sama.
 
 ## Item untuk pembimbing
 

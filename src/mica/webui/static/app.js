@@ -32,20 +32,21 @@ function icon(name) {
 
 const slug = (text) => text.toLowerCase().replace(/\s+/g, "-");
 
-function fillQuestion(topic) {
-  // topik HANYA mengisi kotak pertanyaan dengan nama topik (bukan pertanyaan set uji)
-  const input = $("input");
-  input.value = `${topic} `;
-  input.focus();
-  input.setSelectionRange(input.value.length, input.value.length);
+function sendTopic(topic) {
+  // Langkah 53: chip langsung mengirim ui.topics[].question (lolos cek kebocoran di mica check);
+  // server memeriksa lagi topik, pertanyaan, dan send_enabled
+  const item = config.topics.find((x) => x.topic === topic);
+  if (item && view && view.send_enabled) send({ type: "topic", topic, question: item.question });
 }
 
 function topicButton(topic, tile) {
   const b = el("button", tile ? "topic-tile" : "btn btn-topic");
   b.type = "button";
+  b.dataset.topic = topic;
   if (tile) b.append(icon(`topic-${slug(topic)}`));
   b.append(el("span", "", topic));
-  b.addEventListener("click", () => fillQuestion(topic));
+  b.disabled = !(view && view.send_enabled);
+  b.addEventListener("click", () => sendTopic(topic));
   return b;
 }
 
@@ -171,7 +172,7 @@ function messageElement(m) {
     src.append(icon("doc"), el("span", "", `${config.texts.sources_label} ${m.sources.join("; ")}`));
     box.append(src);
   }
-  if (m.follow_up) { // prompt v3: tawaran topik lanjutan; tombol = chip topik (mengisi kotak)
+  if (m.follow_up) { // prompt v3: tawaran topik lanjutan; tombol = chip topik (kirim question)
     const offer = el("div", "follow-up");
     offer.append(el("span", "", m.follow_up.text), topicButton(m.follow_up.topic, false));
     box.append(offer);
@@ -235,6 +236,7 @@ function render(v) {
   $("send_button").classList.toggle("btn-primary", !v.talk_enabled); // utama bila tanpa mic
   $("send_button").disabled = !v.send_enabled;
   $("resend_button").disabled = !v.send_enabled;
+  for (const b of document.querySelectorAll("button[data-topic]")) b.disabled = !v.send_enabled;
   $("stop_button").hidden = v.pill !== "speaking";
   $("welcome_greeting").textContent = v.greeting;
   $("greeting").textContent = v.greeting;

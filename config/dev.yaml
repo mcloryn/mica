@@ -85,7 +85,15 @@ ui:
   backend: web                      # ADR-19: web | pyside6; web dipilih pemilik proyek 17 Okt 2026, pyside6 cadangan beku (docs/UI-WEB.md)
   fullscreen: true
   font_scale: 1.0
-  topics: [Program Studi, Biaya, Beasiswa, Pendaftaran, Fasilitas, Lokasi]   # F-14; kartu UI web (Langkah 37), kartu hanya mengisi kotak pertanyaan
+  topics:                           # F-14; kartu/chip UI web: klik = kirim question (Langkah 53)
+    # question sementara, ganti dengan pertanyaan nyata staf PMB; wajib lolos cek kebocoran
+    # (mica check: tidak identik/mirip dengan data/eval)
+    - {label: Program Studi, question: "Program studi S1 apa saja yang ditawarkan Universitas Mikroskil?"}
+    - {label: Biaya, question: "Bagaimana rincian biaya kuliah S1 di Mikroskil?"}
+    - {label: Beasiswa, question: "Apakah Mikroskil menerima mahasiswa KIP Kuliah?"}
+    - {label: Pendaftaran, question: "Pendaftaran mahasiswa baru dilakukan lewat situs apa?"}
+    - {label: Fasilitas, question: "Fasilitas apa saja yang tersedia di kampus Mikroskil?"}
+    - {label: Lokasi, question: "Di mana alamat kampus Universitas Mikroskil?"}
   logo_path: null                   # file logo lokal; null = placeholder teks "MICA" sampai logo resmi tersedia
   camera_preview: debug             # off | public | debug (debug ditolak di kiosk); Langkah 37
   preview_pixel_block: 16           # NILAI COBA DESAIN (bukan hasil eksperimen): blok pixelate px pada gambar lebar 320

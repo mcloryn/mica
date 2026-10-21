@@ -116,9 +116,11 @@ def view_json(vm: ViewModel) -> dict[str, Any]:
 
 
 def topic_question(ui: UiConfig, topic: str) -> str:
-    """Sama dengan MainWindow._home_page: saran pertama, atau nama topik bila tanpa saran."""
-    suggestions = ui.suggestions.get(topic, ())
-    return suggestions[0] if suggestions else topic
+    """Sama dengan MainWindow._home_page: ui.topics[].question (Langkah 53)."""
+    question = ui.topic_question(topic)
+    if question is None:
+        raise KeyError(topic)
+    return question
 
 
 def config_json(ui: UiConfig, dev: bool, trial: bool = False,
@@ -136,9 +138,9 @@ def config_json(ui: UiConfig, dev: bool, trial: bool = False,
         "preview": ui.camera_preview,
         "topics": [
             {
-                "topic": t,
-                "question": topic_question(ui, t),
-                "suggestions": list(ui.suggestions.get(t, ())),
+                "topic": t.label,
+                "question": t.question,
+                "suggestions": list(ui.suggestions.get(t.label, ())),
             }
             for t in ui.topics
         ],
@@ -181,7 +183,8 @@ def event_from_message(msg: dict[str, Any], vm: ViewModel, ui: UiConfig) -> Even
         return TextSubmitted(text) if text and vm.send_enabled else None
     if kind == "topic":
         topic, question = msg.get("topic"), msg.get("question")
-        if topic not in ui.topics:
+        # sama dengan tombol Kirim: diabaikan selama MICA menjawab (Langkah 53)
+        if topic not in ui.topic_labels or not vm.send_enabled:
             return None
         allowed = set(ui.suggestions.get(topic, ())) | {topic_question(ui, topic)}
         return TopicTapped(topic, question) if question in allowed else None
