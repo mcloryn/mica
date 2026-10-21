@@ -1,0 +1,1698 @@
+{
+ "tool": "mica.eval.preview_meter (--measure-preview)",
+ "content": "hanya angka; tanpa frame, JPEG, audio, atau teks (N-08)",
+ "started_at": "2026-10-21T14:11:46.444681+07:00",
+ "seconds": 25,
+ "definitions": {
+  "capture_fps": "frame yang dibaca loop proses kamera dari cv2 per detik",
+  "preview_put_fps": "JPEG pratinjau yang masuk antrean pratinjau per detik",
+  "server_sent_fps": "JPEG yang dikirim server ke WebSocket /preview per detik",
+  "browser_drawn_fps": "event load <img> pratinjau di browser per detik",
+  "render_encode_ms": "pixelate + overlay + encode JPEG per frame pratinjau",
+  "cpu_pct": "per kelompok: persen satu inti; total_machine: persen semua core",
+  "state": [
+   "IDLE",
+   "MELAYANI-diam",
+   "MELAYANI-lain",
+   "TTS-menyusun",
+   "TTS-memutar"
+  ]
+ },
+ "label": null,
+ "fake_camera": false,
+ "fake_voice": false,
+ "camera_preview": "debug",
+ "preview_fps_config": 10.0,
+ "fps_idle_config": 5.0,
+ "fps_busy_config": null,
+ "browser_measured": true,
+ "guided_test": false,
+ "tts_threads": {
+  "logical_cores": 20,
+  "physical_cores": 14,
+  "intra_op_num_threads": 1,
+  "inter_op_num_threads": 1,
+  "execution_mode": "ExecutionMode.ORT_SEQUENTIAL",
+  "allow_spinning": "bawaan"
+ },
+ "by_state": {
+  "IDLE": {
+   "n_seconds": 9,
+   "capture_fps": {
+    "median": 25.8,
+    "min": 0.0,
+    "max": 26.47
+   },
+   "preview_put_fps": {
+    "median": 8.93,
+    "min": 0.0,
+    "max": 10.4
+   },
+   "server_sent_fps": {
+    "median": 0.0,
+    "min": 0.0,
+    "max": 10.27
+   },
+   "browser_drawn_fps": {
+    "median": 0.0,
+    "min": 0.0,
+    "max": 9.69
+   },
+   "read_ms": {
+    "median_of_median": 31.38,
+    "max": 1465.72
+   },
+   "detect_ms": {
+    "median_of_median": 64.08,
+    "max": 117.48
+   },
+   "render_encode_ms": {
+    "median_of_median": 0.77,
+    "max": 28.95
+   },
+   "cpu_pct": {
+    "utama": {
+     "median": 93.12,
+     "min": 63.51,
+     "max": 106.03
+    },
+    "vision": {
+     "median": 373.67,
+     "min": 16.51,
+     "max": 631.65
+    },
+    "suara": {
+     "median": 43.32,
+     "min": 0.0,
+     "max": 312.03
+    },
+    "edge": {
+     "median": 30.82,
+     "min": 13.97,
+     "max": 48.12
+    },
+    "lain": {
+     "median": null,
+     "min": null,
+     "max": null
+    },
+    "total_machine": {
+     "median": 38.0,
+     "min": 0.0,
+     "max": 74.3
+    }
+   },
+   "cap_prop_fps": [
+    -1.0
+   ],
+   "resolution": [
+    "640x480"
+   ]
+  },
+  "MELAYANI-diam": {
+   "n_seconds": 10,
+   "capture_fps": {
+    "median": 27.61,
+    "min": 25.45,
+    "max": 30.27
+   },
+   "preview_put_fps": {
+    "median": 9.85,
+    "min": 5.86,
+    "max": 10.74
+   },
+   "server_sent_fps": {
+    "median": 9.84,
+    "min": 0.0,
+    "max": 10.86
+   },
+   "browser_drawn_fps": {
+    "median": 9.84,
+    "min": 0.0,
+    "max": 10.86
+   },
+   "read_ms": {
+    "median_of_median": 31.39,
+    "max": 48.07
+   },
+   "detect_ms": {
+    "median_of_median": 62.61,
+    "max": 72.07
+   },
+   "render_encode_ms": {
+    "median_of_median": 0.82,
+    "max": 1.15
+   },
+   "cpu_pct": {
+    "utama": {
+     "median": 4.64,
+     "min": 3.07,
+     "max": 49.35
+    },
+    "vision": {
+     "median": 624.28,
+     "min": 353.76,
+     "max": 632.63
+    },
+    "suara": {
+     "median": 1.54,
+     "min": 0.0,
+     "max": 4.61
+    },
+    "edge": {
+     "median": 12.37,
+     "min": 6.14,
+     "max": 27.76
+    },
+    "lain": {
+     "median": null,
+     "min": null,
+     "max": null
+    },
+    "total_machine": {
+     "median": 40.45,
+     "min": 38.9,
+     "max": 52.4
+    }
+   },
+   "cap_prop_fps": [
+    -1.0
+   ],
+   "resolution": [
+    "640x480"
+   ]
+  },
+  "TTS-menyusun": {
+   "n_seconds": 1,
+   "capture_fps": {
+    "median": 25.97,
+    "min": 25.97,
+    "max": 25.97
+   },
+   "preview_put_fps": {
+    "median": 0.0,
+    "min": 0.0,
+    "max": 0.0
+   },
+   "server_sent_fps": {
+    "median": 3.51,
+    "min": 3.51,
+    "max": 3.51
+   },
+   "browser_drawn_fps": {
+    "median": 3.51,
+    "min": 3.51,
+    "max": 3.51
+   },
+   "read_ms": {
+    "median_of_median": 31.32,
+    "max": 42.49
+   },
+   "detect_ms": {
+    "median_of_median": 66.99,
+    "max": 68.05
+   },
+   "render_encode_ms": {
+    "median_of_median": 0.77,
+    "max": 1.1
+   },
+   "cpu_pct": {
+    "utama": {
+     "median": 95.38,
+     "min": 95.38,
+     "max": 95.38
+    },
+    "vision": {
+     "median": 625.14,
+     "min": 625.14,
+     "max": 625.14
+    },
+    "suara": {
+     "median": 33.62,
+     "min": 33.62,
+     "max": 33.62
+    },
+    "edge": {
+     "median": 28.82,
+     "min": 28.82,
+     "max": 28.82
+    },
+    "lain": {
+     "median": null,
+     "min": null,
+     "max": null
+    },
+    "total_machine": {
+     "median": 58.0,
+     "min": 58.0,
+     "max": 58.0
+    }
+   },
+   "cap_prop_fps": [
+    -1.0
+   ],
+   "resolution": [
+    "640x480"
+   ]
+  },
+  "TTS-memutar": {
+   "n_seconds": 5,
+   "capture_fps": {
+    "median": 26.36,
+    "min": 25.0,
+    "max": 28.31
+   },
+   "preview_put_fps": {
+    "median": 8.79,
+    "min": 6.83,
+    "max": 9.93
+   },
+   "server_sent_fps": {
+    "median": 7.7,
+    "min": 1.4,
+    "max": 8.97
+   },
+   "browser_drawn_fps": {
+    "median": 6.85,
+    "min": 2.1,
+    "max": 8.97
+   },
+   "read_ms": {
+    "median_of_median": 31.39,
+    "max": 48.15
+   },
+   "detect_ms": {
+    "median_of_median": 64.49,
+    "max": 72.47
+   },
+   "render_encode_ms": {
+    "median_of_median": 0.83,
+    "max": 1.17
+   },
+   "cpu_pct": {
+    "utama": {
+     "median": 71.83,
+     "min": 38.79,
+     "max": 99.38
+    },
+    "vision": {
+     "median": 629.3,
+     "min": 624.58,
+     "max": 630.81
+    },
+    "suara": {
+     "median": 2.7,
+     "min": 1.56,
+     "max": 7.64
+    },
+    "edge": {
+     "median": 16.05,
+     "min": 12.46,
+     "max": 28.36
+    },
+    "lain": {
+     "median": null,
+     "min": null,
+     "max": null
+    },
+    "total_machine": {
+     "median": 48.5,
+     "min": 43.8,
+     "max": 63.1
+    }
+   },
+   "cap_prop_fps": [
+    -1.0
+   ],
+   "resolution": [
+    "640x480"
+   ]
+  }
+ },
+ "tts_speaks": [
+  {
+   "kind": "speak",
+   "t0": 234183.7779496,
+   "first_audio_s": 0.4452938000031281,
+   "synth_total_s": 0.7431294000416528,
+   "synth_first_s": 0.4256316000246443,
+   "n_clips": 2,
+   "audio_s": 6.757006802721088,
+   "chars": 96,
+   "interrupted": false
+  }
+ ],
+ "rows": [
+  {
+   "t": 0.0,
+   "state": "IDLE",
+   "session_states": [
+    "IDLE"
+   ],
+   "synth_frac": 0.0,
+   "play_frac": 0.0,
+   "server_sent_fps": 0.0,
+   "browser_drawn_fps": 0.0,
+   "cpu_pct": {
+    "utama": null,
+    "vision": null,
+    "suara": null,
+    "edge": null,
+    "lain": null,
+    "total_machine": 0.0
+   },
+   "browser_gaps_ms": [],
+   "browser_gap_max_ms": null,
+   "phase": null,
+   "view": {
+    "status": "IDLE",
+    "greeting": false,
+    "target": false,
+    "transcript": false,
+    "n_visitor": 0,
+    "n_mica": 0,
+    "n_with_sources": 0
+   }
+  },
+  {
+   "t": 1.044,
+   "state": "IDLE",
+   "session_states": [
+    "IDLE"
+   ],
+   "synth_frac": 0.0,
+   "play_frac": 0.0,
+   "server_sent_fps": 0.0,
+   "browser_drawn_fps": 0.0,
+   "cpu_pct": {
+    "utama": 91.63557993599518,
+    "vision": 81.28962736257637,
+    "suara": 25.125884821159968,
+    "edge": 28.081871270708202,
+    "lain": null,
+    "total_machine": 27.1
+   },
+   "browser_gaps_ms": [],
+   "browser_gap_max_ms": null,
+   "phase": null,
+   "view": {
+    "status": "IDLE",
+    "greeting": false,
+    "target": false,
+    "transcript": false,
+    "n_visitor": 0,
+    "n_mica": 0,
+    "n_with_sources": 0
+   }
+  },
+  {
+   "t": 2.102,
+   "state": "IDLE",
+   "session_states": [
+    "IDLE"
+   ],
+   "synth_frac": 0.0,
+   "play_frac": 0.0,
+   "server_sent_fps": 0.0,
+   "browser_drawn_fps": 0.0,
+   "cpu_pct": {
+    "utama": 99.35367454102375,
+    "vision": 473.4823552345663,
+    "suara": 312.03263410540274,
+    "edge": 48.12443610580838,
+    "lain": null,
+    "total_machine": 74.3
+   },
+   "browser_gaps_ms": [],
+   "browser_gap_max_ms": null,
+   "phase": null,
+   "view": {
+    "status": "IDLE",
+    "greeting": false,
+    "target": false,
+    "transcript": false,
+    "n_visitor": 0,
+    "n_mica": 0,
+    "n_with_sources": 0
+   }
+  },
+  {
+   "t": 3.108,
+   "state": "IDLE",
+   "session_states": [
+    "IDLE"
+   ],
+   "synth_frac": 0.0,
+   "play_frac": 0.0,
+   "server_sent_fps": 0.0,
+   "browser_drawn_fps": 0.0,
+   "cpu_pct": {
+    "utama": 86.93670233036806,
+    "vision": 88.48914344341036,
+    "suara": 108.67087791296008,
+    "edge": 13.971970017380581,
+    "lain": null,
+    "total_machine": 30.7
+   },
+   "browser_gaps_ms": [],
+   "browser_gap_max_ms": null,
+   "phase": null,
+   "view": {
+    "status": "IDLE",
+    "greeting": false,
+    "target": false,
+    "transcript": false,
+    "n_visitor": 0,
+    "n_mica": 0,
+    "n_with_sources": 0
+   }
+  },
+  {
+   "t": 4.115,
+   "state": "IDLE",
+   "session_states": [
+    "IDLE"
+   ],
+   "synth_frac": 0.0,
+   "play_frac": 0.0,
+   "server_sent_fps": 0.0,
+   "browser_drawn_fps": 0.0,
+   "cpu_pct": {
+    "utama": 63.50748270654618,
+    "vision": 275.71541272598097,
+    "suara": 100.68259453476834,
+    "edge": 37.17511182822216,
+    "lain": null,
+    "total_machine": 38.0
+   },
+   "browser_gaps_ms": [],
+   "browser_gap_max_ms": null,
+   "phase": null,
+   "view": {
+    "status": "IDLE",
+    "greeting": false,
+    "target": false,
+    "transcript": false,
+    "n_visitor": 0,
+    "n_mica": 0,
+    "n_with_sources": 0
+   }
+  },
+  {
+   "t": 5.123,
+   "state": "IDLE",
+   "session_states": [
+    "IDLE"
+   ],
+   "synth_frac": 0.0,
+   "play_frac": 0.0,
+   "server_sent_fps": 0.0,
+   "browser_drawn_fps": 0.0,
+   "cpu_pct": {
+    "utama": 91.5344521012859,
+    "vision": 16.506212674002374,
+    "suara": 61.52315633037248,
+    "edge": 19.507342251093714,
+    "lain": null,
+    "total_machine": 29.5
+   },
+   "browser_gaps_ms": [],
+   "browser_gap_max_ms": null,
+   "phase": null,
+   "view": {
+    "status": "IDLE",
+    "greeting": false,
+    "target": false,
+    "transcript": false,
+    "n_visitor": 0,
+    "n_mica": 0,
+    "n_with_sources": 0
+   }
+  },
+  {
+   "t": 6.165,
+   "state": "IDLE",
+   "session_states": [
+    "IDLE"
+   ],
+   "synth_frac": 0.0,
+   "play_frac": 0.0,
+   "server_sent_fps": 6.325995540053337,
+   "browser_drawn_fps": 6.325995540053337,
+   "capture_fps": 0.0,
+   "preview_put_fps": 0.0,
+   "cap_prop_fps": null,
+   "width": null,
+   "height": null,
+   "torch_threads": 7,
+   "read_ms": {
+    "n": 0,
+    "median": null,
+    "max": null
+   },
+   "detect_ms": {
+    "n": 0,
+    "median": null,
+    "max": null
+   },
+   "render_encode_ms": {
+    "n": 0,
+    "median": null,
+    "max": null
+   },
+   "cpu_pct": {
+    "utama": 94.60652226816369,
+    "vision": 471.6205736950249,
+    "suara": 0.0,
+    "edge": 15.532414103728366,
+    "lain": null,
+    "total_machine": 45.2
+   },
+   "browser_gaps_ms": [
+    172,
+    10,
+    185,
+    55,
+    130,
+    30
+   ],
+   "browser_gap_max_ms": 185,
+   "phase": null,
+   "view": {
+    "status": "IDLE",
+    "greeting": false,
+    "target": false,
+    "transcript": false,
+    "n_visitor": 0,
+    "n_mica": 0,
+    "n_with_sources": 0
+   }
+  },
+  {
+   "t": 7.271,
+   "state": "IDLE",
+   "session_states": [
+    "IDLE"
+   ],
+   "synth_frac": 0.0,
+   "play_frac": 0.0,
+   "server_sent_fps": 10.27007208562212,
+   "browser_drawn_fps": 9.336429168747381,
+   "capture_fps": 25.795526599395878,
+   "preview_put_fps": 8.929220745944727,
+   "cap_prop_fps": -1.0,
+   "width": 640,
+   "height": 480,
+   "torch_threads": 7,
+   "read_ms": {
+    "n": 26,
+    "median": 31.387299997732043,
+    "max": 1465.7150999992155
+   },
+   "detect_ms": {
+    "n": 5,
+    "median": 66.1641999904532,
+    "max": 117.4829000083264
+   },
+   "render_encode_ms": {
+    "n": 10,
+    "median": 0.6531499966513366,
+    "max": 1.4645000046584755
+   },
+   "cpu_pct": {
+    "utama": 100.65787888836722,
+    "vision": 615.617752041898,
+    "suara": 0.0,
+    "edge": 33.552626296122405,
+    "lain": null,
+    "total_machine": 52.8
+   },
+   "browser_gaps_ms": [
+    159,
+    82,
+    162,
+    158,
+    87,
+    144,
+    11,
+    184,
+    55,
+    114
+   ],
+   "browser_gap_max_ms": 184,
+   "phase": null,
+   "view": {
+    "status": "IDLE",
+    "greeting": false,
+    "target": false,
+    "transcript": false,
+    "n_visitor": 0,
+    "n_mica": 0,
+    "n_with_sources": 0
+   }
+  },
+  {
+   "t": 8.342,
+   "state": "IDLE",
+   "session_states": [
+    "IDLE"
+   ],
+   "synth_frac": 0.0,
+   "play_frac": 0.0,
+   "server_sent_fps": 9.694420240720996,
+   "browser_drawn_fps": 9.694420240720996,
+   "capture_fps": 26.46564121741052,
+   "preview_put_fps": 10.397216192554133,
+   "cap_prop_fps": -1.0,
+   "width": 640,
+   "height": 480,
+   "torch_threads": 7,
+   "read_ms": {
+    "n": 28,
+    "median": 31.365299990284257,
+    "max": 48.100900021381676
+   },
+   "detect_ms": {
+    "n": 6,
+    "median": 61.994099989533424,
+    "max": 68.32929997472093
+   },
+   "render_encode_ms": {
+    "n": 11,
+    "median": 0.8848000143188983,
+    "max": 28.945300000486895
+   },
+   "cpu_pct": {
+    "utama": 106.03290641125452,
+    "vision": 631.6531710499019,
+    "suara": 1.5147558058750643,
+    "edge": 40.898406758626734,
+    "lain": null,
+    "total_machine": 51.1
+   },
+   "browser_gaps_ms": [
+    50,
+    157,
+    173,
+    30,
+    35,
+    205,
+    2,
+    164,
+    29,
+    186
+   ],
+   "browser_gap_max_ms": 205,
+   "phase": null,
+   "view": {
+    "status": "IDLE",
+    "greeting": false,
+    "target": false,
+    "transcript": false,
+    "n_visitor": 0,
+    "n_mica": 0,
+    "n_with_sources": 0
+   }
+  },
+  {
+   "t": 9.374,
+   "state": "TTS-menyusun",
+   "session_states": [
+    "GREETING",
+    "IDLE"
+   ],
+   "synth_frac": 0.326,
+   "play_frac": 0.62,
+   "server_sent_fps": 3.513403304195987,
+   "browser_drawn_fps": 3.513403304195987,
+   "capture_fps": 25.968341994308318,
+   "preview_put_fps": 0.0,
+   "cap_prop_fps": -1.0,
+   "width": 640,
+   "height": 480,
+   "torch_threads": 7,
+   "read_ms": {
+    "n": 26,
+    "median": 31.32019999611657,
+    "max": 42.48529998585582
+   },
+   "detect_ms": {
+    "n": 5,
+    "median": 66.99269998352975,
+    "max": 68.04929999634624
+   },
+   "render_encode_ms": {
+    "n": 10,
+    "median": 0.7651999912923202,
+    "max": 1.0962999949697405
+   },
+   "cpu_pct": {
+    "utama": 95.38290315038209,
+    "vision": 625.1354299999863,
+    "suara": 33.62418888035052,
+    "edge": 28.820733326014736,
+    "lain": null,
+    "total_machine": 58.0
+   },
+   "browser_gaps_ms": [
+    55,
+    131,
+    30,
+    162,
+    80,
+    140,
+    41,
+    1604
+   ],
+   "browser_gap_max_ms": 1604,
+   "phase": null,
+   "view": {
+    "status": "GREETING",
+    "greeting": true,
+    "target": true,
+    "transcript": false,
+    "n_visitor": 0,
+    "n_mica": 0,
+    "n_with_sources": 0
+   }
+  },
+  {
+   "t": 11.651,
+   "state": "TTS-memutar",
+   "session_states": [
+    "GREETING"
+   ],
+   "synth_frac": 0.0,
+   "play_frac": 1.0,
+   "server_sent_fps": 7.778383819507341,
+   "browser_drawn_fps": 7.778383819507341,
+   "capture_fps": 25.000168270749146,
+   "preview_put_fps": 7.692359467922814,
+   "cap_prop_fps": -1.0,
+   "width": 640,
+   "height": 480,
+   "torch_threads": 7,
+   "read_ms": {
+    "n": 26,
+    "median": 31.0528499976499,
+    "max": 47.98900001333095
+   },
+   "detect_ms": {
+    "n": 5,
+    "median": 64.49230000725947,
+    "max": 68.75050000962801
+   },
+   "render_encode_ms": {
+    "n": 10,
+    "median": 0.8265999931609258,
+    "max": 1.0596000065561384
+   },
+   "cpu_pct": {
+    "utama": 97.230814545691,
+    "vision": 629.2994385873891,
+    "suara": 2.700855959602528,
+    "edge": 28.358987575826543,
+    "lain": null,
+    "total_machine": 63.1
+   },
+   "browser_gaps_ms": [
+    143,
+    136,
+    96,
+    78,
+    141,
+    142,
+    59,
+    246,
+    71
+   ],
+   "browser_gap_max_ms": 246,
+   "phase": null,
+   "view": {
+    "status": "GREETING",
+    "greeting": true,
+    "target": true,
+    "transcript": false,
+    "n_visitor": 0,
+    "n_mica": 0,
+    "n_with_sources": 0
+   }
+  },
+  {
+   "t": 12.808,
+   "state": "TTS-memutar",
+   "session_states": [
+    "GREETING"
+   ],
+   "synth_frac": 0.0,
+   "play_frac": 1.0,
+   "server_sent_fps": 8.971544950926612,
+   "browser_drawn_fps": 8.971544950926612,
+   "capture_fps": 26.357555666616527,
+   "preview_put_fps": 8.785851888872175,
+   "cap_prop_fps": -1.0,
+   "width": 640,
+   "height": 480,
+   "torch_threads": 7,
+   "read_ms": {
+    "n": 27,
+    "median": 31.465200008824468,
+    "max": 47.61310000321828
+   },
+   "detect_ms": {
+    "n": 5,
+    "median": 65.33509999280795,
+    "max": 72.47210000059567
+   },
+   "render_encode_ms": {
+    "n": 11,
+    "median": 0.7544000109191984,
+    "max": 1.0927999974228442
+   },
+   "cpu_pct": {
+    "utama": 65.41745657716109,
+    "vision": 630.8111884226248,
+    "suara": 1.5575584899324069,
+    "edge": 12.460467919459255,
+    "lain": null,
+    "total_machine": 51.2
+   },
+   "browser_gaps_ms": [
+    183,
+    195,
+    56,
+    31,
+    182,
+    50,
+    128,
+    34,
+    162
+   ],
+   "browser_gap_max_ms": 195,
+   "phase": null,
+   "view": {
+    "status": "GREETING",
+    "greeting": true,
+    "target": true,
+    "transcript": false,
+    "n_visitor": 0,
+    "n_mica": 0,
+    "n_with_sources": 0
+   }
+  },
+  {
+   "t": 13.811,
+   "state": "TTS-memutar",
+   "session_states": [
+    "GREETING"
+   ],
+   "synth_frac": 0.0,
+   "play_frac": 0.934,
+   "server_sent_fps": 7.704396351103305,
+   "browser_drawn_fps": 6.848352312091826,
+   "capture_fps": 25.79977312041148,
+   "preview_put_fps": 9.922989661696722,
+   "cap_prop_fps": -1.0,
+   "width": 640,
+   "height": 480,
+   "torch_threads": 7,
+   "read_ms": {
+    "n": 26,
+    "median": 31.527150014881045,
+    "max": 47.544000000925735
+   },
+   "detect_ms": {
+    "n": 5,
+    "median": 66.67560001369566,
+    "max": 68.51799998548813
+   },
+   "render_encode_ms": {
+    "n": 10,
+    "median": 0.9621500066714361,
+    "max": 1.136700011556968
+   },
+   "cpu_pct": {
+    "utama": 38.789140222130165,
+    "vision": 629.9891394697693,
+    "suara": 2.6751131187675976,
+    "edge": 16.050678712605585,
+    "lain": null,
+    "total_machine": 48.5
+   },
+   "browser_gaps_ms": [
+    117,
+    92,
+    28,
+    165,
+    75,
+    126,
+    34,
+    187,
+    418
+   ],
+   "browser_gap_max_ms": 418,
+   "phase": null,
+   "view": {
+    "status": "GREETING",
+    "greeting": true,
+    "target": true,
+    "transcript": false,
+    "n_visitor": 0,
+    "n_mica": 0,
+    "n_with_sources": 0
+   }
+  },
+  {
+   "t": 14.979,
+   "state": "TTS-memutar",
+   "session_states": [
+    "GREETING"
+   ],
+   "synth_frac": 0.0,
+   "play_frac": 1.0,
+   "server_sent_fps": 1.3977946853559404,
+   "browser_drawn_fps": 2.0966920280339107,
+   "capture_fps": 28.311443055650123,
+   "preview_put_fps": 6.833796599639685,
+   "cap_prop_fps": -1.0,
+   "width": 640,
+   "height": 480,
+   "torch_threads": 7,
+   "read_ms": {
+    "n": 29,
+    "median": 31.033100007334724,
+    "max": 48.15489999600686
+   },
+   "detect_ms": {
+    "n": 5,
+    "median": 62.57509998977184,
+    "max": 68.64469998981804
+   },
+   "render_encode_ms": {
+    "n": 10,
+    "median": 1.0103999957209453,
+    "max": 1.1682999902404845
+   },
+   "cpu_pct": {
+    "utama": 99.37550770902385,
+    "vision": 625.7380870029743,
+    "suara": 7.644269823771066,
+    "edge": 15.288539647542132,
+    "lain": null,
+    "total_machine": 47.7
+   },
+   "browser_gaps_ms": [
+    31,
+    14
+   ],
+   "browser_gap_max_ms": 31,
+   "phase": null,
+   "view": {
+    "status": "GREETING",
+    "greeting": true,
+    "target": true,
+    "transcript": false,
+    "n_visitor": 0,
+    "n_mica": 0,
+    "n_with_sources": 0
+   }
+  },
+  {
+   "t": 16.41,
+   "state": "TTS-memutar",
+   "session_states": [
+    "READY"
+   ],
+   "synth_frac": 0.0,
+   "play_frac": 0.663,
+   "server_sent_fps": 4.996672715606576,
+   "browser_drawn_fps": 4.996672715606576,
+   "capture_fps": 27.794760707526812,
+   "preview_put_fps": 9.926700252688148,
+   "cap_prop_fps": -1.0,
+   "width": 640,
+   "height": 480,
+   "torch_threads": 7,
+   "read_ms": {
+    "n": 28,
+    "median": 31.388600007630885,
+    "max": 47.8276000067126
+   },
+   "detect_ms": {
+    "n": 5,
+    "median": 63.154100003885105,
+    "max": 63.5920999920927
+   },
+   "render_encode_ms": {
+    "n": 10,
+    "median": 0.7514500030083582,
+    "max": 1.065999997081235
+   },
+   "cpu_pct": {
+    "utama": 71.82641661187087,
+    "vision": 624.5775357553988,
+    "suara": 3.122887678776994,
+    "edge": 23.421657590827458,
+    "lain": null,
+    "total_machine": 43.8
+   },
+   "browser_gaps_ms": [
+    1422,
+    648,
+    49,
+    33,
+    209
+   ],
+   "browser_gap_max_ms": 1422,
+   "phase": null,
+   "view": {
+    "status": "READY",
+    "greeting": true,
+    "target": true,
+    "transcript": false,
+    "n_visitor": 0,
+    "n_mica": 0,
+    "n_with_sources": 0
+   }
+  },
+  {
+   "t": 17.411,
+   "state": "MELAYANI-diam",
+   "session_states": [
+    "READY"
+   ],
+   "synth_frac": 0.0,
+   "play_frac": 0.0,
+   "server_sent_fps": 10.857181379115575,
+   "browser_drawn_fps": 10.857181379115575,
+   "capture_fps": 29.29041337440233,
+   "preview_put_fps": 5.858082674880467,
+   "cap_prop_fps": -1.0,
+   "width": 640,
+   "height": 480,
+   "torch_threads": 7,
+   "read_ms": {
+    "n": 30,
+    "median": 31.430750008439645,
+    "max": 47.813599987421185
+   },
+   "detect_ms": {
+    "n": 5,
+    "median": 57.53409999306314,
+    "max": 63.59100001282059
+   },
+   "render_encode_ms": {
+    "n": 10,
+    "median": 0.8290000114357099,
+    "max": 1.0458999895490706
+   },
+   "cpu_pct": {
+    "utama": 49.3504688696495,
+    "vision": 623.0496694793248,
+    "suara": 1.5422021521765468,
+    "edge": 27.75963873917784,
+    "lain": null,
+    "total_machine": 43.6
+   },
+   "browser_gaps_ms": [
+    66,
+    82,
+    42,
+    192,
+    49,
+    120,
+    42,
+    149,
+    88,
+    131,
+    30
+   ],
+   "browser_gap_max_ms": 192,
+   "phase": null,
+   "view": {
+    "status": "READY",
+    "greeting": true,
+    "target": true,
+    "transcript": false,
+    "n_visitor": 0,
+    "n_mica": 0,
+    "n_with_sources": 0
+   }
+  },
+  {
+   "t": 18.424,
+   "state": "MELAYANI-diam",
+   "session_states": [
+    "READY"
+   ],
+   "synth_frac": 0.0,
+   "play_frac": 0.0,
+   "server_sent_fps": 9.751502462695381,
+   "browser_drawn_fps": 9.751502462695381,
+   "capture_fps": 25.826265944156038,
+   "preview_put_fps": 10.52181205132283,
+   "cap_prop_fps": -1.0,
+   "width": 640,
+   "height": 480,
+   "torch_threads": 7,
+   "read_ms": {
+    "n": 27,
+    "median": 31.2129000085406,
+    "max": 47.10960001102649
+   },
+   "detect_ms": {
+    "n": 6,
+    "median": 64.81110000459012,
+    "max": 69.14260002668016
+   },
+   "render_encode_ms": {
+    "n": 11,
+    "median": 0.9760999819263816,
+    "max": 1.0976999765262008
+   },
+   "cpu_pct": {
+    "utama": 6.094758575867497,
+    "vision": 610.9995472307166,
+    "suara": 4.571068931900624,
+    "edge": 7.618448219834372,
+    "lain": null,
+    "total_machine": 52.4
+   },
+   "browser_gaps_ms": [
+    167,
+    73,
+    132,
+    28,
+    200,
+    1,
+    172,
+    28,
+    192,
+    47
+   ],
+   "browser_gap_max_ms": 200,
+   "phase": null,
+   "view": {
+    "status": "READY",
+    "greeting": true,
+    "target": true,
+    "transcript": false,
+    "n_visitor": 0,
+    "n_mica": 0,
+    "n_with_sources": 0
+   }
+  },
+  {
+   "t": 19.449,
+   "state": "MELAYANI-diam",
+   "session_states": [
+    "READY"
+   ],
+   "synth_frac": 0.0,
+   "play_frac": 0.0,
+   "server_sent_fps": 9.860906004414417,
+   "browser_drawn_fps": 9.860906004414417,
+   "capture_fps": 25.445202972092975,
+   "preview_put_fps": 9.786616527728068,
+   "cap_prop_fps": -1.0,
+   "width": 640,
+   "height": 480,
+   "torch_threads": 7,
+   "read_ms": {
+    "n": 26,
+    "median": 31.53285001462791,
+    "max": 45.56640001828782
+   },
+   "detect_ms": {
+    "n": 5,
+    "median": 66.32119999267161,
+    "max": 72.07470000139438
+   },
+   "render_encode_ms": {
+    "n": 10,
+    "median": 0.8827499987091869,
+    "max": 0.9498000144958496
+   },
+   "cpu_pct": {
+    "utama": 4.6222960431393485,
+    "vision": 619.3876697806727,
+    "suara": 0.0,
+    "edge": 10.785357433991813,
+    "lain": null,
+    "total_machine": 40.5
+   },
+   "browser_gaps_ms": [
+    129,
+    31,
+    194,
+    46,
+    116,
+    43,
+    189,
+    51,
+    128,
+    32
+   ],
+   "browser_gap_max_ms": 194,
+   "phase": null,
+   "view": {
+    "status": "READY",
+    "greeting": true,
+    "target": true,
+    "transcript": false,
+    "n_visitor": 0,
+    "n_mica": 0,
+    "n_with_sources": 0
+   }
+  },
+  {
+   "t": 20.463,
+   "state": "MELAYANI-diam",
+   "session_states": [
+    "READY"
+   ],
+   "synth_frac": 0.0,
+   "play_frac": 0.0,
+   "server_sent_fps": 9.85298266018897,
+   "browser_drawn_fps": 9.85298266018897,
+   "capture_fps": 28.865156422433007,
+   "preview_put_fps": 9.95350221463207,
+   "cap_prop_fps": -1.0,
+   "width": 640,
+   "height": 480,
+   "torch_threads": 7,
+   "read_ms": {
+    "n": 29,
+    "median": 31.237300019711256,
+    "max": 47.97539999708533
+   },
+   "detect_ms": {
+    "n": 5,
+    "median": 60.43159999535419,
+    "max": 63.90609999652952
+   },
+   "render_encode_ms": {
+    "n": 10,
+    "median": 0.6672500021522865,
+    "max": 0.9309999877586961
+   },
+   "cpu_pct": {
+    "utama": 3.0790637557114695,
+    "vision": 628.1290061651398,
+    "suara": 1.5395318778557348,
+    "edge": 15.395318778557348,
+    "lain": null,
+    "total_machine": 39.4
+   },
+   "browser_gaps_ms": [
+    156,
+    84,
+    124,
+    35,
+    195,
+    45,
+    129,
+    31,
+    187,
+    54
+   ],
+   "browser_gap_max_ms": 195,
+   "phase": null,
+   "view": {
+    "status": "READY",
+    "greeting": true,
+    "target": true,
+    "transcript": false,
+    "n_visitor": 0,
+    "n_mica": 0,
+    "n_with_sources": 0
+   }
+  },
+  {
+   "t": 21.478,
+   "state": "MELAYANI-diam",
+   "session_states": [
+    "READY"
+   ],
+   "synth_frac": 0.0,
+   "play_frac": 0.0,
+   "server_sent_fps": 9.890160862574536,
+   "browser_drawn_fps": 9.890160862574536,
+   "capture_fps": 27.88526425330454,
+   "preview_put_fps": 9.615608363208462,
+   "cap_prop_fps": -1.0,
+   "width": 640,
+   "height": 480,
+   "torch_threads": 7,
+   "read_ms": {
+    "n": 29,
+    "median": 31.45920002134517,
+    "max": 47.9297999991104
+   },
+   "detect_ms": {
+    "n": 5,
+    "median": 59.284300019498914,
+    "max": 66.48179999319836
+   },
+   "render_encode_ms": {
+    "n": 10,
+    "median": 0.6269000004976988,
+    "max": 0.9389000188093632
+   },
+   "cpu_pct": {
+    "utama": 3.090652649852878,
+    "vision": 632.0384668949137,
+    "suara": 1.545326324926439,
+    "edge": 10.817284274485074,
+    "lain": null,
+    "total_machine": 38.9
+   },
+   "browser_gaps_ms": [
+    123,
+    37,
+    182,
+    58,
+    127,
+    33,
+    194,
+    45,
+    129,
+    31
+   ],
+   "browser_gap_max_ms": 194,
+   "phase": null,
+   "view": {
+    "status": "READY",
+    "greeting": true,
+    "target": true,
+    "transcript": false,
+    "n_visitor": 0,
+    "n_mica": 0,
+    "n_with_sources": 0
+   }
+  },
+  {
+   "t": 22.489,
+   "state": "MELAYANI-diam",
+   "session_states": [
+    "READY"
+   ],
+   "synth_frac": 0.0,
+   "play_frac": 0.0,
+   "server_sent_fps": 9.815910452281848,
+   "browser_drawn_fps": 8.834319407053663,
+   "capture_fps": 27.339499561540517,
+   "preview_put_fps": 10.740517684890918,
+   "cap_prop_fps": -1.0,
+   "width": 640,
+   "height": 480,
+   "torch_threads": 7,
+   "read_ms": {
+    "n": 28,
+    "median": 31.53909998945892,
+    "max": 47.83190001035109
+   },
+   "detect_ms": {
+    "n": 5,
+    "median": 63.64979999489151,
+    "max": 66.5768000180833
+   },
+   "render_encode_ms": {
+    "n": 11,
+    "median": 0.6337999948300421,
+    "max": 1.02530000731349
+   },
+   "cpu_pct": {
+    "utama": 6.135002446786021,
+    "vision": 627.3040001838706,
+    "suara": 1.5337506116965052,
+    "edge": 6.135002446786021,
+    "lain": null,
+    "total_machine": 39.1
+   },
+   "browser_gaps_ms": [
+    190,
+    50,
+    124,
+    36,
+    184,
+    57,
+    120,
+    40,
+    197
+   ],
+   "browser_gap_max_ms": 197,
+   "phase": null,
+   "view": {
+    "status": "READY",
+    "greeting": true,
+    "target": true,
+    "transcript": false,
+    "n_visitor": 0,
+    "n_mica": 0,
+    "n_with_sources": 0
+   }
+  },
+  {
+   "t": 23.508,
+   "state": "MELAYANI-diam",
+   "session_states": [
+    "READY"
+   ],
+   "synth_frac": 0.0,
+   "play_frac": 0.0,
+   "server_sent_fps": 9.83600720267986,
+   "browser_drawn_fps": 9.83600720267986,
+   "capture_fps": 26.791261246674978,
+   "preview_put_fps": 9.922689350620363,
+   "cap_prop_fps": -1.0,
+   "width": 640,
+   "height": 480,
+   "torch_threads": 7,
+   "read_ms": {
+    "n": 27,
+    "median": 31.665400019846857,
+    "max": 47.76940000010654
+   },
+   "detect_ms": {
+    "n": 5,
+    "median": 63.83329999516718,
+    "max": 67.40140001056716
+   },
+   "render_encode_ms": {
+    "n": 10,
+    "median": 0.6294500053627416,
+    "max": 0.9634000016376376
+   },
+   "cpu_pct": {
+    "utama": 6.147491803555757,
+    "vision": 625.5072910117982,
+    "suara": 4.610618852666817,
+    "edge": 18.44247541066727,
+    "lain": null,
+    "total_machine": 40.4
+   },
+   "browser_gaps_ms": [
+    175,
+    30,
+    191,
+    48,
+    126,
+    33,
+    185,
+    55,
+    127,
+    33
+   ],
+   "browser_gap_max_ms": 191,
+   "phase": null,
+   "view": {
+    "status": "READY",
+    "greeting": true,
+    "target": true,
+    "transcript": false,
+    "n_visitor": 0,
+    "n_mica": 0,
+    "n_with_sources": 0
+   }
+  },
+  {
+   "t": 24.525,
+   "state": "MELAYANI-diam",
+   "session_states": [
+    "READY"
+   ],
+   "synth_frac": 0.0,
+   "play_frac": 0.0,
+   "server_sent_fps": 9.899306236743769,
+   "browser_drawn_fps": 9.899306236743769,
+   "capture_fps": 29.28133644676375,
+   "preview_put_fps": 9.760445482254584,
+   "cap_prop_fps": -1.0,
+   "width": 640,
+   "height": 480,
+   "torch_threads": 7,
+   "read_ms": {
+    "n": 30,
+    "median": 31.316149994381703,
+    "max": 48.07489999802783
+   },
+   "detect_ms": {
+    "n": 5,
+    "median": 61.56939998618327,
+    "max": 65.27809999533929
+   },
+   "render_encode_ms": {
+    "n": 10,
+    "median": 0.821850000647828,
+    "max": 0.9682000090833753
+   },
+   "cpu_pct": {
+    "utama": 4.6403099044373235,
+    "vision": 632.6289169716217,
+    "suara": 1.5467699681457745,
+    "edge": 12.374159745166196,
+    "lain": null,
+    "total_machine": 46.7
+   },
+   "browser_gaps_ms": [
+    190,
+    50,
+    130,
+    31,
+    163,
+    78,
+    134,
+    26,
+    160,
+    79
+   ],
+   "browser_gap_max_ms": 190,
+   "phase": null,
+   "view": {
+    "status": "READY",
+    "greeting": true,
+    "target": true,
+    "transcript": false,
+    "n_visitor": 0,
+    "n_mica": 0,
+    "n_with_sources": 0
+   }
+  },
+  {
+   "t": 25.535,
+   "state": "MELAYANI-diam",
+   "session_states": [
+    "READY"
+   ],
+   "synth_frac": 0.0,
+   "play_frac": 0.0,
+   "server_sent_fps": 9.82739265801431,
+   "browser_drawn_fps": 9.82739265801431,
+   "capture_fps": 25.805119735871212,
+   "preview_put_fps": 9.925046052258159,
+   "cap_prop_fps": -1.0,
+   "width": 640,
+   "height": 480,
+   "torch_threads": 7,
+   "read_ms": {
+    "n": 26,
+    "median": 31.33584999886807,
+    "max": 47.597400000086054
+   },
+   "detect_ms": {
+    "n": 5,
+    "median": 66.4565000042785,
+    "max": 70.243299996946
+   },
+   "render_encode_ms": {
+    "n": 10,
+    "median": 0.9397499816259369,
+    "max": 1.0326000046916306
+   },
+   "cpu_pct": {
+    "utama": 3.0710469262472255,
+    "vision": 617.2804321756923,
+    "suara": 1.5355234631236128,
+    "edge": 13.819711168112516,
+    "lain": null,
+    "total_machine": 40.0
+   },
+   "browser_gaps_ms": [
+    155,
+    5,
+    197,
+    1,
+    165,
+    37,
+    182,
+    58,
+    122,
+    38
+   ],
+   "browser_gap_max_ms": 197,
+   "phase": null,
+   "view": {
+    "status": "READY",
+    "greeting": true,
+    "target": true,
+    "transcript": false,
+    "n_visitor": 0,
+    "n_mica": 0,
+    "n_with_sources": 0
+   }
+  },
+  {
+   "t": 26.552,
+   "state": "MELAYANI-diam",
+   "session_states": [
+    "READY"
+   ],
+   "synth_frac": 0.0,
+   "play_frac": 0.0,
+   "server_sent_fps": 0.0,
+   "browser_drawn_fps": 0.0,
+   "capture_fps": 30.272349587612165,
+   "preview_put_fps": 9.765274060520053,
+   "cap_prop_fps": -1.0,
+   "width": 640,
+   "height": 480,
+   "torch_threads": 7,
+   "read_ms": {
+    "n": 31,
+    "median": 31.35810000821948,
+    "max": 47.33260002103634
+   },
+   "detect_ms": {
+    "n": 5,
+    "median": 57.71730002015829,
+    "max": 58.99580000550486
+   },
+   "render_encode_ms": {
+    "n": 10,
+    "median": 0.8089500042842701,
+    "max": 1.1483999842312187
+   },
+   "cpu_pct": {
+    "utama": 4.6344705343979395,
+    "vision": 353.7645841257094,
+    "suara": null,
+    "edge": null,
+    "lain": null,
+    "total_machine": 48.9
+   },
+   "browser_gaps_ms": [],
+   "browser_gap_max_ms": null,
+   "phase": null,
+   "view": {
+    "status": "READY",
+    "greeting": true,
+    "target": true,
+    "transcript": false,
+    "n_visitor": 0,
+    "n_mica": 0,
+    "n_with_sources": 0
+   }
+  }
+ ]
+}
