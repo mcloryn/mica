@@ -113,6 +113,19 @@ function openPreview() {
   });
 }
 
+function renderMeasure(r) {
+  // --measure-preview (dev): angka per detik di pojok; tanpa gambar
+  if (!config || !config.dev || !config.measure) return;
+  const f = (x) => (x === null || x === undefined ? "-" : String(x));
+  const c = r.cpu_pct;
+  $("measure_panel").textContent = [
+    `status ${r.status}`,
+    `tangkap ${f(r.capture_fps)} | kirim ${f(r.server_sent_fps)} | gambar ${f(r.browser_drawn_fps)} fps`,
+    `CPU utama ${f(c.utama)} vision ${f(c.vision)} suara ${f(c.suara)} total ${f(c.total_machine)}%`,
+  ].join("\n");
+  $("measure_panel").hidden = false;
+}
+
 function answerBlocks(text) {
   // hanya createElement/textContent; teks LLM tidak pernah diurai sebagai HTML
   return window.MicaAnswerFormat.formatAnswer(text).map((b) => {
@@ -249,6 +262,7 @@ ws.addEventListener("message", (e) => {
   const msg = JSON.parse(e.data);
   if (msg.type === "config") applyConfig(msg);
   else if (msg.type === "debug") $("debug_panel").textContent = msg.text;
+  else if (msg.type === "measure") renderMeasure(msg.row);
   else if (msg.type === "view") {
     render(msg.view);
     // dilaporkan setelah requestAnimationFrame berikutnya (jeda tampil diukur di Python)

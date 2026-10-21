@@ -234,7 +234,7 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
         meter = make_preview_meter(settings, webui, controller, browser, fake_camera, fake_voice,
                                    measure_label)  # fmt: skip
         meter.start()
-        print(f"--measure-preview: angka ditulis ke {meter.folder}", flush=True)
+        print(f"--measure-preview: angka per detik ke {meter.live_path}", flush=True)
     try:
         serve(webui, controller, browser, port,
               on_ready=lambda url: print(f"MICA web: {url}", flush=True))  # fmt: skip
@@ -260,8 +260,10 @@ def make_preview_meter(settings: Settings, webui: WebUi, controller: KioskContro
     inner = getattr(bus, "vision", None) if fake_voice else bus  # FakeWorkerBus(vision)
     source = getattr(inner, "measure", None)
     cpu = CpuSampler(lambda: pid_groups(os.getpid(), bus_roots(inner, browser)))
+    folder = PreviewMeasurement.new_folder()
     return PreviewMeasurement(
-        PreviewMeasurement.new_folder(), source,
+        folder, source,
+        live_path=PreviewMeasurement.live_file(folder), on_row=webui.push_measure,
         sent=lambda: webui.previews_sent, drawn=lambda: webui.previews_drawn,
         session_state=lambda: getattr(controller.session, "state", None), cpu=cpu.sample,
         info={"label": label, "fake_camera": fake_camera, "fake_voice": fake_voice,

@@ -17,7 +17,8 @@ hanya 127.0.0.1.
   /preview hanya di 127.0.0.1 dengan cek Origin yang sama seperti /ws. Tidak ada endpoint yang
   menyimpan gambar; JPEG hanya lewat di memori (N-08).
 - --measure-preview (dev saja): config memuat measure=true; app.js lalu menghitung gambar
-  pratinjau yang dimuat <img> dan mengirim {"type": "preview_drawn", "n"} setiap detik.
+  pratinjau yang dimuat <img> dan mengirim {"type": "preview_drawn", "n"} setiap detik. Angka per
+  detik dari pengukur dikirim balik {"type": "measure", "row"} untuk panel kecil di pojok (dev).
 
 Server WSGI: server bawaan Werkzeug (threaded, reloader dan debugger mati); alasannya di
 docs/UI-WEB.md, "Catatan setelah tahap 1".
@@ -227,6 +228,14 @@ class WebUi:
             except (EOFError, OSError, ValueError):
                 break  # antrean ditutup saat bus berhenti
             self.push_preview(jpeg)
+
+    def push_measure(self, row: dict[str, Any]) -> None:
+        """--measure-preview: satu baris angka per detik ke panel pojok (dev saja)."""
+        if not self.measure:
+            return
+        with self.lock:
+            for ws in list(self.sockets):
+                self._send(ws, {"type": "measure", "row": row})
 
     def handle_message(self, data: dict[str, Any]) -> None:
         kind = data.get("type")

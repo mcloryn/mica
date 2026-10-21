@@ -13,6 +13,9 @@ Hanya angka yang direkam; tidak ada frame, JPEG, audio, atau teks (N-08). Tiga b
   suara), TTS-menyusun (Piper sedang sintesis, boleh sambil memutar clip sebelumnya),
   TTS-memutar (memutar, tanpa sintesis).
   Ringkasan ditulis ke results/preview-fps/<timestamp>/summary.json.
+- Langkah 49: setiap baris per detik juga ditambahkan ke results/preview-fps/live-<timestamp>.jsonl
+  (live_line: angka saja, status kasar IDLE/MELAYANI/TTS-menyusun/TTS-memutar) dan diteruskan ke
+  on_row (panel angka UI web, dev saja).
 
 Semua jam memakai time.monotonic (sama di semua proses Windows, seperti K-3 E-09).
 """
@@ -235,8 +238,12 @@ class PreviewMeasurement:
         cpu: Callable[[], dict[str, float | None]] | None,
         info: dict[str, Any] | None = None,
         clock: Callable[[], float] = time.monotonic,
+        live_path: Path | None = None,
+        on_row: Callable[[dict[str, Any]], None] | None = None,
     ) -> None:
         self.folder = Path(folder)
+        self.live_path = Path(live_path) if live_path is not None else None
+        self.on_row = on_row
         self.source = source  # antrean pengukuran dari pekerja (Bus.measure), boleh None
         self.sent = sent
         self.drawn = drawn
@@ -263,6 +270,24 @@ class PreviewMeasurement:
     @classmethod
     def new_folder(cls, root: Path = DEFAULT_ROOT) -> Path:
         return Path(root) / datetime.now().strftime("%Y%m%d-%H%M%S")
+
+    @staticmethod
+    def live_file(folder: Path) -> Path:
+        """results/preview-fps/<ts>/ -> results/preview-fps/live-<ts>.jsonl"""
+        folder = Path(folder)
+        return folder.parent / f"live-{folder.name}.jsonl"
+
+    def emit(self, row: dict[str, Any]) -> None:
+        line = live_line(row, self.started_at.timestamp() + row["t"])
+        if self.live_path is not None:
+            self.live_path.parent.mkdir(parents=True, exist_ok=True)
+            with self.live_path.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(line, ensure_ascii=False) + "\n")
+        if self.on_row is not None:
+            try:
+                self.on_row(line)
+            except Exception:  # noqa: BLE001, S110 - panel UI tidak boleh menghentikan pengukuran
+                pass
 
     def drain(self) -> None:
         while self.source is not None:
@@ -326,7 +351,9 @@ class PreviewMeasurement:
         now = self.clock()
         if now - self.window_start >= WINDOW_S:
             with self.lock:
-                self.rows.append(self.close_window(now))
+                row = self.close_window(now)
+                self.rows.append(row)
+            self.emit(row)
 
     def _loop(self) -> None:
         next_write = self.clock() + 10.0
@@ -413,3 +440,38 @@ def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
     out["cap_prop_fps"] = sorted({r["cap_prop_fps"] for r in rows if r.get("cap_prop_fps")})
     out["resolution"] = sorted({f"{r['width']}x{r['height']}" for r in rows if r.get("width")})
     return out
+
+
+def coarse_state(state: str) -> str:
+    """Status kasar Langkah 49: MELAYANI-diam dan MELAYANI-lain -> MELAYANI."""
+    return "MELAYANI" if state.startswith("MELAYANI") else state
+
+
+def live_line(row: dict[str, Any], wall_ts: float) -> dict[str, Any]:
+    """Satu baris live-*.jsonl / panel: angka saja, dibulatkan."""
+
+    def r(value: Any, nd: int = 1) -> Any:
+        return None if value is None else round(float(value), nd)
+
+    def med(key: str) -> Any:
+        part = row.get(key) or {}
+        return r(part.get("median"))
+
+    cpu = row.get("cpu_pct") or {}
+    return {
+        "ts": datetime.fromtimestamp(wall_ts).astimezone().isoformat(timespec="seconds"),
+        "t": r(row["t"]),
+        "status": coarse_state(row["state"]),
+        "state_detail": row["state"],
+        "capture_fps": r(row.get("capture_fps")),
+        "preview_put_fps": r(row.get("preview_put_fps")),
+        "server_sent_fps": r(row.get("server_sent_fps")),
+        "browser_drawn_fps": r(row.get("browser_drawn_fps")),
+        "cpu_pct": {g: r(cpu.get(g)) for g in ("utama", "vision", "suara", "edge",
+                                                "total_machine")},
+        "read_ms": med("read_ms"),
+        "detect_ms": med("detect_ms"),
+        "render_encode_ms": med("render_encode_ms"),
+        "synth_frac": row.get("synth_frac"),
+        "play_frac": row.get("play_frac"),
+    }  # fmt: skip

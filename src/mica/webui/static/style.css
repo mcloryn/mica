@@ -102,6 +102,11 @@ body[data-color="kuning"] { --session-swatch: var(--c-kuning-swatch); --session-
               margin-top: auto; min-height: 0; overflow: auto; max-height: 40%; }
 #debug_dock summary { min-height: var(--touch-min); display: flex; align-items: center;
                       font-size: var(--fs-s); cursor: pointer; }
+/* --measure-preview (dev saja): panel angka kecil di pojok kanan bawah */
+#measure_panel { position: fixed; right: var(--space-2); bottom: var(--space-2); margin: 0;
+  padding: var(--space-1) var(--space-2); background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius); font: inherit;
+  font-size: var(--fs-s); white-space: pre; pointer-events: none; }
 #debug_panel { white-space: pre-wrap; margin: 0 0 var(--space-2); font: inherit; font-size: var(--fs-s); }
 
 /* --- percakapan --------------------------------------------------------------------------- */

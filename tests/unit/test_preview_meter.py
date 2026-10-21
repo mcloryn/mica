@@ -180,3 +180,65 @@ def test_server_counts_browser_draws_only_when_measuring():
     off.handle_message({"type": "preview_drawn", "n": 7})
     assert off.previews_drawn == 0
     assert not WebUi(s.ui, dev=False, measure=True).measure  # kiosk: tidak pernah aktif
+
+
+def test_live_jsonl_one_line_per_second_numbers_only(tmp_path):
+    folder = tmp_path / "20261021-130000"
+    live = PreviewMeasurement.live_file(folder)
+    assert live == tmp_path / "live-20261021-130000.jsonl"
+    rows = []
+    clock = StepClock(0.125)
+    m = PreviewMeasurement(folder, None, sent=lambda: 0, drawn=lambda: 0,
+                           session_state=lambda: "READY",
+                           cpu=lambda: {"utama": 5.0, "vision": 80.0, "total_machine": 10.0},
+                           clock=clock, live_path=live, on_row=rows.append)  # fmt: skip
+    for _ in range(24):  # 3 detik
+        m.step()
+    lines = [json.loads(x) for x in live.read_text(encoding="utf-8").splitlines()]
+    assert len(lines) == 3 and lines == rows
+    first = lines[0]
+    assert first["status"] == "MELAYANI" and first["state_detail"] == "MELAYANI-diam"
+    assert first["cpu_pct"]["vision"] == 80.0 and first["cpu_pct"]["suara"] is None
+    assert all(_primitive(x) for x in lines)
+    assert sorted(p.name for p in tmp_path.iterdir()) == [live.name]  # summary hanya saat stop
+
+
+def test_live_panel_failure_does_not_stop_measurement(tmp_path):
+    def broken(_row):
+        raise RuntimeError("socket putus")
+
+    m = PreviewMeasurement(tmp_path / "x", None, sent=lambda: 0, drawn=lambda: 0,
+                           session_state=lambda: "IDLE", cpu=None, clock=StepClock(0.125),
+                           on_row=broken)  # fmt: skip
+    for _ in range(16):
+        m.step()
+    assert len(m.rows) == 2
+
+
+class _Socket:
+    def __init__(self) -> None:
+        self.sent: list[str] = []
+
+    def send(self, data) -> None:
+        self.sent.append(data)
+
+
+def test_measure_panel_rows_sent_only_when_measuring():
+    s = _settings()
+    on, off = WebUi(s.ui, dev=True, measure=True), WebUi(s.ui, dev=True)
+    for ui in (on, off):
+        ui.sockets.add(_Socket())
+        ui.push_measure({"status": "IDLE", "capture_fps": 15.0})
+    (sock_on,), (sock_off,) = on.sockets, off.sockets
+    assert json.loads(sock_on.sent[0]) == {
+        "type": "measure", "row": {"status": "IDLE", "capture_fps": 15.0}}  # fmt: skip
+    assert sock_off.sent == []
+
+
+def test_measure_panel_markup_hidden_and_dev_only():
+    from mica.webui.server import STATIC_DIR
+
+    html = (STATIC_DIR / "index.html").read_text("utf-8")
+    js = (STATIC_DIR / "app.js").read_text("utf-8")
+    assert '<pre id="measure_panel" hidden></pre>' in html
+    assert "if (!config || !config.dev || !config.measure) return;" in js
