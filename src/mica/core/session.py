@@ -153,6 +153,9 @@ class RunPipeline:
     question: str  # teks asli; M-06 menjalankan scrub_pii sebelum API/log
     history: tuple[Turn, ...]
     input_mode: Literal["voice", "text"]
+    # chip topik (Langkah 53 opsi A, Langkah 55): pertanyaan lengkap, dijawab tanpa konteks
+    # pertanyaan sebelumnya (controller mengirim history kosong ke pipeline)
+    standalone: bool = False
 
 
 @dataclass(frozen=True)
@@ -287,9 +290,11 @@ class Session:
         uid = self.new_utterance_id()
         return Speak(self.session_id, text, uid), uid
 
-    def _run(self, question: str, mode: Literal["voice", "text"]) -> RunPipeline:
+    def _run(
+        self, question: str, mode: Literal["voice", "text"], standalone: bool = False
+    ) -> RunPipeline:
         self.question = question
-        return RunPipeline(self.session_id, question, self.history, mode)
+        return RunPipeline(self.session_id, question, self.history, mode, standalone)
 
     def _reset(self, now: float) -> list[Action]:
         """PersonLeft atau IdleTimeout (SDD 7.1, F-15)."""
@@ -432,7 +437,7 @@ class Session:
                 if not question:
                     return self._ignore(event, "teks kosong")
                 self.session_id = self.new_session_id()
-                return self._think(question, "text")
+                return self._think(question, "text", _standalone(event))
         elif s == VisitState.GREETING:
             if isinstance(event, SpeechDone) and event.utterance_id == self.greeting_uid:
                 self.state = VisitState.READY
@@ -444,7 +449,7 @@ class Session:
                     return self._ignore(event, "teks kosong")
                 self.greeting_uid = None
                 stop = [StopSpeaking(self.session_id), self._listen("off")]
-                return [*stop, *self._think(question, "text")]
+                return [*stop, *self._think(question, "text", _standalone(event))]
         elif s == VisitState.READY:
             if isinstance(event, SpeechStarted):
                 self.state = VisitState.LISTENING
@@ -456,7 +461,7 @@ class Session:
                 question = _question(event)
                 if not question:
                     return self._ignore(event, "teks kosong")
-                return self._think(question, "text")
+                return self._think(question, "text", _standalone(event))
         elif s == VisitState.LISTENING:
             if isinstance(event, Transcript):
                 if event.filtered_by is not None and self.push_to_talk:
@@ -478,7 +483,7 @@ class Session:
                 if not question:
                     return self._ignore(event, "teks kosong")
                 # Transcript yang datang belakangan diabaikan karena state sudah THINKING
-                return [self._listen("off"), *self._think(question, "text")]
+                return [self._listen("off"), *self._think(question, "text", _standalone(event))]
         elif s == VisitState.THINKING:
             if isinstance(event, AnswerReady):
                 answer = event.answer
@@ -524,9 +529,18 @@ class Session:
         self.state = VisitState.GREETING
         return [speak, *self._busy_rate(), self._listen("off"), self._show()]
 
-    def _think(self, question: str, mode: Literal["voice", "text"]) -> list[Action]:
+    def _think(
+        self, question: str, mode: Literal["voice", "text"], standalone: bool = False
+    ) -> list[Action]:
         self.state = VisitState.THINKING
-        return [self._show(message="berpikir", transcript=question), self._run(question, mode)]
+        return [
+            self._show(message="berpikir", transcript=question),
+            self._run(question, mode, standalone),
+        ]
+
+
+def _standalone(event: TopicTapped | TextSubmitted) -> bool:
+    return isinstance(event, TopicTapped)
 
 
 def _question(event: TopicTapped | TextSubmitted) -> str:

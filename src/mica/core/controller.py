@@ -290,16 +290,18 @@ class KioskController:
     def _run(self, action: RunPipeline) -> None:
         """Di thread pipeline; hasil dikirim ke Session lewat antrean pada step() berikutnya."""
         question = scrub_pii(action.question)  # N-09: sebelum pipeline (API, log)
+        # chip topik: tanpa konteks pertanyaan sebelumnya di semua rag.followup_mode (Langkah 55)
+        history = () if action.standalone else action.history
         record = None
         try:
             # history sudah berisi pertanyaan yang di-scrub (Session); run() memberi baris M-06
             # untuk log giliran (ditulis controller) dan panel debug
             run = getattr(self.pipeline, "run", None)
             if run is not None:
-                answer, record = run(question, action.history, action.session_id,
+                answer, record = run(question, history, action.session_id,
                                      input_mode=action.input_mode)  # fmt: skip
             else:
-                answer = self.pipeline.answer(question, action.history, action.session_id,
+                answer = self.pipeline.answer(question, history, action.session_id,
                                               input_mode=action.input_mode)  # fmt: skip
         except Exception as exc:  # noqa: BLE001 - pipeline tidak boleh mematikan kiosk
             log.warning("%s: pipeline gagal (%s)", ErrorCode.LLM_UNAVAILABLE, type(exc).__name__)

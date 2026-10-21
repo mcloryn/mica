@@ -787,8 +787,15 @@ def test_chip_sends_configured_question_as_visitor_message():
         return session.handle(event, 0.0)
 
     question = ui.topic_question("Biaya")
+    from dataclasses import replace
+
+    from mica.core.session import RunPipeline
+
     out = actions(TopicTapped("Biaya", question))
-    assert out == actions(TextSubmitted(question))
+    # sama dengan pertanyaan ketik, kecuali chip dijawab tanpa konteks (Langkah 55)
+    typed = [replace(a, standalone=True) if isinstance(a, RunPipeline) else a
+             for a in actions(TextSubmitted(question))]  # fmt: skip
+    assert out == typed
     vm = ViewModel()
     for item in out:
         if isinstance(item, ShowView):

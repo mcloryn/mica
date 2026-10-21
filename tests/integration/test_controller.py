@@ -29,6 +29,7 @@ from mica.core.session import (
     Session,
     ShowView,
     TextSubmitted,
+    TopicTapped,
     VisitState,
 )
 from mica.core.texts import FILLER, GREETING_COLOR
@@ -295,3 +296,21 @@ def test_display_hook_reports_greeting_and_target_without_changing_session(tmp_p
     # M-09 tidak berubah: aksi dan state sama dengan controller tanpa hook
     assert [type(m) for _, m in plain.bus.sent] == [type(m) for _, m in hooked.bus.sent]
     assert plain.views == hooked.views and plain.session.state == hooked.session.state
+
+
+def test_topic_chip_runs_without_previous_question(tmp_path):
+    # Langkah 55 (opsi A Langkah 53): pertanyaan chip dijawab tanpa konteks; ketikan tetap
+    # membawa history ke pipeline (rag.followup_mode memutuskan cara memakainya)
+    rig = Rig(tmp_path)
+    rig.to_ready()
+    rig.step(TextSubmitted("Di mana alamat kampus?"))
+    rig.finish_pipeline()
+    rig.step(SpeechDone(rig.sid, rig.bus.of(Speak)[-1].utterance_id, 0.2))
+    rig.step(TopicTapped("Biaya", "Bagaimana rincian biaya kuliah S1 di Mikroskil?"))
+    rig.finish_pipeline()
+    rig.step(SpeechDone(rig.sid, rig.bus.of(Speak)[-1].utterance_id, 0.2))
+    rig.step(TextSubmitted("Kalau kelas sorenya?"))
+    rig.finish_pipeline()
+    (_, h1, *_), (q2, h2, *_), (_, h3, *_) = rig.pipeline.calls
+    assert h1 == () and h2 == () and q2.startswith("Bagaimana rincian biaya")
+    assert [t.question for t in h3][-1].startswith("Bagaimana rincian biaya")

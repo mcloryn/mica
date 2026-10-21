@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from mica.config import CFG_INVALID, ConfigError, load_settings
+from mica.config import load_settings
 from mica.core.logging import InteractionLog
 from mica.core.types import (
     Chunk,
@@ -285,12 +285,6 @@ def test_history_turns_limits_prompt(tmp_path):
                Turn(ScrubbedText("Biaya SI berapa?"), "Rp14.000.000.")]  # fmt: skip
     pipeline.answer("Kalau sore?", history, "s-1")
     assert "pertanyaan lama" not in llm.requests[0].user
-
-
-def test_llm_rewrite_not_implemented(tmp_path):
-    with pytest.raises(ConfigError) as exc:
-        _pipeline(tmp_path, ANSWER_SI, settings=_settings(tmp_path, followup_mode="llm_rewrite"))
-    assert exc.value.code == CFG_INVALID and "E-02" in str(exc.value)
 
 
 def test_one_log_line_per_answer(tmp_path):

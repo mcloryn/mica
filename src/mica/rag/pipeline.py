@@ -1,7 +1,7 @@
 """M-06: AnswerPipeline, satu pertanyaan dari teks sampai FinalAnswer (SDD 7.3, ADR-05/06/07).
 
-Alur tetap: scrub_pii -> kueri (concat dengan pertanyaan sebelumnya bila followup) -> retrieve
-top_k -> gerbang -> prompt -> rantai LLM -> validasi sitasi -> cek angka -> FinalAnswer.
+Alur tetap: scrub_pii -> kueri lanjutan (rag.followup_mode: concat | dual | llm_rewrite,
+mica.rag.followup; Langkah 55) -> retrieve top_k -> gerbang -> prompt -> rantai LLM -> validasi sitasi -> cek angka -> FinalAnswer.
 Setiap jawaban menghasilkan tepat satu TurnRecord di log M-11.
 """
 
@@ -31,6 +31,7 @@ from mica.core.types import (
     joined_answer,
 )
 from mica.rag.checker import FactChecker
+from mica.rag.followup import FollowupQuery, make_followup
 from mica.rag.gate import RelevanceGate
 from mica.rag.llm import LLMProvider
 from mica.rag.pii import scrub_pii
@@ -70,17 +71,13 @@ class AnswerPipeline:
         checker: FactChecker,
         kb_id: str,
         log: InteractionLog | None = None,
+        followup: FollowupQuery | None = None,
     ) -> None:
-        rag = settings.rag
-        if rag.followup_mode == "llm_rewrite":
-            raise ConfigError(
-                CFG_INVALID,
-                "rag.followup_mode = llm_rewrite belum diimplementasikan (E-02); pakai concat",
-            )
         if settings.llm.timeout_s is None:
             raise ConfigError(CFG_INVALID, "llm.timeout_s wajib diisi untuk AnswerPipeline")
         self.settings = settings
         self.retriever = retriever
+        self.followup = followup if followup is not None else make_followup(settings, retriever)
         self.gate = gate
         self.llm = llm
         self.checker = checker
@@ -115,11 +112,15 @@ class AnswerPipeline:
         q = scrub_pii(question)
         t = trace.stage("scrub", t)
 
-        query = q
-        if history and rag.followup_mode == "concat":
-            query = ScrubbedText(f"{history[-1].question} {q}")  # F-12
-        trace.hits = list(self.retriever.search(query, rag.top_k))
+        # F-12: kueri lanjutan lewat rag.followup_mode (chip topik: controller mengirim history
+        # kosong, jadi selalu apa adanya)
+        previous = history[-1].question if history else None
+        found = self.followup.search(q, previous, rag.top_k)
+        trace.hits = list(found.hits)
         t = trace.stage("retrieval", t)
+        if found.rewrite_s is not None:  # llm_rewrite: panggilan LLM dicatat terpisah
+            trace.timings["rewrite"] = found.rewrite_s
+            trace.timings["retrieval"] -= found.rewrite_s
 
         trace.gate = self.gate.decide(trace.hits)
         if not trace.hits:

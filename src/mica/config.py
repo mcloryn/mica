@@ -86,7 +86,8 @@ class RagConfig(_Model):
     reranker: RerankerConfig
     gate: GateConfig
     fact_check: FactCheckConfig
-    followup_mode: Literal["concat", "llm_rewrite"]
+    # Langkah 55 (docs/FOLLOWUP.md): dual = retrieval apa adanya + concat digabung RRF
+    followup_mode: Literal["concat", "dual", "llm_rewrite"]
     history_turns: NonNegativeInt
     prompt_variant: Literal["paraphrase", "plain", "v3", "v4"]  # docs/PROMPT-V3.md, PROMPT-V4.md
 
