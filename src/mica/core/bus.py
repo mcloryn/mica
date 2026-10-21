@@ -119,6 +119,9 @@ class Bus:
         # None bila tidak ada pekerja yang mengukur
         measure_on = any(getattr(c, "measure", False) for c in (vision, audio))
         self.measure: Any = self.ctx.Queue(maxsize=10000) if measure_on else None
+        # Langkah 51: di-set proses suara selama Piper menyusun suara; dibaca proses vision
+        # (vision.pause_during_tts). Hanya sinyal, tanpa data.
+        self.tts_busy: Any = self.ctx.Event()
         self.processes: dict[str, Any] = {}
         self.started_at: dict[str, float] = {}  # time.monotonic saat proses dimulai
         self.restarts: dict[str, int] = {name: 0 for name in self.names}
@@ -136,10 +139,11 @@ class Bus:
                 self.to_main,
                 self.preview,
                 self.measure,
+                self.tts_busy,
             )
         elif name == "audio":
             target = run_audio_worker
-            args = (self.audio_cfg, self.to_audio, self.to_main, self.measure)
+            args = (self.audio_cfg, self.to_audio, self.to_main, self.measure, self.tts_busy)
         else:
             raise ValueError(f"pekerja tidak dikenal: {name}")
         from mica.core import startup
@@ -190,6 +194,7 @@ class Bus:
                     self.vision_cfg = replace(self.vision_cfg, countdown_s=0.0)
                 else:
                     self.to_audio = self.ctx.Queue()  # mode kembali off
+                    self.tts_busy.clear()  # proses suara mati di tengah sintesis
                 # proses yang dibunuh paksa tidak sempat melapor; status ini membuat M-09
                 # mengenali restart saat status ok/ready berikutnya datang
                 out.append(self._down_status(name, f"{ErrorCode.WORKER_RESTART}: proses {name} "

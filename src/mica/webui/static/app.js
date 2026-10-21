@@ -280,6 +280,19 @@ ws.addEventListener("message", (e) => {
   }
 });
 
+// Langkah 51: tanda "sedang mengetik" (tanpa isi teks) paling sering sekali per 500 ms, supaya
+// sesi tidak berakhir saat pengunjung menunduk ke keyboard
+let typingSent = 0;
+function noteTyping() {
+  const now = performance.now();
+  if (now - typingSent >= 500) {
+    send({ type: "typing" });
+    typingSent = now;
+  }
+}
+$("input").addEventListener("input", noteTyping);
+$("transcript_edit").addEventListener("input", noteTyping);
+
 $("input").addEventListener("keydown", (e) => {
   if (e.key === "Enter") submitText($("input"), "text");
 });

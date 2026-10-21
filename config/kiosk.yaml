@@ -76,6 +76,7 @@ vision:
   imgsz: null                       # E-07
   fps_idle: 5                       # ADR-20
   fps_busy: null                    # E-09
+  pause_during_tts: true            # Langkah 51 (keputusan pengguna 21 Okt 2026): YOLO dijeda saat Piper menyusun suara
   threads: null                     # E-09
 session:
   idle_reset_s: null                # E-09

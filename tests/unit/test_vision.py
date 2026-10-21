@@ -118,9 +118,14 @@ def test_two_people_one_greeting_for_tallest():
     assert clip.kinds() == ["PersonArrived"] and clip.events[0].track_id == 2
 
 
-def test_engaged_target_gone_but_small_person_counts_as_absent():
+def test_engaged_single_other_box_kept_as_target():
+    # Langkah 51: ID target hilang tapi hanya ada satu orang di frame -> dianggap target yang
+    # sama (belum ada pencocokan IoU), walau kecil; dua orang lain -> tidak ada yang dipilih
     clip = Clip(tracker()).play(3, [person(1)]).play(LEAVE + 0.5, [person(5, height=20)])
-    assert clip.kinds() == ["PersonArrived", "PersonLeft"]
+    assert clip.kinds() == ["PersonArrived"]
+    two = Clip(tracker()).play(3, [person(1)])
+    two.play(LEAVE + 0.5, [person(5, height=20), person(6, height=20)])
+    assert two.kinds() == ["PersonArrived", "PersonLeft"]
 
 
 def test_presence_has_no_default_values():
@@ -328,11 +333,14 @@ def shoulder_tracker():
 
 def test_shoulder_width_separates_sitting_from_standing_back():
     # box hampir setinggi frame di kedua kondisi; yang beda lebar bahu (0,30 vs 0,16)
+    # Langkah 51: lebar bahu hanya syarat MEMULAI sesi; selama sesi box target cukup
     near, far = shouldered(1, width=30, height=99), shouldered(1, width=16, height=99)
-    clip = Clip(shoulder_tracker()).play(3, [near]).play(LEAVE + 1, [far])
-    assert clip.kinds() == ["PersonArrived", "PersonLeft"]
-    box_clip = Clip(tracker()).play(3, [near]).play(LEAVE + 1, [far])
+    assert Clip(shoulder_tracker()).play(3, [far]).events == []  # jauh: tidak disapa
+    assert Clip(shoulder_tracker()).play(3, [near]).kinds() == ["PersonArrived"]
+    box_clip = Clip(tracker()).play(3, [far])
     assert box_clip.kinds() == ["PersonArrived"]  # tinggi box tidak memisahkan
+    kept = Clip(shoulder_tracker()).play(3, [near]).play(LEAVE + 1, [far])
+    assert kept.kinds() == ["PersonArrived"]  # menyamping/menunduk saat sesi: tetap ada
 
 
 def test_shoulder_unsure_briefly_does_not_trigger_leave():
@@ -345,17 +353,19 @@ def test_shoulder_unsure_briefly_does_not_trigger_leave():
     assert clip.presence.state == PresenceState.ENGAGED
 
 
-def test_box_without_confident_shoulders_longer_than_leave_leaves():
-    # box tertinggal (mis. kursi) tanpa bahu yakin: carry-over habis setelah leave_s,
-    # lalu PersonLeft setelah leave_s berikutnya tanpa target -> sekitar 2 x leave_s
+def test_box_without_confident_shoulders_keeps_session_then_leaves_when_box_gone():
+    # Langkah 51: keypoint bahu hilang (menunduk ke keyboard) tapi box target masih ada ->
+    # tidak pergi. Trade-off: box tertinggal (mis. kursi) kini menahan sesi; pengamannya
+    # session.idle_reset_s (TBD). Box hilang selama leave_s -> PersonLeft.
     clip = Clip(shoulder_tracker()).play(3, [shouldered(1)])
-    last_confident = clip.now - STEP
     clip.play(3 * LEAVE, [shouldered(1, conf=0.1)])
+    assert clip.kinds() == ["PersonArrived"]
+    gone_at = clip.now
+    clip.play(LEAVE + 1, [])
     assert clip.kinds() == ["PersonArrived", "PersonLeft"]
-    left = clip.events[1]
-    assert left.t - last_confident == pytest.approx(2 * LEAVE, abs=2 * STEP)
+    assert clip.events[1].t - gone_at == pytest.approx(LEAVE, abs=2 * STEP)
     clip.play(5, [shouldered(1, conf=0.1)])
-    assert clip.kinds() == ["PersonArrived", "PersonLeft"]  # box itu tidak disapa lagi
+    assert clip.kinds() == ["PersonArrived", "PersonLeft"]  # tanpa bahu yakin: tidak disapa
 
 
 def test_shoulder_unsure_and_box_gone_leaves():

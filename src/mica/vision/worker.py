@@ -141,6 +141,7 @@ class VisionWorkerConfig:
     # pratinjau UI kiosk (ui.camera_preview; mica.vision.livepreview): JPEG kecil lewat antrean
     # terpisah dari bus, dengan laju dan blok pixelate dari config
     camera_preview: str = "off"
+    pause_during_tts: bool = False  # vision.pause_during_tts (Langkah 51)
     preview_fps: float | None = None
     preview_pixel_block: int | None = None
     # dev saja (--measure-preview): angka laju/waktu ke antrean pengukuran (mica.eval.preview_meter)
@@ -212,6 +213,7 @@ class VisionWorkerConfig:
             countdown_s=countdown_s,
             preview_seconds=preview_seconds,
             camera_preview=settings.ui.camera_preview,
+            pause_during_tts=settings.vision.pause_during_tts,
             preview_fps=settings.ui.preview_fps,
             preview_pixel_block=settings.ui.preview_pixel_block,
         )
@@ -287,8 +289,13 @@ class VisionLoop:
         sleep: Callable[[float], None] = time.sleep,
         preview_out: Any = None,
         measure_out: Any = None,
+        tts_busy: Any = None,
     ) -> None:
         values = cfg.values
+        # Langkah 51: Event bersama proses suara; di-set selama Piper menyusun suara
+        self.tts_busy = tts_busy if cfg.pause_during_tts else None
+        self.paused_since: float | None = None
+        self.skipped = 0  # jatah deteksi yang dilewati karena jeda TTS
         self.cfg = cfg
         self.inbox = inbox
         self.outbox = outbox
@@ -347,6 +354,17 @@ class VisionLoop:
     def _status(self, ok: bool, message: str, fps: float | None) -> None:
         self.camera_ok, self.camera_message = ok, message
         self._send(CameraStatus(ok=ok, message=message, fps=fps))
+
+    def _tts_pause(self, now: float) -> bool:
+        """True selama Piper menyusun suara (vision.pause_during_tts). Saat jeda selesai, timer
+        pergi PresenceTracker digeser sepanjang jeda (dibekukan)."""
+        busy = self.tts_busy is not None and self.tts_busy.is_set()
+        if busy and self.paused_since is None:
+            self.paused_since = now
+        elif not busy and self.paused_since is not None:
+            self.presence.freeze(now - self.paused_since)
+            self.paused_since = None
+        return busy
 
     def handle_inbox(self) -> None:
         from mica.core.bus import SetVisionRate, Shutdown
@@ -466,7 +484,11 @@ class VisionLoop:
                     countdown = self.cfg.countdown_s if self.cfg.preview else 0.0
                     self.scenario_start = now + countdown
                     next_detect = self.scenario_start
-                if now >= next_detect - 1e-6:
+                if self._tts_pause(now):
+                    if now >= next_detect - 1e-6:
+                        self.skipped += 1
+                        next_detect = max(next_detect + 1.0 / self.fps, now)
+                elif now >= next_detect - 1e-6:
                     self._detect(frame, now)
                     if self.meter is not None:
                         self.meter.detected(self.clock() - now)
@@ -506,6 +528,7 @@ def run_vision_worker(
     outbox: Any,
     preview_out: Any = None,
     measure_out: Any = None,
+    tts_busy: Any = None,
 ) -> None:
     """Entry proses anak. Error tak terduga dilaporkan sebagai CameraStatus(ok=False), lalu
     proses keluar dengan error supaya bus memulai ulang (SDD 8.1)."""
@@ -526,7 +549,8 @@ def run_vision_worker(
         torch_threads = warm_up(cfg, detector)
         startup.mark("warmup_inference_done")
         loop = VisionLoop(cfg, inbox, outbox, _make_camera(cfg), detector,
-                          preview_out=preview_out, measure_out=measure_out)  # fmt: skip
+                          preview_out=preview_out, measure_out=measure_out,
+                          tts_busy=tts_busy)  # fmt: skip
         if loop.meter is not None:
             loop.meter.torch_threads = torch_threads
         loop.run()

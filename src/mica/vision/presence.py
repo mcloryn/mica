@@ -21,6 +21,14 @@ Sinyal kehadiran (vision.presence_signal, dipilih di E-07):
     yakin (leave_s carry-over + leave_s tanpa target);
   - track lain (kandidat baru) tidak memenuhi syarat.
 
+Langkah 51 (temuan uji black-box 21 Okt 2026, dibuat setelah data): sinyal kehadiran hanya
+syarat untuk MEMULAI sesi (CANDIDATE -> ENGAGED, sapaan). Selama ENGAGED, bila tidak ada track
+yang memenuhi syarat, pengunjung tetap dianggap ada selama box track target masih terdeteksi
+(walau bahu tidak terbaca atau lebarnya di bawah ambang, misalnya menunduk ke keyboard), atau,
+bila ID target hilang, box orang satu-satunya di frame dianggap target yang sama (belum ada
+pencocokan IoU di kode). PersonLeft hanya bila tidak ada keduanya selama leave_s. freeze(d)
+menggeser timer pergi saat deteksi dijeda (vision.pause_during_tts).
+
 Warna pakaian: selama CANDIDATE, suara warna target (color_of) dikumpulkan di ColorVoting dan
 direset bila kandidat berganti; hasilnya mengisi PersonArrived.color dan color_confidence.
 
@@ -125,12 +133,30 @@ class PresenceTracker:
                 out[t.track_id] = (t, value)
         return out
 
+    def kept_track(self, tracks: list[PersonTrack]) -> PersonTrack | None:
+        """Selama ENGAGED tanpa track yang memenuhi syarat: box track target, atau satu-satunya
+        orang di frame bila ID target hilang (Langkah 51)."""
+        if self.state != PresenceState.ENGAGED:
+            return None
+        same = [t for t in tracks if t.track_id == self.track_id]
+        if same:
+            return same[0]
+        return tracks[0] if len(tracks) == 1 else None
+
+    def freeze(self, seconds: float) -> None:
+        """Bekukan timer pergi dan carry-over selama `seconds` (deteksi dijeda)."""
+        if seconds <= 0:
+            return
+        if self.last_seen is not None:
+            self.last_seen += seconds
+        self.last_measured = {tid: at + seconds for tid, at in self.last_measured.items()}
+
     def target_for(
         self, tracks: list[PersonTrack], frame_shape: FrameShape, now: float
     ) -> PersonTrack | None:
         eligible = self.eligible_tracks(tracks, frame_shape, now)
         if not eligible:
-            return None
+            return self.kept_track(tracks)
         return max(eligible.values(), key=lambda tv: tv[1])[0]
 
     def update(
@@ -152,6 +178,8 @@ class PresenceTracker:
         events: list[VisionEvent] = []
 
         if self.state == PresenceState.ENGAGED:
+            if target is None:
+                target = self.kept_track(tracks)
             if target is not None:
                 if target.track_id != self.track_id:
                     self.id_switches += 1

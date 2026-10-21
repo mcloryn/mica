@@ -22,6 +22,12 @@ Aturan di luar baris tabel 7.1 (keputusan 17 Okt 2026 dan Langkah 22):
 - IdleTimeout: Tick(now) dengan now - interaksi terakhir > session.idle_reset_s; null = tidak
   pernah. Jeda sapaan ulang session.regreet_cooldown_s; null = tanpa jeda.
 - vision.fps_busy null -> SetVisionRate(fps_busy) tidak dikirim (laju tetap fps_idle).
+- Akhir sesi (Langkah 51, temuan uji black-box 21 Okt 2026, dibuat setelah data): PersonLeft
+  tidak langsung mengakhiri sesi bila pengunjung masih aktif, yaitu MICA sedang mendengar/
+  memproses/menjawab/bicara (GREETING, LISTENING, THINKING, SPEAKING) atau ada ketikan (Typing)
+  dalam vision.leave_s terakhir. PersonLeft lalu ditahan; sesi berakhir pada Tick setelah tidak
+  ada aktivitas itu selama vision.leave_s. PersonArrived saat ditahan membatalkan penahanan.
+  vision.leave_s null -> perilaku lama (PersonLeft langsung mengakhiri sesi).
 """
 
 from __future__ import annotations
@@ -108,6 +114,11 @@ class TalkTapped:
 
 
 @dataclass(frozen=True)
+class Typing:
+    """Pengunjung sedang mengetik di kotak teks (tanpa isi teks; Langkah 51)."""
+
+
+@dataclass(frozen=True)
 class Tick:
     now: float
 
@@ -123,6 +134,7 @@ Event = (
     | AnswerReady
     | TopicTapped
     | TextSubmitted
+    | Typing
     | StopTapped
     | TalkTapped
     | TalkPressed
@@ -186,6 +198,11 @@ def _utterance_ids() -> Callable[[], str]:
     return lambda: f"u{next(counter)}"
 
 
+# state saat pengunjung dianggap masih aktif walau kamera tidak melihatnya (Langkah 51)
+BUSY_STATES = (VisitState.GREETING, VisitState.LISTENING, VisitState.THINKING,
+               VisitState.SPEAKING)  # fmt: skip
+
+
 class Session:
     def __init__(
         self,
@@ -197,8 +214,10 @@ class Session:
         new_session_id: Callable[[], str] = _new_session_id,
         new_utterance_id: Callable[[], str] | None = None,
         input_mode: str = "vad",
+        leave_s: float | None = None,
     ) -> None:
         self.input_mode = input_mode  # audio.input_mode (Langkah 42)
+        self.leave_s = leave_s  # vision.leave_s: akhir sesi ditahan selama pengunjung aktif
         self.fps_idle = fps_idle
         self.fps_busy = fps_busy
         self.min_majority = min_majority
@@ -220,13 +239,15 @@ class Session:
         self.audio_ready: bool | None = None
         self.mic_ok = True
         self.view = ShowView(VisitState.IDLE)
+        self.left_pending = False  # PersonLeft ditahan karena pengunjung masih aktif
+        self.last_active: float | None = None  # ketikan atau state sibuk terakhir
 
     @classmethod
     def from_settings(cls, settings: Settings, **kwargs: Callable[[], str]) -> Session:
         v, s = settings.vision, settings.session
         return cls(v.fps_idle, v.fps_busy, v.color.min_majority, s.idle_reset_s,
                    s.regreet_cooldown_s, **kwargs,
-                   input_mode=settings.audio.input_mode)  # fmt: skip
+                   input_mode=settings.audio.input_mode, leave_s=v.leave_s)  # fmt: skip
 
     # --- bantuan ------------------------------------------------------------------------
 
@@ -279,6 +300,8 @@ class Session:
         self.greeting_uid = self.answer_uid = self.question = None
         self.last_interaction = None
         self.ignore_arrivals = False
+        self.left_pending = False
+        self.last_active = None
         self.cooldown_until = now + (self.regreet_cooldown_s or 0.0)
         return [StopSpeaking(old), ClearScreen(), self._listen("off"),
                 SetVisionRate(self.fps_idle), self._show()]  # fmt: skip
@@ -295,16 +318,41 @@ class Session:
         worker = (SpeechStarted, Transcript, SpeechDone, AnswerReady)
         if isinstance(event, worker) and event.session_id != self.session_id:
             return self._ignore(event, "session_id lama")
+        self._note_busy(now)
+        if isinstance(event, Typing):
+            if self.state == VisitState.IDLE:
+                return []
+            self.last_active = self.last_interaction = now
+            return []
         if isinstance(event, PersonLeft):
             if self.state == VisitState.IDLE:
                 return self._ignore(event, "tidak ada sesi")
+            if self.leave_s is not None and self._visitor_active(now):
+                self.left_pending = True  # diakhiri Tick setelah tidak aktif selama leave_s
+                return self._ignore(event, "pengunjung masih aktif; akhir sesi ditahan")
             return self._reset(now)
+        if isinstance(event, PersonArrived) and self.left_pending:
+            self.left_pending = False  # orang terlihat lagi: sesi lanjut, tanpa sapaan kedua
+            return self._ignore(event, "orang kembali saat akhir sesi ditahan")
         actions = self._transition(event, now)
         if not (len(actions) == 1 and isinstance(actions[0], Ignored)):
             self.last_interaction = now  # IdleTimeout dihitung ulang setiap interaksi
         return actions
 
+    def _note_busy(self, now: float) -> None:
+        if self.state in BUSY_STATES:
+            self.last_active = now
+
+    def _visitor_active(self, now: float) -> bool:
+        if self.state in BUSY_STATES:
+            return True
+        assert self.leave_s is not None
+        return self.last_active is not None and now - self.last_active < self.leave_s
+
     def _tick(self, now: float) -> list[Action]:
+        self._note_busy(now)
+        if self.left_pending and self.state != VisitState.IDLE and not self._visitor_active(now):
+            return self._reset(now)  # PersonLeft yang ditahan (Langkah 51)
         if (
             self.state != VisitState.IDLE
             and self.idle_reset_s is not None

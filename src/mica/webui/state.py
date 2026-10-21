@@ -21,6 +21,7 @@ from mica.core.session import (
     TalkTapped,
     TextSubmitted,
     TopicTapped,
+    Typing,
 )
 
 # kalimat status dari pesan M-09 yang menggantikan kalimat bawaan pil (push-to-talk, Langkah 42)
@@ -173,6 +174,8 @@ def config_json(ui: UiConfig, dev: bool, trial: bool = False,
 def event_from_message(msg: dict[str, Any], vm: ViewModel, ui: UiConfig) -> Event | None:
     """Pesan input browser -> event yang sama dengan sinyal MainWindow; selain itu None."""
     kind = msg.get("type")
+    if kind == "typing":  # Langkah 51: tanda mengetik tanpa isi teks
+        return Typing()
     if kind in ("text", "resend"):
         text = str(msg.get("text", "")).strip()
         return TextSubmitted(text) if text and vm.send_enabled else None

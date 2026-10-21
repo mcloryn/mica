@@ -227,6 +227,9 @@ class VisionConfig(_Model):
     imgsz: PositiveInt | None = None
     fps_idle: PositiveFloat
     fps_busy: PositiveFloat | None = None
+    # Langkah 51: lewati inferensi YOLO selama Piper menyusun suara (pratinjau tetap jalan
+    # dengan hasil deteksi terakhir; timer pergi dibekukan)
+    pause_during_tts: bool = False
     threads: PositiveInt | None = None
 
     @model_validator(mode="after")

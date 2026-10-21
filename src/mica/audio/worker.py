@@ -268,8 +268,12 @@ class AudioLoop:
         clock: Callable[[], float] = time.monotonic,
         out: Callable[[str], None] = print,
         measure_out: Any = None,
+        tts_busy: Any = None,
     ) -> None:
         self.cfg = cfg
+        # Langkah 51: multiprocessing.Event bersama proses vision; di-set selama Piper menyusun
+        # satu clip (bukan saat memutar), supaya vision bisa menjeda YOLO
+        self.tts_busy = tts_busy
         self.inbox = inbox
         self.outbox = outbox
         self.stt = stt
@@ -486,6 +490,21 @@ class AudioLoop:
                 self.transcribing = False
             self.wake.set()
 
+    def _clips(self, text: str) -> Any:
+        """tts.stream(text) dengan tts_busy di-set hanya selama satu clip disintesis."""
+        stream = iter(self.tts.stream(text))
+        while True:
+            if self.tts_busy is not None:
+                self.tts_busy.set()
+            try:
+                clip = next(stream)
+            except StopIteration:
+                return
+            finally:
+                if self.tts_busy is not None:
+                    self.tts_busy.clear()
+            yield clip
+
     def _speak(self, msg: Speak, epoch: int, received: float) -> None:
         def done(first: float | None, interrupted: bool) -> None:
             first_t = None if first is None else received + first
@@ -508,7 +527,7 @@ class AudioLoop:
         audio_s = 0.0
         try:
             synth_start = self.clock()
-            for clip in self.tts.stream(msg.text):
+            for clip in self._clips(msg.text):
                 if self.meter is not None:
                     synth_end = self.clock()
                     self.meter.synth(synth_start, synth_end)
@@ -614,8 +633,23 @@ class AudioLoop:
             raise self.error
 
 
+WARMUP_TEXT = "Halo."  # non-ADR: kalimat pemanasan Piper, tidak diputar dan tidak disimpan
+
+
+def warm_up_tts(tts: Any) -> None:
+    """Satu sintesis pemanasan saat startup (Langkah 51): fonemizer eSpeak Piper dibuat malas
+    pada sintesis pertama dan onnxruntime menyiapkan memori pada run pertama, jadi biaya itu
+    dipindah ke startup. Hasilnya dibuang (tidak diputar, tidak disimpan; N-08)."""
+    for _clip in tts.stream(WARMUP_TEXT):
+        pass
+
+
 def run_audio_worker(
-    cfg: AudioWorkerConfig, inbox: Any, outbox: Any, measure_out: Any = None
+    cfg: AudioWorkerConfig,
+    inbox: Any,
+    outbox: Any,
+    measure_out: Any = None,
+    tts_busy: Any = None,
 ) -> None:
     """Entry proses anak. Error tak terduga dilaporkan sebagai AudioStatus(ready=False), lalu
     proses keluar dengan error supaya bus memulai ulang (SDD 8.1)."""
@@ -640,6 +674,8 @@ def run_audio_worker(
         startup.mark("stt_load_done")
         tts = _make_tts(cfg)
         startup.mark("tts_load_done")
+        warm_up_tts(tts)  # Langkah 51: sebelum status siap
+        startup.mark("tts_warmup_done")
         prob = _make_prob(cfg)
         startup.mark("vad_load_done")
         mic, mic_message = None, ""
@@ -660,7 +696,7 @@ def run_audio_worker(
             speaker_message = f"speaker tidak tersedia: {exc}"
         startup.mark("player_open_done")
         AudioLoop(cfg, inbox, outbox, stt, tts, mic, player, prob, mic_message,
-                  speaker_message, measure_out=measure_out).run()  # fmt: skip
+                  speaker_message, measure_out=measure_out, tts_busy=tts_busy).run()  # fmt: skip
     except Exception as exc:
         outbox.put(AudioStatus(mic_ok=False, speaker_ok=False, ready=False,
                                message=f"audio worker error: {exc}"))  # fmt: skip
