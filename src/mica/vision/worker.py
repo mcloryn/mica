@@ -124,6 +124,7 @@ class VisionWorkerConfig:
     presence_signal: str
     values: dict[str, float]
     fps_idle: float
+    threads: int | None = None  # vision.threads -> torch.set_num_threads; None = bawaan torch
     camera_source: int | str = 0
     status_interval_s: float = STATUS_INTERVAL_S
     # dev/tes saja: "modul:fungsi"; camera_factory(source, options) -> Camera,
@@ -200,6 +201,7 @@ class VisionWorkerConfig:
             presence_signal=str(signal),
             values=values,
             fps_idle=vision.fps_idle,
+            threads=vision.threads,
             camera_source=camera_source,
             status_interval_s=status_interval_s,
             camera_factory=camera_factory,
@@ -502,6 +504,10 @@ def run_vision_worker(
         if cfg.detector_factory is None:  # modul yang memang dimuat UltralyticsDetector
             startup.timed_import("torch")
             startup.timed_import("ultralytics")
+        if cfg.detector_factory is None:
+            from mica.vision.detector import apply_torch_threads
+
+            apply_torch_threads(cfg.threads)  # sebelum model dimuat
         startup.mark("model_load_start")
         detector = _make_detector(cfg)
         startup.mark("model_load_done")

@@ -105,6 +105,7 @@ class AudioWorkerConfig:
     player_factory: str | None = None
     prob_factory: str | None = None
     factory_options: dict[str, Any] = field(default_factory=dict)
+    tts_threads: int | None = None  # audio.tts.threads; None = bawaan onnxruntime
     # dev saja (--measure-preview): selang sintesis/putar ke antrean pengukuran
     measure: bool = False
 
@@ -156,6 +157,7 @@ class AudioWorkerConfig:
             stt_threads=stt.threads,
             voice_file=voice_path(settings.audio.tts.voice, voices_dir).as_posix(),
             length_scale=settings.audio.tts.length_scale,
+            tts_threads=settings.audio.tts.threads,
             values=values,
             filters=filters,
             mic_device=mic_device,
@@ -220,7 +222,7 @@ def _make_tts(cfg: AudioWorkerConfig) -> Any:
         return load_factory(cfg.tts_factory)(cfg, cfg.factory_options)
     from mica.audio.tts import PiperTts
 
-    return PiperTts(Path(cfg.voice_file), cfg.length_scale)
+    return PiperTts(Path(cfg.voice_file), cfg.length_scale, threads=cfg.tts_threads)
 
 
 def _make_mic(cfg: AudioWorkerConfig) -> Any:

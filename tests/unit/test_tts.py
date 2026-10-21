@@ -96,7 +96,10 @@ def test_config_tts_voice_and_length_scale(tmp_path):
 
     for path in (DEV_YAML, KIOSK_YAML):
         tts = yaml.safe_load(path.read_text(encoding="utf-8"))["audio"]["tts"]
-        assert tts == {"voice": "id_ID-news_tts-medium", "length_scale": None}
+        assert {k: tts[k] for k in ("voice", "length_scale")} == {
+            "voice": "id_ID-news_tts-medium", "length_scale": None}  # fmt: skip
+        assert "threads" in tts  # docs/CPU-THREADS.md; nilai dev boleh hasil pilih, kiosk null
+    assert yaml.safe_load(KIOSK_YAML.read_text(encoding="utf-8"))["audio"]["tts"]["threads"] is None
     assert load_settings(DEV_YAML).audio.tts.length_scale is None
     assert (
         voice_path("id_ID-news_tts-medium").as_posix() == "models/piper/id_ID-news_tts-medium.onnx"

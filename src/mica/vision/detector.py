@@ -42,6 +42,19 @@ class ModelMissing(Exception):
         )
 
 
+def apply_torch_threads(threads: int | None, torch_module: Any = None) -> int | None:
+    """vision.threads -> torch.set_num_threads (intra-op) di proses vision; None = bawaan torch.
+
+    Inter-op tidak diubah: satu frame per inferensi, jadi pool inter-op torch tidak dipakai untuk
+    paralelisme. Mengembalikan jumlah thread intra-op yang berlaku.
+    """
+    if torch_module is None:
+        import torch as torch_module
+    if threads is not None:
+        torch_module.set_num_threads(threads)
+    return int(torch_module.get_num_threads())
+
+
 class PersonDetector(Protocol):
     def detect_and_track(self, frame: np.ndarray) -> list[PersonTrack]: ...
 

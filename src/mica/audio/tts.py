@@ -55,10 +55,42 @@ def voice_path(voice: str, voices_dir: Path = DEFAULT_VOICES_DIR) -> Path:
     return Path(voices_dir) / f"{voice}.onnx"
 
 
-def _load_piper(model: str, config: str) -> Any:
+def session_options(threads: int | None) -> Any:
+    """SessionOptions onnxruntime untuk audio.tts.threads; None = bawaan onnxruntime (tidak diubah).
+
+    threads diisi -> intra_op_num_threads = threads dan inter_op_num_threads = 1 (model Piper
+    dijalankan ORT_SEQUENTIAL, jadi inter_op tidak dipakai untuk paralelisme antar-node).
+    """
+    import onnxruntime
+
+    opts = onnxruntime.SessionOptions()
+    if threads is not None:
+        opts.intra_op_num_threads = threads
+        opts.inter_op_num_threads = 1
+    return opts
+
+
+def _load_piper(model: str, config: str, threads: int | None = None) -> Any:
     from piper import PiperVoice
 
-    return PiperVoice.load(model, config_path=config)
+    if threads is None:
+        return PiperVoice.load(model, config_path=config)  # perilaku lama, tanpa perubahan
+    # sama dengan PiperVoice.load (piper-tts 1.8.0, CPU, tanpa alignment) kecuali SessionOptions
+    import json
+
+    import onnxruntime
+    from piper.voice import ESPEAK_DATA_DIR, PiperConfig
+
+    with open(config, encoding="utf-8") as f:
+        config_dict = json.load(f)
+    return PiperVoice(
+        config=PiperConfig.from_dict(config_dict),
+        session=onnxruntime.InferenceSession(
+            model, sess_options=session_options(threads), providers=["CPUExecutionProvider"]
+        ),
+        espeak_data_dir=Path(ESPEAK_DATA_DIR),
+        download_dir=Path.cwd(),
+    )
 
 
 def concat(clips: list[AudioClip]) -> AudioClip:
@@ -73,9 +105,11 @@ class PiperTts:
         self,
         voice_file: Path,
         length_scale: float | None = None,
-        loader: Callable[[str, str], Any] = _load_piper,
+        loader: Callable[..., Any] = _load_piper,
         clock: Callable[[], float] = time.perf_counter,
+        threads: int | None = None,
     ) -> None:
+        """threads: audio.tts.threads (onnxruntime intra_op); None = bawaan onnxruntime."""
         voice_file = Path(voice_file)
         config_file = Path(f"{voice_file}.json")
         for path in (voice_file, config_file):
@@ -84,7 +118,9 @@ class PiperTts:
         self.voice_file = voice_file
         self.length_scale = length_scale  # None = bawaan .onnx.json suara
         self.clock = clock
-        self.voice = loader(str(voice_file), str(config_file))
+        self.threads = threads
+        self.voice = (loader(str(voice_file), str(config_file)) if threads is None
+                      else loader(str(voice_file), str(config_file), threads))  # fmt: skip
 
     def _syn_config(self) -> Any:
         if self.length_scale is None:

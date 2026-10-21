@@ -161,6 +161,9 @@ class TtsConfig(_Model):
     voice: str  # nama suara Piper, file models/piper/<voice>.onnx (+ .onnx.json)
     # null = bawaan file .onnx.json suara (inference.length_scale); boleh null di kiosk
     length_scale: PositiveFloat | None = None
+    # thread onnxruntime Piper (intra_op; inter_op 1). null = bawaan onnxruntime. E-09 /
+    # docs/CPU-THREADS.md; konsisten dengan audio.stt.threads
+    threads: PositiveInt | None = None
 
 
 class AudioConfig(_Model):
