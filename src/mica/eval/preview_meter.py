@@ -77,6 +77,7 @@ class VisionMeter:
         self.render_ms: list[float] = []
         self.cap_fps: float | None = None
         self.size: tuple[int, int] | None = None
+        self.torch_threads: int | None = None  # thread intra-op torch yang berlaku (proses vision)
 
     def camera(self, capture: Any) -> None:
         """CAP_PROP_FPS yang dilaporkan driver (None untuk sumber tanpa get, mis. palsu)."""
@@ -110,7 +111,7 @@ class VisionMeter:
         _put(self.out, {
             "src": "vision", "t0": self.start, "t1": now,
             "capture_fps": self.frames / span, "preview_put_fps": self.previews / span,
-            "cap_prop_fps": self.cap_fps,
+            "cap_prop_fps": self.cap_fps, "torch_threads": self.torch_threads,
             "width": self.size[0] if self.size else None,
             "height": self.size[1] if self.size else None,
             "read_ms": _ms(self.read_ms), "detect_ms": _ms(self.detect_ms),
@@ -342,6 +343,7 @@ class PreviewMeasurement:
             v = vis[-1]
             row.update(capture_fps=v["capture_fps"], preview_put_fps=v["preview_put_fps"],
                        cap_prop_fps=v["cap_prop_fps"], width=v["width"], height=v["height"],
+                       torch_threads=v.get("torch_threads"),
                        read_ms=v["read_ms"], detect_ms=v["detect_ms"],
                        render_encode_ms=v["render_encode_ms"])  # fmt: skip
         if self.cpu is not None:

@@ -484,6 +484,22 @@ class VisionLoop:
             self.camera.release()
 
 
+def warm_up(cfg: VisionWorkerConfig, detector: PersonDetector) -> int | None:
+    """Inferensi pemanasan (model dimuat sebelum kamera dibuka), lalu vision.threads.
+
+    vision.threads dipasang SETELAH inferensi pertama: Ultralytics 8.4 select_device memanggil
+    torch.set_num_threads(min(8, cpu_count - 1)) saat predictor disiapkan, sehingga setelan yang
+    dipasang lebih awal tertimpa (ditemukan di bench docs/CPU-THREADS.md, Langkah 50).
+    Mengembalikan thread intra-op torch yang berlaku (None untuk detektor palsu tanpa threads).
+    """
+    detector.detect_and_track(np.zeros((480, 640, 3), dtype=np.uint8))
+    if cfg.threads is None and cfg.detector_factory is not None:
+        return None
+    from mica.vision.detector import apply_torch_threads
+
+    return apply_torch_threads(cfg.threads)
+
+
 def run_vision_worker(
     cfg: VisionWorkerConfig,
     inbox: Any,
@@ -504,18 +520,15 @@ def run_vision_worker(
         if cfg.detector_factory is None:  # modul yang memang dimuat UltralyticsDetector
             startup.timed_import("torch")
             startup.timed_import("ultralytics")
-        if cfg.detector_factory is None:
-            from mica.vision.detector import apply_torch_threads
-
-            apply_torch_threads(cfg.threads)  # sebelum model dimuat
         startup.mark("model_load_start")
         detector = _make_detector(cfg)
         startup.mark("model_load_done")
-        # pemanasan: muat model sebelum kamera dibuka
-        detector.detect_and_track(np.zeros((480, 640, 3), dtype=np.uint8))
+        torch_threads = warm_up(cfg, detector)
         startup.mark("warmup_inference_done")
         loop = VisionLoop(cfg, inbox, outbox, _make_camera(cfg), detector,
                           preview_out=preview_out, measure_out=measure_out)  # fmt: skip
+        if loop.meter is not None:
+            loop.meter.torch_threads = torch_threads
         loop.run()
     except Exception as exc:
         outbox.put(CameraStatus(ok=False, message=f"vision worker error: {exc}", fps=None))

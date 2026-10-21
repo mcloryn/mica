@@ -100,6 +100,8 @@ def metrics(rows: list[dict[str, Any]], speaks: list[dict[str, Any]],
         "cpu_vision_tts_median": cpu(tts_rows, "vision"),
         "cpu_suara_tts_median": cpu(tts_rows, "suara"),
         "cpu_vision_all_median": cpu(rows, "vision"),
+        "torch_threads_seen": sorted({r["torch_threads"] for r in rows
+                                      if r.get("torch_threads") is not None}),
     }  # fmt: skip
 
 

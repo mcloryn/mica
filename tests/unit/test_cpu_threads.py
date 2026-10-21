@@ -98,3 +98,26 @@ def test_vision_config_carries_threads(tmp_path):
     assert base.threads is None
     s = _with(_settings(), "vision", "threads", 3)
     assert VisionWorkerConfig.from_settings(s, TEST_VALUES, models_dir=tmp_path).threads == 3
+
+
+def test_vision_threads_applied_after_warmup_inference(monkeypatch, tmp_path):
+    """Ultralytics menimpa torch.set_num_threads saat inferensi pertama; setelan dipasang sesudahnya."""
+    import mica.vision.detector as detector_module
+    from mica.vision.worker import warm_up
+
+    order = []
+
+    class Det:
+        def detect_and_track(self, frame):
+            order.append("detect")
+            return []
+
+    monkeypatch.setattr(detector_module, "apply_torch_threads",
+                        lambda n: order.append(("threads", n)) or n)  # fmt: skip
+    s = _with(_settings(), "vision", "threads", 3)
+    cfg = VisionWorkerConfig.from_settings(s, TEST_VALUES, models_dir=tmp_path)
+    assert warm_up(cfg, Det()) == 3 and order == ["detect", ("threads", 3)]
+    fake = VisionWorkerConfig.from_settings(_settings(), TEST_VALUES, models_dir=tmp_path,
+                                            detector_factory="tests.fakes:x")  # fmt: skip
+    order.clear()
+    assert warm_up(fake, Det()) is None and order == ["detect"]
