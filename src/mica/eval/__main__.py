@@ -90,6 +90,16 @@ def build_parser() -> argparse.ArgumentParser:
     imp.add_argument("--dataset", type=Path, required=True)
     imp.add_argument("--pool", type=Path, required=True)
 
+    fu = sub.add_parser("followup", help="Langkah 55: banding rag.followup_mode (docs/FOLLOWUP.md)")
+    fu.add_argument("--config", type=Path, required=True)
+    fu.add_argument("--dataset", type=Path, default=Path("data/eval/questions.jsonl"))
+    fu.add_argument("--switch", type=Path, default=Path("data/eval/dev_topic_switch.jsonl"))
+    fu.add_argument("--modes", default="concat,dual,llm_rewrite")
+    fu.add_argument("--out", type=Path, default=Path("results/FOLLOWUP"))
+    fu.add_argument("--cache-dir", type=Path, default=Path("data/cache/llm/rewrite"))
+    fu.add_argument("--logs", type=Path, default=Path("logs"))
+    fu.add_argument("--env-file", type=Path, default=Path(".env"))
+
     ret = sub.add_parser("retrieval", help="E-01: Recall@5, MRR, nDCG@10, latensi")
     ret.add_argument("--config", type=Path, required=True)
     ret.add_argument("--dataset", type=Path, required=True)
@@ -996,6 +1006,45 @@ def cmd_copy(args: argparse.Namespace, embedder_factory: EmbedderFactory | None 
     return 0
 
 
+def cmd_followup(args: argparse.Namespace, embedder_factory: EmbedderFactory | None) -> int:
+    from mica.eval.followup import MODES, run_followup
+    from mica.rag.retriever import make_retriever
+
+    modes = [m.strip() for m in args.modes.split(",") if m.strip()]
+    unknown = sorted(set(modes) - set(MODES))
+    if unknown:
+        raise ValueError(f"--modes tidak dikenal: {unknown}")
+    settings = load_settings(args.config, env_file=args.env_file)
+    if settings.app.mode != "dev":
+        raise ValueError("eval followup hanya untuk app.mode: dev (set dev)")
+    kb = load_kb(settings.kb.active_id, args.kb_root)
+    from mica.rag.retriever import embedder_for_kb
+
+    info = kb.manifest["embedder"]
+    embedder = (embedder_factory(info["model"], info["revision"]) if embedder_factory
+                else embedder_for_kb(kb))  # fmt: skip
+    load = getattr(embedder, "load", None)
+    if load is not None:
+        load()
+    retriever = make_retriever(settings, kb, embedder_factory=lambda m, r: embedder)
+    run, run_dir = run_followup(settings, retriever, args.dataset, args.switch, args.out, modes,
+                                args.cache_dir, args.logs)  # fmt: skip
+    print("mode | followup+ganti topik | followup dev | ganti topik | non-followup | "
+          "search p95 ms | rewrite p95 s")  # fmt: skip
+    for mode, s in run["summaries"].items():
+        lat = s["latency"]
+        rw = "-" if lat["rewrite_p95_s"] is None else f"{lat['rewrite_p95_s']:.3f}"
+        print(f"{mode} | {s['followup']['hits@5']}/{s['followup']['n']} | "
+              f"{s['followup_dev']['hits@5']}/{s['followup_dev']['n']} | "
+              f"{s['topic_switch']['hits@5']}/{s['topic_switch']['n']} | "
+              f"{s['non_followup']['hits@5']}/{s['non_followup']['n']} | "
+              f"{lat['search_p95_ms']:.1f} | {rw}")  # fmt: skip
+    if run["decision"]:
+        print(f"keputusan (docs/FOLLOWUP.md): {run['decision']['chosen']}")
+    print(f"tersimpan: {run_dir.as_posix()}")
+    return 0
+
+
 def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -1025,6 +1074,8 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
             return cmd_dataset(args)
         if args.command == "copy":
             return cmd_copy(args, embedder_factory)
+        if args.command == "followup":
+            return cmd_followup(args, embedder_factory)
         if args.command == "retrieval":
             return cmd_retrieval(args, embedder_factory)
         if args.command == "gate":
