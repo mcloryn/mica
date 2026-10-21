@@ -12,7 +12,6 @@ let shownTranscript = null;
 let shownStatus = null;
 let previewSocket = null;
 let previewUrl = null;
-let previewDrawn = 0; // --measure-preview (dev): gambar pratinjau yang dimuat <img>
 
 function send(msg) {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
@@ -81,18 +80,28 @@ function applyConfig(c) {
 }
 
 function startPreviewMeter() {
-  // hanya dev (--measure-preview): jumlah gambar yang dimuat dikirim paling sering sekali per
-  // detik dari handler load itu sendiri (tanpa timer); tanpa gambar
-  let reported = performance.now();
+  // hanya dev (--measure-preview): setiap gambar pratinjau yang dimuat dilaporkan langsung
+  // beserta jeda sejak gambar sebelumnya (ms), tanpa timer; tanpa gambar
+  let last = null;
   $("preview_img").addEventListener("load", () => {
-    previewDrawn += 1;
     const now = performance.now();
-    if (now - reported >= 1000) {
-      send({ type: "preview_drawn", n: previewDrawn });
-      previewDrawn = 0;
-      reported = now;
-    }
+    send({ type: "preview_drawn", n: 1, gap_ms: last === null ? null : Math.round(now - last) });
+    last = now;
   });
+}
+
+function renderGuide(g) {
+  // --guided-test (dev): langkah sekarang, hitung mundur, langkah berikutnya
+  if (!config || !config.dev || !config.guided) return;
+  const lines = [g.step ? `Langkah ${g.step}/${g.steps}: ${g.text}` : g.text];
+  if (g.remaining_s !== null) {
+    const m = Math.floor(g.remaining_s / 60);
+    const s = String(g.remaining_s % 60).padStart(2, "0");
+    lines.push(`Sisa ${m}:${s}`);
+  }
+  if (g.next) lines.push(`Berikutnya: ${g.next}`);
+  $("guide_box").textContent = lines.join("\n");
+  $("guide_box").hidden = false;
 }
 
 function openPreview() {
@@ -263,6 +272,7 @@ ws.addEventListener("message", (e) => {
   if (msg.type === "config") applyConfig(msg);
   else if (msg.type === "debug") $("debug_panel").textContent = msg.text;
   else if (msg.type === "measure") renderMeasure(msg.row);
+  else if (msg.type === "guide") renderGuide(msg);
   else if (msg.type === "view") {
     render(msg.view);
     // dilaporkan setelah requestAnimationFrame berikutnya (jeda tampil diukur di Python)

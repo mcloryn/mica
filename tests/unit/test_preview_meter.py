@@ -242,3 +242,17 @@ def test_measure_panel_markup_hidden_and_dev_only():
     js = (STATIC_DIR / "app.js").read_text("utf-8")
     assert '<pre id="measure_panel" hidden></pre>' in html
     assert "if (!config || !config.dev || !config.measure) return;" in js
+
+
+def test_live_line_carries_gaps_phase_and_flow_flags(tmp_path):
+    folder = tmp_path / "20261021-140000"
+    live = PreviewMeasurement.live_file(folder)
+    m = PreviewMeasurement(folder, None, sent=lambda: 0, drawn=lambda: 0,
+                           session_state=lambda: "IDLE", cpu=None, clock=StepClock(0.125),
+                           live_path=live, gaps=lambda: [100.4, 350.0],
+                           extra=lambda: {"phase": "idle", "view": {"greeting": False}})  # fmt: skip
+    for _ in range(8):
+        m.step()
+    (line,) = [json.loads(x) for x in live.read_text(encoding="utf-8").splitlines()]
+    assert line["browser_gaps_ms"] == [100, 350] and line["browser_gap_max_ms"] == 350
+    assert line["phase"] == "idle" and line["view"] == {"greeting": False}

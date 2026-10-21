@@ -19,6 +19,8 @@ hanya 127.0.0.1.
 - --measure-preview (dev saja): config memuat measure=true; app.js lalu menghitung gambar
   pratinjau yang dimuat <img> dan mengirim {"type": "preview_drawn", "n"} setiap detik. Angka per
   detik dari pengukur dikirim balik {"type": "measure", "row"} untuk panel kecil di pojok (dev).
+  Langkah 50: app.js melapor per gambar ({"n": 1, "gap_ms"}) supaya jeda antar gambar terukur.
+- --guided-test (dev saja, mica.webui.guided): {"type": "guide", ...} mengisi kotak petunjuk.
 
 Server WSGI: server bawaan Werkzeug (threaded, reloader dan debugger mati); alasannya di
 docs/UI-WEB.md, "Catatan setelah tahap 1".
@@ -63,9 +65,13 @@ class WebUi:
                  clock: Callable[[], float] = time.perf_counter,
                  render_clock: Callable[[], float] = time.monotonic,
                  trial: bool = False, input_mode: str = "vad",
-                 prompt_label: str | None = None, measure: bool = False) -> None:  # fmt: skip
+                 prompt_label: str | None = None, measure: bool = False,
+                 guided: bool = False) -> None:  # fmt: skip
         self.ui = ui
         self.measure = measure and dev  # --measure-preview hanya dev
+        self.guided = guided and dev  # --guided-test hanya dev
+        self.last_guide: dict[str, Any] | None = None
+        self.drawn_gaps: list[float] = []  # ms antar gambar pratinjau di browser (--measure)
         self.input_mode = input_mode  # audio.input_mode (Langkah 42)
         self.dev = dev
         self.trial = trial  # --trial-values (Langkah 41): label "NILAI COBA (dev)" di header
@@ -174,12 +180,15 @@ class WebUi:
                             self.ui, self.dev, self.trial, self.input_mode, self.prompt_label
                         ),
                         "measure": self.measure,
+                        "guided": self.guided,
                     }
                 )
             )
             self._send_view([ws])
             if self.debug_text is not None:
                 ws.send(json.dumps({"type": "debug", "text": self.debug_text}))
+            if self.last_guide is not None:
+                ws.send(json.dumps(self.last_guide))
         try:
             while True:
                 data = ws.receive()
@@ -237,6 +246,31 @@ class WebUi:
             for ws in list(self.sockets):
                 self._send(ws, {"type": "measure", "row": row})
 
+    def push_guide(self, payload: dict[str, Any]) -> None:
+        """--guided-test: isi kotak petunjuk (dev saja); disimpan untuk koneksi baru."""
+        if not self.guided:
+            return
+        with self.lock:
+            self.last_guide = payload
+            for ws in list(self.sockets):
+                self._send(ws, payload)
+
+    def take_gaps(self) -> list[float]:
+        """Jeda antar gambar sejak panggilan terakhir (dipakai pengukur per detik)."""
+        with self.lock:
+            gaps, self.drawn_gaps = self.drawn_gaps, []
+        return gaps
+
+    def flow_flags(self) -> dict[str, Any]:
+        """Penanda alur untuk file live (tanpa teks): status, sapaan, transkripsi, jawaban."""
+        with self.lock:
+            vm = self.vm
+            mica = [m for m in vm.messages if m.role == "mica"]
+            return {"status": str(vm.status.value), "greeting": vm.greeting is not None,
+                    "target": vm.target_present, "transcript": vm.last_transcript is not None,
+                    "n_visitor": sum(1 for m in vm.messages if m.role == "visitor"),
+                    "n_mica": len(mica), "n_with_sources": sum(1 for m in mica if m.sources)}  # fmt: skip
+
     def handle_message(self, data: dict[str, Any]) -> None:
         kind = data.get("type")
         now = self.clock()
@@ -244,6 +278,9 @@ class WebUi:
             if kind == "preview_drawn":
                 if self.measure:
                     self.previews_drawn += max(0, int(data.get("n", 0)))
+                    gap = data.get("gap_ms")
+                    if isinstance(gap, int | float) and gap >= 0:
+                        self.drawn_gaps.append(float(gap))
                 return
             if kind == "ack":
                 seq = int(data.get("seq", -1))

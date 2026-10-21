@@ -240,7 +240,13 @@ class PreviewMeasurement:
         clock: Callable[[], float] = time.monotonic,
         live_path: Path | None = None,
         on_row: Callable[[dict[str, Any]], None] | None = None,
+        gaps: Callable[[], list[float]] | None = None,
+        extra: Callable[[], dict[str, Any]] | None = None,
     ) -> None:
+        # Langkah 50: jeda antar gambar di browser (ms, dilaporkan app.js per gambar) dan info
+        # tambahan per detik (fase uji terpandu, penanda alur dari ViewModel; tanpa teks)
+        self.gaps = gaps
+        self.extra = extra
         self.folder = Path(folder)
         self.live_path = Path(live_path) if live_path is not None else None
         self.on_row = on_row
@@ -340,6 +346,12 @@ class PreviewMeasurement:
                        render_encode_ms=v["render_encode_ms"])  # fmt: skip
         if self.cpu is not None:
             row["cpu_pct"] = self.cpu()
+        if self.gaps is not None:
+            gaps = [round(g) for g in self.gaps()]
+            row["browser_gaps_ms"] = gaps
+            row["browser_gap_max_ms"] = max(gaps) if gaps else None
+        if self.extra is not None:
+            row.update(self.extra())
         self.last_sent, self.last_drawn = sent, drawn
         self.window_start, self.states = now, []
         self.vision = [v for v in self.vision if v["t1"] > now]
@@ -474,4 +486,8 @@ def live_line(row: dict[str, Any], wall_ts: float) -> dict[str, Any]:
         "render_encode_ms": med("render_encode_ms"),
         "synth_frac": row.get("synth_frac"),
         "play_frac": row.get("play_frac"),
+        "browser_gap_max_ms": row.get("browser_gap_max_ms"),
+        "browser_gaps_ms": row.get("browser_gaps_ms"),
+        "phase": row.get("phase"),
+        "view": row.get("view"),
     }  # fmt: skip

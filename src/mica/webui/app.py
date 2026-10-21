@@ -12,6 +12,8 @@ python -m mica.webui --config <yaml> [--fake-workers [--fake-camera]] [--fake-pi
 - --measure-preview [--measure-label X]: ukur laju pratinjau kamera dan CPU per detik
   (mica.eval.preview_meter) ke results/preview-fps/<timestamp>/summary.json; hanya dev, butuh
   pekerja kamera asli (boleh dengan --fake-camera), ditolak di kiosk dan dengan --fake-workers.
+- --guided-test: uji terpandu sekitar 5 menit (mica.webui.guided); kotak petunjuk di halaman,
+  program menutup sendiri setelah skenario selesai; hanya dev.
 """
 
 from __future__ import annotations
@@ -186,12 +188,15 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
         fake_camera: bool = False, fake_voice: bool = False, no_browser: bool = False,
         port: int = 0, record_resources: Path | None = None, resource_interval: float = 5.0,
         e09: bool = False, trial: bool = False, prompt_label: str | None = None,
-        measure_preview: bool = False, measure_label: str | None = None) -> int:  # fmt: skip
+        measure_preview: bool = False, measure_label: str | None = None,
+        guided_test: bool = False) -> int:  # fmt: skip
     """Rakit lalu jalankan sampai Edge ditutup atau Ctrl+C (dipakai python -m mica dan main)."""
     from mica.eval.preview_meter import MeasureRefused
     from mica.eval.preview_meter import check_allowed as check_measure
     from mica.eval.resources import RecorderRefused, check_allowed
     from mica.webui.browser import EdgeBrowser, EdgeMissing
+    from mica.webui.guided import GuidedRefused, GuidedTest
+    from mica.webui.guided import check_allowed as check_guided
 
     startup.begin()
     startup.mark("run_start")
@@ -205,9 +210,11 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
             check_allowed(settings.app.mode, e09)  # ditolak sebelum pekerja dimulai
         if measure_preview:
             check_measure(settings.app.mode)
+        if guided_test:
+            check_guided(settings.app.mode)
         webui = WebUi(settings.ui, dev=settings.app.mode == "dev", trial=trial,
                       input_mode=settings.audio.input_mode, prompt_label=prompt_label,
-                      measure=measure_preview)  # fmt: skip
+                      measure=measure_preview, guided=guided_test)  # fmt: skip
         browser = (
             None
             if no_browser
@@ -216,7 +223,7 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
         controller = build_controller(settings, webui, fake_workers=fake_workers,
                                       fake_pipeline=fake_pipeline, fake_camera=fake_camera,
                                       fake_voice=fake_voice, measure=measure_preview)  # fmt: skip
-    except (WebUiError, EdgeMissing, RecorderRefused, MeasureRefused) as exc:
+    except (WebUiError, EdgeMissing, RecorderRefused, MeasureRefused, GuidedRefused) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     recorder = None
@@ -229,15 +236,23 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
                                   "fake_pipeline": fake_pipeline, "fake_camera": fake_camera,
                                   "camera_preview": settings.ui.camera_preview})  # fmt: skip
         recorder.start()
+    stop = threading.Event()
+    guided = None
+    if guided_test:
+        guided = GuidedTest(lambda: webui.first_render_at, webui.push_guide, stop,
+                            clock=webui.clock)  # fmt: skip
+        guided.start()
     meter = None
     if measure_preview:
         meter = make_preview_meter(settings, webui, controller, browser, fake_camera, fake_voice,
-                                   measure_label)  # fmt: skip
+                                   measure_label, guided)  # fmt: skip
         meter.start()
         print(f"--measure-preview: angka per detik ke {meter.live_path}", flush=True)
     try:
-        serve(webui, controller, browser, port,
+        serve(webui, controller, browser, port, stop=stop,
               on_ready=lambda url: print(f"MICA web: {url}", flush=True))  # fmt: skip
+        if guided is not None and guided.finished:
+            print("--guided-test: skenario selesai, program ditutup", flush=True)
     except KeyboardInterrupt:
         print("berhenti")
     finally:
@@ -250,7 +265,7 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
 
 def make_preview_meter(settings: Settings, webui: WebUi, controller: KioskController,
                        browser: Any, fake_camera: bool, fake_voice: bool,
-                       label: str | None) -> Any:  # fmt: skip
+                       label: str | None, guided: Any = None) -> Any:  # fmt: skip
     import os
 
     from mica.eval.preview_meter import CpuSampler, PreviewMeasurement
@@ -264,6 +279,9 @@ def make_preview_meter(settings: Settings, webui: WebUi, controller: KioskContro
     return PreviewMeasurement(
         folder, source,
         live_path=PreviewMeasurement.live_file(folder), on_row=webui.push_measure,
+        gaps=webui.take_gaps,
+        extra=lambda: {"phase": guided.phase() if guided is not None else None,
+                       "view": webui.flow_flags()},
         sent=lambda: webui.previews_sent, drawn=lambda: webui.previews_drawn,
         session_state=lambda: getattr(controller.session, "state", None), cpu=cpu.sample,
         info={"label": label, "fake_camera": fake_camera, "fake_voice": fake_voice,
@@ -271,7 +289,7 @@ def make_preview_meter(settings: Settings, webui: WebUi, controller: KioskContro
               "preview_fps_config": settings.ui.preview_fps,
               "fps_idle_config": settings.vision.fps_idle,
               "fps_busy_config": settings.vision.fps_busy,
-              "browser_measured": browser is not None},
+              "browser_measured": browser is not None, "guided_test": guided is not None},
     )  # fmt: skip
 
 
@@ -319,6 +337,11 @@ def main(argv: list[str] | None = None) -> int:
         help="ukur laju pratinjau kamera + CPU per detik ke results/preview-fps/ (dev saja)",
     )
     parser.add_argument("--measure-label", help="label bebas untuk --measure-preview (dev)")
+    parser.add_argument(
+        "--guided-test",
+        action="store_true",
+        help="uji terpandu +-5 menit dengan kotak petunjuk; menutup sendiri (dev saja)",
+    )
     parser.add_argument("--port", type=int, default=0, help="0 = port acak bebas")
     from mica.eval.resources import add_arguments
 
@@ -347,4 +370,4 @@ def main(argv: list[str] | None = None) -> int:
                resource_interval=args.resource_interval, e09=args.e09,
                trial=args.trial_values, prompt_label=args.prompt_variant,
                measure_preview=args.measure_preview,
-               measure_label=args.measure_label)  # fmt: skip
+               measure_label=args.measure_label, guided_test=args.guided_test)  # fmt: skip
