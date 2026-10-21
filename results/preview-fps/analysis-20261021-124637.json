@@ -1,0 +1,267 @@
+{
+ "source": "results/preview-fps/live-20261021-124637.jsonl",
+ "preview_fps_config": 10.0,
+ "drop_rule": "detik anjlok: browser_drawn_fps < ui.preview_fps/2 (NILAI DESAIN alat diagnosis, bukan hasil ukur, bukan ambang sistem)",
+ "artifact_rule": "detik gambar=0 dengan kirim>=batas dan detik berikutnya normal = artefak pelaporan browser (bukan anjlok nyata)",
+ "seconds_analyzed": 211,
+ "artifact_seconds": [
+  7.4,
+  12.0,
+  19.9,
+  50.5,
+  84.2,
+  110.6,
+  135.0,
+  166.5,
+  188.9,
+  191.0,
+  213.4
+ ],
+ "total_sent": 2071,
+ "total_drawn": 2044,
+ "events": [
+  {
+   "ts": "2026-10-21T12:46:53+07:00",
+   "t": 15.1,
+   "duration_s": 1,
+   "status": [
+    "MELAYANI"
+   ],
+   "capture_fps": 28.2,
+   "preview_put_fps": 1.9,
+   "server_sent_fps": 1.9,
+   "browser_drawn_fps": 4.3,
+   "detect_ms": 59.5,
+   "cpu_pct.utama": 89.4,
+   "cpu_pct.vision": 721.7,
+   "cpu_pct.suara": 0.0,
+   "cpu_pct.edge": 3.8,
+   "cpu_pct.total_machine": 64.8
+  },
+  {
+   "ts": "2026-10-21T12:47:54+07:00",
+   "t": 76.0,
+   "duration_s": 1,
+   "status": [
+    "TTS-menyusun"
+   ],
+   "capture_fps": 11.4,
+   "preview_put_fps": 5.2,
+   "server_sent_fps": 7.7,
+   "browser_drawn_fps": 3.8,
+   "detect_ms": 190.6,
+   "cpu_pct.utama": 4.5,
+   "cpu_pct.vision": 361.0,
+   "cpu_pct.suara": 1333.2,
+   "cpu_pct.edge": 4.5,
+   "cpu_pct.total_machine": 100.0
+  }
+ ],
+ "by_status": {
+  "IDLE": {
+   "anjlok": {
+    "n": 0
+   },
+   "lancar": {
+    "n": 2,
+    "capture_fps": 29.6,
+    "preview_put_fps": 9.4,
+    "server_sent_fps": 9.8,
+    "browser_drawn_fps": 9.8,
+    "detect_ms": 59.6,
+    "cpu_pct.utama": 94.8,
+    "cpu_pct.vision": 722.0,
+    "cpu_pct.suara": 26.9,
+    "cpu_pct.edge": 21.2,
+    "cpu_pct.total_machine": 60.0
+   },
+   "artefak": 0
+  },
+  "MELAYANI": {
+   "anjlok": {
+    "n": 1,
+    "capture_fps": 28.2,
+    "preview_put_fps": 1.9,
+    "server_sent_fps": 1.9,
+    "browser_drawn_fps": 4.3,
+    "detect_ms": 59.5,
+    "cpu_pct.utama": 89.4,
+    "cpu_pct.vision": 721.7,
+    "cpu_pct.suara": 0.0,
+    "cpu_pct.edge": 3.8,
+    "cpu_pct.total_machine": 64.8
+   },
+   "lancar": {
+    "n": 57,
+    "capture_fps": 29.3,
+    "preview_put_fps": 9.9,
+    "server_sent_fps": 9.9,
+    "browser_drawn_fps": 10.7,
+    "detect_ms": 59.9,
+    "cpu_pct.utama": 4.6,
+    "cpu_pct.vision": 724.4,
+    "cpu_pct.suara": 0.0,
+    "cpu_pct.edge": 15.2,
+    "cpu_pct.total_machine": 49.5
+   },
+   "artefak": 4
+  },
+  "TTS-menyusun": {
+   "anjlok": {
+    "n": 1,
+    "capture_fps": 11.4,
+    "preview_put_fps": 5.2,
+    "server_sent_fps": 7.7,
+    "browser_drawn_fps": 3.8,
+    "detect_ms": 190.6,
+    "cpu_pct.utama": 4.5,
+    "cpu_pct.vision": 361.0,
+    "cpu_pct.suara": 1333.2,
+    "cpu_pct.edge": 4.5,
+    "cpu_pct.total_machine": 100.0
+   },
+   "lancar": {
+    "n": 10,
+    "capture_fps": 23.1,
+    "preview_put_fps": 9.1,
+    "server_sent_fps": 9.4,
+    "browser_drawn_fps": 9.8,
+    "detect_ms": 78.0,
+    "cpu_pct.utama": 6.2,
+    "cpu_pct.vision": 517.5,
+    "cpu_pct.suara": 755.2,
+    "cpu_pct.edge": 18.3,
+    "cpu_pct.total_machine": 81.2
+   },
+   "artefak": 1
+  },
+  "TTS-memutar": {
+   "anjlok": {
+    "n": 0
+   },
+   "lancar": {
+    "n": 129,
+    "capture_fps": 29.8,
+    "preview_put_fps": 9.9,
+    "server_sent_fps": 9.9,
+    "browser_drawn_fps": 10.7,
+    "detect_ms": 59.1,
+    "cpu_pct.utama": 4.6,
+    "cpu_pct.vision": 725.5,
+    "cpu_pct.suara": 0.0,
+    "cpu_pct.edge": 13.8,
+    "cpu_pct.total_machine": 47.0
+   },
+   "artefak": 6
+  }
+ },
+ "tts_threads": {
+  "logical_cores": 20,
+  "physical_cores": 14,
+  "intra_op_num_threads": 0,
+  "inter_op_num_threads": 0,
+  "execution_mode": "ExecutionMode.ORT_SEQUENTIAL",
+  "allow_spinning": "bawaan"
+ },
+ "tts_speaks": [
+  {
+   "first_audio_s": 0.19512350001605228,
+   "synth_total_s": 0.22484449998592027,
+   "synth_first_s": 0.16636409997590818,
+   "n_clips": 2,
+   "audio_s": 5.479909297052155,
+   "chars": 72,
+   "interrupted": false
+  },
+  {
+   "first_audio_s": 0.42616639999323525,
+   "synth_total_s": 0.41143979999469593,
+   "synth_first_s": 0.41143979999469593,
+   "n_clips": 1,
+   "audio_s": 13.339863945578232,
+   "chars": 179,
+   "interrupted": false
+  },
+  {
+   "first_audio_s": 0.1635287000099197,
+   "synth_total_s": 0.26362269997480325,
+   "synth_first_s": 0.14476639998611063,
+   "n_clips": 2,
+   "audio_s": 8.858412698412698,
+   "chars": 116,
+   "interrupted": true
+  },
+  {
+   "first_audio_s": 0.722491299995454,
+   "synth_total_s": 0.9345899999898393,
+   "synth_first_s": 0.7034675999893807,
+   "n_clips": 2,
+   "audio_s": 31.98548752834467,
+   "chars": 422,
+   "interrupted": false
+  },
+  {
+   "first_audio_s": 0.3763244000147097,
+   "synth_total_s": 0.6260218999814242,
+   "synth_first_s": 0.3646774999797344,
+   "n_clips": 2,
+   "audio_s": 21.966077097505668,
+   "chars": 290,
+   "interrupted": false
+  },
+  {
+   "first_audio_s": 0.08453160000499338,
+   "synth_total_s": 0.06500319999759085,
+   "synth_first_s": 0.06500319999759085,
+   "n_clips": 1,
+   "audio_s": 1.8459863945578232,
+   "chars": 23,
+   "interrupted": false
+  },
+  {
+   "first_audio_s": 0.8658876999979839,
+   "synth_total_s": 0.3299840000108816,
+   "synth_first_s": 0.3299840000108816,
+   "n_clips": 1,
+   "audio_s": 11.493877551020407,
+   "chars": 152,
+   "interrupted": false
+  },
+  {
+   "first_audio_s": 0.08774190000258386,
+   "synth_total_s": 0.065643399982946,
+   "synth_first_s": 0.065643399982946,
+   "n_clips": 1,
+   "audio_s": 1.8343764172335602,
+   "chars": 23,
+   "interrupted": false
+  },
+  {
+   "first_audio_s": 1.1160642000031658,
+   "synth_total_s": 0.3580894000187982,
+   "synth_first_s": 0.3580894000187982,
+   "n_clips": 1,
+   "audio_s": 12.666485260770974,
+   "chars": 160,
+   "interrupted": true
+  },
+  {
+   "first_audio_s": 0.08649159999913536,
+   "synth_total_s": 0.0613768000039272,
+   "synth_first_s": 0.0613768000039272,
+   "n_clips": 1,
+   "audio_s": 1.8459863945578232,
+   "chars": 23,
+   "interrupted": false
+  },
+  {
+   "first_audio_s": 1.0599908000149298,
+   "synth_total_s": 0.8662210000038613,
+   "synth_first_s": 0.35360360000049695,
+   "n_clips": 3,
+   "audio_s": 30.661950113378687,
+   "chars": 386,
+   "interrupted": false
+  }
+ ]
+}
