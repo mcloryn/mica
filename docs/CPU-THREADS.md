@@ -82,3 +82,18 @@ config/dev.yaml dengan komentar "dipilih CPU-THREADS.md, laptop dev".
 - Kalau run terpandu B dengan nilai terpilih membuat alur gagal (sapaan, transkripsi, jawaban dan
   sumber, TTS, akhir sesi), config/dev.yaml dikembalikan ke null.
 - `ui.preview_fps`, `vision.fps_idle`, dan `vision.fps_busy` tidak diubah.
+
+## Penyimpangan (ditulis setelah bench pertama, 21 Oktober 2026)
+
+- **Tahap 2 bench pertama (`results/cpu-threads/20261021-131908/`) tidak sah dan diulang.**
+  Ultralytics 8.4 `select_device` memanggil `torch.set_num_threads(8)` saat inferensi pertama,
+  sehingga `vision.threads` yang dipasang sebelum model dimuat tertimpa. Kelima kandidat tahap 2
+  sebenarnya berjalan dengan 8 thread yang sama (CPU vision sekitar 720% di semua kandidat, waktu
+  deteksi tidak berubah). Diperbaiki di kode (setelan dipasang setelah inferensi pemanasan), lalu
+  tahap 2 diulang dengan kandidat dan aturan yang sama, `audio.tts.threads` = 1 (pemenang tahap 1
+  yang tidak terpengaruh bug). Alasan pengulangan adalah bug alat, bukan hasil yang tidak disukai.
+  Hasil tahap 2 lama tetap disimpan untuk transparansi.
+- Tahap 1 sah: `audio.tts.threads` terbukti berlaku (intra_op 1 tercatat di sesi onnxruntime; CPU
+  proses suara saat menyusun turun dari 819% ke 36%).
+- Arti `vision.threads` null: YOLO berjalan 8 thread (nilai Ultralytics), bukan bawaan torch 14.
+  Pemecah seri tetap menghitung null sebagai 14 seperti pra-registrasi.
