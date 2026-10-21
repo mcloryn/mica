@@ -1,15 +1,16 @@
-/* Tata letak UI kiosk MICA (Langkah 37c): gaya web konvensional + warna sesi. Navbar, panel kamera
-   kiri (+-35%), panel percakapan kanan, footer pemberitahuan. Garis 1 px, radius kecil, tanpa
-   bayangan, gradasi, atau blur. Warna sesi (body[data-color]) mewarnai contoh warna besar dan
-   gelembung pengunjung. Satu-satunya animasi otomatis: contoh warna memudar masuk 200 ms saat
-   target terkunci; prefers-reduced-motion mematikannya. Nilai dari tokens.css. */
+/* Tata letak UI kiosk MICA, versi F (21 Okt 2026): mengikuti gambar acuan hasa lalu dirapikan.
+   Latar biru sangat muda; navbar, panel kamera (kiri, 34%), dan panel percakapan (kanan) jadi kartu
+   putih bersudut 16 px dengan bayangan tipis. Percakapan bergaya chat dengan avatar: MICA kiri
+   (lingkaran biru tua), pengunjung kanan (gelembung warna baju). Jawaban MICA dan sumbernya menyatu
+   dalam satu kartu; langkah bernomor jadi lingkaran biru. Tombol Bicara di kiri, Kirim di kanan.
+   Warna sesi (body[data-color]) mewarnai contoh warna, bingkai kamera, gelembung, dan avatar
+   pengunjung. Satu-satunya animasi otomatis tetap contoh warna memudar masuk 200 ms. */
 
 * { box-sizing: border-box; }
-/* jarak tepi navbar dan footer = tepi kontainer isi (sejajar pada layar lebar) */
-:root { --gutter: max(var(--space-4), calc((100vw - var(--content-max)) / 2 + var(--space-4))); }
 html { font-family: var(--font); font-size: 100%; }
 body {
-  margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+  margin: 0; height: 100vh; display: flex; flex-direction: column; gap: var(--space-4);
+  padding: var(--space-4); overflow: hidden;
   background: var(--bg); color: var(--text); font-size: var(--fs-m); line-height: var(--line);
   --session-tint: var(--neutral-tint); --session-edge: var(--neutral-edge);
   --session-swatch: transparent;
@@ -20,7 +21,7 @@ h1, h2, p { margin: 0; }
 h1 { font-size: var(--fs-welcome); font-weight: 700; line-height: 1.25; }
 h2 { font-size: var(--fs-m); font-weight: 700; }
 .small { font-size: var(--fs-s); color: var(--text-muted); }
-svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75;
+svg { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75;
       stroke-linecap: round; stroke-linejoin: round; }
 
 /* --- warna sesi (11 nama warna van de Weijer) -------------------------------------------- */
@@ -36,146 +37,222 @@ body[data-color="merah"] { --session-swatch: var(--c-merah-swatch); --session-ti
 body[data-color="putih"] { --session-swatch: var(--c-putih-swatch); --session-tint: var(--c-putih-tint); --session-edge: var(--c-putih-edge); }
 body[data-color="kuning"] { --session-swatch: var(--c-kuning-swatch); --session-tint: var(--c-kuning-tint); --session-edge: var(--c-kuning-swatch); }
 
-/* --- navbar dan footer ----------------------------------------------------------------- */
+/* --- navbar (kartu atas) ------------------------------------------------------------------ */
 #navbar {
-  display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
-  min-height: 56px; padding: 0 var(--gutter); background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  flex: none; display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
+  min-height: 80px; padding: var(--space-3) var(--space-6); background: var(--surface);
+  border-radius: var(--radius-card); box-shadow: var(--shadow);
 }
 #brand { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
-.logo-placeholder {
-  display: inline-flex; align-items: center; height: 32px; padding: 0 var(--space-2);
-  border: 1px solid var(--accent); border-radius: var(--radius); color: var(--accent);
-  font-weight: 700;
-}
-#logo_img { height: 32px; width: auto; }
-#app_title { font-size: var(--fs-answer); font-weight: 700; white-space: nowrap; overflow: hidden;
-             text-overflow: ellipsis; }
-#talk_button.held { /* push-to-talk: tombol sedang ditahan (Langkah 42) */
-  outline: 3px solid var(--accent); outline-offset: 2px;
-}
-#talk_button { touch-action: none; user-select: none; -webkit-user-select: none; }
+.brand-mark { width: 44px; height: 52px; }
+.brand-mark .mark-fill { fill: var(--brand); stroke: none; }
+.brand-mark .mark-line { stroke: var(--on-accent); stroke-width: 2.25; }
+.logo-placeholder { font-size: var(--fs-mark); font-weight: 700; line-height: 1; color: var(--brand); }
+#logo_img { height: 52px; width: auto; }
+.brand-text { display: flex; flex-direction: column; min-width: 0; margin-left: var(--space-2);
+              padding-left: var(--space-4); border-left: 1px solid var(--border); }
+#app_title { font-size: var(--fs-title); font-weight: 700; line-height: 1.3; white-space: nowrap;
+             overflow: hidden; text-overflow: ellipsis; }
+.brand-sub { font-size: var(--fs-s); color: var(--text-muted); white-space: nowrap; }
 .trial-badge { /* --trial-values (Langkah 41): label kecil, dev saja */
-  padding: 0 var(--space-2); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 0 var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-m);
   font-size: var(--fs-s); color: var(--text-muted); white-space: nowrap;
 }
-#indicators { display: flex; align-items: center; gap: var(--space-4); font-size: var(--fs-s); }
-.indicator { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--text-muted); }
+#indicators { display: flex; align-items: center; font-size: var(--fs-m); }
+.indicator { display: inline-flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-4);
+             color: var(--text-muted); }
+.indicator + .indicator { border-left: 1px solid var(--border); }
+.indicator:last-child { padding-right: 0; }
 .indicator.off { color: var(--text); }
 .indicator.off svg { stroke: var(--dot-off); }
-#footer { padding: var(--space-2) var(--gutter); background: var(--surface);
-          border-top: 1px solid var(--border); font-size: var(--fs-s); color: var(--text-muted); }
 
 /* --- dua kolom ---------------------------------------------------------------------------- */
 #layout {
   flex: 1; min-height: 0; width: 100%; max-width: var(--content-max); margin: 0 auto;
   display: grid; grid-template-columns: var(--left-col) 1fr; gap: var(--space-4);
-  padding: var(--space-4);
 }
 .panel {
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-m);
-  min-height: 0; display: flex; flex-direction: column;
+  background: var(--surface); border-radius: var(--radius-card); box-shadow: var(--shadow);
+  min-height: 0; display: flex; flex-direction: column; overflow: hidden;
 }
-.panel-head { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); }
 
 /* --- panel kamera ------------------------------------------------------------------------ */
-#left { gap: var(--space-3); padding-bottom: var(--space-3); }
-#left > p, #color_info, #debug_dock { margin: 0 var(--space-3); }
+#left { gap: var(--space-3); padding: var(--space-5); }
+.panel-top { display: flex; align-items: center; gap: var(--space-3); }
+.head-icon { display: inline-flex; align-items: center; justify-content: center; width: var(--avatar);
+             height: var(--avatar); border-radius: var(--radius-icon); background: var(--brand); color: var(--on-accent); flex: none; }
+.panel-head { font-size: var(--fs-answer); }
 #preview_frame {
-  position: relative; margin: var(--space-3) var(--space-3) 0; aspect-ratio: 4 / 3;
-  border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg);
-  overflow: hidden;
+  position: relative; flex: none; aspect-ratio: 4 / 3; border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--muted-fill); overflow: hidden;
 }
+body[data-color] #preview_frame { border-color: var(--session-edge); box-shadow: 0 0 0 1px var(--session-edge); }
 #preview_img { width: 100%; height: 100%; object-fit: cover; display: block; }
 #preview_empty { position: absolute; inset: 0; display: flex; align-items: center;
                  justify-content: center; color: var(--text-muted); }
-#preview_empty svg { width: 40px; height: 40px; stroke-width: 1.25; }
+#preview_empty svg { width: 56px; height: 56px; stroke-width: 1.25; }
 #color_info { display: flex; align-items: center; gap: var(--space-3); min-height: var(--swatch-size); }
 .swatch-big {
-  width: var(--swatch-size); height: var(--swatch-size); flex: none; border-radius: var(--radius-m);
-  background: var(--session-swatch); border: 1px solid var(--session-edge);
+  width: var(--swatch-size); height: var(--swatch-size); flex: none; border-radius: 50%;
+  background: var(--session-swatch); border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--session-edge);
   animation: fade-in 200ms ease-out;
 }
 #color_text { font-size: var(--fs-answer); font-weight: 700; }
 #color_text.quiet { font-weight: 400; color: var(--text-muted); font-size: var(--fs-m); }
-#debug_dock { border: 1px solid var(--border); border-radius: var(--radius); padding: 0 var(--space-2);
-              margin-top: auto; min-height: 0; overflow: auto; max-height: 40%; }
+.left-art { flex: 1 1 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column;
+            flex-wrap: wrap; justify-content: flex-end; align-content: flex-start; gap: var(--space-2); }
+/* bila tinggi tidak cukup, ilustrasi pindah ke kolom kedua yang terpotong (tidak tampil setengah) */
+.left-art > * { width: 100%; }
+.tagline { color: var(--brand); font-weight: 700; font-size: var(--fs-answer); }
+.campus { width: 100%; height: auto; max-height: 96px; }
+.campus .c-fill { fill: var(--campus-fill); }
+.campus .c-line { stroke: var(--campus-line); stroke-width: 1.5; }
+#footer { flex: none; padding: var(--space-2) var(--space-3); background: var(--muted-fill);
+          border-radius: var(--radius-m); font-size: var(--fs-s); color: var(--text-muted); }
+#debug_dock { border: 1px solid var(--border); border-radius: var(--radius-m); padding: 0 var(--space-2);
+              min-height: 0; overflow: auto; max-height: 40%; flex: none; }
 #debug_dock summary { min-height: var(--touch-min); display: flex; align-items: center;
                       font-size: var(--fs-s); cursor: pointer; }
 /* --measure-preview (dev saja): panel angka kecil di pojok kanan bawah */
 #measure_panel { position: fixed; right: var(--space-2); bottom: var(--space-2); margin: 0;
   padding: var(--space-1) var(--space-2); background: var(--surface); color: var(--text);
-  border: 1px solid var(--border); border-radius: var(--radius); font: inherit;
+  border: 1px solid var(--border); border-radius: var(--radius-m); font: inherit;
   font-size: var(--fs-s); white-space: pre; pointer-events: none; }
 /* --guided-test (dev saja): kotak petunjuk uji terpandu di pojok kiri bawah */
 #guide_box { position: fixed; left: var(--space-2); bottom: var(--space-2); margin: 0;
   max-width: 28rem; padding: var(--space-2) var(--space-3); background: var(--surface);
-  color: var(--text); border: 2px solid var(--accent); border-radius: var(--radius); font: inherit;
+  color: var(--text); border: 2px solid var(--accent); border-radius: var(--radius-m); font: inherit;
   font-size: var(--fs-m); white-space: pre-wrap; pointer-events: none; }
 #debug_panel { white-space: pre-wrap; margin: 0 0 var(--space-2); font: inherit; font-size: var(--fs-s); }
 
+/* --- kepala percakapan ------------------------------------------------------------------- */
+#right { gap: 0; }
+.chat-top { flex: none; display: flex; align-items: center; gap: var(--space-3);
+            padding: var(--space-3) var(--space-5); border-bottom: 1px solid var(--border); }
+.chat-name { font-size: var(--fs-answer); font-weight: 700; line-height: 1.3; }
+.chat-sub { font-size: var(--fs-s); color: var(--text-muted); }
+.avatar, .msg::before {
+  width: var(--avatar); height: var(--avatar); flex: none; border-radius: 50%;
+  background-repeat: no-repeat; background-position: center; background-size: 60%;
+}
+.avatar-mica, .msg.mica::before {
+  background-color: var(--brand);
+  background-image: url("/static/icons/avatar-mica.svg");
+}
+
 /* --- percakapan --------------------------------------------------------------------------- */
-#right { padding: var(--space-3); gap: var(--space-3); }
 #conversation { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;
-                gap: var(--space-3); font-size: var(--fs-answer); }
-#welcome { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-2); }
+                gap: var(--space-4); padding: var(--space-5); font-size: var(--fs-answer); }
+#welcome { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-2) 0; }
+#welcome_title { color: var(--brand); }
 #welcome_greeting { font-size: var(--fs-greeting); }
+#topics_hint { margin-top: var(--space-2); font-size: var(--fs-m); }
 #topic_grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3);
-              margin-top: var(--space-2); font-size: var(--fs-m); }
+              font-size: var(--fs-m); }
 .topic-tile {
-  display: flex; align-items: center; gap: var(--space-3); min-height: 64px;
+  display: flex; align-items: center; gap: var(--space-3); min-height: 72px;
   padding: var(--space-3) var(--space-4); border: 1px solid var(--border);
-  border-radius: var(--radius-m); background: var(--surface); text-align: left; font-weight: 700;
+  border-radius: var(--radius); background: var(--surface); text-align: left; font-weight: 700;
   cursor: pointer;
 }
-.topic-tile svg { width: 24px; height: 24px; color: var(--accent); }
+.topic-tile svg { width: var(--avatar); height: var(--avatar); padding: 9px; border-radius: var(--radius-icon);
+                  background: var(--accent-soft); color: var(--accent); }
 .topic-tile:hover { border-color: var(--accent); }
-#messages { display: flex; flex-direction: column; gap: var(--space-3); }
-.msg { display: flex; flex-direction: column; gap: var(--space-1); max-width: 80%; }
-.msg.mica { align-self: flex-start; }
-.msg.visitor { align-self: flex-end; align-items: flex-end; }
-.who { font-size: var(--fs-s); color: var(--text-muted); }
-.bubble { padding: var(--space-2) var(--space-3); border-radius: var(--radius-bubble);
-          white-space: pre-wrap; }
-.msg.mica .bubble { background: var(--surface); border: 1px solid var(--border); }
-/* jawaban terformat (answer_format.js): paragraf maks. 2 kalimat (nilai desain), daftar bernomor */
-.bubble.answer { white-space: normal; display: flex; flex-direction: column; gap: var(--space-2); }
-.bubble.answer ol, .bubble.answer ul { margin: 0; padding-left: 1.5em; display: flex; flex-direction: column;
-                    gap: var(--space-1); }
-.msg.visitor .bubble { background: var(--session-tint); border-left: 4px solid var(--session-edge); }
-#greeting { font-size: var(--fs-answer); }
-.sources, .notice-line { display: flex; align-items: flex-start; gap: var(--space-2); }
-.sources { font-size: var(--fs-s); color: var(--text-muted); }
-.follow-up { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); }
-.sources svg, .notice-line svg { margin-top: 2px; color: var(--text-muted); }
+#messages { display: flex; flex-direction: column; gap: var(--space-4); }
 
-/* --- status, topik, input ----------------------------------------------------------------- */
-#chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-#status_line { display: flex; align-items: center; gap: var(--space-2); color: var(--text-muted); }
-body[data-status="listening"] #status_line,
+/* pesan: avatar di kolom luar, isi di kolom dalam */
+.msg { position: relative; display: grid; grid-template-columns: var(--avatar) minmax(0, 1fr);
+       column-gap: var(--space-3); row-gap: var(--space-2); max-width: 82%; }
+.msg::before { content: ""; grid-column: 1; grid-row: 1; }
+.msg > * { grid-column: 2; }
+.msg.mica { align-self: flex-start; }
+.msg.visitor { align-self: flex-end; grid-template-columns: minmax(0, 1fr) var(--avatar); justify-items: end; }
+.msg.visitor::before {
+  grid-column: 2; background-color: var(--session-tint); box-shadow: inset 0 0 0 2px var(--session-edge);
+  background-image: url("/static/icons/avatar-visitor.svg");
+}
+.msg.visitor > * { grid-column: 1; }
+.who { /* nama penutur tetap dibacakan pembaca layar, tapi tidak tampil: avatar sudah menandai */
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.bubble { padding: var(--space-3) var(--space-5); border-radius: var(--radius-bubble); white-space: pre-wrap; }
+.msg.mica .bubble { background: var(--surface); border: 1px solid var(--border); border-top-left-radius: var(--radius-tail); }
+.msg.visitor .bubble { background: var(--session-tint); border-top-right-radius: var(--radius-tail);
+  border: 1px solid color-mix(in srgb, var(--session-edge) 30%, transparent); }
+#greeting { font-size: var(--fs-answer); }
+/* jawaban terformat (answer_format.js): paragraf maks. 2 kalimat, daftar bernomor jadi lingkaran */
+.bubble.answer { white-space: normal; display: flex; flex-direction: column; gap: var(--space-3);
+                 padding-block: var(--space-4); }
+.bubble.answer ol, .bubble.answer ul { margin: 0; padding-left: 1.5em; display: flex; flex-direction: column;
+                                       gap: var(--space-2); }
+.bubble.answer ol { list-style: none; padding-left: 0; counter-reset: step; }
+.bubble.answer ol > li { position: relative; padding-left: 40px; counter-increment: step; }
+.bubble.answer ol > li::before {
+  content: counter(step); position: absolute; left: 0; top: 0; width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center; border-radius: 50%;
+  background: var(--accent); color: var(--on-accent); font-size: var(--fs-s); font-weight: 700; line-height: 1;
+}
+/* sumber menyatu di bawah kartu jawaban */
+.msg.mica .bubble.answer:has(+ .sources) { border-bottom: 0; border-radius: var(--radius-tail) var(--radius-bubble) 0 0;
+                                           padding-bottom: var(--space-2); }
+.sources, .notice-line { display: flex; align-items: flex-start; gap: var(--space-2); }
+.sources { margin-top: calc(-1 * var(--space-2)); padding: var(--space-2) var(--space-5) var(--space-4);
+           background: var(--surface); border: 1px solid var(--border); border-top: 0;
+           border-radius: 0 0 var(--radius-bubble) var(--radius-bubble);
+           font-size: var(--fs-s); color: var(--text-muted); }
+.sources svg, .notice-line svg { width: 18px; height: 18px; margin-top: 1px; color: var(--text-muted); }
+.follow-up { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); justify-self: start;
+             padding-top: var(--space-1); }
+
+/* --- topik, status, input ----------------------------------------------------------------- */
+#chips { flex: none; display: flex; flex-wrap: wrap; gap: var(--space-2);
+         padding: 0 var(--space-5) var(--space-3) calc(var(--space-5) + var(--avatar) + var(--space-3)); }
+#status_line { flex: none; display: flex; align-items: center; gap: var(--space-2);
+               margin: 0 var(--space-5) var(--space-3); padding: var(--space-2) var(--space-4);
+               border-radius: var(--radius-m); background: var(--muted-fill); color: var(--text-muted); }
+body[data-status="listening"] #status_line { background: var(--listen-bg); color: var(--listen-ink); font-weight: 700; }
 body[data-status="thinking"] #status_line,
-body[data-status="speaking"] #status_line { color: var(--text); font-weight: 700; }
+body[data-status="speaking"] #status_line { background: var(--accent-soft); color: var(--busy-ink); font-weight: 700; }
 #status_icon { display: inline-flex; }
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
   min-height: var(--touch-min); min-width: var(--touch-min); padding: 0 var(--space-4);
-  border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface);
+  border: 1px solid var(--chip-edge); border-radius: var(--radius); background: var(--surface);
   color: var(--text); font-weight: 700; cursor: pointer;
 }
-.btn:hover { border-color: var(--text-muted); }
+.btn:hover { background: var(--accent-soft); }
+.btn:active, .topic-tile:active { transform: translateY(1px); background: var(--accent-soft); }
 .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
-.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
-.btn-topic { color: var(--accent); border-color: var(--accent); font-weight: 400; }
-.btn:disabled { cursor: default; background: var(--bg); border-color: var(--border);
-                color: var(--text-muted); font-weight: 400; }
-button:focus-visible, input:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
-#transcript_row { display: flex; align-items: center; gap: var(--space-2); font-size: var(--fs-s); }
+.btn-primary:hover, .btn-primary:active { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn-topic { color: var(--accent); }
+.btn:disabled { cursor: default; background: var(--disabled-bg); border-color: var(--disabled-bg);
+                color: var(--text-muted); transform: none; }
+button:focus-visible, input:focus { outline: 3px solid var(--accent); outline-offset: 2px; }
+#transcript_row { flex: none; display: flex; align-items: center; gap: var(--space-2);
+                  margin: 0 var(--space-5) var(--space-3); font-size: var(--fs-s); }
 #transcript_edit, #input {
-  flex: 1; min-width: 0; min-height: var(--touch-min); padding: 0 var(--space-3);
-  border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface);
+  flex: 1; min-width: 0; min-height: var(--touch-min); padding: 0 var(--space-4);
+  border: 1px solid var(--control); border-radius: var(--radius); background: var(--surface);
 }
-#bottom_bar { display: flex; align-items: center; gap: var(--space-2); padding-top: var(--space-3);
-              border-top: 1px solid var(--border); }
+#input { min-height: var(--touch-main); font-size: var(--fs-answer); }
+#input::placeholder { color: var(--text-muted); }
+#bottom_bar { flex: none; display: flex; align-items: center; gap: var(--space-3);
+              padding: var(--space-4) var(--space-5); border-top: 1px solid var(--border); }
+#talk_button { min-height: var(--touch-main); padding: 0 var(--space-5);
+               touch-action: none; user-select: none; -webkit-user-select: none; }
+#talk_button svg { width: 24px; height: 24px; }
+#talk_button.held { /* push-to-talk: tombol sedang ditahan (Langkah 42) */
+  background: var(--listen); border-color: var(--listen); outline: 3px solid var(--listen-bg); outline-offset: 2px;
+}
+#send_button { min-height: var(--touch-main); min-width: 120px; padding: 0 var(--space-5);
+               background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+#send_button:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+#send_button:disabled { background: var(--disabled-bg); border-color: var(--disabled-bg); color: var(--text-muted); }
+#send_button::before { /* ikon kirim; app.js mengisi teks tombol, jadi ikon lewat CSS */
+  content: ""; width: 20px; height: 20px; background: currentColor;
+  -webkit-mask: url("/static/icons/send.svg") center / contain no-repeat;
+          mask: url("/static/icons/send.svg") center / contain no-repeat;
+}
+#stop_button { min-height: var(--touch-main); color: var(--listen-ink); border-color: var(--listen-ink); }
 
 /* --- gerak: hanya contoh warna memudar masuk saat target terkunci ------------------------ */
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
@@ -185,13 +262,19 @@ button:focus-visible, input:focus { outline: 2px solid var(--accent); outline-of
 
 /* --- layar sempit (< 1100 px, nilai desain): kamera jadi strip kecil di atas ------------- */
 @media (max-width: 1099px) {
-  #layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; gap: var(--space-2);
-            padding: var(--space-2); }
+  body { padding: var(--space-2); gap: var(--space-2); }
+  #navbar { min-height: 64px; padding: var(--space-2) var(--space-4); }
+  .brand-mark { width: 36px; height: 42px; }
+  .logo-placeholder { font-size: var(--fs-welcome); }
+  .brand-sub { display: none; }
+  .indicator .label { /* status kamera/mikrofon tetap dibacakan pembaca layar */
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  #layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; gap: var(--space-2); }
   #left { display: grid; grid-template-columns: 160px 1fr; align-items: center;
-          column-gap: var(--space-3); padding-bottom: var(--space-2); }
-  #left .panel-head { grid-column: 1 / -1; }
-  #preview_frame { grid-row: 2 / span 2; margin: var(--space-2) 0 0 var(--space-2); }
-  #left > p, #color_info { margin: 0; }
-  #debug_dock { display: none; }
+          column-gap: var(--space-3); row-gap: var(--space-1); padding: var(--space-3); }
+  #left .panel-top { grid-column: 1 / -1; }
+  #preview_frame { grid-row: 2 / span 3; }
+  .left-art, #debug_dock { display: none; }
   #topic_grid { grid-template-columns: repeat(2, 1fr); }
+  .msg { max-width: 92%; }
 }

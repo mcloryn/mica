@@ -7,12 +7,20 @@
 <link rel="stylesheet" href="/static/tokens.css">
 <link rel="stylesheet" href="/static/style.css">
 </head>
+<!-- Versi F (21 Okt 2026): mengikuti gambar acuan hasa. Tambahan dibanding index.html asli hanya elemen
+     tampilan tanpa id (tanda perisai, subjudul, kepala panel, kepala percakapan, ilustrasi gedung).
+     #footer dipindah ke bawah panel kamera. Semua id, jenis elemen, template ikon, dan urutan dua skrip
+     di bawah tidak diubah. -->
 <body data-status="ready">
 <header id="navbar">
   <div id="brand">
+    <svg class="brand-mark" viewBox="0 0 48 56" aria-hidden="true"><path class="mark-fill" d="M24 2 44 9v18c0 13-8.5 22.5-20 27C12.5 49.5 4 40 4 27V9z"/><path class="mark-line" d="M24 7.5 39 13v14c0 10-6.3 17.5-15 21.3C15.3 44.5 9 37 9 27V13z"/><path class="mark-line" d="M15 36V20l9 10 9-10v16"/></svg>
     <span id="logo_text" class="logo-placeholder">MICA</span>
     <img id="logo_img" alt="Logo" hidden>
-    <span id="app_title"></span>
+    <div class="brand-text">
+      <span id="app_title"></span>
+      <span class="brand-sub">Mikroskil Intelligent Campus Assistant</span>
+    </div>
     <span id="trial_badge" class="trial-badge" hidden></span>
     <span id="prompt_badge" class="trial-badge" hidden></span>
   </div>
@@ -24,7 +32,10 @@
 
 <main id="layout">
   <section id="left" class="panel" aria-labelledby="camera_title">
-    <h2 id="camera_title" class="panel-head"></h2>
+    <div class="panel-top">
+      <span class="head-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 7h3l2-2h8l2 2h3v12H3z"/><circle cx="12" cy="13" r="3.5"/></svg></span>
+      <h2 id="camera_title" class="panel-head"></h2>
+    </div>
     <div id="preview_frame">
       <img id="preview_img" alt="Pratinjau kamera" hidden>
       <div id="preview_empty"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h3l2-2h8l2 2h3v12H3z"/><circle cx="12" cy="13" r="3.5"/></svg></div>
@@ -38,9 +49,27 @@
       <summary>Debug (dev)</summary>
       <pre id="debug_panel"></pre>
     </details>
+    <div class="left-art">
+      <p class="tagline">Bersama MICA, raih masa depanmu</p>
+      <svg class="campus" viewBox="0 0 400 120" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+        <path class="c-fill" d="M70 118V58h70v60zM140 118V30h96v88zM236 118V48h64v70z"/>
+        <path class="c-line" d="M70 118V58h70M140 118V30h96v88M236 48h64v70M178 30V16h20v14M150 44h76M150 58h76M150 72h76M150 86h76M150 100h76M80 72h50M80 86h50M80 100h50M246 62h44M246 76h44M246 90h44M246 104h44M176 118v-14h24v14"/>
+        <circle class="c-fill c-line" cx="40" cy="92" r="16"/><circle class="c-fill c-line" cx="54" cy="100" r="12"/>
+        <circle class="c-fill c-line" cx="330" cy="86" r="20"/><circle class="c-fill c-line" cx="356" cy="98" r="14"/>
+        <path class="c-line" d="M40 108v10M330 106v12M8 118h384"/>
+      </svg>
+    </div>
+    <footer id="footer"><p id="notice"></p></footer>
   </section>
 
   <section id="right" class="panel" aria-label="Percakapan">
+    <div class="chat-top">
+      <span class="avatar avatar-mica" aria-hidden="true"></span>
+      <div>
+        <p class="chat-name">MICA</p>
+        <p class="chat-sub">Asisten PMB Universitas Mikroskil</p>
+      </div>
+    </div>
     <div id="conversation" aria-live="polite">
       <div id="welcome">
         <h1 id="welcome_title"></h1>
@@ -71,7 +100,6 @@
     </div>
   </section>
 </main>
-<footer id="footer"><p id="notice"></p></footer>
 
 <!-- ikon garis lokal, satu gaya (stroke 1,75, tanpa isi) -->
 <template id="icon-info"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg></template>

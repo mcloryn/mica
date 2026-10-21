@@ -224,7 +224,11 @@ def test_static_files_have_no_external_urls():
         assert "www." not in text and "@import" not in text and "//cdn" not in text, f.name
         assert not re.search(r"(src|href)=[\"'](?!/static/)", text), f.name
         for url in re.findall(r"url\(\s*[\"']?([^\"')]+)", text):
-            assert url.startswith("/static/fonts/"), (f.name, url)
+            assert url.startswith(("/static/fonts/", "/static/icons/")), (f.name, url)
+    # versi F (Langkah 57): ikon avatar dan Kirim sebagai file SVG lokal (CSP img-src 'self')
+    for f in (STATIC_DIR / "icons").iterdir():
+        text = f.read_text(encoding="utf-8").replace('xmlns="http://www.w3.org/2000/svg"', "")
+        assert f.suffix == ".svg" and "://" not in text and "href" not in text, f.name
 
 
 def test_font_is_local_atkinson_with_license():
@@ -269,7 +273,7 @@ def test_touch_targets_at_least_44px():
         rule = next(b for s_, b in _css_rules(css) if s_.strip() == sel)
         assert "min-height: var(--touch-min)" in rule, sel
     tile = next(b for s_, b in _css_rules(css) if s_.strip() == ".topic-tile")
-    assert "min-height: 64px" in tile
+    assert int(re.search(r"min-height: (\d+)px", tile).group(1)) >= 64
     html = (STATIC_DIR / "index.html").read_text("utf-8")
     assert '<button id="talk_button" type="button" class="btn btn-primary btn-icon">' in html
     assert '<button id="send_button" type="button" class="btn">' in html
@@ -278,22 +282,32 @@ def test_touch_targets_at_least_44px():
 def test_conventional_style_no_ai_effects():
     tokens = (STATIC_DIR / "tokens.css").read_text("utf-8")
     css = re.sub(r"/\*.*?\*/", "", (STATIC_DIR / "style.css").read_text("utf-8"), flags=re.DOTALL)
-    for banned in ("gradient", "blur(", "backdrop-filter", "box-shadow", "text-shadow", "filter:",
+    for banned in ("gradient", "blur(", "backdrop-filter", "text-shadow", "filter:",
                    "text-transform", "uppercase", "monospace"):  # fmt: skip
         assert banned not in css and banned not in tokens, banned
+    # versi F (Langkah 57): kartu dengan satu bayangan tipis dari token, plus cincin 1-2 px
+    rings = (
+        "var(--shadow)",
+        "0 0 0 1px var(--session-edge)",
+        "inset 0 0 0 2px var(--session-edge)",
+    )
+    for value in re.findall(r"box-shadow:\s*([^;]+);", css):
+        assert value.strip() in rings, value
     radii = [int(v) for v in re.findall(r"--radius[\w-]*:\s*(\d+)px", tokens)]
-    assert radii and max(radii) <= 10 and "--radius-bubble: 10px;" in tokens
+    assert radii and max(radii) <= 16 and "--radius-bubble: 16px;" in tokens
     for value in re.findall(r"border-radius:\s*([^;]+);", css):
-        assert value.strip() in ("var(--radius)", "var(--radius-m)", "var(--radius-bubble)"), value
+        parts = value.split()
+        assert value.strip() == "50%" or all(re.fullmatch(r"0|var\(--radius[\w-]*\)", p)
+                                             for p in parts), value  # fmt: skip
     spaces = sorted(int(v) for v in re.findall(r"--space-\d:\s*(\d+)px", tokens))
-    assert spaces == [4, 8, 12, 16, 24]
+    assert spaces == [4, 8, 12, 16, 20, 24]
     sizes = {k: v for k, v in re.findall(r"--fs-([\w-]+):\s*([\d.]+)rem", tokens)}
     assert (sizes["m"], sizes["answer"], sizes["greeting"], sizes["welcome"]) == (
         "1",
         "1.125",
-        "1.375",
+        "1.25",
         "1.75",
-    )  # 16 / 18 / 22 / 28 px
+    )  # 16 / 18 / 20 / 28 px (versi F: sapaan 20 px)
     assert "--line: 1.5;" in tokens
     js = (STATIC_DIR / "app.js").read_text("utf-8")
     assert "100 * c.font_scale" in js  # dasar 16 px
@@ -765,6 +779,7 @@ def test_token_contrast_at_least_aa():
     spec.loader.exec_module(mod)
     rows = mod.rows()
     assert len(rows) == len(mod.PAIRS) and all(r >= 4.5 for *_, r in rows)
+    assert all(r >= 3.0 for *_, r in mod.rows(mod.NON_TEXT_PAIRS))
     assert mod.ratio("#ffffff", "#000000") == pytest.approx(21.0)
 
 

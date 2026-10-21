@@ -474,3 +474,63 @@ Tambahan prompt v4 (20 Okt 2026, docs/PROMPT-V4.md): pesan jawaban di JSON ViewM
 tampilan, lalu `<ul class="answer-items">` dari items dengan `textContent`. Uji coba langsung:
 `python -m mica.webui --prompt-variant v2|v3|v4` (dev saja, kiosk ditolak kode 2), dengan label
 header "PROMPT v4 (dev)".
+
+## Langkah 57: UI versi F (21 Okt 2026)
+
+Asal: gambar acuan dari hasa (21 Okt 2026), dirapikan menjadi `ui-baru-versi-f/` (index.html,
+style.css, tokens.css), lalu **dipilih hasa**. File-file itu disalin ke `src/mica/webui/static/`.
+Folder sumbernya tidak di-commit (`.gitignore`). Perubahannya hanya di tampilan: `app.js`,
+`answer_format.js`, kode Python, dan nama pesan WebSocket tidak diubah.
+
+Kontrak HTML (`tests/unit/test_ui_contract.py`). Ke-63 id dan jenis elemennya sama dengan
+index.html sebelumnya (`f3486ec`). Atribut `hidden` awal, 13 template ikon (sha256), dan urutan
+skrip (`answer_format.js` lalu `app.js`) juga sama. Setiap id yang dipakai `app.js` ada.
+Perbedaan di luar elemen tampilan tanpa id: `#footer` (`<footer id="footer">` berisi
+`<p id="notice">`) pindah dari bawah `<body>` ke akhir `#left`. `app.js` hanya mengisi
+`#notice` lewat id, jadi perilakunya tidak berubah. `#app_title` dan `#camera_title` kini
+dibungkus `div` tanpa id.
+
+**Penyimpangan dari keputusan 18 Okt (Langkah 37b/37c), diungkap di Bab 3.** SDD (M-10) perlu
+direvisi lewat Claude Doc; `docs/SDD.md` tidak diubah.
+
+- Subjudul "Mikroskil Intelligent Campus Assistant" di bawah judul navbar.
+- Tanda perisai SVG di samping tulisan MICA. Ini bukan logo resmi; `ui.logo_path` tetap
+  menggantikannya bila diisi.
+- Ilustrasi gedung SVG dan slogan "Bersama MICA, raih masa depanmu" di kolom kiri (hiasan,
+  `aria-hidden`).
+- Avatar pesan lewat `.msg::before`: MICA berupa lingkaran biru tua, pengunjung berupa lingkaran
+  warna sesi. Nama penutur `.who` disembunyikan secara visual, tetapi tetap dibacakan pembaca layar.
+- Footer pindah ke kolom kiri.
+- Juga berubah dari aturan 37b: kartu berbayangan tipis (`--shadow`), radius sampai 16 px,
+  jarak 20 px, dan sapaan 20 px. Tes gaya di `tests/unit/test_webui.py` disesuaikan ke nilai
+  versi F, dan larangan efek lain (gradien, blur, text-shadow, filter, huruf kapital) tetap
+  berlaku.
+
+Perbaikan saat pemasangan (CSS/HTML tanpa id saja):
+
+- Ikon avatar dan ikon Kirim di versi F berupa data URI SVG. Ikon ini diblokir CSP server
+  (`img-src 'self' blob:`), sehingga avatar dan ikon Kirim kosong. Perbaikannya: ikon dipindah ke
+  file lokal `static/icons/avatar-mica.svg`, `avatar-visitor.svg`, dan `send.svg`. CSP tidak
+  diubah.
+- Dua warna hex di style.css (ilustrasi gedung) dipindah ke token `--campus-fill` dan
+  `--campus-line`. Radius 10 px dan 4 px dijadikan token `--radius-icon` dan `--radius-tail`.
+- Slogan terpotong setengah di 1366x768. Kini `.left-art` memakai `flex-wrap`, sehingga bila
+  tinggi tidak cukup, ilustrasi tidak tampil sama sekali (tidak terpotong).
+- Di layar sempit (< 1100 px), label status kamera/mikrofon sebelumnya disembunyikan dengan
+  `display: none`. Kini label hanya disembunyikan secara visual, sehingga status tetap dibacakan
+  pembaca layar.
+
+Kontras (`python scripts/ui_contrast.py`): ada 13 pasangan teks baru untuk token versi F. Semua
+32 pasangan teks >= 4,5:1; nilai terendah 4,63:1 (`--text-muted` di `--disabled-bg`). Ditambah 2
+komponen non-teks (SC 1.4.11, 3:1): `--control` 3,50:1 dan `--dot-off` 5,62:1. Tidak ada token
+yang perlu diubah.
+
+Tangkapan layar baru ada di `docs/ui-screens/` dan versi sebelumnya di `docs/ui-screens/before-57/`.
+Pemeriksaan otomatis memakai Edge 155 headless dengan `app.js` asli:
+
+- `:has()` didukung, dan sumber menyatu di bawah kartu jawaban (tanpa celah, tanpa garis
+  ganda).
+- Ikon Kirim tampil lewat `::before`.
+- Tombol Bicara merah saat ditahan dengan pointer maupun Spasi.
+- Chip mengirim `TopicTapped` dengan question.
+- Tidak ada pelanggaran CSP, dan tidak ada aset dari luar 127.0.0.1.

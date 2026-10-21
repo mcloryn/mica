@@ -3,9 +3,9 @@
 Dibuat otomatis dengan `python scripts/ui_screens.py` (Edge headless + Chrome DevTools Protocol).
 Data tampilan buatan, tanpa gambar orang sungguhan.
 
-Langkah 37c (warna sesi, Atkinson Hyperlegible, 18 Okt 2026): setiap adegan pada viewport 1366x768
-dan 1920x1080 (`<adegan>-<lebar>x<tinggi>.png`). Versi sebelum: `before-37c/` (Langkah 37b) dan
-`before-37b/` (Langkah 37).
+Langkah 57 (UI versi F, 21 Okt 2026, docs/UI-WEB.md): setiap adegan pada viewport 1366x768 dan
+1920x1080 (`<adegan>-<lebar>x<tinggi>.png`). Versi sebelum: `before-57/` (Langkah 37c),
+`before-37c/` (Langkah 37b), dan `before-37b/` (Langkah 37).
 
 | adegan | isi |
 | --- | --- |
