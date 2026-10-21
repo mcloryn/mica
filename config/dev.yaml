@@ -51,7 +51,7 @@ audio:
   tts:
     voice: id_ID-news_tts-medium    # ADR-11 provisional
     length_scale: null              # null = bawaan .onnx.json suara
-    threads: null                   # E-09 / docs/CPU-THREADS.md; null = bawaan onnxruntime
+    threads: 1                      # dipilih CPU-THREADS.md, laptop dev (bench 20261021-131908 tahap 1); null = bawaan onnxruntime
 vision:
   model: yolo26n-pose               # ADR-12; yolo26n | yolo26n-pose | yolo11n (E-07)
   tracker: bytetrack.yaml           # ADR-15
@@ -76,7 +76,7 @@ vision:
   imgsz: 640                        # PROVISIONAL, ditetapkan di E-07; nilai dev = bawaan Ultralytics 8.4
   fps_idle: 5                       # ADR-20
   fps_busy: null                    # E-09
-  threads: null                     # E-09
+  threads: 7                        # dipilih CPU-THREADS.md, laptop dev (bench 20261021-133951 tahap 2 ulang); null = 8 (Ultralytics)
 session:
   idle_reset_s: null                # E-09
   regreet_cooldown_s: null          # E-07
