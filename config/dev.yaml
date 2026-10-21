@@ -89,7 +89,7 @@ ui:
   logo_path: null                   # file logo lokal; null = placeholder teks "MICA" sampai logo resmi tersedia
   camera_preview: debug             # off | public | debug (debug ditolak di kiosk); Langkah 37
   preview_pixel_block: 16           # NILAI COBA DESAIN (bukan hasil eksperimen): blok pixelate px pada gambar lebar 320
-  preview_fps: 10                   # keputusan desain pengguna 18 Okt 2026: pratinjau minimal 10 fps; tidak menambah inferensi YOLO
+  preview_fps: 15                   # keputusan desain pengguna 18 Okt 2026: pratinjau minimal 10 fps; dev 15 (keputusan pengguna 21 Okt 2026); tidak menambah inferensi YOLO
   suggestions: {}                   # F-14; topik -> daftar saran pertanyaan, diisi pengembang
 logging:
   dir: logs/

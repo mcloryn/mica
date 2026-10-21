@@ -81,8 +81,8 @@ def test_public_target_outside_image_pixelates_whole_image():
         assert np.array_equal(out, lp.pixelate(base, BLOCK))
 
 
-def test_preview_fps_10_from_config_reaches_worker():
-    # Langkah 38: ui.preview_fps 10 (keputusan desain pengguna) sampai ke VisionWorkerConfig;
+def test_preview_fps_from_config_reaches_worker():
+    # ui.preview_fps dev 15 (keputusan pengguna 21 Okt 2026) sampai ke VisionWorkerConfig;
     # laju deteksi tetap vision.fps_idle
     from mica.config import load_settings
     from mica.ui.devfakes import FAKE_CAMERA_VALUES
@@ -93,7 +93,7 @@ def test_preview_fps_10_from_config_reaches_worker():
         camera_factory="mica.vision.fakesource:make_camera",
         detector_factory="mica.vision.fakesource:make_detector",
     )  # fmt: skip
-    assert cfg.preview_fps == 10 and cfg.fps_idle == 5
+    assert cfg.preview_fps == 15 and cfg.fps_idle == 5
 
 
 def test_pixelate_blocks_are_uniform():
@@ -222,8 +222,8 @@ def test_public_preview_jpeg_rate_and_no_extra_inference(tmp_path):
     ref, ref_detector = _loop(tmp_path, "off", None)
     ref.run()
     assert detector.calls == ref_detector.calls  # pratinjau tidak menambah inferensi
-    # 100 frame x 0,04 s = 4 s pada preview_fps config (10, keputusan desain Langkah 38) -> +-40 JPEG
-    assert loop.cfg.preview_fps == 10
+    # 100 frame x 0,04 s = 4 s pada preview_fps config dev (15) -> +-60 JPEG
+    assert loop.cfg.preview_fps == 15
     assert 0.75 * 4 * loop.cfg.preview_fps <= loop.previews <= 4 * loop.cfg.preview_fps + 1
     assert out.qsize() == 1 and out.get_nowait()[:2] == b"\xff\xd8"
 

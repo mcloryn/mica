@@ -577,14 +577,15 @@ def test_kiosk_yaml_preview_public_with_trial_values():
     assert "NILAI COBA DESAIN" in line
 
 
-@pytest.mark.parametrize("path", [DEV_YAML, KIOSK_YAML])
-def test_preview_fps_10_user_design_decision(path):
-    # Langkah 38: keputusan desain pengguna, bukan hasil eksperimen; laju deteksi tidak berubah
+@pytest.mark.parametrize(("path", "fps"), [(DEV_YAML, 15), (KIOSK_YAML, 10)])
+def test_preview_fps_user_design_decision(path, fps):
+    # Langkah 38: keputusan desain pengguna, bukan hasil eksperimen; laju deteksi tidak berubah.
+    # dev 15 sejak 21 Okt 2026 (keputusan pengguna); kiosk tetap 10
     raw = yaml.safe_load(path.read_text(encoding="utf-8"))
-    assert raw["ui"]["preview_fps"] == 10
+    assert raw["ui"]["preview_fps"] == fps
     assert raw["vision"]["fps_idle"] == 5 and raw["vision"]["fps_busy"] is None
     line = next(ln for ln in path.read_text(encoding="utf-8").splitlines()
                 if ln.strip().startswith("preview_fps:"))  # fmt: skip
     assert "keputusan desain pengguna 18 Okt 2026: pratinjau minimal 10 fps" in line
     if path == DEV_YAML:  # kiosk.yaml masih berisi TBD (null), dimuat lengkap di tes lain
-        assert load_settings(path).ui.preview_fps == 10
+        assert load_settings(path).ui.preview_fps == fps

@@ -24,7 +24,7 @@ Penjaga memori (Langkah 38): bila memori tersedia sistem < --min-free-gb (bawaan
 atau selama ulangan, proses bench dihentikan sendiri, hasil yang sudah ada ditulis ke
 aborted.json, dan perintah keluar dengan kode 4 (tidak menunggu dihentikan sistem).
 
-Tambahan (Langkah 38, scripts/l38_run_rest.ps1):
+Tambahan (Langkah 38):
 - decide: hitung ulang aturan pra-registrasi (decide()) dari summary.json sebuah run ab yang
   lengkap, tulis decision.json di folder itu, cetak baris "FINAL=<NAMA:KONDISI>" (B bila lolos,
   A bila tidak). Run tidak lengkap (aborted.json ada / ulangan kurang) -> kode 6.
