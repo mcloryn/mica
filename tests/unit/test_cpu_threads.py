@@ -28,8 +28,14 @@ def _with(settings, section, key, value):
 
 
 def test_config_defaults_null():
-    s = audio_settings()
-    assert s.audio.tts.threads is None and s.vision.threads is None
+    from mica.config import AudioConfig, VisionConfig
+
+    assert AudioConfig.model_fields["tts"].annotation.model_fields["threads"].default is None
+    assert VisionConfig.model_fields["threads"].default is None
+    import yaml
+
+    kiosk = yaml.safe_load((ROOT / "config/kiosk.yaml").read_text(encoding="utf-8"))
+    assert kiosk["audio"]["tts"]["threads"] is None and kiosk["vision"]["threads"] is None
 
 
 def test_session_options_null_keeps_onnxruntime_defaults():
@@ -62,7 +68,8 @@ def test_piper_loader_gets_threads_only_when_set(tmp_path):
 def test_audio_worker_passes_tts_threads(monkeypatch):
     cfg = AudioWorkerConfig.from_settings(_with(audio_settings(), "audio", "threads", 4), VALUES)
     assert cfg.tts_threads == 4
-    assert AudioWorkerConfig.from_settings(audio_settings(), VALUES).tts_threads is None
+    null = _with(audio_settings(), "audio", "threads", None)
+    assert AudioWorkerConfig.from_settings(null, VALUES).tts_threads is None
     made = {}
 
     class Fake:
@@ -94,7 +101,8 @@ def test_torch_threads_applied_only_when_set():
 
 
 def test_vision_config_carries_threads(tmp_path):
-    base = VisionWorkerConfig.from_settings(_settings(), TEST_VALUES, models_dir=tmp_path)
+    null = _with(_settings(), "vision", "threads", None)
+    base = VisionWorkerConfig.from_settings(null, TEST_VALUES, models_dir=tmp_path)
     assert base.threads is None
     s = _with(_settings(), "vision", "threads", 3)
     assert VisionWorkerConfig.from_settings(s, TEST_VALUES, models_dir=tmp_path).threads == 3
@@ -117,7 +125,8 @@ def test_vision_threads_applied_after_warmup_inference(monkeypatch, tmp_path):
     s = _with(_settings(), "vision", "threads", 3)
     cfg = VisionWorkerConfig.from_settings(s, TEST_VALUES, models_dir=tmp_path)
     assert warm_up(cfg, Det()) == 3 and order == ["detect", ("threads", 3)]
-    fake = VisionWorkerConfig.from_settings(_settings(), TEST_VALUES, models_dir=tmp_path,
+    null = _with(_settings(), "vision", "threads", None)
+    fake = VisionWorkerConfig.from_settings(null, TEST_VALUES, models_dir=tmp_path,
                                             detector_factory="tests.fakes:x")  # fmt: skip
     order.clear()
     assert warm_up(fake, Det()) is None and order == ["detect"]
