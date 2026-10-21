@@ -212,7 +212,8 @@ def test_bad_output_is_refused_check(tmp_path):
 
 
 def test_followup_concat_and_history_in_prompt(tmp_path):
-    pipeline, llm, retriever = _pipeline(tmp_path, ANSWER_SI)
+    concat = _settings(tmp_path, followup_mode="concat")  # dev kini dual (docs/FOLLOWUP.md)
+    pipeline, llm, retriever = _pipeline(tmp_path, ANSWER_SI, settings=concat)
     history = [Turn(question=ScrubbedText("Biaya SI berapa?"), answer="Rp14.000.000 per tahun.")]
     pipeline.answer("Kalau kelas sore?", history, "s-1")
     assert retriever.queries == ["Biaya SI berapa? Kalau kelas sore?"]
@@ -297,7 +298,8 @@ def test_one_log_line_per_answer(tmp_path):
 def test_ask_cli_output(tmp_path, capsys):
     from mica.ask import build_parser, run
 
-    pipeline, _llm, retriever = _pipeline(tmp_path, ANSWER_SI)
+    concat = _settings(tmp_path, followup_mode="concat")
+    pipeline, _llm, retriever = _pipeline(tmp_path, ANSWER_SI, settings=concat)
     args = build_parser().parse_args(["Kalau kelas pagi?", "--prev", "Biaya SI, HP 081234567890?"])
     assert run(args, pipeline) == 0
     out = capsys.readouterr().out
@@ -371,3 +373,11 @@ def test_only_asked_rule_v2(variant):
     # aturan bernomor urut 1..10 setelah sisipan
     numbers = [int(n) for n in re.findall(r"^(\d+)\. ", system, re.MULTILINE)]
     assert numbers == list(range(1, 11))
+
+
+def test_dev_followup_mode_is_dual_and_searches_plain_and_concat(tmp_path):
+    # Langkah 55: rag.followup_mode dual dipilih FOLLOWUP.md (dev dan kiosk)
+    assert load_settings(DEV_YAML).rag.followup_mode == "dual"
+    pipeline, _, retriever = _pipeline(tmp_path, ANSWER_SI)
+    pipeline.answer("Kalau kelas sore?", [Turn(ScrubbedText("Biaya SI berapa?"), "Rp.")], "s-1")
+    assert retriever.queries == ["Kalau kelas sore?", "Biaya SI berapa? Kalau kelas sore?"]

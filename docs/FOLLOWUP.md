@@ -100,6 +100,48 @@ Di semua mode, pertanyaan chip topik dijawab tanpa konteks (Langkah 53 opsi A). 
 - Ini deviasi dari SDD 7.3, karena SDD hanya mengenal `concat` dan `llm_rewrite`; `dual` baru.
   `docs/SDD.md` tidak diubah di sini dan nanti direvisi lewat Claude Doc.
 
-## Hasil
+## Hasil (21 Okt 2026, run `results/FOLLOWUP/20261021-212802`)
 
-(diisi setelah pengukuran)
+Diukur setelah commit pra-registrasi `32a441c`. Rewrite: 16 panggilan API Groq, 0 dari cache,
+0 fallback.
+
+| Mode | Followup + ganti topik (utama) | Followup dev | Ganti topik | Non-followup | Search p50 / p95 | Rewrite p50 / p95 |
+| --- | --- | --- | --- | --- | --- | --- |
+| `concat` | 13/16 (0,81) | 2/2 | 11/14 | 23/23 | 156 / 186 ms | - |
+| `dual` | **16/16 (1,00)** | 2/2 | 14/14 | 23/23 | 157 / 332 ms | - |
+| `llm_rewrite` | 16/16 (1,00) | 2/2 | 14/14 | 23/23 | 149 / 161 ms | 0,62 / 1,02 s |
+
+Anggaran LLM dari log giliran (n = 133, `groq:openai/gpt-oss-120b`): p95 LLM jawaban 4,62 s,
+p95 total 7,63 s.
+
+Penerapan aturan (`decide`, apa adanya):
+
+- `concat`: lolos semua syarat (pembanding).
+- `dual`: lolos semua syarat: non-followup 23/23 sama, search p95 332 ms ≤ 500 ms, tanpa LLM
+  tambahan.
+- `llm_rewrite`: **gugur** di syarat anggaran LLM, karena 1,02 + 4,62 > 4 s. p95 LLM jawaban
+  saja sudah di atas 4 s, sehingga setiap panggilan LLM tambahan otomatis gugur. Syarat total
+  (7,63 + 1,02 ≤ 10 s) lolos.
+- Terbaik di antara yang lolos: `dual` 16 hit. **Terpilih: `dual`.**
+
+Yang gagal pada `concat`: ts01 (alamat lalu biaya Akuntansi), ts03 (biaya lalu wakil rektor),
+ts05 (ujian saring S2 lalu klub taekwondo). Pada `llm_rewrite`, ke-14 pasangan ganti topik
+dikembalikan apa adanya, dan kedua lanjutan ditulis ulang menjadi kalimat utuh (d032: "Biaya
+kuliah Sistem Informasi kelas sorenya berapa setahun?").
+
+Uji `python -m mica.ask --prev` dengan `dual` (dev, Groq asli):
+
+| Pertanyaan sebelumnya | Pertanyaan baru | Hasil |
+| --- | --- | --- |
+| Di mana alamat kampus Universitas Mikroskil? | Bagaimana rincian biaya kuliah S1 di Mikroskil? | dijawab, sitasi `14_faq_calon_mahasiswa#5` (sebelumnya ditolak) |
+| Biaya kuliah Teknik Informatika kelas pagi berapa per tahun? | Kalau kelas sorenya? | dijawab: Rp15.000.000 per tahun |
+| Apa syarat masuk Magister Teknologi Informasi? | Kalau Magister Manajemen syaratnya apa? | dijawab: IPK 2,75, TOEFL 475, ujian saring |
+| Pendaftaran S1 gelombang pertama dibuka kapan? | Kalau gelombang duanya kapan? | dijawab: 2 Juni sampai 4 September 2027 |
+
+Catatan:
+
+- Selisih concat dan dual adalah 3 pertanyaan, dan semuanya berasal dari pasangan buatan Claude
+  Code. Pada 2 lanjutan asli, ketiga mode seri.
+- `config/kiosk.yaml` ikut `dual`. Mode ini memakai `rag.rrf_k` dan
+  `rag.candidates_per_retriever`, yang di kiosk masih `null` (menunggu E-01). Selama keduanya
+  belum diisi, kiosk tetap tidak lolos `mica check`, sama seperti sebelumnya.

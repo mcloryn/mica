@@ -1,0 +1,190 @@
+{
+  "experiment": "FOLLOWUP (Langkah 55)",
+  "config_hash": "ce6d6f78582c9df87d1e716df1b3b9f816d1972cc968614c3ab48c092f95f73b",
+  "kb_id": "dev-2026-10-15-v2",
+  "dataset": {
+    "path": "data/eval/questions.jsonl",
+    "sha256": "9dc9c399ea0124088c4affa6cd41a23516a8458255b0726a6deda34dfd69627a"
+  },
+  "switch": {
+    "path": "data/eval/dev_topic_switch.jsonl",
+    "sha256": "0cf173906fcf2f641ec3c5b9cf353143b0fafc88248a0bfc566880f0e378923d"
+  },
+  "rewrite_model": "groq:openai/gpt-oss-120b",
+  "rewrite_cache": {
+    "hits": 0,
+    "api_calls": 16
+  },
+  "depth": 10,
+  "recall_k": 5,
+  "latency_repeats": 3,
+  "summaries": {
+    "concat": {
+      "followup": {
+        "n": 16,
+        "hits@5": 13,
+        "recall@5": 0.8125,
+        "mrr@10": 0.5094494047619048
+      },
+      "followup_dev": {
+        "n": 2,
+        "hits@5": 2,
+        "recall@5": 1.0,
+        "mrr@10": 1.0
+      },
+      "topic_switch": {
+        "n": 14,
+        "hits@5": 11,
+        "recall@5": 0.7857142857142857,
+        "mrr@10": 0.4393707482993197
+      },
+      "non_followup": {
+        "n": 23,
+        "hits@5": 23,
+        "recall@5": 1.0,
+        "mrr@10": 0.9347826086956522
+      },
+      "latency": {
+        "search_p50_ms": 156.06330000446178,
+        "search_p95_ms": 185.68869000300765,
+        "rewrite_calls": 0,
+        "rewrite_p50_s": null,
+        "rewrite_p95_s": null,
+        "rewrite_fallbacks": 0
+      }
+    },
+    "dual": {
+      "followup": {
+        "n": 16,
+        "hits@5": 16,
+        "recall@5": 1.0,
+        "mrr@10": 0.7833333333333333
+      },
+      "followup_dev": {
+        "n": 2,
+        "hits@5": 2,
+        "recall@5": 1.0,
+        "mrr@10": 0.75
+      },
+      "topic_switch": {
+        "n": 14,
+        "hits@5": 14,
+        "recall@5": 1.0,
+        "mrr@10": 0.7880952380952381
+      },
+      "non_followup": {
+        "n": 23,
+        "hits@5": 23,
+        "recall@5": 1.0,
+        "mrr@10": 0.9347826086956522
+      },
+      "latency": {
+        "search_p50_ms": 157.22180000739172,
+        "search_p95_ms": 331.8418000038946,
+        "rewrite_calls": 0,
+        "rewrite_p50_s": null,
+        "rewrite_p95_s": null,
+        "rewrite_fallbacks": 0
+      }
+    },
+    "llm_rewrite": {
+      "followup": {
+        "n": 16,
+        "hits@5": 16,
+        "recall@5": 1.0,
+        "mrr@10": 0.8770833333333333
+      },
+      "followup_dev": {
+        "n": 2,
+        "hits@5": 2,
+        "recall@5": 1.0,
+        "mrr@10": 1.0
+      },
+      "topic_switch": {
+        "n": 14,
+        "hits@5": 14,
+        "recall@5": 1.0,
+        "mrr@10": 0.8595238095238095
+      },
+      "non_followup": {
+        "n": 23,
+        "hits@5": 23,
+        "recall@5": 1.0,
+        "mrr@10": 0.9347826086956522
+      },
+      "latency": {
+        "search_p50_ms": 149.0349000087008,
+        "search_p95_ms": 161.3831599795958,
+        "rewrite_calls": 16,
+        "rewrite_p50_s": 0.6153565999993589,
+        "rewrite_p95_s": 1.0185216250101803,
+        "rewrite_fallbacks": 0
+      }
+    }
+  },
+  "answer_llm_from_logs": {
+    "model": "groq:openai/gpt-oss-120b",
+    "n": 133,
+    "llm_p95_s": 4.621090300002834,
+    "total_p95_s": 7.634126780007489
+  },
+  "decision": {
+    "n_followup_group": 16,
+    "checks": {
+      "concat": {
+        "non_followup_not_lower": true,
+        "retrieval_budget": true,
+        "llm_budget": true,
+        "total_budget": true,
+        "eligible": true,
+        "hits@5": 13
+      },
+      "dual": {
+        "non_followup_not_lower": true,
+        "retrieval_budget": true,
+        "llm_budget": true,
+        "total_budget": true,
+        "eligible": true,
+        "hits@5": 16
+      },
+      "llm_rewrite": {
+        "non_followup_not_lower": true,
+        "retrieval_budget": true,
+        "llm_budget": false,
+        "total_budget": true,
+        "eligible": false,
+        "hits@5": 16
+      }
+    },
+    "eligible": [
+      "concat",
+      "dual"
+    ],
+    "tied_with_best": [
+      "dual"
+    ],
+    "chosen": "dual"
+  },
+  "environment": {
+    "python": "3.13.7",
+    "torch": "2.14.1+cpu",
+    "torch_num_threads": 14,
+    "sentence_transformers": "6.1.0",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "cpu_count_logical": 20,
+    "power": {
+      "source": "ac",
+      "battery_percent": 29,
+      "battery_saver": false
+    },
+    "power_plan": {
+      "guid": "bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b",
+      "name": "ASUS Recommended",
+      "raw": "Power Scheme GUID: bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b  (ASUS Recommended)"
+    },
+    "git_commit": "32a441c5f2bddff856863a0415707bbbea19d28b",
+    "git_dirty": false
+  },
+  "started_at": "2026-10-21T21:28:02.198047+07:00"
+}

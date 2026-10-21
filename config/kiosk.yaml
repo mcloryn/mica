@@ -22,7 +22,7 @@ rag:
     threshold: null                 # ADR-06, E-02
   fact_check:
     enabled: true                   # ADR-06 lapis 3
-  followup_mode: concat             # ADR-05; concat | llm_rewrite (E-02)
+  followup_mode: dual               # dipilih FOLLOWUP.md (Langkah 55, provisional dev); concat | dual | llm_rewrite
   history_turns: 1
   prompt_variant: paraphrase        # ADR-07; paraphrase | plain (E-03)
 llm:

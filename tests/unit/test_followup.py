@@ -213,7 +213,8 @@ def test_pipeline_records_rewrite_timing(tmp_path):
     assert "rewrite" in final.timings and final.timings["retrieval"] >= 0
 
 
-def test_pipeline_concat_default_unchanged(tmp_path):
-    pipeline, _, retriever = _pipeline(tmp_path, ANSWER_SI)
+def test_pipeline_concat_unchanged(tmp_path):
+    concat = _settings(tmp_path, followup_mode="concat")
+    pipeline, _, retriever = _pipeline(tmp_path, ANSWER_SI, settings=concat)
     pipeline.answer("Kalau sore?", [Turn(S("Biaya SI berapa?"), "Rp14.000.000.")], "s")
     assert retriever.queries == ["Biaya SI berapa? Kalau sore?"]

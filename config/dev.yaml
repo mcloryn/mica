@@ -22,7 +22,7 @@ rag:
     threshold: 0.50                 # ADR-06; provisional, sweep prompt v2 (20b+120b), seri null/.45/.48/.50 -> tertinggi
   fact_check:
     enabled: true                   # ADR-06 lapis 3
-  followup_mode: concat             # ADR-05; concat | llm_rewrite (E-02)
+  followup_mode: dual               # dipilih FOLLOWUP.md (Langkah 55, provisional dev); concat | dual | llm_rewrite
   history_turns: 1
   prompt_variant: paraphrase        # ADR-07; paraphrase | plain (E-03)
 llm:
