@@ -1,1 +1,2 @@
+<!-- warna dari token: #5b6b80 = token text-muted di tokens.css (tanpa dua tanda minus karena dilarang di komentar XML); SVG di background-image tidak bisa membaca var() -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#5b6b80" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 21c0-4.2 3.4-7 7.5-7s7.5 2.8 7.5 7"/></svg>

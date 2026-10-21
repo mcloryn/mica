@@ -7,6 +7,7 @@ import os
 import re
 import threading
 import time
+import xml.dom.minidom
 from datetime import date
 from pathlib import Path
 
@@ -229,6 +230,8 @@ def test_static_files_have_no_external_urls():
     for f in (STATIC_DIR / "icons").iterdir():
         text = f.read_text(encoding="utf-8").replace('xmlns="http://www.w3.org/2000/svg"', "")
         assert f.suffix == ".svg" and "://" not in text and "href" not in text, f.name
+        # XML valid: "--" di komentar membuat browser tidak menggambar ikon sama sekali
+        xml.dom.minidom.parse(str(f))
 
 
 def test_font_is_local_atkinson_with_license():
