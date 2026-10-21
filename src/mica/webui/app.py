@@ -9,6 +9,9 @@ python -m mica.webui --config <yaml> [--fake-workers [--fake-camera]] [--fake-pi
 - Edge ditutup -> server, controller, dan pekerja berhenti rapi; server berhenti -> Edge ditutup.
 - --no-browser: hanya server (URL dicetak), berhenti dengan Ctrl+C.
 - --record-resources: perekam sumber daya E-09 (mica.eval.resources); hanya dev, kecuali --e09.
+- --measure-preview [--measure-label X]: ukur laju pratinjau kamera dan CPU per detik
+  (mica.eval.preview_meter) ke results/preview-fps/<timestamp>/summary.json; hanya dev, butuh
+  pekerja kamera asli (boleh dengan --fake-camera), ditolak di kiosk dan dengan --fake-workers.
 """
 
 from __future__ import annotations
@@ -47,6 +50,7 @@ def build_controller(
     bus: Any = None,
     pipeline: Any = None,
     clock: Callable[[], float] = time.monotonic,
+    measure: bool = False,
 ) -> KioskController:
     dev = settings.app.mode == "dev"
     fakes = fake_workers or fake_pipeline or fake_camera or fake_voice
@@ -54,7 +58,7 @@ def build_controller(
         raise WebUiError("pekerja/pipeline palsu hanya boleh saat app.mode: dev (ditolak di kiosk)")
     log = InteractionLog(Path(settings.logging.dir))
     if bus is None:
-        bus = _start_bus(settings, fake_workers, fake_camera, fake_voice)
+        bus = _start_bus(settings, fake_workers, fake_camera, fake_voice, measure)
     # Langkah 40: pembungkus pasif (pesan bus tidak diubah) untuk tahap start-up dan untuk
     # mengakhiri "Menyiapkan kamera/mikrofon..." saat status pertama pekerja datang
     watch = bus = startup.StartupBus(bus, on_status=webui.device_status)
@@ -95,15 +99,30 @@ def build_controller(
     return controller
 
 
-def _start_bus(settings: Settings, fake_workers: bool, fake_camera: bool, fake_voice: bool) -> Any:
+def _start_bus(settings: Settings, fake_workers: bool, fake_camera: bool, fake_voice: bool,
+               measure: bool = False) -> Any:  # fmt: skip
     """Pekerja kamera dan suara, masing-masing asli atau palsu (dev; Langkah 41):
     - --fake-workers: suara palsu di proses utama, kamera palsu (tanpa kamera) atau, dengan
       --fake-camera, proses kamera dengan sumber gambar palsu;
     - --fake-voice: suara palsu, kamera asli (atau sumber palsu bila --fake-camera);
     - --fake-camera saja: proses suara asli + proses kamera dengan sumber gambar palsu."""
+    from dataclasses import replace
+
+    from mica.audio.worker import AudioWorkerConfig
     from mica.core.bus import start_workers
     from mica.ui.devfakes import FakeWorkerBus, fake_camera_config, start_fake_camera
+    from mica.vision.worker import VisionWorkerConfig
 
+    if measure:  # --measure-preview: pekerja asli dengan antrean pengukuran (dev)
+        if fake_workers:
+            raise WebUiError("--measure-preview butuh pekerja asli (tidak dengan --fake-workers)")
+        vision_cfg = (fake_camera_config(settings) if fake_camera
+                      else VisionWorkerConfig.from_settings(settings))  # fmt: skip
+        vision_cfg = replace(vision_cfg, measure=True)
+        if fake_voice:
+            return FakeWorkerBus(start_workers(settings, vision=vision_cfg, workers=("vision",)))
+        audio_cfg = replace(AudioWorkerConfig.from_settings(settings), measure=True)
+        return start_workers(settings, vision=vision_cfg, audio=audio_cfg)
     if fake_workers or fake_voice:
         if fake_camera:
             vision = start_fake_camera(settings)
@@ -166,8 +185,11 @@ def serve(
 def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool = False,
         fake_camera: bool = False, fake_voice: bool = False, no_browser: bool = False,
         port: int = 0, record_resources: Path | None = None, resource_interval: float = 5.0,
-        e09: bool = False, trial: bool = False, prompt_label: str | None = None) -> int:  # fmt: skip
+        e09: bool = False, trial: bool = False, prompt_label: str | None = None,
+        measure_preview: bool = False, measure_label: str | None = None) -> int:  # fmt: skip
     """Rakit lalu jalankan sampai Edge ditutup atau Ctrl+C (dipakai python -m mica dan main)."""
+    from mica.eval.preview_meter import MeasureRefused
+    from mica.eval.preview_meter import check_allowed as check_measure
     from mica.eval.resources import RecorderRefused, check_allowed
     from mica.webui.browser import EdgeBrowser, EdgeMissing
 
@@ -181,8 +203,11 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
     try:
         if record_resources is not None:
             check_allowed(settings.app.mode, e09)  # ditolak sebelum pekerja dimulai
+        if measure_preview:
+            check_measure(settings.app.mode)
         webui = WebUi(settings.ui, dev=settings.app.mode == "dev", trial=trial,
-                      input_mode=settings.audio.input_mode, prompt_label=prompt_label)  # fmt: skip
+                      input_mode=settings.audio.input_mode, prompt_label=prompt_label,
+                      measure=measure_preview)  # fmt: skip
         browser = (
             None
             if no_browser
@@ -190,8 +215,8 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
         )
         controller = build_controller(settings, webui, fake_workers=fake_workers,
                                       fake_pipeline=fake_pipeline, fake_camera=fake_camera,
-                                      fake_voice=fake_voice)  # fmt: skip
-    except (WebUiError, EdgeMissing, RecorderRefused) as exc:
+                                      fake_voice=fake_voice, measure=measure_preview)  # fmt: skip
+    except (WebUiError, EdgeMissing, RecorderRefused, MeasureRefused) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     recorder = None
@@ -204,6 +229,12 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
                                   "fake_pipeline": fake_pipeline, "fake_camera": fake_camera,
                                   "camera_preview": settings.ui.camera_preview})  # fmt: skip
         recorder.start()
+    meter = None
+    if measure_preview:
+        meter = make_preview_meter(settings, webui, controller, browser, fake_camera, fake_voice,
+                                   measure_label)  # fmt: skip
+        meter.start()
+        print(f"--measure-preview: angka ditulis ke {meter.folder}", flush=True)
     try:
         serve(webui, controller, browser, port,
               on_ready=lambda url: print(f"MICA web: {url}", flush=True))  # fmt: skip
@@ -212,7 +243,34 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
     finally:
         if recorder is not None:
             recorder.stop()
+        if meter is not None:
+            print(f"--measure-preview: ringkasan {meter.stop()}", flush=True)
     return 0
+
+
+def make_preview_meter(settings: Settings, webui: WebUi, controller: KioskController,
+                       browser: Any, fake_camera: bool, fake_voice: bool,
+                       label: str | None) -> Any:  # fmt: skip
+    import os
+
+    from mica.eval.preview_meter import CpuSampler, PreviewMeasurement
+    from mica.eval.resources import bus_roots, pid_groups
+
+    bus = controller.bus
+    inner = getattr(bus, "vision", None) if fake_voice else bus  # FakeWorkerBus(vision)
+    source = getattr(inner, "measure", None)
+    cpu = CpuSampler(lambda: pid_groups(os.getpid(), bus_roots(inner, browser)))
+    return PreviewMeasurement(
+        PreviewMeasurement.new_folder(), source,
+        sent=lambda: webui.previews_sent, drawn=lambda: webui.previews_drawn,
+        session_state=lambda: getattr(controller.session, "state", None), cpu=cpu.sample,
+        info={"label": label, "fake_camera": fake_camera, "fake_voice": fake_voice,
+              "camera_preview": settings.ui.camera_preview,
+              "preview_fps_config": settings.ui.preview_fps,
+              "fps_idle_config": settings.vision.fps_idle,
+              "fps_busy_config": settings.vision.fps_busy,
+              "browser_measured": browser is not None},
+    )  # fmt: skip
 
 
 # --prompt-variant: label uji coba -> rag.prompt_variant (v2 = paraphrase, docs/PROMPT-V4.md)
@@ -253,6 +311,12 @@ def main(argv: list[str] | None = None) -> int:
         help="uji coba langsung varian prompt (v2 = paraphrase); dev saja, kiosk ditolak",
     )
     parser.add_argument("--no-browser", action="store_true", help="jangan luncurkan Edge")
+    parser.add_argument(
+        "--measure-preview",
+        action="store_true",
+        help="ukur laju pratinjau kamera + CPU per detik ke results/preview-fps/ (dev saja)",
+    )
+    parser.add_argument("--measure-label", help="label bebas untuk --measure-preview (dev)")
     parser.add_argument("--port", type=int, default=0, help="0 = port acak bebas")
     from mica.eval.resources import add_arguments
 
@@ -279,4 +343,6 @@ def main(argv: list[str] | None = None) -> int:
                no_browser=args.no_browser, port=args.port,
                record_resources=args.record_resources,
                resource_interval=args.resource_interval, e09=args.e09,
-               trial=args.trial_values, prompt_label=args.prompt_variant)  # fmt: skip
+               trial=args.trial_values, prompt_label=args.prompt_variant,
+               measure_preview=args.measure_preview,
+               measure_label=args.measure_label)  # fmt: skip

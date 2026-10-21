@@ -12,6 +12,7 @@ let shownTranscript = null;
 let shownStatus = null;
 let previewSocket = null;
 let previewUrl = null;
+let previewDrawn = 0; // --measure-preview (dev): gambar pratinjau yang dimuat <img>
 
 function send(msg) {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
@@ -76,6 +77,22 @@ function applyConfig(c) {
   $("prompt_badge").textContent = c.prompt_badge || "";
   $("prompt_badge").hidden = !c.prompt_badge; // --prompt-variant (dev saja)
   if (c.preview !== "off" && previewSocket === null) openPreview();
+  if (c.measure && c.dev) startPreviewMeter();
+}
+
+function startPreviewMeter() {
+  // hanya dev (--measure-preview): jumlah gambar yang dimuat dikirim paling sering sekali per
+  // detik dari handler load itu sendiri (tanpa timer); tanpa gambar
+  let reported = performance.now();
+  $("preview_img").addEventListener("load", () => {
+    previewDrawn += 1;
+    const now = performance.now();
+    if (now - reported >= 1000) {
+      send({ type: "preview_drawn", n: previewDrawn });
+      previewDrawn = 0;
+      reported = now;
+    }
+  });
 }
 
 function openPreview() {

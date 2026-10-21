@@ -16,6 +16,8 @@ hanya 127.0.0.1.
   (terpisah dari bus event) dipompa satu thread latar ke WebSocket /preview sebagai pesan biner.
   /preview hanya di 127.0.0.1 dengan cek Origin yang sama seperti /ws. Tidak ada endpoint yang
   menyimpan gambar; JPEG hanya lewat di memori (N-08).
+- --measure-preview (dev saja): config memuat measure=true; app.js lalu menghitung gambar
+  pratinjau yang dimuat <img> dan mengirim {"type": "preview_drawn", "n"} setiap detik.
 
 Server WSGI: server bawaan Werkzeug (threaded, reloader dan debugger mati); alasannya di
 docs/UI-WEB.md, "Catatan setelah tahap 1".
@@ -60,8 +62,9 @@ class WebUi:
                  clock: Callable[[], float] = time.perf_counter,
                  render_clock: Callable[[], float] = time.monotonic,
                  trial: bool = False, input_mode: str = "vad",
-                 prompt_label: str | None = None) -> None:  # fmt: skip
+                 prompt_label: str | None = None, measure: bool = False) -> None:  # fmt: skip
         self.ui = ui
+        self.measure = measure and dev  # --measure-preview hanya dev
         self.input_mode = input_mode  # audio.input_mode (Langkah 42)
         self.dev = dev
         self.trial = trial  # --trial-values (Langkah 41): label "NILAI COBA (dev)" di header
@@ -75,6 +78,7 @@ class WebUi:
         self.preview_source: Any = None  # antrean pratinjau proses kamera (Bus.preview)
         self.preview_sockets: set[Any] = set()
         self.previews_sent = 0
+        self.previews_drawn = 0  # --measure-preview: dilaporkan browser
         self.port: int | None = None
         self.lock = threading.RLock()  # vm, sockets, seq, sent_at, debug, dan setiap ws.send
         self.sockets: set[Any] = set()
@@ -168,6 +172,7 @@ class WebUi:
                         **config_json(
                             self.ui, self.dev, self.trial, self.input_mode, self.prompt_label
                         ),
+                        "measure": self.measure,
                     }
                 )
             )
@@ -227,6 +232,10 @@ class WebUi:
         kind = data.get("type")
         now = self.clock()
         with self.lock:
+            if kind == "preview_drawn":
+                if self.measure:
+                    self.previews_drawn += max(0, int(data.get("n", 0)))
+                return
             if kind == "ack":
                 seq = int(data.get("seq", -1))
                 sent = self.sent_at.pop(seq, None)

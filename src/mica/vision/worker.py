@@ -142,6 +142,8 @@ class VisionWorkerConfig:
     camera_preview: str = "off"
     preview_fps: float | None = None
     preview_pixel_block: int | None = None
+    # dev saja (--measure-preview): angka laju/waktu ke antrean pengukuran (mica.eval.preview_meter)
+    measure: bool = False
 
     @classmethod
     def from_settings(
@@ -216,6 +218,8 @@ class VisionWorkerConfig:
 
     def validate(self) -> None:
         _check_dev_only(self.mode, bool(self.camera_factory or self.detector_factory), self.preview)
+        if self.measure and self.mode != "dev":
+            raise WorkerConfigError("pengukuran pratinjau hanya boleh saat app.mode: dev")
         if self.camera_preview == "debug" and self.mode != "dev":
             raise WorkerConfigError(
                 "pratinjau debug (tanpa samaran) hanya boleh saat app.mode: dev"
@@ -280,6 +284,7 @@ class VisionLoop:
         clock: Callable[[], float] = time.monotonic,
         sleep: Callable[[float], None] = time.sleep,
         preview_out: Any = None,
+        measure_out: Any = None,
     ) -> None:
         values = cfg.values
         self.cfg = cfg
@@ -328,6 +333,11 @@ class VisionLoop:
         self.previews = 0  # JPEG pratinjau yang dikirim
         # hasil deteksi terakhir untuk overlay pratinjau (pratinjau tidak memanggil detektor)
         self.last: tuple[Any, Any, Any, ColorResult | None] = ([], None, None, None)
+        self.meter: Any = None
+        if measure_out is not None and cfg.measure:
+            from mica.eval.preview_meter import VisionMeter
+
+            self.meter = VisionMeter(measure_out, clock)
 
     def _send(self, msg: Any) -> None:
         self.outbox.put(msg)
@@ -386,8 +396,12 @@ class VisionLoop:
                 label = f"{color.top} {color.majority:.2f}"
             else:
                 label = color.label
+        start = self.clock()
         image = self.renderer.render(frame, tracks, target, region, label)
-        if put_latest(self.preview_out, encode_jpeg(image)):
+        sent = put_latest(self.preview_out, encode_jpeg(image))
+        if self.meter is not None:
+            self.meter.rendered(self.clock() - start, sent)
+        if sent:
             self.previews += 1
 
     def _show(self, frame: np.ndarray, now: float) -> None:
@@ -424,8 +438,14 @@ class VisionLoop:
                 self.handle_inbox()
                 if not self.running:
                     break
+                read_start = self.clock()
                 frame, status = self.camera.read()
                 now = self.clock()
+                if self.meter is not None:
+                    self.meter.tick()
+                    if frame is not None:
+                        self.meter.camera(getattr(self.camera, "capture", None))
+                        self.meter.frame(frame.shape, now - read_start)
                 if status is not None:
                     fps = self.detections / (now - window_start) if now > window_start else None
                     self._status(status.ok, status.message, fps)
@@ -446,6 +466,8 @@ class VisionLoop:
                     next_detect = self.scenario_start
                 if now >= next_detect - 1e-6:
                     self._detect(frame, now)
+                    if self.meter is not None:
+                        self.meter.detected(self.clock() - now)
                     next_detect = max(next_detect + 1.0 / self.fps, now)
                 due = self.next_preview is None or now >= self.next_preview - 1e-6
                 if self.renderer is not None and now >= self.scenario_start and due:
@@ -461,7 +483,11 @@ class VisionLoop:
 
 
 def run_vision_worker(
-    cfg: VisionWorkerConfig, inbox: Any, outbox: Any, preview_out: Any = None
+    cfg: VisionWorkerConfig,
+    inbox: Any,
+    outbox: Any,
+    preview_out: Any = None,
+    measure_out: Any = None,
 ) -> None:
     """Entry proses anak. Error tak terduga dilaporkan sebagai CameraStatus(ok=False), lalu
     proses keluar dengan error supaya bus memulai ulang (SDD 8.1)."""
@@ -483,7 +509,7 @@ def run_vision_worker(
         detector.detect_and_track(np.zeros((480, 640, 3), dtype=np.uint8))
         startup.mark("warmup_inference_done")
         loop = VisionLoop(cfg, inbox, outbox, _make_camera(cfg), detector,
-                          preview_out=preview_out)  # fmt: skip
+                          preview_out=preview_out, measure_out=measure_out)  # fmt: skip
         loop.run()
     except Exception as exc:
         outbox.put(CameraStatus(ok=False, message=f"vision worker error: {exc}", fps=None))

@@ -105,6 +105,8 @@ class AudioWorkerConfig:
     player_factory: str | None = None
     prob_factory: str | None = None
     factory_options: dict[str, Any] = field(default_factory=dict)
+    # dev saja (--measure-preview): selang sintesis/putar ke antrean pengukuran
+    measure: bool = False
 
     @classmethod
     def from_settings(
@@ -182,6 +184,8 @@ class AudioWorkerConfig:
             )
         if self.diagnose:
             raise AudioWorkerConfigError("diagnosis konsol hanya boleh saat app.mode: dev")
+        if self.measure:
+            raise AudioWorkerConfigError("pengukuran pratinjau hanya boleh saat app.mode: dev")
 
     def check_files(self) -> None:
         """Model Whisper dan suara Piper harus ada sebelum proses anak dimulai."""
@@ -261,6 +265,7 @@ class AudioLoop:
         speaker_message: str = "",
         clock: Callable[[], float] = time.monotonic,
         out: Callable[[str], None] = print,
+        measure_out: Any = None,
     ) -> None:
         self.cfg = cfg
         self.inbox = inbox
@@ -297,6 +302,12 @@ class AudioLoop:
         self.epoch = 0  # naik pada setiap StopSpeaking; Speak dari epoch lama dibuang
         self.running = True
         self.error: BaseException | None = None
+        self.meter: Any = None
+        if measure_out is not None and cfg.measure:
+            from mica.eval.preview_meter import AudioMeter
+
+            self.meter = AudioMeter(measure_out, clock)
+            self.meter.info(tts)
 
     # --- status -----------------------------------------------------------------------
 
@@ -491,15 +502,26 @@ class AudioLoop:
                 self.mic_open = False
         first: float | None = None
         interrupted = False
+        synth_s: list[float] = []  # pengukuran (dev): waktu sintesis per clip
+        audio_s = 0.0
         try:
+            synth_start = self.clock()
             for clip in self.tts.stream(msg.text):
+                if self.meter is not None:
+                    synth_end = self.clock()
+                    self.meter.synth(synth_start, synth_end)
+                    synth_s.append(synth_end - synth_start)
                 self.player.wait()  # clip sebelumnya
                 if epoch != self.epoch:
                     interrupted = True
                     break
                 self.player.start(clip)
+                if self.meter is not None:
+                    self.meter.play(self.clock(), clip.duration_s)
+                    audio_s += clip.duration_s
                 if first is None:
                     first = self.clock() - received
+                synth_start = self.clock()
             self.player.wait()
             interrupted = interrupted or epoch != self.epoch
         except SpeakerUnavailable as exc:
@@ -511,6 +533,8 @@ class AudioLoop:
             with self.lock:
                 self.speaking = False
             self.wake.set()
+        if self.meter is not None:
+            self.meter.speak(received, first, synth_s, audio_s, len(msg.text), interrupted)
         done(first, interrupted)
 
     # --- inbox --------------------------------------------------------------------------
@@ -588,7 +612,9 @@ class AudioLoop:
             raise self.error
 
 
-def run_audio_worker(cfg: AudioWorkerConfig, inbox: Any, outbox: Any) -> None:
+def run_audio_worker(
+    cfg: AudioWorkerConfig, inbox: Any, outbox: Any, measure_out: Any = None
+) -> None:
     """Entry proses anak. Error tak terduga dilaporkan sebagai AudioStatus(ready=False), lalu
     proses keluar dengan error supaya bus memulai ulang (SDD 8.1)."""
     from mica.audio.mic import MicUnavailable
@@ -632,7 +658,7 @@ def run_audio_worker(cfg: AudioWorkerConfig, inbox: Any, outbox: Any) -> None:
             speaker_message = f"speaker tidak tersedia: {exc}"
         startup.mark("player_open_done")
         AudioLoop(cfg, inbox, outbox, stt, tts, mic, player, prob, mic_message,
-                  speaker_message).run()  # fmt: skip
+                  speaker_message, measure_out=measure_out).run()  # fmt: skip
     except Exception as exc:
         outbox.put(AudioStatus(mic_ok=False, speaker_ok=False, ready=False,
                                message=f"audio worker error: {exc}"))  # fmt: skip

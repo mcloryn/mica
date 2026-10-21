@@ -115,6 +115,10 @@ class Bus:
         # pesan bus tetap tanpa frame. None bila ui.camera_preview off.
         preview_on = vision is not None and vision.camera_preview != "off"
         self.preview: Any = self.ctx.Queue(maxsize=1) if preview_on else None
+        # dev saja (--measure-preview): angka pengukuran dari pekerja (mica.eval.preview_meter);
+        # None bila tidak ada pekerja yang mengukur
+        measure_on = any(getattr(c, "measure", False) for c in (vision, audio))
+        self.measure: Any = self.ctx.Queue(maxsize=10000) if measure_on else None
         self.processes: dict[str, Any] = {}
         self.started_at: dict[str, float] = {}  # time.monotonic saat proses dimulai
         self.restarts: dict[str, int] = {name: 0 for name in self.names}
@@ -126,9 +130,16 @@ class Bus:
     def _start_process(self, name: str) -> None:
         if name == "vision":
             target: Any = run_vision_worker
-            args: tuple[Any, ...] = (self.vision_cfg, self.to_vision, self.to_main, self.preview)
+            args: tuple[Any, ...] = (
+                self.vision_cfg,
+                self.to_vision,
+                self.to_main,
+                self.preview,
+                self.measure,
+            )
         elif name == "audio":
-            target, args = run_audio_worker, (self.audio_cfg, self.to_audio, self.to_main)
+            target = run_audio_worker
+            args = (self.audio_cfg, self.to_audio, self.to_main, self.measure)
         else:
             raise ValueError(f"pekerja tidak dikenal: {name}")
         from mica.core import startup
@@ -237,7 +248,7 @@ class Bus:
             if proc.is_alive():
                 proc.kill()
                 proc.join(1.0)
-        queues = (self.to_main, self.to_vision, self.to_audio, self.preview)
+        queues = (self.to_main, self.to_vision, self.to_audio, self.preview, self.measure)
         for q in (q for q in queues if q is not None):
             q.cancel_join_thread()  # jangan tertahan menunggu pesan yang tak akan dibaca
             q.close()
