@@ -269,10 +269,14 @@ def test_api_key_hidden_in_repr_and_str(tmp_path):
     assert settings.api_keys.groq.get_secret_value() == "rahasia-groq"
 
 
-def test_current_kiosk_yaml_reports_active_id_placeholder():
+def test_current_kiosk_yaml_has_official_active_id():
+    # Langkah 61: kb.active_id kiosk diisi KB resmi; field TBD lain masih membuat kiosk.yaml ditolak
     with pytest.raises(ConfigError) as exc:
         load_settings(KIOSK_YAML)
-    assert "kb.active_id" in str(exc.value)
+    assert "kb.active_id" not in str(exc.value)
+    assert "kb.chunk_tokens" in str(exc.value)
+    raw = yaml.safe_load(KIOSK_YAML.read_text(encoding="utf-8"))
+    assert raw["kb"]["active_id"].startswith("official-")
 
 
 @pytest.mark.parametrize("field", ["rrf_k", "candidates_per_retriever"])

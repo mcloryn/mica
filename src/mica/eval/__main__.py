@@ -47,6 +47,7 @@ from mica.eval.generation import (
     QuotaExhausted,
     run_generation,
 )
+from mica.eval.kb_match import check_dataset_files
 from mica.eval.official import (
     DEFAULT_LOCK,
     OFFICIAL_DIR,
@@ -550,6 +551,7 @@ def _retriever_list(value: str) -> list[str]:
 def cmd_export(args: argparse.Namespace, embedder_factory: EmbedderFactory | None) -> int:
     settings = load_settings(args.config)
     kb = load_kb(settings.kb.active_id, args.kb_root)
+    check_dataset_files(args.dataset, kb)
     result = export_pool(
         settings, kb, args.dataset, args.out, embedder_factory=embedder_factory, force=args.force
     )
@@ -575,6 +577,7 @@ def cmd_import(args: argparse.Namespace) -> int:
 def cmd_retrieval(args: argparse.Namespace, embedder_factory: EmbedderFactory | None) -> int:
     settings = load_settings(args.config)
     kb = load_kb(settings.kb.active_id, args.kb_root)
+    check_dataset_files(args.dataset, kb)
     retrievers = args.retrievers or [settings.rag.retriever]
     pool = args.pool or args.dataset.parent / "pool.csv"
     split_info = check_split(args.split, args.dataset, kb.manifest.get("source_type"), args.lock)
@@ -612,6 +615,7 @@ def cmd_retrieval(args: argparse.Namespace, embedder_factory: EmbedderFactory | 
 def cmd_gate(args: argparse.Namespace, embedder_factory: EmbedderFactory | None) -> int:
     settings = load_settings(args.config)
     kb = load_kb(settings.kb.active_id, args.kb_root)
+    check_dataset_files(args.dataset, kb)
     embedder = None
     if embedder_factory is not None:
         info = kb.manifest["embedder"]
@@ -639,6 +643,7 @@ def cmd_gate(args: argparse.Namespace, embedder_factory: EmbedderFactory | None)
 def cmd_generation(args: argparse.Namespace, embedder_factory: EmbedderFactory | None) -> int:
     settings = load_settings(args.config, env_file=args.env_file)
     kb = load_kb(settings.kb.active_id, args.kb_root)
+    check_dataset_files(args.dataset, kb)
     split_info = check_split(args.split, args.dataset, kb.manifest.get("source_type"), args.lock)
     embedder = None
     if embedder_factory is not None:
@@ -775,6 +780,7 @@ def _retrieval(args: argparse.Namespace, settings: Any, items: list[Any]) -> tup
         return None, None
     gold = _check_qids(args, items)
     kb = load_kb(settings.kb.active_id, args.kb_root)
+    check_dataset_files(args.questions, kb)
     retriever = make_retriever(settings, kb)
     return (lambda text: [h.chunk.chunk_id for h in retriever.search(text, TOP_K)]), gold
 
@@ -1018,6 +1024,7 @@ def cmd_followup(args: argparse.Namespace, embedder_factory: EmbedderFactory | N
     if settings.app.mode != "dev":
         raise ValueError("eval followup hanya untuk app.mode: dev (set dev)")
     kb = load_kb(settings.kb.active_id, args.kb_root)
+    check_dataset_files(args.dataset, kb, extra=[args.switch])
     from mica.rag.retriever import embedder_for_kb
 
     info = kb.manifest["embedder"]
