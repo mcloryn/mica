@@ -59,6 +59,20 @@ def test_unknown_gold_chunk_rejected(tmp_path):
     assert "official-x" in msg and "1 gold_chunk_ids" in msg and "a: 03_biaya#2" in msg
 
 
+def test_row_kb_id_must_match_active_kb(tmp_path):
+    ds = tmp_path / "q.jsonl"
+    check_dataset_kb(ds, [{**_q("a", ["d#0"]), "kb_id": "kb-1"}], "kb-1", ["d#0"], {"d"})
+    items = [{**_q("a", ["d#0"]), "kb_id": "kb-1"}, {**_q("b"), "kb_id": "kb-1"}]
+    with pytest.raises(DatasetKbMismatch) as exc:
+        check_dataset_kb(ds, items, "kb-2", ["d#0"], {"d"})
+    msg = str(exc.value)
+    assert "2 baris mencatat kb_id lain" in msg and "a: kb-1" in msg
+
+
+def test_row_without_kb_id_passes(tmp_path):
+    check_dataset_kb(tmp_path / "q.jsonl", [_q("a", ["d#0"])], "kb-2", ["d#0"], {"d"})
+
+
 def test_unknown_gold_ref_doc_rejected(tmp_path):
     items = [_q("a", gold_refs=["03_biaya::Biaya Kuliah"])]
     with pytest.raises(DatasetKbMismatch) as exc:

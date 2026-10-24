@@ -7,7 +7,8 @@ gold_refs-nya menunjuk chunk/dokumen KB dev, jadi Recall/MRR akan nol tanpa pesa
 Dataset ditolak bila:
 - pool_meta.json di folder dataset (ditulis annotate export) mencatat kb_id lain untuk file ini;
 - ada gold_chunk_ids yang tidak ada di KB aktif;
-- ada doc_id di gold_refs yang tidak ada di KB aktif.
+- ada doc_id di gold_refs yang tidak ada di KB aktif;
+- ada baris dengan field kb_id (KB tempat soal dibuat, Langkah 65) yang bukan KB aktif.
 Dataset tanpa anotasi dan tanpa pool_meta lolos (misalnya set resmi sebelum dianotasi).
 """
 
@@ -63,7 +64,11 @@ def check_dataset_kb(
     known_docs = set(doc_ids)
     missing_chunks: list[str] = []
     missing_docs: list[str] = []
+    other_kb: list[str] = []
     for item in items:
+        row_kb = item.get("kb_id")
+        if row_kb is not None and row_kb != kb_id:
+            other_kb.append(f"{item.get('qid')}: {row_kb}")
         for cid in item.get("gold_chunk_ids") or []:
             if cid not in known_chunks:
                 missing_chunks.append(f"{item.get('qid')}: {cid}")
@@ -80,6 +85,10 @@ def check_dataset_kb(
         problems.append(
             f"{len(missing_docs)} doc_id gold_refs tidak ada di KB, mis. "
             + ", ".join(missing_docs[:_EXAMPLES])
+        )
+    if other_kb:
+        problems.append(
+            f"{len(other_kb)} baris mencatat kb_id lain, mis. " + ", ".join(other_kb[:_EXAMPLES])
         )
     if problems:
         raise DatasetKbMismatch(
