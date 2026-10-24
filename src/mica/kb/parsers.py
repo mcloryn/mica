@@ -52,6 +52,13 @@ class Block:
 
 
 @dataclass(frozen=True)
+class SupersededSection:
+    section: str  # misalnya "Pasal 4" atau "BAB II … › Pasal 4"
+    superseded_by: str  # dokumen dan bagian pengganti
+    reason: str
+
+
+@dataclass(frozen=True)
 class ParsedDocument:
     doc_id: str
     doc_title: str
@@ -63,6 +70,8 @@ class ParsedDocument:
     frontmatter: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
     # halaman PDF yang diganti ketikan ulang: "8-9" -> path relatif di folder sumber (manifest)
     page_overrides: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
+    # bagian yang sudah digantikan dokumen lain; chunk-nya tidak masuk indeks (Langkah 64)
+    superseded_sections: tuple[SupersededSection, ...] = ()
 
 
 class DocumentParser(Protocol):
@@ -614,6 +623,68 @@ def _page_overrides(folder: Path, path: Path, raw: Any) -> dict[str, str]:
     return out
 
 
+# --- bagian yang digantikan dokumen lain (Langkah 64) ---
+#
+# sources.yaml: superseded_sections: [{section, superseded_by, reason}] pada entri dokumen apa pun.
+# Saat build, chunk yang jalur bagiannya memuat bagian itu tidak dimasukkan ke indeks.
+
+_SUPERSEDED_FIELDS = ("section", "superseded_by", "reason")
+
+
+def _superseded_sections(folder: Path, path: Path, raw: Any) -> tuple[SupersededSection, ...]:
+    if raw is None:
+        return ()
+    key = source_key(folder, path)
+    if not isinstance(raw, list):
+        raise KbBuildError(ErrorCode.KB_INVALID, f"{key}: superseded_sections harus daftar")
+    out = []
+    for item in raw:
+        if not isinstance(item, dict):
+            raise KbBuildError(
+                ErrorCode.KB_INVALID, f"{key}: superseded_sections berisi {{section, ...}}"
+            )
+        values = {name: str(item.get(name) or "").strip() for name in _SUPERSEDED_FIELDS}
+        empty = [name for name, value in values.items() if not value]
+        if empty:
+            raise KbBuildError(
+                ErrorCode.KB_INVALID, f"{key}: superseded_sections tanpa field {empty}"
+            )
+        if any(s.section == values["section"] for s in out):
+            raise KbBuildError(
+                ErrorCode.KB_INVALID, f"{key}: superseded_sections {values['section']!r} ganda"
+            )
+        out.append(SupersededSection(**values))
+    return tuple(out)
+
+
+# label penomoran di akhir bagian: "4", "1.2", "II"; hanya label yang boleh dicocokkan sebagai awalan
+_LABEL_END = re.compile(r"(?:\d+(?:\.\d+)*|[IVXLC]+)")
+
+
+def _segment_matches(segment: str, part: str) -> bool:
+    # "Pasal 4" cocok dengan "Pasal 4" dan "Pasal 4 Jalur ...", tidak dengan "Pasal 40 ...";
+    # "Pasal" saja (tanpa nomor) hanya cocok dengan bagian bernama persis "Pasal"
+    if segment == part:
+        return True
+    return _LABEL_END.fullmatch(part.split()[-1]) is not None and segment.startswith(part + " ")
+
+
+def section_matches(section_path: str, section: str) -> bool:
+    """True bila jalur bagian chunk memuat bagian itu, dicocokkan tepat per bagian.
+
+    section boleh berupa jalur ("BAB II › Pasal 4"); bagian-bagiannya harus berurutan di jalur.
+    """
+    parts = [p.strip() for p in section.split(SECTION_SEP.strip()) if p.strip()]
+    segments = [s.strip() for s in section_path.split(SECTION_SEP)] if section_path else []
+    if not parts:
+        return False
+    for start in range(len(segments) - len(parts) + 1):
+        window = segments[start : start + len(parts)]
+        if all(_segment_matches(seg, part) for seg, part in zip(window, parts, strict=True)):
+            return True
+    return False
+
+
 def parse_file(
     folder: Path, path: Path, page_overrides: Mapping[str, str] | None = None
 ) -> ParsedDocument | None:
@@ -672,6 +743,9 @@ def load_sources(
                 doc_title=str(meta.get("title") or path.stem),
                 valid_from=valid_from,
                 source_type=source_type,
+                superseded_sections=_superseded_sections(
+                    folder, path, meta.get("superseded_sections")
+                ),
             )
         )
 

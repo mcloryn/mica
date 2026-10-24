@@ -2,7 +2,8 @@ app:
   mode: kiosk                 # kiosk | dev; Gemini hanya boleh di dev
   version: 0.1.0
 kb:
-  active_id: official-2026-10-24-v3  # F-17; KB resmi v3 (Langkah 63, docs/KB-RESMI.md)
+  active_id: official-2026-10-24-v4  # F-17; KB resmi v4 (Langkah 64, docs/KB-RESMI.md)
+  # active_id: official-2026-10-24-v3  # arsip; KB resmi v3 (Langkah 63), tidak dihapus
   # active_id: official-2026-10-24-v2  # arsip; KB resmi v2 (Langkah 62), tidak dihapus
   # active_id: official-2026-10-23-v1  # arsip; KB resmi v1 (Langkah 61), tidak dihapus
   # active_id: dev-2026-10-15-v2  # arsip, dipakai E-01..E-04 (KB dev tidak dipakai di kiosk)

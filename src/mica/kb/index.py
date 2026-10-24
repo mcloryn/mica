@@ -26,10 +26,12 @@ from mica.kb.embedder import Embedder
 from mica.kb.parsers import (
     PDF_EXTRACTION,
     KbBuildError,
+    ParsedDocument,
     SourceType,
     doc_id_for,
     iter_source_files,
     load_sources,
+    section_matches,
     source_key,
 )
 
@@ -112,6 +114,36 @@ def _check_kb_id(kb_id: str) -> None:
         raise KbBuildError(ErrorCode.KB_INVALID, f"kb_id tidak valid: {kb_id!r}")
 
 
+def drop_superseded(
+    docs: list[ParsedDocument], chunks: list[Chunk]
+) -> tuple[list[Chunk], dict[tuple[str, str], list[str]]]:
+    """Keluarkan chunk yang jalur bagiannya memuat superseded_sections dokumennya.
+
+    Kembalian: chunk yang tersisa dan (doc_id, section) -> chunk_id yang dikeluarkan. Bagian yang
+    tidak cocok dengan chunk mana pun menggagalkan build (salah ketik tidak boleh lolos diam-diam).
+    """
+    rules = {doc.doc_id: doc.superseded_sections for doc in docs if doc.superseded_sections}
+    excluded = {(d, item.section): [] for d, items in rules.items() for item in items}
+    kept = []
+    for chunk in chunks:
+        hits = [
+            i.section
+            for i in rules.get(chunk.doc_id, ())
+            if section_matches(chunk.section, i.section)
+        ]
+        for section in hits:
+            excluded[(chunk.doc_id, section)].append(chunk.chunk_id)
+        if not hits:
+            kept.append(chunk)
+    unmatched = [f"{d}: {section!r}" for (d, section), ids in excluded.items() if not ids]
+    if unmatched:
+        raise KbBuildError(
+            ErrorCode.KB_INVALID,
+            "superseded_sections tidak cocok dengan chunk mana pun: " + "; ".join(unmatched),
+        )
+    return kept, excluded
+
+
 def build_kb(
     src: Path,
     kb_id: str,
@@ -152,9 +184,15 @@ def build_kb(
             embedder.count_tokens,
         )
         chunks = [c for doc in docs for c in chunker.split(doc)]
+        chunks, excluded = drop_superseded(docs, chunks)
         if not chunks:
             raise KbBuildError(ErrorCode.KB_INVALID, "tidak ada chunk yang dihasilkan")
-        logger.info("%d dokumen, %d chunk", len(docs), len(chunks))
+        logger.info(
+            "%d dokumen, %d chunk (%d dikeluarkan: superseded_sections)",
+            len(docs),
+            len(chunks),
+            sum(len(ids) for ids in excluded.values()),
+        )
 
         dense = embedder.embed([c.text for c in chunks])
         if dense.ndim != 2 or dense.shape[0] != len(chunks):
@@ -196,6 +234,7 @@ def build_kb(
                 "dim": int(dense.shape[1]),
             },
             "n_chunks": len(chunks),
+            "n_superseded_chunks": sum(len(ids) for ids in excluded.values()),
             "documents": [
                 {
                     "doc_id": doc.doc_id,
@@ -213,6 +252,23 @@ def build_kb(
                             }
                         }
                         if doc.page_overrides
+                        else {}
+                    ),
+                    # bagian yang digantikan dokumen lain (Langkah 64) dan chunk yang dikeluarkan
+                    **(
+                        {
+                            "superseded_sections": [
+                                {
+                                    "section": item.section,
+                                    "superseded_by": item.superseded_by,
+                                    "reason": item.reason,
+                                    "n_chunks": len(excluded[(doc.doc_id, item.section)]),
+                                    "chunk_ids": excluded[(doc.doc_id, item.section)],
+                                }
+                                for item in doc.superseded_sections
+                            ]
+                        }
+                        if doc.superseded_sections
                         else {}
                     ),
                 }

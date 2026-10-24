@@ -1,10 +1,11 @@
-# KB resmi (Langkah 61, 23 Okt 2026; v2 Langkah 62 dan v3 Langkah 63, 24 Okt 2026)
+# KB resmi (Langkah 61, 23 Okt 2026; v2 Langkah 62, v3 Langkah 63, v4 Langkah 64, 24 Okt 2026)
 
-KB aktif sejak Langkah 63: **`official-2026-10-24-v3`** (`source_type: official`), di
+KB aktif sejak Langkah 64: **`official-2026-10-24-v4`** (`source_type: official`), di
 `config/dev.yaml` dan `config/kiosk.yaml` (`kb.active_id`), bersama prompt **v5**
 (`rag.prompt_variant: v5`). Yang diarsipkan (tidak dihapus dari `data/kb/`, ID-nya ditulis
 sebagai komentar di kedua config):
 
+- `official-2026-10-24-v3`: KB resmi v3 (Langkah 63);
 - `official-2026-10-24-v2`: KB resmi v2 (Langkah 62);
 - `official-2026-10-23-v1`: KB resmi pertama (Langkah 61);
 - `dev-2026-10-15-v2`: KB dev, dipakai E-01..E-04.
@@ -54,14 +55,17 @@ Sejak Langkah 63 aturan ini juga diatur di sistem (pilihan hasa), lewat prompt *
   chunk + `source_label` (judul dan tanggal berlaku), sama seperti sebelumnya.
 
 Aturan di prompt tidak menjamin LLM mematuhinya: pada uji asap c Langkah 63, jawaban tetap
-mencampur jalur dari kedua dokumen (lihat "Uji asap").
+mencampur jalur dari kedua dokumen (lihat "Uji asap"). Karena itu, sejak Langkah 64 konflik yang
+sudah diketahui ditangani sebelum retrieval (kurasi dokumen atau `superseded_sections`); aturan
+prompt v5 tinggal menjadi jaring untuk konflik yang belum diketahui.
 
 ### Konflik sumber yang diketahui
 
-| topik | sumber A | sumber B | yang berlaku | penanganan |
-|---|---|---|---|---|
-| TOEFL untuk Magister Manajemen | Brosur 2025 hlm 8: "Skor TOEFL minimal 475 ke atas" | Pedoman PMB 2027 hlm 8-9, 2.1 c: tidak ada TOEFL untuk MM (TOEFL hanya untuk MTI) | Pedoman PMB 2027 | kurasi: syarat S2 tidak diketik di brosur (Langkah 62); aturan prompt v5 |
-| Jalur penerimaan mahasiswa baru | Peraturan Akademik 2025 Pasal 4 (hlm 9-10): Reguler, Prestasi, UTBK, Beasiswa, RPL, Pindahan, Program Pendidikan Khusus | Pedoman PMB 2027 1.2 Jalur Seleksi (hlm 5-6): antara lain PMDK, Prestasi, Reguler, KIP Kuliah, Ujian Saring Masuk S2 | Pedoman PMB 2027 (kelompok pmb, pendaftaran) | aturan prompt v5 saja; dokumen tidak disunting. Uji asap c L63 masih mencampur. |
+| topik | sumber A | sumber B | yang berlaku | cara penanganan | catatan |
+|---|---|---|---|---|---|
+| TOEFL untuk Magister Manajemen | Brosur 2025 hlm 8: "Skor TOEFL minimal 475 ke atas" | Pedoman PMB 2027 hlm 8-9, 2.1 c: tidak ada TOEFL untuk MM (TOEFL hanya untuk MTI) | Pedoman PMB 2027 | **kurasi ketikan brosur**: syarat S2 tidak diketik di brosur | sejak Langkah 62; aturan prompt v5 tetap aktif |
+| Jalur penerimaan mahasiswa baru | Peraturan Akademik 2025 Pasal 4 (hlm 9-10): Reguler, Prestasi, UTBK, Beasiswa, RPL, Pindahan, Program Pendidikan Khusus (7 jalur) | Pedoman PMB 2027 1.2 Jalur Seleksi (hlm 5-6): PMDK, Prestasi, Reguler, KIP Kuliah, Ujian Saring Masuk S2 (5 jalur) | Pedoman PMB 2027 (kelompok pmb, pendaftaran) | **`superseded_sections`**: Pasal 4 tidak masuk indeks | sejak v4 (Langkah 64). v3 dengan prompt v5 saja masih mencampur (uji asap c L63); v4 tidak (uji asap c L64). PDF tidak disunting. |
+| konflik yang belum diketahui | - | - | dokumen resmi terbaru (kelompok `rag.source_priority` untuk pendaftaran) | **aturan prompt v5** (aturan 4) | kepatuhan LLM tidak dijamin; konflik baru yang ditemukan dipindah ke salah satu cara di atas |
 
 ### Prompt v5
 
@@ -254,7 +258,93 @@ itu berada di sel Magister Manajemen. Akibat lain: judul BAB II di jalur bagian 
 "BAB II Sistem Rekrutmen dan Seleksi Calon Mahasiswa Baru" (huruf kapital biasa), sedangkan judul
 BAB lain dari PDF berhuruf besar semua.
 
-## Build v3
+## Perubahan v3 -> v4
+
+Satu-satunya perubahan: `superseded_sections` di `sources.yaml` (Peraturan Akademik 2025,
+"Pasal 4"). File sumber, chunker, embedder, dan prompt v5 sama dengan v3. Ambang gerbang tidak
+diubah.
+
+| dokumen | v3 | v4 |
+|---|---|---|
+| Peraturan Akademik 2025 | 87 | 85 |
+| Panduan Kemahasiswaan 2021 | 57 | 57 |
+| Brosur 2025 | 15 | 15 |
+| Pedoman PMB 2027 | 23 | 23 |
+| Panduan pembayaran 2026/2027 | 21 | 21 |
+| **jumlah** | **203** | **201** |
+
+Chunk yang dikeluarkan (dicatat di `manifest.json`):
+
+| chunk_id | hlm | jalur bagian |
+|---|---|---|
+| `akademik/peraturan-akademik-2025#14` | 9 | BAB II PENYELENGGARAAN PENERIMAAN MAHASISWA BARU › Pasal 4 Jalur Penerimaan Mahasiswa Baru |
+| `akademik/peraturan-akademik-2025#15` | 10 | BAB II PENYELENGGARAAN PENERIMAAN MAHASISWA BARU › Pasal 4 Jalur Penerimaan Mahasiswa Baru |
+
+chunk_id lain sama dengan v3 (nomor #14 dan #15 kosong, tidak dinomori ulang). Pasal 5
+Rekognisi Pembelajaran Lampau (#16-#18) dan Pasal 40/41 (#64-#66) tetap ada. Ikut hilang: ayat
+(6) Pasal 4 yang menjelaskan jalur RPL sebagai jalur penerimaan; pengertian RPL tetap ada di
+Pasal 1 dan Pasal 5.
+
+### Bagian yang digantikan dokumen lain (superseded_sections)
+
+**Alasan.** Aturan konflik di prompt v5 tidak mencegah LLM mencampur jalur Peraturan Akademik
+Pasal 4 dengan jalur Pedoman PMB 2027 (uji asap c L63). PDF resmi tidak boleh disunting, jadi
+bagian yang sudah digantikan dikeluarkan dari indeks saat build.
+
+**Cara kerja** (`mica.kb.parsers.section_matches`, `mica.kb.index.drop_superseded`, tes
+`tests/unit/test_kb_superseded.py`):
+
+- Entri dokumen apa pun di `sources.yaml` boleh punya
+  `superseded_sections: [{section, superseded_by, reason}]`. Ketiga field wajib diisi; section
+  ganda dalam satu dokumen ditolak (`KB_INVALID`).
+- Saat build, chunk yang jalur bagiannya (`Chunk.section`) memuat bagian itu tidak dimasukkan ke
+  `chunks.jsonl`, `dense.npy`, maupun `bm25.pkl`.
+- Pencocokan per bagian jalur (dipisah " › "): bagian cocok bila sama persis, atau diawali
+  section + spasi **dan** section berakhir dengan nomor ("4", "1.2", "II"). Jadi "Pasal 4" cocok
+  dengan "Pasal 4 Jalur Penerimaan Mahasiswa Baru", tetapi tidak dengan "Pasal 40 …", "Pasal
+  41 …", atau "Pasal 5 …"; "Pasal" tanpa nomor tidak mencocokkan semua pasal. Huruf besar/kecil
+  dibedakan. section boleh berupa jalur ("BAB II › Pasal 4"); bagian-bagiannya harus berurutan
+  di jalur chunk.
+- Bila satu section tidak cocok dengan chunk mana pun, build gagal (`KB_INVALID`, pesan menyebut
+  doc_id dan section) dan tidak ada folder KB yang dibuat.
+- `manifest.json`: `n_superseded_chunks` di tingkat atas, dan di entri dokumen
+  `superseded_sections: [{section, superseded_by, reason, n_chunks, chunk_ids}]`. build.log hanya
+  mencatat jumlahnya (isi dokumen tidak ditulis ke log).
+- `sources.yaml` tidak di-commit (`data/sources/`); isi entri Langkah 64:
+
+```yaml
+akademik/peraturan-akademik-2025.pdf:
+  superseded_sections:
+    - section: "Pasal 4"
+      superseded_by: "Pedoman Penerimaan Mahasiswa Baru Tahun 2027, 1.2 Jalur Seleksi"
+      reason: "jalur seleksi untuk calon mahasiswa 2027 diatur Pedoman PMB 2027; isi berbeda (7 vs 5 jalur)"
+```
+
+## Build v4
+
+| | |
+|---|---|
+| kb_id | `official-2026-10-24-v4` |
+| perintah | `python -m mica.kb build --src data/sources/official --kb-id official-2026-10-24-v4 --source-type official --config config/dev.yaml` |
+| dokumen / chunk | 5 / 201 (tabel: 4), 2 chunk dikeluarkan (`superseded_sections`) |
+| lama build / ukuran | 224,5 detik / 1,3 MB |
+| chunker | sama dengan v3 |
+| config_hash | `d4ce25f8c3164a6d696cff92da582706aa34fe38e9de5232883729eff65b3dab` (sama dengan v1-v3) |
+| built_at | 2026-10-24T19:58:41+07:00 |
+
+SHA-256 file sumber sama dengan v3. `sources.yaml`:
+`1b7db24f280441e0d4fa03d643b60c1c85395da0804871122321f4c66e502fd2`.
+
+SHA-256 file KB:
+
+| file | sha256 |
+|---|---|
+| `manifest.json` | `712bced2459074074da154247c50f4281d0baed3963af9c6d4d048e01f2f425d` |
+| `chunks.jsonl` | `1adb22a2b7e365b895fd2490b953c6fffd301a0f38b26c0c94d07a4fc65dc973` |
+| `dense.npy` | `116a098798a07c183f35a6dac45f99ceef0331f33150af8f9c91e55cbbc5ea25` |
+| `bm25.pkl` | `a558a1f8a619c1509e6dce580dafb84e7e19583375704e168e4e9a0d7324452a` |
+
+## Build v3 (arsip, Langkah 63)
 
 | | |
 |---|---|
@@ -361,7 +451,7 @@ dan menolak (exit 2) dataset yang:
 
 Jadi E-01..E-04 tidak bisa diam-diam dijalankan ulang dengan dataset lama pada KB resmi.
 Untuk mereproduksi hasil lama, set `kb.active_id` kembali ke `dev-2026-10-15-v2`.
-E-01/E-02 belum dijalankan pada KB resmi (v1, v2, maupun v3).
+E-01/E-02 belum dijalankan pada KB resmi (v1-v4).
 
 ## Uji asap
 
@@ -379,10 +469,18 @@ Pemeriksaan khusus Langkah 63:
 - **c: gagal.** Jalur dari Pedoman PMB 2027 1.2 dan Peraturan Akademik 2025 Pasal 4 ikut terambil,
   dan jawabannya mencampur keduanya, padahal aturan konflik v5 aktif.
 
+Langkah 64 (v4 + prompt v5): c, b, g, i, 4 panggilan LLM.
+
+- c: 5 jalur Pedoman PMB 2027 (PMDK, Prestasi, Reguler, KIP Kuliah, Ujian Saring Masuk S2),
+  sumber hanya Pedoman PMB 2027 hlm 5 dan 6, 1.2 Jalur Seleksi (lolos).
+- b: tanpa TOEFL (lolos). g: TOEFL 475 (lolos).
+- i: terjawab, tetapi sumbernya Pasal 1 Istilah dan Pengertian (hlm 6-7), bukan Pasal 5. Pasal 5
+  tetap ada di indeks.
+
 ## Penyimpangan yang harus diungkap di Bab 3
 
 1. **KB dev diarsipkan.** E-01..E-04 diukur pada `dev-2026-10-15-v2` (dokumen dev, bukan
-   dokumen resmi). KB aktif sekarang `official-2026-10-24-v3`; hasil E-01..E-04 belum diukur
+   dokumen resmi). KB aktif sekarang `official-2026-10-24-v4`; hasil E-01..E-04 belum diukur
    ulang pada KB resmi.
 2. **Ambang gerbang 0,50 adalah nilai coba.** Dikalibrasi di KB dev, belum diukur ulang di KB
    resmi (`rag.gate.threshold` di `config/dev.yaml`; di `config/kiosk.yaml` tetap null/TBD).
@@ -393,7 +491,7 @@ Pemeriksaan khusus Langkah 63:
    dikalibrasi untuk dokumen resmi.
 4. **Metode chunking berubah di v2** (bagian PDF, prefiks jalur bagian di teks chunk untuk .md
    dan PDF, perbaikan teks PDF). Perubahan dibuat setelah melihat hasil ekstraksi dokumen resmi,
-   belum diuji di E-01. `config_hash` tidak berubah, jadi pembeda v1/v2/v3 adalah kb_id dan
+   belum diuji di E-01. `config_hash` tidak berubah, jadi pembeda v1-v4 adalah kb_id dan
    `manifest.json`.
 5. **Model data `Chunk` ditambah** `page_start` dan `page_end` (tidak ada di SDD 5.1), dan sitasi
    PDF di layar memuat halaman dan bagian. Field `section` PDF berisi jalur bagian (BAB › Pasal),
@@ -424,3 +522,7 @@ Pemeriksaan khusus Langkah 63:
     Brosur dan panduan pembayaran saat ini tidak memuat komentar HTML.
 13. **Panduan Kemahasiswaan 2021** adalah dokumen lama (pelengkap); sebagian kata terpotong masih
     ada setelah perbaikan.
+14. **Bagian dokumen resmi dikeluarkan dari indeks (v4).** Peraturan Akademik 2025 Pasal 4
+    (2 chunk, hlm 9-10) tidak masuk KB lewat `superseded_sections`, karena jalur seleksi 2027
+    diatur Pedoman PMB 2027. Keputusan ini kurasi manual berdasarkan aturan konflik sumber, bukan
+    hasil evaluasi. Ayat (6) Pasal 4 tentang jalur RPL ikut hilang dari KB.
