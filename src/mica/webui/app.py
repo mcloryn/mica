@@ -294,7 +294,7 @@ def make_preview_meter(settings: Settings, webui: WebUi, controller: KioskContro
 
 
 # --prompt-variant: label uji coba -> rag.prompt_variant (v2 = paraphrase, docs/PROMPT-V4.md)
-PROMPT_VARIANTS = {"v2": "paraphrase", "v3": "v3", "v4": "v4"}
+PROMPT_VARIANTS = {"v2": "paraphrase", "v3": "v3", "v4": "v4", "v5": "v5"}
 
 
 def with_prompt_variant(settings: Settings, label: str) -> Settings:

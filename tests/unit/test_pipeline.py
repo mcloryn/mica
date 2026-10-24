@@ -86,8 +86,9 @@ def _settings(tmp_path=None, **rag):
 def _pipeline(tmp_path, reply, gate=True, retriever=None, settings=None):
     llm = FakeLlm(reply)
     retriever = retriever or FakeRetriever()
+    # tes di file ini menguji prompt v2 (paraphrase); v5 (aktif sejak Langkah 63) di test_prompt_v5
     pipeline = AnswerPipeline(
-        settings or _settings(),
+        settings or _settings(tmp_path, prompt_variant="paraphrase"),
         retriever,
         FakeGate(gate),
         llm,

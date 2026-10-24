@@ -22,7 +22,7 @@ from mica.eval.generation import (
 )
 from mica.kb.index import build_kb, load_kb
 from mica.rag.llm import ProviderFailed
-from mica.rag.prompts import PROMPT_VERSION
+from mica.rag.prompts import prompt_version
 
 DEV_YAML = Path(__file__).resolve().parents[2] / "config" / "dev.yaml"
 USAGE = {"prompt_tokens": 100, "completion_tokens": 10, "total_tokens": 110}
@@ -475,7 +475,7 @@ def test_run_cache_only(env):
     run = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
     assert provider.requests == []
     assert run["llm_calls"]["cache_only"] is True and run["llm_calls"]["api_calls"] == 0
-    assert run["prompt_version"] == PROMPT_VERSION
+    assert run["prompt_version"] == prompt_version(env[0].rag.prompt_variant)
 
 
 def test_progress_flushes(capsys):

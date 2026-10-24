@@ -1,9 +1,11 @@
-# KB resmi (Langkah 61, 23 Okt 2026; v2 Langkah 62, 24 Okt 2026)
+# KB resmi (Langkah 61, 23 Okt 2026; v2 Langkah 62 dan v3 Langkah 63, 24 Okt 2026)
 
-KB aktif sejak Langkah 62: **`official-2026-10-24-v2`** (`source_type: official`), di
-`config/dev.yaml` dan `config/kiosk.yaml` (`kb.active_id`). Yang diarsipkan (tidak dihapus dari
-`data/kb/`, ID-nya ditulis sebagai komentar di kedua config):
+KB aktif sejak Langkah 63: **`official-2026-10-24-v3`** (`source_type: official`), di
+`config/dev.yaml` dan `config/kiosk.yaml` (`kb.active_id`), bersama prompt **v5**
+(`rag.prompt_variant: v5`). Yang diarsipkan (tidak dihapus dari `data/kb/`, ID-nya ditulis
+sebagai komentar di kedua config):
 
+- `official-2026-10-24-v2`: KB resmi v2 (Langkah 62);
 - `official-2026-10-23-v1`: KB resmi pertama (Langkah 61);
 - `dev-2026-10-15-v2`: KB dev, dipakai E-01..E-04.
 
@@ -20,7 +22,10 @@ ke `data/sources/official/<kelompok>/`; nama file diganti agar `doc_id` terbaca.
 | `akademik/peraturan-akademik-2025` | Peraturan Akademik Universitas Mikroskil Tahun 2025 | `Peraturan Akademik Tahun 2025.pdf` (38 hlm) | 2025-01-22 | Peraturan Rektor No. 052/UM.348/05/AK/2025, "Pada tanggal: 22 Januari 2025" (hlm PDF 38) |
 | `kemahasiswaan/panduan-kemahasiswaan-2021` | Buku Panduan Peraturan Kemahasiswaan Universitas Mikroskil 2021 | `Buku Panduan Peraturan Kemahasiswaan Universitas Mikroskil 2021.pdf` (47 hlm) | 2021-09-06 | Keputusan Rektor No. 018/UM.348/01/KM/2021, "Pada tanggal: 06 September 2021" (hlm PDF 2). Dokumen lama, pelengkap. |
 | `brosur/brosur-pmb-2025` | Brosur Pendaftaran Universitas Mikroskil 2025 | `brosur-pmb-2025.md` (ketikan ulang, versi 24 Okt 2026) | 2025-01-01 | Tahun dari keterangan hasa; tidak tertulis di brosur. |
-| `keuangan/panduan-pembayaran-2026-2027` | Panduan Dasar dan Pembayaran Uang Kuliah T.A. 2026/2027 | `panduan_dasar_dan_pembayaran_uang_kuliah.md` (disunting, lihat di bawah) | 2026-07-01 | Awal T.A. 2026/2027; cicilan pertama 1-10 Juli 2026. |
+| `keuangan/panduan-pembayaran-2026-2027` | Panduan Dasar dan Pembayaran Uang Kuliah T.A. 2026/2027 (frontmatter `title` file) | `panduan-pembayaran-2026-2027.md` (versi Langkah 63, byte-identik) | 2026-07-01 | Awal T.A. 2026/2027; cicilan pertama 1-10 Juli 2026. |
+
+Selain itu ada `_overrides/pedoman-pmb-2027-hlm8-9.md` (byte-identik), yaitu halaman pengganti
+Pedoman PMB, bukan dokumen tersendiri (lihat "Halaman pengganti").
 
 Ketiga tanggal SK tertulis jelas, jadi aturan "YYYY-01-01, hanya tahun diketahui" tidak dipakai
 untuk PDF. Catatan: nomor Peraturan Akademik memuat "/05/" padahal tanggal penetapannya
@@ -31,14 +36,46 @@ untuk PDF. Catatan: nomor Peraturan Akademik memuat "/05/" padahal tanggal penet
 **Bila sumber bertentangan, yang berlaku adalah dokumen resmi terbaru yang masih berlaku. Brosur
 hanya dipakai untuk informasi yang tidak ada di Pedoman PMB 2027.**
 
-Aturan ini dijalankan lewat kurasi dokumen, bukan oleh logika sistem. Retriever dan LLM tidak
-membandingkan `valid_from`; tanggal berlaku hanya ditampilkan di label prompt dan di layar. Contoh
-penerapan: syarat masuk S2 dihapus dari brosur (versi 24 Okt), karena Pedoman PMB 2027 yang
-berlaku. Konflik lain yang belum dikurasi:
+Langkah 62: aturan ini hanya dijalankan lewat kurasi dokumen (syarat S2 dihapus dari brosur).
+Sejak Langkah 63 aturan ini juga diatur di sistem (pilihan hasa), lewat prompt **v5**:
 
-- Jalur penerimaan: Peraturan Akademik 2025 Pasal 4 (Reguler, Prestasi, UTBK, Beasiswa, RPL,
-  Pindahan, Program Pendidikan Khusus) berbeda dengan Pedoman PMB 2027 (antara lain PMDK dan KIP
-  Kuliah). Uji asap c Langkah 62 menjawab dari Peraturan Akademik.
+- Setiap potongan di pesan ke LLM diberi kepala
+  `[ID: <chunk_id> | Dokumen: <judul> | Kelompok: <subfolder> | Berlaku sejak: <valid_from>]`.
+  Kelompok = subfolder teratas `doc_id` (pmb, akademik, kemahasiswaan, brosur, keuangan).
+- Aturan prompt baru (aturan 4 v5): bila potongan dari dokumen berbeda saling bertentangan,
+  (1) untuk pertanyaan tentang pendaftaran mahasiswa baru utamakan dokumen kelompok
+  `rag.source_priority`; (2) selain itu utamakan dokumen dengan tanggal berlaku terbaru;
+  (3) jangan menggabungkan isi yang saling bertentangan; (4) sebutkan di jawaban dokumen yang
+  dipakai.
+- `rag.source_priority: [pmb]` di `config/dev.yaml` dan `config/kiosk.yaml`. Ini nilai
+  rancangan, bukan hasil kalibrasi. Bila daftarnya kosong, butir (1) tidak ditulis.
+- Retriever, gerbang 1-3, dan cek sitasi/angka tidak diubah. Sitasi tetap berupa enum
+  `allowed_chunk_ids`, dan ID tetap ada di awal kepala potongan. Cek angka tetap memakai teks
+  chunk + `source_label` (judul dan tanggal berlaku), sama seperti sebelumnya.
+
+Aturan di prompt tidak menjamin LLM mematuhinya: pada uji asap c Langkah 63, jawaban tetap
+mencampur jalur dari kedua dokumen (lihat "Uji asap").
+
+### Konflik sumber yang diketahui
+
+| topik | sumber A | sumber B | yang berlaku | penanganan |
+|---|---|---|---|---|
+| TOEFL untuk Magister Manajemen | Brosur 2025 hlm 8: "Skor TOEFL minimal 475 ke atas" | Pedoman PMB 2027 hlm 8-9, 2.1 c: tidak ada TOEFL untuk MM (TOEFL hanya untuk MTI) | Pedoman PMB 2027 | kurasi: syarat S2 tidak diketik di brosur (Langkah 62); aturan prompt v5 |
+| Jalur penerimaan mahasiswa baru | Peraturan Akademik 2025 Pasal 4 (hlm 9-10): Reguler, Prestasi, UTBK, Beasiswa, RPL, Pindahan, Program Pendidikan Khusus | Pedoman PMB 2027 1.2 Jalur Seleksi (hlm 5-6): antara lain PMDK, Prestasi, Reguler, KIP Kuliah, Ujian Saring Masuk S2 | Pedoman PMB 2027 (kelompok pmb, pendaftaran) | aturan prompt v5 saja; dokumen tidak disunting. Uji asap c L63 masih mencampur. |
+
+### Prompt v5
+
+| | lama | baru |
+|---|---|---|
+| varian aktif (`rag.prompt_variant`) | `paraphrase` (prompt_version `v2`) | `v5` (prompt_version `v5`) |
+| aturan sistem | 10 aturan v2 | 10 aturan v2 dengan urutan sama + 2 aturan baru sesudah aturan sumber: penjelasan kepala potongan (3) dan aturan konflik sumber (4) |
+| label potongan | `[ID: … \| Sumber: <judul> \| Berlaku: <tanggal>]` | `[ID: … \| Dokumen: <judul> \| Kelompok: <subfolder> \| Berlaku sejak: <tanggal>]` |
+| skema keluaran | status, answer, citations | sama |
+
+Varian lama tetap ada dan tidak berubah (`paraphrase`, `plain`, `v3`, `v4`; label potongan lama),
+sehingga arsip E-02/E-04 tetap bisa direproduksi dengan `--prompt-variant paraphrase` atau dengan
+`rag.prompt_variant: paraphrase` (komentar arsip di kedua config). Prompt v5 belum dievaluasi di
+E-02/E-04.
 
 ### Brosur: kenapa ketikan ulang
 
@@ -75,7 +112,22 @@ Yang dibuang oleh Claude (Langkah 62); sisanya byte-identik dengan file asal:
   a. dan b.;
 - nama staf: "(sdr. Nanang)" dan "(sdr. Budi)" di nomor WhatsApp fakultas. Nomor kontak tetap.
 
-SHA-256 file asal `cb6025e4…3db3e`, file di KB `d080b2f4…7b35` (lengkap di tabel build).
+SHA-256 file asal `cb6025e4…3db3e`, file di KB v2 `d080b2f4…7b35` (lengkap di tabel build).
+
+Sejak Langkah 63 (v3), file ini diganti versi baru dari `D:\SKRIPSI\kb-resmi-masuk\`
+(byte-identik, SHA-256 `5004e98e…74ebcb`). Versi ini berfrontmatter `title` dan memuat catatan
+kurasinya sendiri. Bedanya dengan versi v2:
+
+- yang dipertahankan adalah tabel cicilan di "Prosedur Registrasi Akademik", sedangkan bagian
+  "Jadwal Pembayaran Uang Kuliah T.A. 2026/2027" yang dihapus (kebalikan dari v2);
+- sub-judul tebal a/b/c (skema kelas pagi, skema kelas sore, potongan) dijadikan heading, sehingga
+  chunk tabel cicilan pagi kini berjalur bagian "a. Skema Pembayaran Biaya Kuliah Mahasiswa Kelas
+  Pagi (Cicilan 12 kali)";
+- ada paragraf "Sumber: … Kurasi: …" di bawah judul. Paragraf ini ikut masuk KB sebagai satu chunk
+  (seperti catatan di brosur).
+
+Judul di `sources.yaml` diambil dari frontmatter `title` file itu. Isinya sama dengan judul
+v2.
 
 ## Perubahan v1 -> v2
 
@@ -146,8 +198,91 @@ perbandingan di E-01.
   `tests/unit/test_kb_pdf_text.py::test_installment_table_stays_whole_with_header`. Kekurangan:
   kalimat "Bagi mahasiswa kelas pagi …" ada di chunk teks terpisah, sehingga chunk tabel pagi hanya
   memuat jalur bagian "Jadwal Pembayaran Uang Kuliah T.A. 2026/2027", tanpa kata "pagi".
+  Diperbaiki di v3: sub-judul skema kini heading (lihat "Dokumen pembayaran").
 
-## Build v2
+## Perubahan v2 -> v3
+
+| | v2 (`official-2026-10-24-v2`) | v3 (`official-2026-10-24-v3`) |
+|---|---|---|
+| Pedoman PMB hlm 8-9 | teks pypdf; tabel Persyaratan Khusus terbelah 2 chunk | halaman pengganti (ketikan ulang), 6 chunk per sub-bagian |
+| panduan pembayaran | versi Langkah 62 (sub-judul skema hanya teks tebal) | versi Langkah 63 (sub-judul skema jadi heading, frontmatter title) |
+| `MdParser` | komentar HTML ikut masuk | komentar HTML `<!-- -->` dibuang |
+| prompt aktif | `paraphrase` (v2) | `v5` (aturan konflik sumber) |
+| chunk | 199 | 203 |
+
+| dokumen | v2 | v3 |
+|---|---|---|
+| Peraturan Akademik 2025 | 87 | 87 |
+| Panduan Kemahasiswaan 2021 | 57 | 57 |
+| Brosur 2025 | 15 | 15 |
+| Pedoman PMB 2027 | 21 | 23 |
+| Panduan pembayaran 2026/2027 | 19 | 21 |
+| **jumlah** | **199** | **203** |
+
+### Halaman pengganti (page override)
+
+**Alasan.** Di v2, tabel "Persyaratan Khusus" Pedoman PMB hlm 8-9 dibaca pypdf sebagai teks dua
+kolom yang berantakan, dan bagian 2.1 terbelah menjadi dua chunk. Label "Magister Teknologi
+Informasi (S-2)" ada di chunk pertama, sedangkan baris "Skor TOEFL minimal 475" ada di awal chunk
+kedua, tepat sebelum "Magister Manajemen (S-2)". Ini berisiko membuat TOEFL dikira syarat MM.
+
+**Cara kerja** (`mica.kb.parsers`, tes `tests/unit/test_kb_overrides.py`):
+
+- Di `sources.yaml`, entri PDF boleh punya
+  `page_overrides: {"8-9": "_overrides/pedoman-pmb-2027-hlm8-9.md"}` (rentang "n" atau "n-m",
+  path relatif terhadap folder sumber, hanya file .md). Rentang di luar jumlah halaman, tumpang
+  tindih, file yang tidak ada, atau page_overrides pada non-PDF ditolak (`KB_INVALID`).
+- Saat parse, halaman itu tidak dibaca dari PDF. Isinya diganti isi .md (tanpa frontmatter dan
+  tanpa komentar HTML). Heading .md bertingkat menjadi jalur bagian, misalnya "BAB II Sistem
+  Rekrutmen dan Seleksi Calon Mahasiswa Baru › 2.1 Sistem Rekrutmen › c. Persyaratan Khusus per
+  Program Studi yang didaftar". Tabel .md tetap `Block.table`.
+- Chunk tetap milik dokumen PDF (doc_id, judul, valid_from, kelompok sama) dengan
+  `page_start`/`page_end` = 8/9 untuk semua chunk dari halaman pengganti. Halaman per baris di
+  dalam rentang tidak diketahui, jadi sitasinya selalu "hlm 8-9".
+- Jalur bagian berlanjut ke halaman PDF sesudahnya. Hlm 10 menjadi bagian "BAB II Sistem
+  Rekrutmen dan Seleksi Calon Mahasiswa Baru › 2.4 Sistem Pengambilan Keputusan", lalu hlm 11
+  mulai "BAB III …" dari heading PDF.
+- Folder `_overrides` dilewati `iter_source_files`, sehingga init-sources, check-sources, dan
+  build tidak meng-ingest-nya sebagai dokumen.
+- `manifest.json` mencatat path dan SHA-256 setiap halaman pengganti di entri dokumennya.
+
+**Isi file.** Ketikan ulang hlm PDF 8-9 (nomor cetak 4-5) oleh Claude dari `pdftotext -layout`,
+dengan catatan di komentar HTML. Teks disalin apa adanya; hanya tata letak tabel yang diubah
+menjadi satu daftar per program studi. **Satu tambahan kata oleh Claude:** "Magister Manajemen"
+pada baris "Untuk kelas Eksekutif Magister Manajemen, persyaratan tambahan:", karena di PDF baris
+itu berada di sel Magister Manajemen. Akibat lain: judul BAB II di jalur bagian hlm 8-10 ditulis
+"BAB II Sistem Rekrutmen dan Seleksi Calon Mahasiswa Baru" (huruf kapital biasa), sedangkan judul
+BAB lain dari PDF berhuruf besar semua.
+
+## Build v3
+
+| | |
+|---|---|
+| kb_id | `official-2026-10-24-v3` |
+| perintah | `python -m mica.kb build --src data/sources/official --kb-id official-2026-10-24-v3 --source-type official --config config/dev.yaml` |
+| dokumen / chunk | 5 / 203 (tabel: 4, semuanya dari panduan pembayaran) |
+| lama build / ukuran | 218,1 detik / 1,3 MB |
+| chunker | sama dengan v2 (`structure_then_fixed`, 400/50, `section_prefix` true) |
+| config_hash | `d4ce25f8c3164a6d696cff92da582706aa34fe38e9de5232883729eff65b3dab` (sama dengan v1/v2; `rag.*` tidak masuk hash KB) |
+| built_at | 2026-10-24T12:05:34+07:00 |
+
+SHA-256 sumber yang berubah dari v2 (lainnya sama):
+
+| file | sha256 |
+|---|---|
+| `keuangan/panduan-pembayaran-2026-2027.md` | `5004e98e021d15a2ccc29352205255fd2d65cfb981c0ca9779f97615e274ebcb` |
+| `_overrides/pedoman-pmb-2027-hlm8-9.md` (page_overrides Pedoman PMB "8-9") | `362a1fa14b6729047a25891cf760db605a22446af25a9ca7f5d200bbe3e693e6` |
+
+SHA-256 file KB:
+
+| file | sha256 |
+|---|---|
+| `manifest.json` | `6474d03b046ed8fda0e2cc3c644e22e0da2dfbad22e04ec9fb25d57c699975f4` |
+| `chunks.jsonl` | `0c392f4ef80dd905deec5faaf72b25693f401f65d1d28d44eeffab8b0f47dd9e` |
+| `dense.npy` | `619d4ba77626fcb3bf9b605fe313f0eb58af65623749ab455d6f5116778da899` |
+| `bm25.pkl` | `9699ccc2dd9255a6eefc9f2836920e6b0194b4e5f2d8de89f5f41023e7aa5fce` |
+
+## Build v2 (arsip, Langkah 62)
 
 | | |
 |---|---|
@@ -209,7 +344,8 @@ Ringkasnya:
   kadang di tengah kata. `extract_text()` biasa tidak menghitung geseran angka di dalam `TJ`, jadi
   menyisipkan spasi di sambungan. Sesudah perbaikan, temuan detektor turun dari 114 menjadi 9
   (Kemahasiswaan) dan dari 12 menjadi 3 (Akademik).
-- Masih bermasalah: tabel Persyaratan Khusus PMB hlm 8-9 (teks biasa, terbagi dua chunk), judul
+- Masih bermasalah (v2): tabel Persyaratan Khusus PMB hlm 8-9 (teks biasa, terbagi dua chunk;
+  diganti halaman pengganti di v3), judul
   kolom Akademik hlm 29, rumus Akademik hlm 30, nomor butir halaman SK, sisa kata terpotong di
   Kemahasiswaan hlm 3, 7, 39, 41, 44, 45 dan Akademik hlm 12, 27, 29.
 
@@ -225,29 +361,39 @@ dan menolak (exit 2) dataset yang:
 
 Jadi E-01..E-04 tidak bisa diam-diam dijalankan ulang dengan dataset lama pada KB resmi.
 Untuk mereproduksi hasil lama, set `kb.active_id` kembali ke `dev-2026-10-15-v2`.
-E-01/E-02 belum dijalankan pada KB resmi (v1 maupun v2).
+E-01/E-02 belum dijalankan pada KB resmi (v1, v2, maupun v3).
 
 ## Uji asap
 
 Langkah 61: lima pertanyaan (a-e), 4 panggilan LLM. Langkah 62: a-e yang sama ditambah f, 6
-panggilan LLM, lewat `python -m mica.ask`. Hanya cek fungsi, bukan evaluasi. Pertanyaan ini tidak
-boleh dipakai sebagai set uji. Hasil di `RINGKASAN.md` (tidak di-commit).
+panggilan LLM. Langkah 63 (v3 + prompt v5): a-f ditambah g (syarat MTI) dan h (cicilan kelas
+pagi), 8 panggilan LLM. Semuanya lewat `python -m mica.ask`. Hanya cek fungsi, bukan evaluasi.
+Pertanyaan ini tidak boleh dipakai sebagai set uji. Hasil lengkap di `RINGKASAN.md` (tidak
+di-commit).
+
+Pemeriksaan khusus Langkah 63:
+
+- b: TOEFL tidak disebut untuk MM (lolos).
+- g: TOEFL 475 untuk MTI (lolos), dari chunk halaman pengganti.
+- h: 12 kali (lolos).
+- **c: gagal.** Jalur dari Pedoman PMB 2027 1.2 dan Peraturan Akademik 2025 Pasal 4 ikut terambil,
+  dan jawabannya mencampur keduanya, padahal aturan konflik v5 aktif.
 
 ## Penyimpangan yang harus diungkap di Bab 3
 
 1. **KB dev diarsipkan.** E-01..E-04 diukur pada `dev-2026-10-15-v2` (dokumen dev, bukan
-   dokumen resmi). KB aktif sekarang `official-2026-10-24-v2`; hasil E-01..E-04 belum diukur
+   dokumen resmi). KB aktif sekarang `official-2026-10-24-v3`; hasil E-01..E-04 belum diukur
    ulang pada KB resmi.
 2. **Ambang gerbang 0,50 adalah nilai coba.** Dikalibrasi di KB dev, belum diukur ulang di KB
    resmi (`rag.gate.threshold` di `config/dev.yaml`; di `config/kiosk.yaml` tetap null/TBD).
    Skor pertanyaan di luar KB (uji asap e, gelombang 2) berubah dari 0,487 (v1, ditolak gerbang)
-   menjadi 0,529 (v2, lolos gerbang, lalu ditolak LLM). Selisih kecil ini menunjukkan ambang
-   harus dikalibrasi ulang pada KB yang final.
+   menjadi 0,529 (v2 dan v3, lolos gerbang, lalu ditolak LLM). Selisih kecil ini menunjukkan
+   ambang harus dikalibrasi ulang pada KB yang final.
 3. **Chunking memakai nilai awal dev** (`chunk_tokens` 400, `overlap_tokens` 50), belum
    dikalibrasi untuk dokumen resmi.
 4. **Metode chunking berubah di v2** (bagian PDF, prefiks jalur bagian di teks chunk untuk .md
    dan PDF, perbaikan teks PDF). Perubahan dibuat setelah melihat hasil ekstraksi dokumen resmi,
-   belum diuji di E-01. `config_hash` tidak berubah, jadi pembeda v1/v2 adalah kb_id dan
+   belum diuji di E-01. `config_hash` tidak berubah, jadi pembeda v1/v2/v3 adalah kb_id dan
    `manifest.json`.
 5. **Model data `Chunk` ditambah** `page_start` dan `page_end` (tidak ada di SDD 5.1), dan sitasi
    PDF di layar memuat halaman dan bagian. Field `section` PDF berisi jalur bagian (BAB › Pasal),
@@ -256,17 +402,25 @@ boleh dipakai sebagai set uji. Hasil di `RINGKASAN.md` (tidak di-commit).
    bertanda hubung di akhir baris disambung bila terbukti dari dokumen, nomor halaman cetak
    dibuang, spasi dirapikan. Isi tidak ditulis ulang. Sebagian kata terpotong masih ada (lihat
    laporan ekstraksi).
-7. **Tabel PDF tetap teks biasa.** Tabel Persyaratan Khusus Pedoman PMB terbagi dua chunk; label
-   prodi Magister Teknologi Informasi dan baris TOEFL-nya ada di chunk yang berbeda.
-8. **Biaya kuliah berasal dari brosur tahun 2025** (tahun dari keterangan hasa, tidak tertulis
+7. **Halaman PDF diganti ketikan ulang (v3).** Pedoman PMB hlm 8-9 tidak diambil dari PDF,
+   tetapi dari ketikan ulang Claude (`pdftotext -layout`). Tata letak tabel diubah menjadi daftar
+   per prodi, dan satu tambahan kata ("Magister Manajemen" pada baris kelas Eksekutif). Semua chunk
+   dari halaman itu bersitasi "hlm 8-9" tanpa halaman per baris. Tabel PDF lain (Akademik hlm 29,
+   rumus hlm 30) tetap teks pypdf.
+8. **Aturan konflik sumber diatur di prompt v5** (pilihan hasa). `rag.source_priority: [pmb]`
+   adalah nilai rancangan, bukan hasil kalibrasi. Kepatuhan LLM tidak dijamin: uji asap c
+   Langkah 63 masih mencampur jalur dari dua dokumen. Prompt v5 belum dievaluasi di E-02/E-04.
+   Prompt v2 tetap ada untuk arsip E-02/E-04.
+9. **Biaya kuliah berasal dari brosur tahun 2025** (tahun dari keterangan hasa, tidak tertulis
    di brosur). Pedoman PMB 2027 hanya menyatakan uang kuliah ditetapkan Rektor setiap tahun, tanpa
    angka. Syarat S2 di brosur dihapus sejak v2, sesuai aturan dokumen resmi terbaru.
-9. **Brosur dari ketikan ulang**, bukan ekstraksi otomatis; halaman alumni/testimoni, logo mitra,
-   foto, sampul, dan (sejak v2) syarat S2 tidak dimasukkan.
-10. **Dokumen pembayaran bukan dokumen dari dospem**: salinan halaman informasi umum portal MIKA
-    oleh rekan hasa, T.A. 2026/2027. Claude membuang tabel jadwal cicilan ganda dan dua nama staf.
-    Judul di `sources.yaml` dibuat dari nama file dan tahun akademik.
-11. **Aturan "dokumen resmi terbaru yang berlaku" dijalankan lewat kurasi, bukan oleh sistem.**
-    Konflik jalur penerimaan (Peraturan Akademik 2025 vs Pedoman PMB 2027) belum dikurasi.
-12. **Panduan Kemahasiswaan 2021** adalah dokumen lama (pelengkap); sebagian kata terpotong masih
+10. **Brosur dari ketikan ulang**, bukan ekstraksi otomatis; halaman alumni/testimoni, logo
+    mitra, foto, sampul, dan (sejak v2) syarat S2 tidak dimasukkan.
+11. **Dokumen pembayaran bukan dokumen dari dospem**: salinan halaman informasi umum portal MIKA
+    oleh rekan hasa, T.A. 2026/2027. v2: Claude membuang tabel cicilan ganda dan dua nama staf.
+    v3: versi kurasi baru dari hasa (bagian yang dihapus berbeda dari v2, sub-judul skema dijadikan
+    heading); judul dari frontmatter file.
+12. **Komentar HTML di Markdown dibuang** oleh `MdParser` sejak v3 (catatan penyunting, bukan isi).
+    Brosur dan panduan pembayaran saat ini tidak memuat komentar HTML.
+13. **Panduan Kemahasiswaan 2021** adalah dokumen lama (pelengkap); sebagian kata terpotong masih
     ada setelah perbaikan.

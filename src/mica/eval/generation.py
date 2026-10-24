@@ -53,7 +53,13 @@ from mica.rag.retriever import embedder_for_kb, make_retriever
 
 EXPERIMENT = "E-02"
 SPLIT = "dev"
-PROMPT_VARIANTS = ("paraphrase", "plain", "v3", "v4")  # RagConfig.prompt_variant (ADR-07, E-03; v3)
+PROMPT_VARIANTS = (
+    "paraphrase",
+    "plain",
+    "v3",
+    "v4",
+    "v5",
+)  # RagConfig.prompt_variant (ADR-07, E-03; v3)
 DEFAULT_CACHE_DIR = Path("data/cache/llm")
 TPM_LIMIT = 6000
 FIRST_ESTIMATE_TOKENS = 2500

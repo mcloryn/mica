@@ -200,13 +200,14 @@ class AnswerPipeline:
     def _request(self, q: ScrubbedText, recent: list[Turn], hits: list[ScoredChunk]) -> LlmRequest:
         """Request penyedia pertama + alternatif untuk penyedia lain yang variannya berbeda."""
         topics = self.settings.ui.topic_labels
+        priority = self.settings.rag.source_priority
         first = self._variant(None)
-        request = build_prompt(q, recent, hits, first, topics)
+        request = build_prompt(q, recent, hits, first, topics, priority)
         alternates = []
         for name in self.settings.llm.chain[1:]:
             variant = self._variant(name)
             if variant != first:
-                alternates.append((name, build_prompt(q, recent, hits, variant, topics)))
+                alternates.append((name, build_prompt(q, recent, hits, variant, topics, priority)))
         return replace(request, alternates=tuple(alternates)) if alternates else request
 
     def _finish(

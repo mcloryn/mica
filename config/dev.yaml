@@ -2,7 +2,8 @@ app:
   mode: dev                   # kiosk | dev; Gemini hanya boleh di dev
   version: 0.1.0
 kb:
-  active_id: official-2026-10-24-v2  # F-17; KB resmi v2 (Langkah 62, docs/KB-RESMI.md)
+  active_id: official-2026-10-24-v3  # F-17; KB resmi v3 (Langkah 63, docs/KB-RESMI.md)
+  # active_id: official-2026-10-24-v2  # arsip; KB resmi v2 (Langkah 62), tidak dihapus
   # active_id: official-2026-10-23-v1  # arsip; KB resmi v1 (Langkah 61), tidak dihapus
   # active_id: dev-2026-10-15-v2  # arsip, dipakai E-01..E-04; data/kb/ tidak dihapus
   chunker: structure_then_fixed     # ADR-03; alternatif: fixed
@@ -27,7 +28,9 @@ rag:
     enabled: true                   # ADR-06 lapis 3
   followup_mode: dual               # dipilih FOLLOWUP.md (Langkah 55, provisional dev); concat | dual | llm_rewrite
   history_turns: 1
-  prompt_variant: paraphrase        # ADR-07; paraphrase | plain (E-03)
+  prompt_variant: v5                # Langkah 63: v2 (paraphrase) + aturan konflik sumber; arsip E-02/E-04: paraphrase
+  # prompt_variant: paraphrase      # arsip (prompt v2, dipakai E-02/E-04); ADR-07; paraphrase | plain (E-03)
+  source_priority: [pmb]            # prompt v5; nilai rancangan, bukan hasil kalibrasi
 llm:
   chain:                            # ADR-08; urutan coba
     - groq:openai/gpt-oss-120b      # ID dicek di dokumentasi Groq 16 Okt 2026

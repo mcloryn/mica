@@ -37,6 +37,8 @@ class Block:
     table: tuple[tuple[str, ...], ...] | None = None  # baris pertama = judul kolom
     # nomor halaman PDF (mulai 1) untuk setiap baris text; None untuk format tanpa halaman
     line_pages: tuple[int, ...] | None = None
+    # rentang halaman PDF (awal, akhir) seluruh blok; untuk halaman pengganti (page_overrides)
+    page_range: tuple[int, int] | None = None
 
     def __post_init__(self) -> None:
         if (self.text is None) == (self.table is None):
@@ -45,6 +47,8 @@ class Block:
             self.text is None or len(self.line_pages) != len(self.text.split("\n"))
         ):
             raise ValueError("line_pages harus berisi satu nomor halaman per baris text")
+        if self.line_pages is not None and self.page_range is not None:
+            raise ValueError("Block hanya boleh punya salah satu dari line_pages atau page_range")
 
 
 @dataclass(frozen=True)
@@ -57,6 +61,8 @@ class ParsedDocument:
     group: str = ""  # subfolder teratas di folder sumber; "" bila file langsung di sana
     # metadata frontmatter Markdown (title, url, date) untuk init-sources; tidak dipakai build
     frontmatter: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
+    # halaman PDF yang diganti ketikan ulang: "8-9" -> path relatif di folder sumber (manifest)
+    page_overrides: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
 
 
 class DocumentParser(Protocol):
@@ -121,50 +127,80 @@ def _md_row(line: str) -> tuple[str, ...]:
     return tuple(cell.strip() for cell in line.strip().strip("|").split("|"))
 
 
+_HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
+
+
+def strip_html_comments(text: str) -> str:
+    """Buang komentar HTML <!-- ... --> (boleh lebih dari satu baris): catatan penyunting,
+    bukan isi dokumen. Baris yang tersisa kosong ikut menjadi baris kosong."""
+    return _HTML_COMMENT.sub("", text)
+
+
+def read_markdown(path: Path) -> tuple[dict[str, str], list[str]]:
+    """(frontmatter, baris isi) file Markdown, tanpa komentar HTML."""
+    return _split_frontmatter(strip_html_comments(path.read_text(encoding="utf-8")).splitlines())
+
+
+def md_blocks(lines: list[str], nested: bool = False) -> list[Block]:
+    """Block dari baris Markdown.
+
+    nested False: section = judul heading terdekat (cara dokumen .md biasa).
+    nested True: section = jalur heading bertingkat, misalnya "BAB II … › 2.1 Sistem Rekrutmen"
+    (dipakai halaman pengganti PDF, supaya sama dengan jalur bagian PDF).
+    """
+    blocks: list[Block] = []
+    section = ""
+    headings: list[tuple[int, str]] = []  # (level, judul) untuk nested
+    buffer: list[str] = []
+    in_fence = False
+
+    def flush() -> None:
+        block = _text_block(section, buffer)
+        if block:
+            blocks.append(block)
+        buffer.clear()
+
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+        elif not in_fence and (heading := _MD_HEADING.match(line)):
+            flush()
+            if nested:
+                level = len(line) - len(line.lstrip("#"))
+                headings = [h for h in headings if h[0] < level] + [(level, heading.group(1))]
+                section = SECTION_SEP.join(title for _, title in headings)
+            else:
+                section = heading.group(1)
+            i += 1
+            continue
+        elif (
+            not in_fence
+            and line.lstrip().startswith("|")
+            and i + 1 < len(lines)
+            and _MD_TABLE_SEP.match(lines[i + 1])
+        ):
+            # tabel pipa Markdown: baris judul, baris pemisah, lalu baris data
+            flush()
+            rows = [_md_row(line)]
+            i += 2
+            while i < len(lines) and lines[i].lstrip().startswith("|"):
+                rows.append(_md_row(lines[i]))
+                i += 1
+            blocks.append(Block(section=section, table=tuple(rows)))
+            continue
+        buffer.append(line)
+        i += 1
+    flush()
+    return blocks
+
+
 class MdParser:
     def parse(self, path: Path) -> ParsedDocument | None:
-        frontmatter, lines = _split_frontmatter(path.read_text(encoding="utf-8").splitlines())
-        blocks: list[Block] = []
-        section = ""
-        buffer: list[str] = []
-        in_fence = False
-
-        def flush() -> None:
-            block = _text_block(section, buffer)
-            if block:
-                blocks.append(block)
-            buffer.clear()
-
-        i = 0
-        while i < len(lines):
-            line = lines[i]
-            if line.lstrip().startswith("```"):
-                in_fence = not in_fence
-            elif not in_fence and (heading := _MD_HEADING.match(line)):
-                flush()
-                section = heading.group(1)
-                i += 1
-                continue
-            elif (
-                not in_fence
-                and line.lstrip().startswith("|")
-                and i + 1 < len(lines)
-                and _MD_TABLE_SEP.match(lines[i + 1])
-            ):
-                # tabel pipa Markdown: baris judul, baris pemisah, lalu baris data
-                flush()
-                rows = [_md_row(line)]
-                i += 2
-                while i < len(lines) and lines[i].lstrip().startswith("|"):
-                    rows.append(_md_row(lines[i]))
-                    i += 1
-                blocks.append(Block(section=section, table=tuple(rows)))
-                continue
-            buffer.append(line)
-            i += 1
-        flush()
+        frontmatter, lines = read_markdown(path)
         return dataclasses.replace(
-            _document(path, blocks), frontmatter=MappingProxyType(frontmatter)
+            _document(path, md_blocks(lines)), frontmatter=MappingProxyType(frontmatter)
         )
 
 
@@ -311,15 +347,23 @@ def _heading_title(line: str) -> str | None:
     return title
 
 
+SectionState = tuple[str, str]  # (BAB terakhir, jalur bagian saat ini)
+
+
 def pdf_blocks(lines: list[PdfLine]) -> list[Block]:
     """Satu Block per bagian, sehingga chunk tidak melewati batas BAB/Pasal/sub-bab.
 
     section = jalur bagian terdekat, misalnya "BAB III <judul> › 3.1 Registrasi Administrasi".
     Baris heading (dan judul di bawah BAB/Pasal) masuk ke section, tidak ke text.
     """
+    return pdf_blocks_from(lines, ("", ""))[0]
+
+
+def pdf_blocks_from(lines: list[PdfLine], state: SectionState) -> tuple[list[Block], SectionState]:
+    """pdf_blocks yang mulai dari jalur bagian state (misalnya sesudah halaman pengganti) dan
+    mengembalikan jalur bagian terakhir."""
     blocks: list[Block] = []
-    chapter = ""  # BAB terakhir
-    section = ""
+    chapter, section = state
     body: list[PdfLine] = []
 
     def flush() -> None:
@@ -357,20 +401,100 @@ def pdf_blocks(lines: list[PdfLine]) -> list[Block]:
         else:
             section = SECTION_SEP.join(p for p in (chapter, label) if p)
     flush()
+    return blocks, (chapter, section)
+
+
+# --- halaman pengganti (Langkah 63) ---
+#
+# sources.yaml: page_overrides: {"8-9": "_overrides/pedoman-pmb-2027-hlm8-9.md"} pada entri PDF.
+# Teks halaman itu diganti isi .md (tanpa frontmatter dan komentar HTML); heading .md menjadi
+# jalur bagian, dan chunk tetap milik dokumen PDF dengan halaman awal-akhir rentang itu.
+
+OVERRIDES_DIR = "_overrides"  # dilewati iter_source_files: bukan dokumen tersendiri
+_PAGE_RANGE = re.compile(r"\s*(\d+)\s*(?:-\s*(\d+)\s*)?")
+
+PageOverrides = Mapping[tuple[int, int], Path]
+
+
+def parse_page_range(key: str) -> tuple[int, int]:
+    """ "8-9" -> (8, 9); "8" -> (8, 8)."""
+    match = _PAGE_RANGE.fullmatch(str(key))
+    if match is None:
+        raise ValueError(f'rentang halaman tidak valid: {key!r} (contoh: "8-9" atau "8")')
+    start = int(match.group(1))
+    end = int(match.group(2) or start)
+    if not 1 <= start <= end:
+        raise ValueError(f"rentang halaman tidak valid: {key!r}")
+    return start, end
+
+
+def override_blocks(path: Path, pages: tuple[int, int]) -> list[Block]:
+    """Block dari ketikan ulang halaman PDF, semuanya dengan page_range = pages."""
+    _, lines = read_markdown(path)
+    return [dataclasses.replace(b, page_range=pages) for b in md_blocks(lines, nested=True)]
+
+
+def _state_after(section: str, state: SectionState) -> SectionState:
+    """Jalur bagian yang berlanjut ke halaman PDF sesudah halaman pengganti."""
+    if not section:
+        return state
+    first = section.split(SECTION_SEP)[0]
+    chapter = first if _BAB.match(first) else state[0]
+    return chapter, section
+
+
+def _check_overrides(path: Path, overrides: PageOverrides, n_pages: int) -> None:
+    previous_end = 0
+    for (start, end), md in sorted(overrides.items()):
+        if end > n_pages:
+            raise KbBuildError(
+                ErrorCode.KB_INVALID, f"{path}: page_overrides {start}-{end} > {n_pages} halaman"
+            )
+        if start <= previous_end:
+            raise KbBuildError(ErrorCode.KB_INVALID, f"{path}: page_overrides tumpang tindih")
+        if not md.is_file():
+            raise KbBuildError(ErrorCode.KB_INVALID, f"{path}: file page_overrides {md} tidak ada")
+        previous_end = end
+
+
+def blocks_with_overrides(lines: list[PdfLine], overrides: PageOverrides) -> list[Block]:
+    """Block PDF dengan halaman pengganti disisipkan di posisinya (baris halaman itu sudah tidak
+    ada di lines)."""
+    blocks: list[Block] = []
+    state: SectionState = ("", "")
+    rest = lines
+    for (start, end), md in sorted(overrides.items()):
+        before = [line for line in rest if line[1] < start]
+        rest = [line for line in rest if line[1] > end]
+        new, state = pdf_blocks_from(before, state)
+        replaced = override_blocks(md, (start, end))
+        blocks += new + replaced
+        if replaced:
+            state = _state_after(replaced[-1].section, state)
+    blocks += pdf_blocks_from(rest, state)[0]
     return blocks
 
 
 class PdfParser:
-    def parse(self, path: Path) -> ParsedDocument | None:
+    def parse(
+        self, path: Path, page_overrides: PageOverrides | None = None
+    ) -> ParsedDocument | None:
         from pypdf import PdfReader
 
+        overrides = dict(page_overrides or {})
+        reader = PdfReader(path)
+        _check_overrides(path, overrides, len(reader.pages))
+        replaced = {p for start, end in overrides for p in range(start, end + 1)}
         pages: list[tuple[str, str]] = []
-        for page in PdfReader(path).pages:
+        for number, page in enumerate(reader.pages, start=1):
+            if number in replaced:
+                pages.append(("", ""))  # isinya dari halaman pengganti
+                continue
             plain = page.extract_text() or ""
             # halaman tanpa teks (atau tanpa /Contents) tidak perlu dan tidak bisa dibaca mode layout
             layout = page.extract_text(extraction_mode="layout") if plain.strip() else ""
             pages.append((plain, layout))
-        blocks = pdf_blocks(pdf_lines(pages))
+        blocks = blocks_with_overrides(pdf_lines(pages), overrides)
         if not blocks:
             # PDF hasil pindai butuh OCR, di luar cakupan (SDD 2.3)
             logger.warning("%s: %s tidak berisi teks, dilewati", ErrorCode.KB_PDF_NO_TEXT, path)
@@ -446,13 +570,14 @@ def _parse_date(value: Any) -> date | None:
 def iter_source_files(folder: Path) -> list[Path]:
     """Semua file berformat didukung di folder sumber dan subfoldernya, terurut.
 
-    File dan folder yang namanya diawali titik dilewati.
+    File dan folder yang namanya diawali titik dilewati, juga folder _overrides (halaman
+    pengganti PDF, bukan dokumen tersendiri).
     """
     folder = Path(folder)
     files = []
     for path in folder.rglob("*"):
         rel = path.relative_to(folder)
-        if any(part.startswith(".") for part in rel.parts):
+        if any(part.startswith(".") or part == OVERRIDES_DIR for part in rel.parts):
             continue
         if path.is_file() and path.suffix.lower() in PARSERS:
             files.append(path)
@@ -468,14 +593,48 @@ def doc_id_for(folder: Path, path: Path) -> str:
     return path.relative_to(folder).with_suffix("").as_posix()
 
 
-def parse_file(folder: Path, path: Path) -> ParsedDocument | None:
-    """Parse satu file dengan doc_id dan group sesuai posisinya di folder sumber."""
-    parsed = PARSERS[path.suffix.lower()].parse(path)
+def _page_overrides(folder: Path, path: Path, raw: Any) -> dict[str, str]:
+    """page_overrides dari sources.yaml: {"8-9": "_overrides/x.md"}; hanya untuk PDF."""
+    if raw is None:
+        return {}
+    key = source_key(folder, path)
+    if path.suffix.lower() != ".pdf":
+        raise KbBuildError(ErrorCode.KB_INVALID, f"{key}: page_overrides hanya untuk PDF")
+    if not isinstance(raw, dict):
+        raise KbBuildError(ErrorCode.KB_INVALID, f"{key}: page_overrides harus mapping")
+    out = {}
+    for pages, md in raw.items():
+        try:
+            parse_page_range(pages)
+        except ValueError as exc:
+            raise KbBuildError(ErrorCode.KB_INVALID, f"{key}: {exc}") from exc
+        if not str(md).lower().endswith(".md"):
+            raise KbBuildError(ErrorCode.KB_INVALID, f"{key}: page_overrides harus file .md")
+        out[str(pages)] = str(md)
+    return out
+
+
+def parse_file(
+    folder: Path, path: Path, page_overrides: Mapping[str, str] | None = None
+) -> ParsedDocument | None:
+    """Parse satu file dengan doc_id dan group sesuai posisinya di folder sumber.
+
+    page_overrides: rentang halaman -> path .md relatif di folder (hanya PDF).
+    """
+    overrides = dict(page_overrides or {})
+    if overrides:
+        resolved = {parse_page_range(k): folder / v for k, v in overrides.items()}
+        parsed = PdfParser().parse(path, resolved)
+    else:
+        parsed = PARSERS[path.suffix.lower()].parse(path)
     if parsed is None:
         return None
     parts = path.relative_to(folder).parts
     return dataclasses.replace(
-        parsed, doc_id=doc_id_for(folder, path), group=parts[0] if len(parts) > 1 else ""
+        parsed,
+        doc_id=doc_id_for(folder, path),
+        group=parts[0] if len(parts) > 1 else "",
+        page_overrides=MappingProxyType(overrides),
     )
 
 
@@ -499,10 +658,11 @@ def load_sources(
             )
         seen_ids[doc_id] = key
 
-        parsed = parse_file(folder, path)
+        meta = sources.get(key, {})
+        overrides = _page_overrides(folder, path, meta.get("page_overrides"))
+        parsed = parse_file(folder, path, overrides)
         if parsed is None:
             continue
-        meta = sources.get(key, {})
         valid_from = _parse_date(meta.get("valid_from"))
         if valid_from is None:
             missing_date.append(key)

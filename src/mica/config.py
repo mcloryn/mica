@@ -89,7 +89,10 @@ class RagConfig(_Model):
     # Langkah 55 (docs/FOLLOWUP.md): dual = retrieval apa adanya + concat digabung RRF
     followup_mode: Literal["concat", "dual", "llm_rewrite"]
     history_turns: NonNegativeInt
-    prompt_variant: Literal["paraphrase", "plain", "v3", "v4"]  # docs/PROMPT-V3.md, PROMPT-V4.md
+    prompt_variant: Literal["paraphrase", "plain", "v3", "v4", "v5"]  # PROMPT-V3/V4.md, KB-RESMI.md
+    # prompt v5: kelompok dokumen (subfolder) yang diutamakan untuk pendaftaran mahasiswa baru,
+    # berurutan; nilai rancangan (Langkah 63), bukan hasil kalibrasi
+    source_priority: tuple[str, ...] = Field(default=(), strict=False)
 
     @model_validator(mode="after")
     def _gate_needs_dense(self) -> RagConfig:
@@ -110,7 +113,7 @@ class LlmConfig(_Model):
     reasoning_effort: Literal["low", "medium", "high"] | None = None
     # varian prompt per entri rantai ("groq:<id>" -> varian), menimpa rag.prompt_variant untuk
     # penyedia itu (docs/PROMPT-V4.md: 120b v4, cadangan 20b v2); {} = semua pakai rag.prompt_variant
-    prompt_variants: dict[str, Literal["paraphrase", "plain", "v3", "v4"]] = Field(
+    prompt_variants: dict[str, Literal["paraphrase", "plain", "v3", "v4", "v5"]] = Field(
         default_factory=dict
     )
 

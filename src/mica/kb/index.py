@@ -204,6 +204,17 @@ def build_kb(
                     "path": source_key(src, paths[doc.doc_id]),
                     "sha256": _sha256(paths[doc.doc_id]),
                     "valid_from": doc.valid_from.isoformat() if doc.valid_from else None,
+                    # halaman pengganti (Langkah 63); file .md ikut dicatat SHA-256-nya
+                    **(
+                        {
+                            "page_overrides": {
+                                pages: {"path": md, "sha256": _sha256(src / md)}
+                                for pages, md in doc.page_overrides.items()
+                            }
+                        }
+                        if doc.page_overrides
+                        else {}
+                    ),
                 }
                 for doc in docs
             ],

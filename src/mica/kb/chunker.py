@@ -52,9 +52,25 @@ class _Piece:
     page_end: int | None = None
 
 
-def _page_range(pages: Iterable[int | None]) -> tuple[int | None, int | None]:
-    known = [p for p in pages if p is not None]
-    return (min(known), max(known)) if known else (None, None)
+PageSpan = tuple[int | None, int | None]  # (halaman awal, halaman akhir); (None, None) = non-PDF
+
+
+def _page_range(spans: Iterable[PageSpan]) -> PageSpan:
+    spans = list(spans)
+    starts = [s for s, _ in spans if s is not None]
+    ends = [e for _, e in spans if e is not None]
+    return (min(starts), max(ends)) if starts and ends else (None, None)
+
+
+def _line_spans(block: Block) -> list[PageSpan]:
+    """Rentang halaman per baris text: dari line_pages (PDF), page_range (halaman pengganti),
+    atau (None, None) untuk format tanpa halaman."""
+    n = len(block.text.split("\n")) if block.text is not None else 0
+    if block.line_pages is not None:
+        return [(p, p) for p in block.line_pages]
+    if block.page_range is not None:
+        return [block.page_range] * n
+    return [(None, None)] * n
 
 
 def _format_row(row: tuple[str, ...]) -> str:
@@ -111,14 +127,13 @@ class _BaseChunker:
             start = next_start
 
     def _text_units(
-        self, section: str, text: str, pages: tuple[int, ...] | None, limit: int
+        self, section: str, text: str, spans: list[PageSpan], limit: int
     ) -> list[_Unit]:
         # paragraf = baris berurutan yang tidak kosong (sama dengan memecah di \n\s*\n)
         lines = text.split("\n")
-        line_pages: Iterable[int | None] = pages if pages is not None else [None] * len(lines)
-        paragraphs: list[list[tuple[str, int | None]]] = []
-        current: list[tuple[str, int | None]] = []
-        for line, page in zip(lines, line_pages, strict=True):
+        paragraphs: list[list[tuple[str, PageSpan]]] = []
+        current: list[tuple[str, PageSpan]] = []
+        for line, page in zip(lines, spans, strict=True):
             if line.strip():
                 current.append((line, page))
             elif current:
@@ -132,19 +147,20 @@ class _BaseChunker:
             paragraph = "\n".join(line for line, _ in paragraph_lines).strip()
             tokens = self.count_tokens(paragraph)
             if tokens <= limit:
-                start, end = _page_range(page for _, page in paragraph_lines)
+                start, end = _page_range(span for _, span in paragraph_lines)
                 units.append(_Unit(section, "\n\n", paragraph, tokens, False, start, end))
                 continue
             sep = "\n\n"
-            for line, page in paragraph_lines:
+            for line, (first, last) in paragraph_lines:
                 line = line.strip()
                 tokens = self.count_tokens(line)
                 if tokens <= limit:
-                    units.append(_Unit(section, sep, line, tokens, False, page, page))
+                    units.append(_Unit(section, sep, line, tokens, False, first, last))
                 else:
                     words = line.split()
                     for s, e in self._windows(words, limit):
-                        units.append(_Unit(section, sep, " ".join(words[s:e]), 0, True, page, page))
+                        piece = " ".join(words[s:e])
+                        units.append(_Unit(section, sep, piece, 0, True, first, last))
                 sep = "\n"
         return units
 
@@ -154,8 +170,7 @@ class _BaseChunker:
 
         def render() -> _Piece:
             text = current[0].text + "".join(u.sep + u.text for u in current[1:])
-            start, _ = _page_range(u.page_start for u in current)
-            _, end = _page_range(u.page_end for u in current)
+            start, end = _page_range((u.page_start, u.page_end) for u in current)
             return _Piece(current[0].section, text, False, start, end)
 
         for unit in units:
@@ -239,15 +254,18 @@ class StructureThenFixedChunker(_BaseChunker):
     def _pieces(self, blocks: tuple[Block, ...], limit: int) -> Iterator[_Piece]:
         for block in blocks:
             if block.table is not None:
+                start, end = block.page_range or (None, None)
                 for text in self._split_table(block.table, limit):
-                    yield _Piece(block.section, text, True)
+                    yield _Piece(block.section, text, True, start, end)
             elif block.text:
+                spans = _line_spans(block)
                 if self.count_tokens(block.text) <= limit:
-                    start, end = _page_range(block.line_pages or ())
+                    start, end = _page_range(spans)
                     yield _Piece(block.section, block.text, False, start, end)
                     continue
-                units = self._text_units(block.section, block.text, block.line_pages, limit)
-                yield from self._pack(units, limit)
+                yield from self._pack(
+                    self._text_units(block.section, block.text, spans, limit), limit
+                )
 
 
 class FixedChunker(_BaseChunker):
@@ -264,10 +282,12 @@ class FixedChunker(_BaseChunker):
             if block.table is not None:
                 # tabel tetap utuh atau dipecah per baris dengan judul kolom
                 yield from flush()
+                start, end = block.page_range or (None, None)
                 for text in self._split_table(block.table, limit):
-                    yield _Piece(block.section, text, True)
+                    yield _Piece(block.section, text, True, start, end)
             elif block.text:
-                units.extend(self._text_units(block.section, block.text, block.line_pages, limit))
+                spans = _line_spans(block)
+                units.extend(self._text_units(block.section, block.text, spans, limit))
         yield from flush()
 
 
