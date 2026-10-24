@@ -236,7 +236,7 @@ def build_parser() -> argparse.ArgumentParser:
     col.add_argument("--models-dir", type=Path, default=Path("models"))
     col.add_argument("--note", help="catatan di run.json, mis. 'sintetis, bukan hasil E-08'")
 
-    ann = sub.add_parser("annotation", help="E-02/E-04: tingkat halusinasi + CI 95% Wilson")
+    ann = sub.add_parser("annotation", help="E-02/E-04: tingkat halusinasi + CI 95%% Wilson")
     ann.add_argument("--run", type=Path, required=True, help="folder run generation")
     ann.add_argument("--compare-saran", action="store_true",
                      help="bandingkan dengan annotate_generation_saran_claude.csv")  # fmt: skip

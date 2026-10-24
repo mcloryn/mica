@@ -211,5 +211,76 @@ ditangani lapis LLM).
 ### Catatan alat
 
 - `python -m mica.eval --help` gagal dengan `ValueError: unsupported format character 'W'`
-  (tanda % pada teks bantuan "CI 95% Wilson" subperintah annotation). Bukan dari Langkah 65; belum
-  diperbaiki.
+  (tanda % pada teks bantuan "CI 95% Wilson" subperintah annotation). Bukan dari Langkah 65.
+  Diperbaiki di Langkah 66 (`%%`), dengan tes `--help` untuk semua subperintah
+  (`tests/unit/test_eval_cli_help.py`).
+
+## Temuan setelah E-02 (Langkah 66): diagnosis penolakan keliru o009 dan o029
+
+Prompt dan ambang tidak diubah. Top-5 diambil ulang dengan config yang sama (hybrid, KB v4,
+`rag.top_k` 5); urutannya sama dengan E-01 hybrid. Skor = RRF, ditambah skor asli bm25 dan
+cosine dense per chunk.
+
+**Alasan dari LLM tidak tersedia.** Skema keluaran hanya punya `status` (`answered`, `not_found`,
+`false_premise`), `answer`, dan `citations`; tidak ada field alasan, dan teks penalaran model tidak
+disimpan. Respons cache kedua soal: `status: not_found`, `answer` kosong, `citations` kosong
+(completion 51-106 token). Sebab di bawah adalah simpulan dari isi potongan, bukan alasan tertulis
+dari LLM.
+
+**o009** "Ada potongan gak kalau uang kuliah setahun langsung dilunasin?" (dense@1 0,670)
+
+| # | chunk | dokumen | hlm | bagian | RRF | bm25 | dense | kunci |
+|---|---|---|---|---|---|---|---|---|
+| 1 | keuangan#19 | Panduan Pembayaran 2026/2027 | - | FAQ | 0,0323 | 8,71 | 0,670 | ya |
+| 2 | keuangan#12 | Panduan Pembayaran 2026/2027 | - | c. Potongan Biaya Kuliah | 0,0320 | 12,22 | 0,590 | |
+| 3 | pmb#20 | Pedoman PMB 2027 | 12 | 3.3 Pengunduran Diri dan Pengembalian Biaya Pendidikan | 0,0318 | 7,70 | 0,602 | |
+| 4 | keuangan#11 | Panduan Pembayaran 2026/2027 | - | b. Skema Khusus Mahasiswa Kelas Sore | 0,0308 | 5,64 | 0,595 | |
+| 5 | pmb#18 | Pedoman PMB 2027 | 11 | 3.1 Registrasi Administrasi | 0,0299 | 4,87 | 0,580 | |
+
+Chunk kunci ada di peringkat 1. Isinya: pembayaran lunas 1 tahun diajukan lewat menu
+"Pengajuan > Potongan Uang Kuliah", dan "permohonan keringanan potongan lunas dan saudara kandung"
+diajukan 1-30 Mei. Besaran potongan tidak tertulis. Kalimat "potongan lunas" cukup untuk menjawab
+"ada" beserta cara mengajukannya. **Simpulan: LLM terlalu ketat**, kemungkinan karena besaran
+potongan tidak ada; retrieval tidak bermasalah.
+
+**o029** "Mau tanya-tanya soal pendaftaran, nomor WA-nya berapa?" (dense@1 0,607)
+
+| # | chunk | dokumen | hlm | bagian | RRF | bm25 | dense | kunci |
+|---|---|---|---|---|---|---|---|---|
+| 1 | keuangan#2 | Panduan Pembayaran 2026/2027 | - | Kontak Layanan Administrasi (fakultas) | 0,0325 | 5,88 | 0,607 | |
+| 2 | keuangan#3 | Panduan Pembayaran 2026/2027 | - | Kontak Layanan Administrasi (keuangan) | 0,0304 | 4,45 | 0,597 | |
+| 3 | keuangan#4 | Panduan Pembayaran 2026/2027 | - | Kontak Layanan Administrasi (kemahasiswaan) | 0,0299 | 4,44 | 0,560 | |
+| 4 | brosur#14 | Brosur 2025 | - | Kontak pendaftaran (Brosur hlm 18) | 0,0294 | 3,61 | 0,607 | ya |
+| 5 | pmb#14 | Pedoman PMB 2027 | 8-9 | 2.2 Prosedur Seleksi | 0,0292 | 4,43 | 0,520 | |
+
+Chunk kunci ada di peringkat 4, dengan cosine dense tertinggi (0,6068). Isinya memuat nomor
+"Online Admission/Consultation: 081-160-25-151", telepon, dan email pendaftaran, tetapi tanpa kata
+"WA"/"WhatsApp". Tiga chunk teratas memuat nomor WhatsApp untuk layanan mahasiswa (fakultas,
+keuangan, kemahasiswaan), bukan pendaftaran. **Simpulan: isi chunk kunci kurang lengkap untuk
+kueri ini** (label WA tidak tertulis), ditambah pengecoh di peringkat 1-3. LLM menolak alih-alih
+menawarkan nomor Online Admission. Retrieval tidak bermasalah.
+
+Keduanya hanya dicatat sebagai temuan (aturan keputusan 2); prompt dan ambang tidak diubah.
+
+## Cek setelah perbaikan KB (Langkah 66, KB v5)
+
+**Bukan evaluasi dan tidak menggantikan angka E-02 dev di atas.** Empat soal dijalankan lewat
+`python -m mica.ask` (config aktif, KB v5, prompt v5, gerbang 0,50), 3 panggilan LLM. Set dev
+tidak bisa dinilai di v5 lewat alat eval (kb_id per baris = v4; chunk_id Pedoman PMB bergeser).
+
+| soal | status | jawaban (ringkas) | sumber | dense@1 |
+|---|---|---|---|---|
+| o017 | dijawab | ijazah legalisir, KTP, KK, akta kelahiran untuk Sarjana; tanpa berkas Magister, tetapi tanpa berkas tahap pendaftaran (rapor, SKL) | Pedoman PMB 2027, hlm 11-12, 3.2 Pemberkasan (v5 #20) | 0,621 |
+| o009 | dijawab | ada; ajukan lunas 1 tahun lewat MIKA menu Pengajuan > Potongan Uang Kuliah sesuai Kalender Akademik | Panduan Pembayaran 2026/2027, FAQ (#19) | 0,670 |
+| o029 | ditolak gerbang 2 (`not_found`) | - | - | 0,607 |
+| o028 | ditolak gerbang 1 (0,417 < 0,50) | - | - | 0,417 |
+
+Catatan tafsir:
+
+- o017 tidak lagi mencampur berkas Magister, tetapi chunk yang dikutip (3.2 Pemberkasan) **tidak
+  berubah dari v4**; perubahan v5 ada di 2.1 b. Perbedaan jawaban tidak bisa dipastikan berasal dari
+  perbaikan KB; bisa juga variasi sampling LLM (temperature 0,2) atau perubahan nomor chunk di
+  prompt.
+- o009 kini dijawab walaupun potongan keuangan sama dengan v4. Ini menunjukkan penolakan di E-02
+  tidak stabil antar-run (LLM ketat secara tidak konsisten), bukan akibat perbaikan KB.
+- o029 dan o028 tetap ditolak, sesuai diagnosis (label WA tidak ada; skor gerbang di bawah ambang).

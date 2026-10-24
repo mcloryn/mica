@@ -1,10 +1,12 @@
-# KB resmi (Langkah 61, 23 Okt 2026; v2 Langkah 62, v3 Langkah 63, v4 Langkah 64, 24 Okt 2026)
+# KB resmi (Langkah 61, 23 Okt 2026; v2 Langkah 62, v3 Langkah 63, v4 Langkah 64, v5 Langkah 66, 24 Okt 2026)
 
-KB aktif sejak Langkah 64: **`official-2026-10-24-v4`** (`source_type: official`), di
+KB aktif sejak Langkah 66: **`official-2026-10-24-v5`** (`source_type: official`), di
 `config/dev.yaml` dan `config/kiosk.yaml` (`kb.active_id`), bersama prompt **v5**
 (`rag.prompt_variant: v5`). Yang diarsipkan (tidak dihapus dari `data/kb/`, ID-nya ditulis
 sebagai komentar di kedua config):
 
+- `official-2026-10-24-v4`: KB resmi v4 (Langkah 64), dipakai set dev dan E-01/E-02 dev
+  Langkah 65 (`docs/EVAL-DEV-OFFICIAL.md`);
 - `official-2026-10-24-v3`: KB resmi v3 (Langkah 63);
 - `official-2026-10-24-v2`: KB resmi v2 (Langkah 62);
 - `official-2026-10-23-v1`: KB resmi pertama (Langkah 61);
@@ -258,6 +260,53 @@ itu berada di sel Magister Manajemen. Akibat lain: judul BAB II di jalur bagian 
 "BAB II Sistem Rekrutmen dan Seleksi Calon Mahasiswa Baru" (huruf kapital biasa), sedangkan judul
 BAB lain dari PDF berhuruf besar semua.
 
+## Perubahan v4 -> v5
+
+**Alasan.** Pada E-02 dev (Langkah 65) jawaban o017 (berkas daftar S1) memuat berkas Program
+Magister. Halaman pengganti Pedoman PMB hlm 8-9 diperbarui hasa: dua sub-judul ditambahkan di
+2.1 b, "Persyaratan Administrasi Program Sarjana (S1)" dan "Persyaratan Administrasi Program
+Magister (S2)", ditambah satu baris catatan di komentar HTML. Isi lain sama.
+`sources.yaml`, file sumber lain, chunker, embedder, prompt v5, dan ambang gerbang tidak diubah.
+
+| | v4 | v5 |
+|---|---|---|
+| 2.1 b Persyaratan Administrasi | 1 chunk (S1 dan S2 bercampur, v4 #12) | 2 chunk: v5 #12 "… › b. Persyaratan Administrasi › Persyaratan Administrasi Program Sarjana (S1)", v5 #13 "… › Persyaratan Administrasi Program Magister (S2)" |
+| Pedoman PMB 2027 | 23 | 24 |
+| dokumen lain | 85 / 57 / 15 / 21 | sama |
+| **jumlah** | **201** | **202** |
+
+Akibat yang perlu diingat:
+
+- **chunk_id Pedoman PMB mulai #13 bergeser +1** (v4 #13 Persyaratan Khusus = v5 #14, v4 #19
+  Pemberkasan = v5 #20, dst.). chunk_id dokumen lain sama.
+- `data/eval/dev_official.jsonl` dibuat untuk v4 (`kb_id` per baris, gold chunk_id v4). Penjaga
+  `kb_match` menolaknya di v5. File itu terkunci; eval di v5 butuh file versi baru.
+- **3.2 Pemberkasan (hlm 11-12, teks PDF, v5 #20) tidak berubah**: daftar berkas Program Sarjana
+  dan Program Magister masih satu chunk. Halusinasi o017 di E-02 berasal dari chunk ini (v4 #19),
+  bukan dari 2.1 b. Jadi perbaikan v5 tidak menyentuh sumber kesalahan o017.
+
+## Build v5
+
+| | |
+|---|---|
+| kb_id | `official-2026-10-24-v5` |
+| perintah | `python -m mica.kb build --src data/sources/official --kb-id official-2026-10-24-v5 --source-type official --config config/dev.yaml` |
+| dokumen / chunk | 5 / 202, 2 chunk dikeluarkan (`superseded_sections`, sama dengan v4) |
+| lama build / ukuran | 174,3 detik / 1,3 MB |
+| config_hash | `d4ce25f8c3164a6d696cff92da582706aa34fe38e9de5232883729eff65b3dab` (sama dengan v1-v4) |
+| built_at | 2026-10-24T21:28:13+07:00 |
+
+SHA-256 sumber yang berubah dari v4: `_overrides/pedoman-pmb-2027-hlm8-9.md` =
+`613582b38a09030bc095f71221526f87af3962c26785a2d4ab6cfd0cfa454b72` (byte-identik dengan file
+hasa di `kb-resmi-masuk`). `sources.yaml` sama dengan v4.
+
+| file KB | sha256 |
+|---|---|
+| `manifest.json` | `449ee4b0aff49936aca88d09e7671f5103abe0413006e3831347c7f570cbceef` |
+| `chunks.jsonl` | `82af0842b8dd0303cdd6eac7ac16d19e7727192a879a7c56a4c573875b200f7f` |
+| `dense.npy` | `186e74a1509494bc13ff42b61d0daa25f0854529457c7205775f611a4e22f617` |
+| `bm25.pkl` | `fc63779d0ad429d57bed692e0e0f0ce76ea28db82dfa896f4e5b24de703fd281` |
+
 ## Perubahan v3 -> v4
 
 Satu-satunya perubahan: `superseded_sections` di `sources.yaml` (Peraturan Akademik 2025,
@@ -320,7 +369,7 @@ akademik/peraturan-akademik-2025.pdf:
       reason: "jalur seleksi untuk calon mahasiswa 2027 diatur Pedoman PMB 2027; isi berbeda (7 vs 5 jalur)"
 ```
 
-## Build v4
+## Build v4 (arsip, Langkah 64)
 
 | | |
 |---|---|
@@ -480,7 +529,7 @@ Langkah 64 (v4 + prompt v5): c, b, g, i, 4 panggilan LLM.
 ## Penyimpangan yang harus diungkap di Bab 3
 
 1. **KB dev diarsipkan.** E-01..E-04 diukur pada `dev-2026-10-15-v2` (dokumen dev, bukan
-   dokumen resmi). KB aktif sekarang `official-2026-10-24-v4`; hasil E-01..E-04 belum diukur
+   dokumen resmi). KB aktif sekarang `official-2026-10-24-v5`; hasil E-01..E-04 belum diukur
    ulang pada KB resmi.
 2. **Ambang gerbang 0,50 adalah nilai coba.** Dikalibrasi di KB dev, belum diukur ulang di KB
    resmi (`rag.gate.threshold` di `config/dev.yaml`; di `config/kiosk.yaml` tetap null/TBD).
@@ -491,7 +540,7 @@ Langkah 64 (v4 + prompt v5): c, b, g, i, 4 panggilan LLM.
    dikalibrasi untuk dokumen resmi.
 4. **Metode chunking berubah di v2** (bagian PDF, prefiks jalur bagian di teks chunk untuk .md
    dan PDF, perbaikan teks PDF). Perubahan dibuat setelah melihat hasil ekstraksi dokumen resmi,
-   belum diuji di E-01. `config_hash` tidak berubah, jadi pembeda v1-v4 adalah kb_id dan
+   belum diuji di E-01. `config_hash` tidak berubah, jadi pembeda v1-v5 adalah kb_id dan
    `manifest.json`.
 5. **Model data `Chunk` ditambah** `page_start` dan `page_end` (tidak ada di SDD 5.1), dan sitasi
    PDF di layar memuat halaman dan bagian. Field `section` PDF berisi jalur bagian (BAB › Pasal),
@@ -526,3 +575,6 @@ Langkah 64 (v4 + prompt v5): c, b, g, i, 4 panggilan LLM.
     (2 chunk, hlm 9-10) tidak masuk KB lewat `superseded_sections`, karena jalur seleksi 2027
     diatur Pedoman PMB 2027. Keputusan ini kurasi manual berdasarkan aturan konflik sumber, bukan
     hasil evaluasi. Ayat (6) Pasal 4 tentang jalur RPL ikut hilang dari KB.
+15. **Halaman pengganti disunting ulang (v5).** Dua sub-judul S1/S2 ditambahkan hasa di Pedoman
+    PMB 2.1 b; teks dokumen tidak berubah. chunk_id Pedoman PMB mulai #13 bergeser, sehingga set dev
+    Langkah 65 hanya berlaku untuk v4.
