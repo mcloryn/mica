@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import dataclasses
+import itertools
 import logging
 import re
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
@@ -14,7 +15,7 @@ from typing import Any, Literal, Protocol
 
 import yaml
 
-from mica.core.types import ErrorCode
+from mica.core.types import SECTION_SEP, ErrorCode
 
 logger = logging.getLogger(__name__)
 
@@ -34,10 +35,16 @@ class Block:
     section: str  # judul bagian; "" bila sebelum heading pertama atau format tanpa heading
     text: str | None = None
     table: tuple[tuple[str, ...], ...] | None = None  # baris pertama = judul kolom
+    # nomor halaman PDF (mulai 1) untuk setiap baris text; None untuk format tanpa halaman
+    line_pages: tuple[int, ...] | None = None
 
     def __post_init__(self) -> None:
         if (self.text is None) == (self.table is None):
             raise ValueError("Block harus berisi tepat satu dari text atau table")
+        if self.line_pages is not None and (
+            self.text is None or len(self.line_pages) != len(self.text.split("\n"))
+        ):
+            raise ValueError("line_pages harus berisi satu nomor halaman per baris text")
 
 
 @dataclass(frozen=True)
@@ -161,17 +168,214 @@ class MdParser:
         )
 
 
+# --- PDF (Langkah 62) ---
+#
+# Penyebab kata terpotong (diperiksa di Panduan Kemahasiswaan 2021 dan Peraturan Akademik 2025):
+# penulis PDF memecah satu baris rata kanan-kiri menjadi beberapa objek teks (BT..ET) berposisi
+# mutlak, kadang di tengah kata ("semester d" | "alam"). extract_text() biasa tidak menambahkan
+# geseran angka di dalam TJ ke lebar teks, sehingga mengira ada celah di sambungan dan
+# menyisipkan spasi. Mode layout menghitung posisi huruf termasuk geseran itu, jadi dipakai
+# sebagai bukti: spasi di teks biasa dihapus hanya bila gabungannya muncul utuh di teks layout
+# halaman yang sama dan pasangan terpisahnya tidak. Urutan teks tetap dari extract_text() biasa
+# (di tabel dua kolom, mode layout mencampur isi sel kiri dan kanan dalam satu baris).
+
+PDF_EXTRACTION = (
+    "L62: extract_text + perbaikan spasi (bukti layout) + tanda hubung; heading BAB/Pasal/n.n"
+)
+_MAX_SPLIT_PARTS = 4  # satu kata paling banyak terpecah menjadi 4 potongan
+_HEADING_MAX_CHARS = 100
+_DOT_LEADER = re.compile(r"\.{4,}|…")  # baris daftar isi
+_BAB = re.compile(r"BAB\s+[IVXLCDM]+")
+_PASAL = re.compile(r"Pasal\s+\d+[A-Z]?")
+_NUMBERED = re.compile(r"\d+\.\d+\.?\s+[A-Z].*")
+_WORD = re.compile(r"\w+(?:-\w+)*")
+_LINE_END_HYPHEN = re.compile(r"(\w+)-$")
+_LEADING_WORD = re.compile(r"\w+")
+_PRINTED_PAGE_NUMBER = re.compile(r"\d{1,3}|[ivxlc]{1,6}")
+
+PdfLine = tuple[str, int]  # (teks baris, nomor halaman PDF mulai 1)
+
+
+def layout_evidence(layout_text: str) -> tuple[set[str], set[tuple[str, str]]]:
+    """Token dan pasangan token bertetangga (juga lintas baris) dari teks mode layout."""
+    tokens: set[str] = set()
+    pairs: set[tuple[str, str]] = set()
+    previous: str | None = None
+    for line in layout_text.splitlines():
+        words = line.split()
+        if not words:
+            continue
+        tokens.update(words)
+        if previous is not None:
+            pairs.add((previous, words[0]))
+        pairs.update(itertools.pairwise(words))
+        previous = words[-1]
+    return tokens, pairs
+
+
+def repair_split_words(line: str, tokens: set[str], pairs: set[tuple[str, str]]) -> str:
+    """Hapus spasi palsu di tengah kata; spasi berlebih dirapikan menjadi satu spasi."""
+    words = line.split()
+    out: list[str] = []
+    i = 0
+    while i < len(words):
+        best = i
+        for j in range(i + 1, min(len(words), i + _MAX_SPLIT_PARTS)):
+            if (words[j - 1], words[j]) in pairs:
+                break  # spasi ini juga ada di layout: spasi asli
+            if "".join(words[i : j + 1]) in tokens:
+                best = j
+        out.append("".join(words[i : best + 1]))
+        i = best + 1
+    return " ".join(out)
+
+
+def join_line_end_hyphens(lines: list[PdfLine]) -> list[PdfLine]:
+    """Sambung kata yang terpenggal tanda hubung di akhir baris, hanya di halaman yang sama.
+
+    - kata ulang ("masing-" + "masing") atau bentuk bertanda hubung yang ada di dokumen
+      ("perundang-" + "undangan"): disambung, tanda hubung tetap;
+    - gabungan tanpa tanda hubung ada di dokumen ("melak-" + "sanakan" -> "melaksanakan"):
+      tanda hubung dibuang;
+    - selain itu dibiarkan apa adanya.
+    """
+    vocab = {w.lower() for text, _ in lines for w in _WORD.findall(text)}
+    out = list(lines)
+    emptied: set[int] = set()  # baris yang seluruh isinya pindah ke baris sebelumnya
+    for i in range(len(out) - 1):
+        text, page = out[i]
+        next_text, next_page = out[i + 1]
+        tail = _LINE_END_HYPHEN.search(text)
+        lead = _LEADING_WORD.match(next_text)
+        if tail is None or lead is None or page != next_page:
+            continue
+        left, right = tail.group(1).lower(), lead.group(0).lower()
+        first, _, rest = next_text.partition(" ")
+        if left == right or f"{left}-{right}" in vocab:
+            joined = text + first
+        elif left + right in vocab:
+            joined = text[:-1] + first
+        else:
+            continue
+        out[i] = (joined, page)
+        out[i + 1] = (rest, next_page)
+        if not rest:
+            emptied.add(i + 1)  # jangan sampai menjadi baris kosong (= batas paragraf)
+    return [line for i, line in enumerate(out) if i not in emptied]
+
+
+def drop_printed_page_number(lines: list[str]) -> list[str]:
+    """Buang nomor halaman cetak ("4", "ii"): baris berisi angka atau romawi kecil saja yang
+    menjadi baris pertama atau terakhir halaman. Tanpa ini, nomor di atas halaman berikutnya
+    ikut ke bagian sebelumnya dan rentang halaman chunk melebar satu halaman."""
+    out = list(lines)
+    filled = [i for i, line in enumerate(out) if line.strip()]
+    for i in sorted({filled[0], filled[-1]} if filled else set(), reverse=True):
+        if _PRINTED_PAGE_NUMBER.fullmatch(out[i].strip()):
+            del out[i]
+    return out
+
+
+def pdf_lines(pages: Iterable[tuple[str, str]]) -> list[PdfLine]:
+    """Baris bersih dari pasangan (teks biasa, teks layout) per halaman, berurutan."""
+    lines: list[PdfLine] = []
+    for number, (plain, layout) in enumerate(pages, start=1):
+        tokens, pairs = layout_evidence(layout)
+        repaired = [repair_split_words(line, tokens, pairs) for line in plain.splitlines()]
+        lines.extend((line, number) for line in drop_printed_page_number(repaired))
+    return join_line_end_hyphens(lines)
+
+
+def heading_level(line: str) -> int | None:
+    """1 = "BAB <romawi>", 2 = "Pasal <angka>" atau "<angka>.<angka> Judul"; None = bukan heading."""
+    line = line.strip()
+    if len(line) > _HEADING_MAX_CHARS or _DOT_LEADER.search(line):
+        return None
+    if _BAB.fullmatch(line):
+        return 1
+    if _PASAL.fullmatch(line) or _NUMBERED.fullmatch(line):
+        return 2
+    return None
+
+
+def _heading_title(line: str) -> str | None:
+    """Baris judul di bawah "BAB II"/"Pasal 39": pendek, bukan kalimat, bukan heading."""
+    title = line.strip()
+    if (
+        not title
+        or len(title) > _HEADING_MAX_CHARS
+        or title[-1] in ".,;:"
+        or heading_level(title) is not None
+    ):
+        return None
+    return title
+
+
+def pdf_blocks(lines: list[PdfLine]) -> list[Block]:
+    """Satu Block per bagian, sehingga chunk tidak melewati batas BAB/Pasal/sub-bab.
+
+    section = jalur bagian terdekat, misalnya "BAB III <judul> › 3.1 Registrasi Administrasi".
+    Baris heading (dan judul di bawah BAB/Pasal) masuk ke section, tidak ke text.
+    """
+    blocks: list[Block] = []
+    chapter = ""  # BAB terakhir
+    section = ""
+    body: list[PdfLine] = []
+
+    def flush() -> None:
+        while body and not body[0][0].strip():
+            body.pop(0)
+        while body and not body[-1][0].strip():
+            body.pop()
+        if body:
+            blocks.append(
+                Block(
+                    section=section,
+                    text="\n".join(text for text, _ in body),
+                    line_pages=tuple(page for _, page in body),
+                )
+            )
+        body.clear()
+
+    i = 0
+    while i < len(lines):
+        level = heading_level(lines[i][0])
+        if level is None:
+            body.append(lines[i])
+            i += 1
+            continue
+        flush()
+        label = lines[i][0].strip()
+        i += 1
+        if not _NUMBERED.fullmatch(label) and i < len(lines):
+            title = _heading_title(lines[i][0])
+            if title is not None:
+                label = f"{label} {title}"
+                i += 1
+        if level == 1:
+            chapter = section = label
+        else:
+            section = SECTION_SEP.join(p for p in (chapter, label) if p)
+    flush()
+    return blocks
+
+
 class PdfParser:
     def parse(self, path: Path) -> ParsedDocument | None:
         from pypdf import PdfReader
 
-        pages = [(page.extract_text() or "") for page in PdfReader(path).pages]
-        block = _text_block("", "\n".join(pages).splitlines())
-        if block is None:
+        pages: list[tuple[str, str]] = []
+        for page in PdfReader(path).pages:
+            plain = page.extract_text() or ""
+            # halaman tanpa teks (atau tanpa /Contents) tidak perlu dan tidak bisa dibaca mode layout
+            layout = page.extract_text(extraction_mode="layout") if plain.strip() else ""
+            pages.append((plain, layout))
+        blocks = pdf_blocks(pdf_lines(pages))
+        if not blocks:
             # PDF hasil pindai butuh OCR, di luar cakupan (SDD 2.3)
             logger.warning("%s: %s tidak berisi teks, dilewati", ErrorCode.KB_PDF_NO_TEXT, path)
             return None
-        return _document(path, [block])
+        return _document(path, blocks)
 
 
 class DocxParser:

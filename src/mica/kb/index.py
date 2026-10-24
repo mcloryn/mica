@@ -24,6 +24,7 @@ from mica.core.types import Chunk, ErrorCode
 from mica.kb.chunker import make_chunker
 from mica.kb.embedder import Embedder
 from mica.kb.parsers import (
+    PDF_EXTRACTION,
     KbBuildError,
     SourceType,
     doc_id_for,
@@ -182,7 +183,10 @@ def build_kb(
                 "kind": kb_config.chunker,
                 "chunk_tokens": kb_config.chunk_tokens,
                 "overlap_tokens": kb_config.overlap_tokens,
+                "section_prefix": getattr(chunker, "section_prefix", None),
             },
+            # cara ekstraksi PDF; tidak masuk config_hash karena bukan field konfigurasi
+            "pdf_extraction": {"method": PDF_EXTRACTION, "pypdf": package_version("pypdf")},
             "embedder": {
                 "model": embedder.model_id,
                 "revision": embedder.revision,

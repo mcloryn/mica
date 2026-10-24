@@ -24,24 +24,24 @@ Beasiswa prestasi tersedia untuk nilai rapor minimal 85.
 """
 
 
-def write_text_pdf(path: Path, lines: list[str]) -> None:
-    """PDF satu halaman berteks, ditulis manual supaya tidak butuh library tambahan."""
-    ops = ["BT", "/F1 12 Tf", "72 720 Td", "14 TL"]
-    for line in lines:
-        escaped = line.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
-        ops.append(f"({escaped}) Tj T*")
-    ops.append("ET")
-    stream = "\n".join(ops).encode("latin-1")
-    objects = [
+def write_pdf_pages(path: Path, streams: list[str]) -> None:
+    """PDF Helvetica dengan satu content stream per halaman, ditulis manual (tanpa library)."""
+    objects: list[bytes] = [
         b"<< /Type /Catalog /Pages 2 0 R >>",
-        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-        (
-            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
-            b"/Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>"
-        ),
+        b"",  # /Pages, diisi setelah semua halaman dibuat
         b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-        b"<< /Length " + str(len(stream)).encode() + b" >>\nstream\n" + stream + b"\nendstream",
     ]
+    kids = []
+    for stream in streams:
+        data = stream.encode("latin-1")
+        objects.append(b"<< /Length %d >>\nstream\n" % len(data) + data + b"\nendstream")
+        objects.append(
+            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
+            b"/Resources << /Font << /F1 3 0 R >> >> /Contents %d 0 R >>" % len(objects)
+        )
+        kids.append(len(objects))
+    refs = " ".join(f"{k} 0 R" for k in kids)
+    objects[1] = f"<< /Type /Pages /Kids [{refs}] /Count {len(kids)} >>".encode()
     out = bytearray(b"%PDF-1.4\n")
     offsets = []
     for i, body in enumerate(objects, start=1):
@@ -55,6 +55,42 @@ def write_text_pdf(path: Path, lines: list[str]) -> None:
         f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode()
     )
     path.write_bytes(bytes(out))
+
+
+def _escape(line: str) -> str:
+    return line.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+
+
+def lines_stream(lines: list[str]) -> str:
+    """Content stream satu halaman: satu baris per Tj, jarak baris 14 pt."""
+    ops = ["BT", "/F1 12 Tf", "72 720 Td", "14 TL"]
+    ops += [f"({_escape(line)}) Tj T*" for line in lines]
+    ops.append("ET")
+    return "\n".join(ops)
+
+
+def write_text_pdf(path: Path, lines: list[str]) -> None:
+    """PDF satu halaman berteks."""
+    write_pdf_pages(path, [lines_stream(lines)])
+
+
+# lebar glyph Helvetica (AFM, per 1000 em) untuk huruf yang dipakai split_word_stream
+_HELVETICA = {"s": 500, "e": 556, "m": 833, "t": 278, "r": 333, " ": 278, "d": 556, "a": 556}
+
+
+def split_word_stream(left: str, right: str, kern: int = 100) -> str:
+    """Satu baris yang dipecah menjadi dua objek teks di tengah kata, seperti PDF rata kanan-kiri.
+
+    Objek pertama memakai geseran TJ -kern di antara hurufnya; objek kedua mulai tepat di ujung
+    objek pertama (posisi mutlak Tm). kern=0 = tanpa geseran (pembanding).
+    """
+    width = sum(_HELVETICA[c] for c in left) + kern * (len(left) - 1)
+    x = 72 + width * 12 / 1000
+    tj = f" -{kern} ".join(f"({c})" for c in left) if kern else f"({left})"
+    return (
+        f"BT /F1 12 Tf 1 0 0 1 72 720 Tm [{tj}] TJ ET\n"
+        f"BT /F1 12 Tf 1 0 0 1 {x:.3f} 720 Tm [({right})] TJ ET"
+    )
 
 
 def write_blank_pdf(path: Path) -> None:

@@ -13,7 +13,7 @@ import uuid
 from pathlib import Path
 
 from mica.config import CFG_INVALID, ConfigError, load_settings
-from mica.core.types import Turn
+from mica.core.types import Turn, source_title
 from mica.kb.index import DEFAULT_KB_ROOT, KbLoadError
 from mica.rag.pii import scrub_pii
 from mica.rag.pipeline import AnswerPipeline, make_pipeline
@@ -40,7 +40,7 @@ def run(args: argparse.Namespace, pipeline: AnswerPipeline) -> int:
     print(f"jawaban  : {final.text}")
     print("sumber   :" + ("" if final.sources else " -"))
     for chunk in final.sources:
-        print(f"  - {chunk.chunk_id} | {chunk.doc_title}")
+        print(f"  - {chunk.chunk_id} | {source_title(chunk)}")
     gate = record.gate
     print(f"gerbang  : skor {gate['score']} | ambang {gate['threshold']} | lolos {gate['passed']}")
     print(f"provider : {record.llm_provider or '-'} (status LLM {record.llm_status or '-'})")

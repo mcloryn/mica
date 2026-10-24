@@ -3,7 +3,7 @@
 python -m mica.kb init-sources --src <folder> --source-type dev|official --date YYYY-MM-DD [--force]
 python -m mica.kb build --src <folder> --kb-id <id> --source-type dev|official --config <yaml>
 python -m mica.kb list
-python -m mica.kb inspect --kb-id <id>
+python -m mica.kb inspect --kb-id <id> [--doc <doc_id>] [--samples N] [--table-match <teks>]
 python -m mica.kb check-sources --src <folder>
 """
 
@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import sys
 import time
+from collections import Counter
 from collections.abc import Callable
 from datetime import date
 from pathlib import Path
@@ -19,6 +20,7 @@ from pathlib import Path
 import yaml
 
 from mica.config import ConfigError, load_settings
+from mica.core.types import Chunk
 from mica.kb.embedder import DEFAULT_CACHE_DIR, BgeM3Embedder, Embedder
 from mica.kb.index import DEFAULT_KB_ROOT, KbLoadError, build_kb, list_kbs, load_kb, read_manifest
 from mica.kb.parsers import (
@@ -135,20 +137,30 @@ def cmd_inspect(args: argparse.Namespace) -> int:
     print(f"chunker: {m.get('chunker')}")
     print(f"dokumen: {len(m.get('documents', []))}")
     print(f"chunk: {len(kb.chunks)} (tabel: {sum(c.is_table for c in kb.chunks)})")
-    n = len(kb.chunks)
-    picks = sorted({0, n // 2, n - 1}) if n else []
-    for i in picks:
-        c = kb.chunks[i]
-        print(f"\n--- contoh {c.chunk_id} | {c.doc_title} | {c.section} | {c.valid_from}")
+    print("chunk per dokumen:")
+    for doc_id, count in sorted(Counter(c.doc_id for c in kb.chunks).items()):
+        print(f"  {doc_id}: {count}")
+    if args.doc:
+        picks = [c for c in kb.chunks if c.doc_id == args.doc][: args.samples]
+    else:
+        n = len(kb.chunks)
+        picks = [kb.chunks[i] for i in sorted({0, n // 2, n - 1})] if n else []
+    for c in picks:
+        print(f"\n--- contoh {_label(c)}")
         print(_preview(c.text))
-    table = next((c for c in kb.chunks if c.is_table), None)
+    tables = [c for c in kb.chunks if c.is_table and (args.table_match or "") in c.text]
     print("\n--- contoh tabel", end="")
-    if table is None:
+    if not tables:
         print(": tidak ada")
     else:
-        print(f" {table.chunk_id} | {table.doc_title} | {table.section}")
-        print(_preview(table.text))
+        print(f" {_label(tables[0])}")
+        print(_preview(tables[0].text, limit=1200))
     return 0
+
+
+def _label(c: Chunk) -> str:
+    pages = "-" if c.page_start is None else f"hlm {c.page_start}-{c.page_end}"
+    return f"{c.chunk_id} | {c.doc_title} | {pages} | {c.section or '-'} | {c.valid_from}"
 
 
 def cmd_check_sources(args: argparse.Namespace) -> int:
@@ -185,6 +197,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     inspect = sub.add_parser("inspect", help="ringkasan satu KB")
     inspect.add_argument("--kb-id", required=True)
+    inspect.add_argument("--doc", help="contoh hanya dari doc_id ini")
+    inspect.add_argument("--samples", type=int, default=3, help="jumlah contoh untuk --doc")
+    inspect.add_argument("--table-match", help="contoh tabel pertama yang memuat teks ini")
 
     check = sub.add_parser("check-sources", help="tampilkan dokumen tanpa valid_from")
     check.add_argument("--src", type=Path, required=True)

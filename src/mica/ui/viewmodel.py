@@ -16,7 +16,7 @@ from typing import Literal
 from mica.core import texts
 from mica.core.controller import DisplayUpdate
 from mica.core.session import ClearScreen, ShowView, VisitState
-from mica.core.types import Chunk, visible_items
+from mica.core.types import Chunk, source_title, visible_items
 
 
 @dataclass(frozen=True)
@@ -103,7 +103,7 @@ class ViewModel:
 
 
 def _source(chunk: Chunk) -> Source:
-    return Source(chunk.doc_title, chunk.valid_from)
+    return Source(source_title(chunk), chunk.valid_from)
 
 
 def source_line(source: Source) -> str:

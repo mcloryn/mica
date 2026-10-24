@@ -55,6 +55,28 @@ class Chunk:
     source_type: Literal["official", "dev"]
     text: str
     is_table: bool
+    # halaman PDF awal dan akhir (urutan di file, mulai 1; bukan nomor cetak); None untuk non-PDF
+    page_start: int | None = None
+    page_end: int | None = None
+
+
+SECTION_SEP = " › "  # pemisah jalur bagian di Chunk.section, misalnya "BAB III › 3.1 Registrasi"
+
+
+def source_title(chunk: Chunk) -> str:
+    """Judul sumber untuk layar (F-09).
+
+    PDF: "<judul dokumen>, hlm <n>[-<m>], <judul bagian terdekat>" dengan nomor halaman PDF
+    (bukan nomor cetak). Format lain: judul dokumen saja, seperti sebelum Langkah 62.
+    """
+    if chunk.page_start is None:
+        return chunk.doc_title
+    end = chunk.page_end if chunk.page_end is not None else chunk.page_start
+    pages = str(chunk.page_start) if end == chunk.page_start else f"{chunk.page_start}-{end}"
+    parts = [chunk.doc_title, f"hlm {pages}"]
+    if chunk.section:
+        parts.append(chunk.section.split(SECTION_SEP)[-1])
+    return ", ".join(parts)
 
 
 @dataclass(frozen=True)

@@ -39,7 +39,7 @@ python -m mica.kb init-sources --src data/sources/<folder> --source-type dev --d
 python -m mica.kb check-sources --src data/sources/<folder>
 python -m mica.kb build --src data/sources/<folder> --kb-id <id> --source-type dev --config config/dev.yaml
 python -m mica.kb list
-python -m mica.kb inspect --kb-id <id>
+python -m mica.kb inspect --kb-id <id> [--doc <doc_id> --samples 3] [--table-match "<teks>"]   # chunk per dokumen, contoh + halaman + bagian
 python -m mica.rag search "<pertanyaan>" --config config/dev.yaml [--retriever bm25|dense|hybrid] [--k 5]
 python -m mica.ask "<pertanyaan>" [--prev "<pertanyaan sebelumnya>"]   # satu jawaban lewat AnswerPipeline (dev)
 ```

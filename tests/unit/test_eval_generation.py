@@ -60,7 +60,9 @@ class FakeProvider:
             raise self.failures.pop(0)
         question = re.search(r"<<<PERTANYAAN>>>\n(.*?)\n<<<AKHIR", request.user, re.DOTALL)
         status, answer = self.rule(question.group(1) if question else request.user)
-        cites = (request.allowed_chunk_ids[0],) if status != "not_found" else ()
+        # semua chunk terambil disitasi: urutan retrieval FakeEmbedder (hash teks) berubah bila
+        # teks chunk berubah (misalnya prefiks bagian, Langkah 62)
+        cites = tuple(request.allowed_chunk_ids) if status != "not_found" else ()
         return LlmAnswer(status, answer, cites, self.name, 0.5, dict(USAGE))
 
 
