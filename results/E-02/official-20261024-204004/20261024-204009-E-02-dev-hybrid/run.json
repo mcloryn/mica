@@ -1,0 +1,110 @@
+{
+  "experiment": "E-02",
+  "component": "generation",
+  "split": "dev",
+  "lock": null,
+  "retriever": "hybrid",
+  "top_k": 5,
+  "gate_off": false,
+  "gate_threshold_config": 0.5,
+  "gate_threshold_effective": 0.5,
+  "fact_check": "dijalankan; status cek angka mati dihitung offline",
+  "followup_mode": "dual",
+  "history_turns": 1,
+  "prompt_variant": "v5",
+  "prompt_variant_config": "v5",
+  "prompt_variant_source": "config",
+  "prompt_version": "v5",
+  "config_hash": "e7a34dae3c539479293d04ad1ced6319928368d47c64f6a445831852facfa36b",
+  "config_hash_file": "e7a34dae3c539479293d04ad1ced6319928368d47c64f6a445831852facfa36b",
+  "kb_id": "official-2026-10-24-v4",
+  "dataset": {
+    "path": "data/eval/dev_official.jsonl",
+    "sha256": "91c77a436365f1c54527c9311a9551d9e2d381d923d37671f763f4c993e4f26c"
+  },
+  "embedder": {
+    "model": "BAAI/bge-m3",
+    "revision": "9a0624b896d81da7492a910ffa53731274b6cf3d"
+  },
+  "llm": {
+    "provider": "groq:openai/gpt-oss-120b",
+    "model": "openai/gpt-oss-120b",
+    "reasoning_effort": "low",
+    "temperature": 0.2,
+    "timeout_s": 10.0,
+    "timeout_s_config": 10.0,
+    "timeout_source": "config",
+    "fallback_chain": "dimatikan; hanya model pertama llm.chain",
+    "chain_effective": [
+      "groq:openai/gpt-oss-120b",
+      "groq:openai/gpt-oss-20b"
+    ],
+    "chain_config": [
+      "groq:openai/gpt-oss-120b",
+      "groq:openai/gpt-oss-20b"
+    ],
+    "model_override": null
+  },
+  "llm_calls": {
+    "questions": 40,
+    "api_calls": 37,
+    "from_cache": 0,
+    "retries_429": 0,
+    "wait_429_s": 0.0,
+    "rate_limit_wait_s": 1186.6,
+    "cache_read": true,
+    "cache_only": false
+  },
+  "tokens_api": {
+    "prompt_tokens": 92772,
+    "completion_tokens": 4663,
+    "total_tokens": 97435
+  },
+  "tokens_all_answers": {
+    "prompt_tokens": 92772,
+    "completion_tokens": 4663,
+    "total_tokens": 97435
+  },
+  "rate_limit_tpm": 6000,
+  "sweep": {
+    "thresholds": [
+      null,
+      0.45,
+      0.48,
+      0.5,
+      0.52,
+      0.55
+    ],
+    "rule": "false_reject_rate <= 0.10, lalu correct_reject_rate tertinggi; seri -> false_reject_rate terkecil"
+  },
+  "n_questions": {
+    "answerable": 30,
+    "followup": 0,
+    "jauh": 0,
+    "dekat": 10,
+    "false_premise": 0
+  },
+  "environment": {
+    "python": "3.13.7",
+    "torch": "2.14.1+cpu",
+    "torch_num_threads": 14,
+    "sentence_transformers": "6.1.0",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "cpu_count_logical": 20,
+    "power": {
+      "source": "battery",
+      "battery_percent": 62,
+      "battery_saver": false
+    },
+    "power_plan": {
+      "guid": "bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b",
+      "name": "ASUS Recommended",
+      "raw": "Power Scheme GUID: bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b  (ASUS Recommended)"
+    },
+    "git_commit": "49b7472bee48c2acd85111e6d66b7bb7bf0e182b",
+    "git_dirty": false
+  },
+  "started_at": "2026-10-24T20:40:09.430452+07:00",
+  "duration_s": 1257.9
+}

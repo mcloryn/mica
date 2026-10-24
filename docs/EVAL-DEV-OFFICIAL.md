@@ -107,4 +107,109 @@ TOEFL minimal 475.
 
 ## Hasil
 
-(diisi setelah run; bagian di atas tidak diubah)
+Bagian di atas tidak diubah setelah commit pra-registrasi `49b7472`. Kedua run dijalankan dari
+commit itu dengan repo bersih (`git_dirty: false` di run.json).
+
+### E-01 (`results/E-01/official-20261024-203849/`)
+
+30 soal terjawab, kedalaman 10, unjudged 0 di ketiga mode.
+
+| mode | Recall@5 | MRR@10 | nDCG@10 | p50 / p95 ms |
+|---|---|---|---|---|
+| bm25 | 0,8667 (26/30) | 0,6722 | 0,6684 | 1,43 / 1,97 |
+| dense | 0,9333 (28/30) | 0,9056 | 0,8885 | 108,77 / 122,60 |
+| hybrid | **1,0000 (30/30)** | 0,8083 | 0,8237 | 112,40 / 129,26 |
+
+**Keputusan (aturan 1): hybrid tetap.** Dense punya MRR lebih tinggi, tetapi Recall@5-nya lebih
+rendah, jadi tidak unggul di kedua metrik.
+
+Per topik (Recall@5 / MRR):
+
+| topik | n | bm25 | dense | hybrid |
+|---|---|---|---|---|
+| biaya_kuliah | 2 | 1,00 / 0,75 | 1,00 / 1,00 | 1,00 / 1,00 |
+| kelas_pagi_sore | 2 | 1,00 / 1,00 | 1,00 / 1,00 | 1,00 / 1,00 |
+| cicilan | 2 | 1,00 / 1,00 | 1,00 / 1,00 | 1,00 / 1,00 |
+| cara_bayar | 2 | 1,00 / 0,62 | 1,00 / 1,00 | 1,00 / 0,75 |
+| potongan_keringanan | 2 | 1,00 / 0,67 | 1,00 / 1,00 | 1,00 / 1,00 |
+| jalur_pendaftaran | 3 | 1,00 / 1,00 | 1,00 / 0,83 | 1,00 / 0,83 |
+| syarat_masuk | 3 | 1,00 / 0,83 | 1,00 / 1,00 | 1,00 / 0,83 |
+| dokumen_pendaftaran | 2 | 0,50 / 0,17 | 1,00 / 0,75 | 1,00 / 0,42 |
+| prosedur_daftar_online | 2 | 1,00 / 0,50 | 0,00 / 0,08 | 1,00 / 0,75 |
+| pengunduran_diri | 2 | 1,00 / 0,75 | 1,00 / 1,00 | 1,00 / 1,00 |
+| prospek_kerja | 2 | 0,50 / 0,12 | 1,00 / 1,00 | 1,00 / 0,42 |
+| peminatan | 2 | 1,00 / 1,00 | 1,00 / 1,00 | 1,00 / 1,00 |
+| organisasi_mahasiswa | 2 | 0,50 / 0,25 | 1,00 / 1,00 | 1,00 / 0,67 |
+| kontak_jam_operasional | 2 | 0,50 / 0,50 | 1,00 / 1,00 | 1,00 / 0,62 |
+
+Soal tanpa chunk relevan di top-5 (dugaan sebab):
+
+| mode | soal | peringkat relevan pertama | dugaan sebab |
+|---|---|---|---|
+| bm25 | o017 berkas S1 | > 10 | kosakata santai ("berkas", "disiapin") vs dokumen ("File softcopy", "Pemberkasan"); tanpa stemming |
+| bm25 | o023 kerja lulusan SI | > 10 | "kerjanya" vs "Career Path" (bahasa Inggris di brosur) |
+| bm25 | o028 himpunan SI | > 10 | singkatan "SI" dan akhiran "-nya" ("himpunannya"); dokumen menulis "Sistem Informasi", "IMSI" |
+| bm25 | o029 nomor WA pendaftaran | > 10 | "WA" cocok dengan "WhatsApp" di kontak keuangan; brosur menulis "Online Admission/Consultation" |
+| dense | o019 harus ke kampus? | 6 | "daftar" dekat makna dengan "registrasi" (Peraturan Akademik Pasal 23-25) |
+| dense | o020 pengumuman lulus | > 10 | "lulus" tertarik ke kelulusan studi/yudisium (Pasal 47-49), bukan lulus seleksi |
+
+### E-02 (`results/E-02/official-20261024-204004/20261024-204009-E-02-dev-hybrid/`)
+
+`groq:openai/gpt-oss-120b`, prompt v5, KB v4, hybrid, gerbang 0,50, cek angka menyala. 40 soal,
+37 panggilan API (3 ditolak gerbang 1 tanpa LLM), 0 retry 429, tidak kena kuota. Token:
+prompt 92.772, completion 4.663, **total 97.435**. Durasi 1.258 detik (1.187 detik menunggu
+pembatas 6.000 token/menit).
+
+**Penilaian oleh Claude, bukan penilai manusia** (`labels_claude.csv`; ringkasan
+`labels_summary.json` dari `python -m mica.eval labels --run <folder>`):
+
+| metrik | hasil | CI 95% Wilson |
+|---|---|---|
+| % benar (soal terjawab) | 26/30 = 86,7% | 70,3-94,7% |
+| % halusinasi (jawaban tidak ditolak) | 1/27 = 3,7% | 0,7-18,3% |
+| % halusinasi versi SDD (potongan dikutip) | 1/27 = 3,7% | sama |
+| % penolakan tepat (soal tidak terjawab) | 10/10 = 100% | 72,2-100% |
+| % penolakan keliru (soal terjawab) | 3/30 = 10,0% | 3,5-25,6% |
+
+Soal konflik: o011 lolos (lima jalur Pedoman PMB 2027, tanpa jalur Pasal 4); o014 lolos (tanpa
+TOEFL untuk MM).
+
+Soal yang tidak benar:
+
+| soal | label | sebab |
+|---|---|---|
+| o017 berkas daftar S1 | halusinasi | ijazah SMA dan sertifikat TOEFL dari daftar pemberkasan Program Magister (pmb#19) disebut sebagai berkas Sarjana |
+| o009 potongan bayar lunas | penolakan-keliru (gerbang 2) | keuangan#19 di peringkat 1, tetapi chunk hanya menyebut cara mengajukan lunas lewat menu "Potongan Uang Kuliah", tanpa kalimat "ada potongan"; LLM menolak |
+| o028 himpunan SI | penolakan-keliru (gerbang 1) | dense@1 0,417 < 0,50; kueri sangat pendek dengan singkatan "SI" |
+| o029 nomor WA pendaftaran | penolakan-keliru (gerbang 2) | brosur#14 di peringkat 4, tetapi nomornya berlabel "Online Admission/Consultation", bukan WA |
+
+Status gerbang: soal terjawab 27 lolos, 1 ditolak gerbang 1, 2 ditolak gerbang 2, 0 gerbang 3;
+soal tidak terjawab 2 ditolak gerbang 1 (o033, o035), 8 ditolak gerbang 2, 0 lolos.
+
+Sebaran dense@1 (bahan kalibrasi nanti; **ambang tidak diubah**):
+
+| kelompok | n | min | median | maks |
+|---|---|---|---|---|
+| terjawab | 30 | 0,417 | 0,623 | 0,758 |
+| tidak terjawab (dekat) | 10 | 0,431 | 0,545 | 0,621 |
+
+Sebaran keduanya tumpang tindih lebar (0,43-0,62). Di sweep offline `e02_sweep.csv`, ambang
+null/0,45/0,48/0,50 memberi salah tolak 3/30 dan tolak benar 10/10; 0,52 dan 0,55 memberi 4/30.
+Penolakan soal tidak terjawab terutama datang dari LLM (8/10), sesuai SDD 2.4 (pertanyaan dekat
+ditangani lapis LLM).
+
+### Temuan (aturan 2: tidak diputuskan dari set ini)
+
+- Gerbang 0,50 menolak satu soal terjawab berkueri pendek (o028); sebaran skor dekat dan terjawab
+  tumpang tindih. Kalibrasi ambang perlu set yang lebih besar.
+- Penolakan keliru gerbang 2 terjadi saat istilah kueri tidak tertulis di chunk ("WA",
+  "potongan lunas"), walaupun chunk relevan terambil.
+- Halusinasi o017: LLM mencampur dua daftar (Sarjana dan Magister) dalam satu chunk pmb#19.
+- BM25 lemah pada bahasa santai, singkatan, dan istilah Inggris; dense lemah pada kata ambigu
+  ("daftar", "lulus"); hybrid menutup keduanya di Recall@5.
+
+### Catatan alat
+
+- `python -m mica.eval --help` gagal dengan `ValueError: unsupported format character 'W'`
+  (tanda % pada teks bantuan "CI 95% Wilson" subperintah annotation). Bukan dari Langkah 65; belum
+  diperbaiki.

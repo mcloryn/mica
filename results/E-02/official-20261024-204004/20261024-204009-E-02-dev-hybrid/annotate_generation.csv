@@ -1,0 +1,653 @@
+﻿qid,type,question,reference_answer,answer,status,cited_chunks,benar,halusinasi,catatan
+o001,answerable,"Kak, kuliah Teknik Informatika setahun habis berapa ya kalau masuk pagi?","Rp14.000.000 per tahun untuk kelas pagi (kelas sore Rp15.000.000 per tahun), menurut Brosur 2025.",Biaya kuliah S1 Teknik Informatika untuk kelas pagi adalah Rp14.000.000 per tahun.,answered,"[brosur/brosur-pmb-2025#4] Brosur Pendaftaran Universitas Mikroskil 2025
+S1 Fakultas Informatika: Computer Science (Teknik Informatika) (Brosur hlm 5)
+
+Expertise: AI-based Software Development / Scalable Software Development
+
+Program studi yang menyelenggarakan pendidikan di bidang teknik informatika dan proses pembelajaran akan diarahkan untuk menghasilkan lulusan yang berdaya saing global dalam pengembangan perangkat lunak berskala besar dan berbasis kecerdasan buatan (AI).
+
+Career Path: Software Engineer, Data Scientist, Game Developer, Software Developer, Researcher, Academician
+
+Biaya Kuliah S1 Fakultas Informatika: Pagi 14.000.000,- / tahun; Sore 15.000.000,- / tahun",,,
+o002,answerable,"Anak saya mau ambil Hukum Bisnis, uang kuliahnya per tahun berapa ya bu?",Rp12.500.000 per tahun; brosur tidak membedakan pagi dan sore (Brosur 2025).,Biaya kuliah untuk program Hukum Bisnis adalah Rp12.500.000 per tahun.,answered,"[brosur/brosur-pmb-2025#11] Brosur Pendaftaran Universitas Mikroskil 2025
+S1 Fakultas Bisnis dan Hukum: Business Law (Hukum Bisnis) (Brosur hlm 9)
+
+Expertise: Digital Business Law / International Business Law
+
+Program studi yang unggul, berdaya saing global, dan berorientasi pada pengembangan hukum bisnis yang berbasis Hukum Bisnis Digital dan Hukum Bisnis Internasional guna menghasilkan sarjana hukum yang profesional, berintegritas, adaptif, dan berjiwa entrepreneur dibidangnya.
+
+Career Path: Legal Analyst pada sektor bisnis digital, Legal Compliance Officer pada perusahaan berbasis teknologi, Konsultan Hukum Digital, Praktisi Hukum Bisnis (Spesialis Digital), Technopreneur di bidang hukum dan ekonomi digital global.
+
+Biaya Kuliah Hukum Bisnis: 12.500.000,- / tahun (brosur tidak membedakan pagi/sore)",,,
+o003,answerable,Akuntansi kalau ambil sore lebih mahal gak dari yang pagi?,"Ya: pagi Rp12.500.000 per tahun, sore Rp13.500.000 per tahun (Brosur 2025).","Biaya kuliah untuk program Akuntansi pada jenjang pagi sebesar 12.500.000 rupiah per tahun, sedangkan pada jenjang sore sebesar 13.500.000 rupiah per tahun, jadi kelas sore memang lebih mahal.",answered,"[brosur/brosur-pmb-2025#10] Brosur Pendaftaran Universitas Mikroskil 2025
+S1 Fakultas Bisnis dan Hukum: Accounting (Akuntansi) (Brosur hlm 9)
+
+Expertise: Accounting for Taxation / Managerial
+
+Program studi ini membekali mahasiswa dengan keterampilan analitis, teknis, dan manajerial di bidang akuntansi dan keuangan agar siap menjadi profesional maupun wirausahawan yang inovatif, adaptif, dan mampu menciptakan peluang usaha serta membangun karier yang unggul.
+
+Career Path: Accountant, Auditor, Financial Accounting Manager, Researcher/Academician, Tax Accounting Specialist, Managerial Accounting Specialist, Entrepeneur.
+
+Biaya Kuliah Akuntansi: Pagi 12.500.000,- / tahun; Sore 13.500.000,- / tahun",,,
+o004,answerable,"Kalau udah terdaftar di kelas pagi, nanti masih bisa pindah ke sore nggak?","Bisa. Mahasiswa baru mengajukan pindah waktu kuliah paling lambat H-7 sebelum KRS dibuat, hanya satu kali, dan bergantung kuota; pindah pagi-sore hanya untuk program sarjana dalam satu prodi.","Bisa, mahasiswa dapat mengajukan pindah waktu kuliah dari kelas pagi ke kelas sore sesuai jadwal yang tercantum di Kalender Akademik, dan pengajuan tersebut harus dilakukan paling lambat H‑7 sebelum KRS dibuat.",answered,"[akademik/peraturan-akademik-2025#50] Peraturan Akademik Universitas Mikroskil Tahun 2025
+BAB III SISTEM PENYELENGGARAAN PENDIDIKAN › Pasal 30 Pindah Waktu Kuliah
+
+(1) Mahasiswa diberikan kesempatan untuk pindah waktu kuliah dari pagi ke sore ataupun
+sebaliknya dalam 1 (satu) program studi.
+(2) Permohonan pindah waktu kuliah dilakukan sesuai dengan jadwal yang ditetapkan dalam
+Kalender Akademik.
+(3) Pindah waktu kuliah hanya diperuntukkan bagi mahasiswa program sarjana.
+
+[pmb/pedoman-pmb-2027#21] Pedoman Penerimaan Mahasiswa Baru Universitas Mikroskil Tahun 2027
+BAB III REGISTRASI, PEMBERKASAN, PENGUNDURAN DIRI DAN PINDAH › 3.4 Pindah Kelas, Jurusan, dan Waktu Kuliah
+
+a. Pengajuan pindah kelas, jurusan dan waktu kuliah Mahasiswa Baru dapat dilakukan
+paling lambat H-7 sebelum KRS dibuat.
+b. Mahasiswa Baru hanya dapat melakukan pengajuan pindah kelas, jurusan dan waktu
+kuliah masing-masing sebanyak satu kali.
+c. Persetujuan pengajuan pindah kelas, jurusan dan waktu kuliah bergantung pada
+ketersediaan jumlah kuota kelas, jurusan dan waktu kuliah.",,,
+o005,answerable,"Kalau ambil kelas sore, uang kuliahnya bisa dicicil gak? berapa kali?","Bisa, 4 kali masing-masing 25% uang kuliah per tahun: saat daftar ulang/Juli, Oktober, Januari, dan April.","Untuk mahasiswa kelas sore, uang kuliah dapat dicicil sebanyak empat kali. Cicilan pertama dibayar saat daftar ulang, kemudian pada awal Oktober, Januari, dan April.",answered,"[keuangan/panduan-pembayaran-2026-2027#10] Panduan Dasar dan Pembayaran Uang Kuliah T.A. 2026/2027
+b. Skema Khusus Mahasiswa Kelas Sore (Cicilan 4 kali)
+
+Bagi mahasiswa kelas sore, pembayaran cicilan Biaya Kuliah dilakukan setiap bulan Juli, Oktober, Januari, dan April dengan rincian sebagai berikut:
+
+[pmb/pedoman-pmb-2027#18] Pedoman Penerimaan Mahasiswa Baru Universitas Mikroskil Tahun 2027
+BAB III REGISTRASI, PEMBERKASAN, PENGUNDURAN DIRI DAN PINDAH › 3.1 Registrasi Administrasi
+
+a. Bagi peserta seleksi Penerimaan Mahasiswa Baru Universitas Mikrosil yang
+dinyatakan DITERIMA diwajibkan melakukan pembayaran Registrasi Administrasi
+dengan ketentuan sebagai berikut:
+i. Uang Kuliah
+Uang kuliah untuk program sarjana dan magister akan ditetapkan oleh Rektor
+Universitas Mikroskil setiap tahun sebelum periode penerimaan mahasiswa baru
+dimulai.
+Untuk meringankan beban calon mahasiswa, uang kuliah untuk jenjang sarjana
+dapat dilakukan secara cicilan. Untuk mahasiswa baru dengan waktu perkuliahan
+pagi, uang kuliah dapat dibayarkan secara bertahap sebanyak 12x cicilan bulanan,
+mulai bulan Juli tahun berjalan sampai dengan Juni tahun berikutnya. Khusus
+mahasiswa baru, cicilan untuk 3 (tiga) bulan pertama (Juli–September) wajib
+dibayarkan sekaligus pada saat pendaftaran ulang, sedangkan sisa pembayaran
+dapat dicicil setiap bulan mulai Oktober tahun berjalan sampai dengan Juni tahun
+berikutnya, sesuai dengan syarat dan ketentuan yang berlaku. Uang kuliah untuk
+mahasiswa baru dengan waktu perkuliahan sore dapat dicicil sebanyak 4x, yaitu
+25% pada saat daftar ulang, 25% pada awal Oktober, 25% pada awal Januari, dan
+25% pada awal April.
+ii. Dana Peningkatatan dan Pengembangan Pendidikan (DP3)
+Dana Peningkatan dan Pengembangan Pendidikan untuk program sarjana dan
+magister akan ditetapkan oleh Rektor Universitas Mikroskil setiap tahun sebelum
+periode penerimaan mahasiswa baru dimulai.
+b. Pembayaran dilakukan melalui Kode Pembayaran yang di generate oleh sistem.
+c. Status pembayaran dapat diakses pada Sistem Informasi Penerimaan Mahasiswa
+Baru Universitas Mikroskil.
+d. Jika pendaftar tidak melakukan registrasi sampai waktu yang ditentukan, maka
+dianggap mengundurkan diri.",,,
+o006,answerable,Mahasiswa baru kelas pagi pas daftar ulang harus langsung bayar berapa bulan dulu?,Cicilan 3 bulan pertama (Juli-September) dibayar sekaligus saat daftar ulang; sisanya dicicil bulanan Oktober sampai Juni.,Mahasiswa baru kelas pagi harus membayar cicilan untuk tiga bulan pertama (Juli sampai September) sekaligus saat daftar ulang.,answered,"[pmb/pedoman-pmb-2027#18] Pedoman Penerimaan Mahasiswa Baru Universitas Mikroskil Tahun 2027
+BAB III REGISTRASI, PEMBERKASAN, PENGUNDURAN DIRI DAN PINDAH › 3.1 Registrasi Administrasi
+
+a. Bagi peserta seleksi Penerimaan Mahasiswa Baru Universitas Mikrosil yang
+dinyatakan DITERIMA diwajibkan melakukan pembayaran Registrasi Administrasi
+dengan ketentuan sebagai berikut:
+i. Uang Kuliah
+Uang kuliah untuk program sarjana dan magister akan ditetapkan oleh Rektor
+Universitas Mikroskil setiap tahun sebelum periode penerimaan mahasiswa baru
+dimulai.
+Untuk meringankan beban calon mahasiswa, uang kuliah untuk jenjang sarjana
+dapat dilakukan secara cicilan. Untuk mahasiswa baru dengan waktu perkuliahan
+pagi, uang kuliah dapat dibayarkan secara bertahap sebanyak 12x cicilan bulanan,
+mulai bulan Juli tahun berjalan sampai dengan Juni tahun berikutnya. Khusus
+mahasiswa baru, cicilan untuk 3 (tiga) bulan pertama (Juli–September) wajib
+dibayarkan sekaligus pada saat pendaftaran ulang, sedangkan sisa pembayaran
+dapat dicicil setiap bulan mulai Oktober tahun berjalan sampai dengan Juni tahun
+berikutnya, sesuai dengan syarat dan ketentuan yang berlaku. Uang kuliah untuk
+mahasiswa baru dengan waktu perkuliahan sore dapat dicicil sebanyak 4x, yaitu
+25% pada saat daftar ulang, 25% pada awal Oktober, 25% pada awal Januari, dan
+25% pada awal April.
+ii. Dana Peningkatatan dan Pengembangan Pendidikan (DP3)
+Dana Peningkatan dan Pengembangan Pendidikan untuk program sarjana dan
+magister akan ditetapkan oleh Rektor Universitas Mikroskil setiap tahun sebelum
+periode penerimaan mahasiswa baru dimulai.
+b. Pembayaran dilakukan melalui Kode Pembayaran yang di generate oleh sistem.
+c. Status pembayaran dapat diakses pada Sistem Informasi Penerimaan Mahasiswa
+Baru Universitas Mikroskil.
+d. Jika pendaftar tidak melakukan registrasi sampai waktu yang ditentukan, maka
+dianggap mengundurkan diri.",,,
+o007,answerable,Bayar uang kuliah bisa lewat apa aja min?,Hanya lewat Blibli (e-commerce) atau Virtual Account BCA.,Pembayaran uang kuliah dapat dilakukan melalui e‑Commerce Blibli atau menggunakan Virtual Account BCA.,answered,"[keuangan/panduan-pembayaran-2026-2027#7] Panduan Dasar dan Pembayaran Uang Kuliah T.A. 2026/2027
+Prosedur Registrasi Akademik (Pengisian KRS)
+
+Cara pelunasan uang kuliah mahasiswa adalah melalui e-Commerce **(Blibli) atau Virtual Account BCA**. Info lebih lanjut tentang Pembayaran uang kuliah dapat dilihat pada menu **Pembayaran Uang Kuliah**. Tabel berikut ini adalah **jumlah cicilan dan jadwal pembayaran Uang Kuliah T.A. 2026/2027**.",,,
+o008,answerable,Nomor VA BCA buat bayar kuliah itu gimana formatnya?,15404 diikuti NIM.,Nomor Virtual Account BCA untuk pembayaran kuliah terdiri dari kode 15404 diikuti langsung dengan NIM kamu.,answered,"[keuangan/panduan-pembayaran-2026-2027#17] Panduan Dasar dan Pembayaran Uang Kuliah T.A. 2026/2027
+Informasi Pembayaran Biaya Kuliah
+
+1. **Bagaimana cara melakukan pembayaran melalui Blibli?**
+   1. Silahkan buka halaman web **blibli.com** melalui web browser atau **aplikasi blibli**.
+   2. Jika kamu **belum** memiliki akun blibli, silahkan buat akun terlebih dahulu. Jika **sudah** memiliki akun blibli, silahkan login terlebih dahulu.
+   3. Pilih menu **Tagihan dan Isi Ulang | Pendidikan**.
+   4. Cari instansi **Universitas Mikroskil**.
+   5. Masukkan **Nomor Pembayaran (NIM)**. Klik **Lihat Tagihan**.
+   6. Pilih **Metode Pembayaran** dan lakukan pembayaran mengikuti ketentuan yang ada.
+   7. Setelah melakukan pembayaran, pastikan **status** tagihannya sudah **selesai**.
+
+2. **Bagaimana cara melakukan pembayaran melalui VA BCA?**
+- **Dari ATM**
+1. Kunjungi ATM BCA terdekat, kemudian masukkan kartu ATM dan PIN ATM BCA.
+2. Pilih menu **Penarikan Tunai/Transaksi Lainnya**.
+3. Pilih menu **Transaksi Lainnya**.
+4. Lalu pilih menu **Transfer**.
+5. Kemudian pilih menu **Ke Rek BCA Virtual Account**.
+6. Masukkan **Nomor Virtual Account BCA (15404 + NIM)**. Klik **Benar**.
+7. Cek detail transaksi dan pilih **Ya** jika semua sudah benar.
+8. Setelah melakukan pembayaran, pastikan **status** tagihannya sudah **selesai**.
+- **Dari BCA Mobile**
+1. Login ke BCA Mobile.
+2. Pilih menu **m-Transfer**.
+3. Pilih **BCA Virtual Account**.
+4. Masukkan **Nomor Virtual Account BCA (15404 + NIM)**. Klik **Send**.
+5. Masukkan nominal, lalu cek detail transaksi dan pilih **OK** jika semua sudah benar.
+6. Masukkan **PIN**.",,,
+o010,answerable,"Lagi susah ekonomi nih, boleh nunda bayar uang kuliah?",Boleh: ajukan penundaan paling lambat H-3 sebelum masa pembayaran cicilan dimulai; penundaan hanya sampai batas cicilan periode berikutnya.,"Bisa, kamu dapat mengajukan penundaan pembayaran uang kuliah karena kendala ekonomi. Permohonan harus diajukan paling lambat tiga hari sebelum masa pembayaran cicilan dimulai, agar tidak terkena sanksi keterlambatan. Penundaan hanya diberikan sampai batas cicilan periode berikutnya.",answered,"[keuangan/panduan-pembayaran-2026-2027#19] Panduan Dasar dan Pembayaran Uang Kuliah T.A. 2026/2027
+FAQ
+
+1. **Saya ingin membayar Biaya Kuliah lunas 1 (satu) tahun. Apa yang harus saya lakukan?**
+
+Kamu dapat melakukan pengajuan pembayaran Biaya Kuliah Lunas 1 (satu) tahun melalui portal akademik **Mika** pada menu **Pengajuan > Potongan Uang Kuliah** sesuai masa pengajuan yang telah ditetapkan pada Kalender Akademik.
+
+2. **Apakah Universitas Mikroskil memberikan beasiswa atau keringanan?**
+
+Universitas Mikroskil memberikan berbagai program beasiswa dan keringanan biaya pendidikan, termasuk potongan Biaya Kuliah untuk prestasi akademik, serta potongan khusus lainnya. Permohonan keringanan potongan lunas dan saudara kandung dapat diajukan pada periode **01-30 Mei** setiap tahunnya sebelum Tahun Akademik baru dimulai.
+
+3. **Saya sudah melakukan pembayaran Biaya Kuliah, bagaimana cara melihat status pembayaran Biaya Kuliah yang telah saya bayar?**
+
+a. Jika kamu melakukan pembayaran melalui blibli, kamu dapat melihat history pemesanan pada aplikasi / web blibli.
+
+b. Jika kamu melakukan pembayaran melalui Virtual Account BCA, kamu dapat memeriksa mutasi rekening bank.
+
+c. Kamu juga dapat melihat status pembayaran melalui portal akademik MIKA > Profil > Riwayat Pembayaran.
+
+Selalu pastikan seluruh proses pembayaran dan selalu periksa status pembayaran yang telah dilakukan sebelum masa pembayaran Biaya Kuliah berakhir.
+
+4. **Saya membayar Biaya Kuliah melewati masa pembayaran, apa sanksi yang saya terima?**
+
+Kamu akan dikenakan sanksi keterlambatan sebesar 10% dari Biaya Kuliah cicilan yang akan dibayarkan pada periode tersebut.
+
+5. **Saya sedang mengalami kendala ekonomi, apakah saya dapat mengajukan permohonan penundaan pembayaran Biaya Kuliah?**
+
+**YA**, kamu dapat mengajukan permohonan penundaan pembayaran Biaya Kuliah paling lambat H-3 sebelum masa pembayaran cicilan Biaya Kuliah dimulai untuk menghindari sanksi keterlambatan. Penundaan diberikan hanya sampai batas cicilan periode selanjutnya.",,,
+o011,answerable,Masuk Mikroskil bisa lewat jalur apa aja sih?,"Lima jalur (Pedoman PMB 2027): PMDK, Prestasi, Reguler, Beasiswa KIP Kuliah, dan Ujian Saring Masuk khusus S2.","Masuk Universitas Mikroskil dapat melalui lima jalur, yaitu Jalur Penelusuran Minat dan Bakat (PMDK), Jalur Prestasi, Jalur Reguler, Jalur Beasiswa KIP Kuliah, dan Jalur Ujian Saring Masuk khusus untuk program S2.",answered,"[pmb/pedoman-pmb-2027#2] Pedoman Penerimaan Mahasiswa Baru Universitas Mikroskil Tahun 2027
+Ditetapkan di : Medan
+Pada tanggal : 27 Juli 2026
+Rektor Universitas Mikroskil
+
+Hardy, S.Kom., M.Sc., Ph.D.
+
+Tembusan :
+1. Ketua Yayasan Bina Pertiwi Medan
+2. Para Wakil Rektor
+3. Sekretaris Universitas
+4. Para Dekan
+
+KATA PENGANTAR
+
+Dengan memanjatkan puji syukur kehadirat Tuhan Yang Maha Esa, Pedoman Pelaksanaan
+Penerimaan Mahasiswa Baru Universitas Mikroskil ini diterbitkan. Pedoman ini berfungsi
+sebagai panduan teknis dalam Penerimaan Mahasiswa Baru. Sebagai Perguruan Tinggi
+yang dimiliki oleh Yayasan Bina Pertiwi Medan, Universitas Mikroskil berusaha untuk
+menciptakan alumni-alumni yang bermutu dengan kepribadian unggul dan terdepan.
+Untuk mendukung hal tersebut, Penerimaan Mahasiswa Baru dapat menjadi gerbang
+utama dalam menciptakan alumni-alumni yang bermutu dan bermanfaat di masyarakat.
+Melalui rangkaian proses Penerimaan Mahasiswa Baru, Universitas Mikroskil berupaya
+merekrut mahasiswa-mahasiswa yang unggul, untuk dididik menjadi pribadi yang tidak
+hanya unggul dan terdepan secara akademik melainkan juga unggul dalam hal
+kepribadian.
+
+Buku Pedoman Pelaksanaan Penerimaan Mahasiswa Baru Universitas Mikroskil ini
+disusun dengan tujuan untuk memberikan informasi yang lengkap tentang sistem
+rekrutmen dan seleksi calon mahasiswa yang ingin melanjutkan studi di Universitas
+Mikroskil yang dilaksanakan melalui 5 (lima) jalur, yaitu Jalur Penelusuran Minat dan
+Kemampuan (PMDK), Jalur Prestasi, Jalur Reguler, Jalur Beasiswa KIP Kuliah, dan Jalur
+Ujian Saring Masuk khusus untuk tingkat S2. Dalam panduan ini dijelaskan secara detail
+mengenai pilihan program studi, prosedur, syarat pendaftaran, biaya pendidikan, dan
+registrasi.
+
+[pmb/pedoman-pmb-2027#6] Pedoman Penerimaan Mahasiswa Baru Universitas Mikroskil Tahun 2027
+BAB I PENGELOLAAN PENERIMAAN MAHASISWA BARU › 1.2 Jalur Seleksi
+
+a. Jalur PMDK (Penelusuran Minat dan Bakat)
+Jalur Seleksi PMDK adalah jalur seleksi penerimaan calon mahasiswa melalui seleksi
+prestasi bidang akademik maupun non-akademik (seperti olahraga, senin, atau
+undangan dari institusi). Semua Prodi menerima mahasiswa baru melalui pola seleksi
+PMDK dengan pengaturan seleksi ditentukan oleh Rektor Universitas Mikroskil.
+PMDK memungkinkan calon mahasiswa diterima tanpa mengikuti tes akademik dan
+mendapatkan beasiswa sesuai ketentuan yang ditetapkan Rektor Universitas
+Mikroskil.
+PMDK memungkinkan calon mahasiswa diterima tanpa mengikuti tes akademik
+dengan syarat dan ketentuan sebagai berikut:
+i. Calon mahasiswa wajib mengikuti tes wawancara serta melampirkan bukti
+prestasi yang dimiliki.
+ii. Calon mahasiswa yang diterima dalam jalur seleksi PMDK wajib bergabung dengan
+UKM / Program Studi Universitas Mikroskil sesuai dengan minat dan bakat yang
+dimiliki.
+iii. Calon mahasiswa yang diterima dalam jalur seleksi PMDK wajib mewakili
+Universitas Mikroskil dalam perlombaan mahasiswa baik di tingkat lokal, nasional
+dan internasional yang sesuai dengan minat dan bakat yang dimiliki.
+iv. Calon mahasiswa yang berhak mengikuti jalur seleksi PMDK merupakan calon
+mahasiswa yang lulus SMA/SMK/MA paling lama 1 tahun sebelum tahun
+pendaftaran dibuka.
+v. Terdapat batasan Jumlah Calon Mahasiswa yang diterima melalui Jalur Seleksi
+PMDK dan ditentukan setiap tahunnya sesuai dengan kebutuhan.
+vi. Calon mahasiswa yang dinyatakan memenuhi persyaratan wajib menandatangani
+kontrak sesuai dengan syarat dan ketentuan yang berlaku.
+b. Jalur Prestasi
+Jalur Seleksi Prestasi adalah jalur seleksi penerimaan calon mahasiswa melalui
+seleksi prestasi bidang akademik (nilai rapor semester). Semua Prodi menerima
+mahasiswa baru melalui pola seleksi Prestasi dengan pengaturan seleksi ditentukan
+oleh Rektor Universitas Mikroskil. Seleksi Prestasi memungkinkan calon mahasiswa
+diterima tanpa mengikuti tes akademik dan mendapatkan potongan sesuai ketentuan
+yang ditetapkan Rektor Universitas Mikroskil.",,,
+o012,answerable,Yang jalur prestasi itu pakai nilai rapor ya? ada tesnya gak?,"Ya, seleksi berdasarkan nilai rapor semester, tanpa tes akademik, dengan potongan sesuai ketentuan Rektor; syarat rata-rata rapor dan mapel tertentu ditetapkan panitia, lulus paling lama 1 tahun sebelum pendaftaran.","Jalur prestasi memang menggunakan nilai rata‑rata rapor SMA/SMK sesuai ketentuan panitia, dan tidak memerlukan tes akademik.",answered,"[pmb/pedoman-pmb-2027#7] Pedoman Penerimaan Mahasiswa Baru Universitas Mikroskil Tahun 2027
+BAB I PENGELOLAAN PENERIMAAN MAHASISWA BARU › 1.2 Jalur Seleksi
+
+Jalur Seleksi Prestasi memungkinkan calon mahasiswa diterima tanpa mengikuti tes
+akademik dengan syarat dan ketentuan sebagai berikut:
+i. Nilai Rata-Rata Rapor Pendidikan SMA/SMK Calon Mahasiswa sesuai dengan
+ketentuan yang ditetapkan panitia PMB.
+ii. Nila Rata-Rata Mata Pelajaran tertentu sesuai dengan ketentuan yang ditetapkan
+panitia PMB.
+iii. Calon mahasiswa yang berhak mengikuti jalur seleksi Prestasi merupakan calon
+mahasiswa yang lulus SMA/SMK/MA paling lama 1 tahun sebelum tahun
+pendaftaran dibuka.
+iv. Terdapat batasan Jumlah Calon Mahasiswa yang diterima melalui Jalur Seleksi
+Prestasi dan ditentukan setiap tahunnya sesuai dengan kebutuhan.
+c. Jalur Reguler
+Jalur seleksi Reguler memungkinkan calon mahasiswa diterima tanpa mengikuti tes
+dan tanpa syarat dan ketentuan.
+d. Jalur Beasiswa KIP Kuliah
+KIP Kuliah adalah bantuan biaya pendidikan bagi calon mahasiswa tidak mampu
+secara ekonomi dan memiliki potensi akademik baik untuk menempuh pendidikan di
+Perguruan Tinggi pada Program Studi unggulan sampai lulus tepat waktu. Adapun
+waktu seleksi mengikuti jadwal yang ditetapkan oleh Direktorat Pembelajaran dan
+Kemahasiswaan Ditjen Dikti.
+e. Jalur Ujian Saring Masuk untuk Tingkat S2
+Untuk tingkat S2, jika calon mahasiswa baru merupakan alumni yang lulus paling
+lama 1 tahun sebelum tahun pendaftaran dibuka, maka tidak perlu mengikuti Ujian
+Saring Masuk. Selain itu, semua wajib mengikuti Ujian Saring Masuk untuk
+mengetahui tingkat pengetahuan dari calon mahasiswa baru S2.",,,
+o013,answerable,"Kalau lewat PMDK, ada kewajiban apa aja setelah diterima?","Wajib ikut wawancara dan melampirkan bukti prestasi; setelah diterima wajib bergabung dengan UKM/prodi sesuai minat, mewakili kampus di lomba, dan menandatangani kontrak.","Setelah diterima lewat jalur PMDK, calon mahasiswa harus mengikuti tes wawancara dan melampirkan bukti prestasi, bergabung dengan UKM atau program studi sesuai minat, mewakili Universitas Mikroskil dalam perlombaan, serta menandatangani kontrak. Selanjutnya harus menyelesaikan pemberkasan dengan menyerahkan dokumen seperti ijazah, KTP, KK, akta kelahiran, dan dokumen lain yang dipersyaratkan, dan melakukan pembayaran biaya DP3 serta uang kuliah agar resmi menjadi mahasiswa.",answered,"[pmb/pedoman-pmb-2027#6] Pedoman Penerimaan Mahasiswa Baru Universitas Mikroskil Tahun 2027
+BAB I PENGELOLAAN PENERIMAAN MAHASISWA BARU › 1.2 Jalur Seleksi
+
+a. Jalur PMDK (Penelusuran Minat dan Bakat)
+Jalur Seleksi PMDK adalah jalur seleksi penerimaan calon mahasiswa melalui seleksi
+prestasi bidang akademik maupun non-akademik (seperti olahraga, senin, atau
+undangan dari institusi). Semua Prodi menerima mahasiswa baru melalui pola seleksi
+PMDK dengan pengaturan seleksi ditentukan oleh Rektor Universitas Mikroskil.
+PMDK memungkinkan calon mahasiswa diterima tanpa mengikuti tes akademik dan
+mendapatkan beasiswa sesuai ketentuan yang ditetapkan Rektor Universitas
+Mikroskil.
+PMDK memungkinkan calon mahasiswa diterima tanpa mengikuti tes akademik
+dengan syarat dan ketentuan sebagai berikut:
+i. Calon mahasiswa wajib mengikuti tes wawancara serta melampirkan bukti
+prestasi yang dimiliki.
+ii. Calon mahasiswa yang diterima dalam jalur seleksi PMDK wajib bergabung dengan
+UKM / Program Studi Universitas Mikroskil sesuai dengan minat dan bakat yang
+dimiliki.
+iii. Calon mahasiswa yang diterima dalam jalur seleksi PMDK wajib mewakili
+Universitas Mikroskil dalam perlombaan mahasiswa baik di tingkat lokal, nasional
+dan internasional yang sesuai dengan minat dan bakat yang dimiliki.
+iv. Calon mahasiswa yang berhak mengikuti jalur seleksi PMDK merupakan calon
+mahasiswa yang lulus SMA/SMK/MA paling lama 1 tahun sebelum tahun
+pendaftaran dibuka.
+v. Terdapat batasan Jumlah Calon Mahasiswa yang diterima melalui Jalur Seleksi
+PMDK dan ditentukan setiap tahunnya sesuai dengan kebutuhan.
+vi. Calon mahasiswa yang dinyatakan memenuhi persyaratan wajib menandatangani
+kontrak sesuai dengan syarat dan ketentuan yang berlaku.
+b. Jalur Prestasi
+Jalur Seleksi Prestasi adalah jalur seleksi penerimaan calon mahasiswa melalui
+seleksi prestasi bidang akademik (nilai rapor semester). Semua Prodi menerima
+mahasiswa baru melalui pola seleksi Prestasi dengan pengaturan seleksi ditentukan
+oleh Rektor Universitas Mikroskil. Seleksi Prestasi memungkinkan calon mahasiswa
+diterima tanpa mengikuti tes akademik dan mendapatkan potongan sesuai ketentuan
+yang ditetapkan Rektor Universitas Mikroskil.
+
+[pmb/pedoman-pmb-2027#19] Pedoman Penerimaan Mahasiswa Baru Universitas Mikroskil Tahun 2027
+BAB III REGISTRASI, PEMBERKASAN, PENGUNDURAN DIRI DAN PINDAH › 3.2 Pemberkasan
+
+a. Pemberkasan dilakukan setelah calon mahasiswa dinyatakan diterima di Universitas
+Mikroskil dan telah melakukan Registrasi Administrasi.
+b. Calon Mahasiswa wajib menyerahkan dokumen berikut:
+i. Program Sarjana
+1. File softcopy Ijazah terakhir/surat keterangan pengganti ijazah yang telah
+dilegalisir
+2. File softcopy Kartu Tanda Penduduk
+3. File softcopy Kartu Keluarga
+4. File softcopy Akta Kelahiran
+ii. Program Magister
+1. Surat izin instansi/lembaga tempat bekerja (Opsional)
+2. File softcopy KTP
+3. File softcopy Kartu Keluarga
+4. File softcopy ijazah S1/surat keterangan pengganti ijazah yang dilegalisir
+5. File softcopy transkrip nilai yang dilegalisir
+
+
+6. File softcopy Ijazah SMA/SMK/MA
+7. File softcopy sertifikat TOEFL yang masih berlaku (Boleh menyusul)
+
+[pmb/pedoman-pmb-2027#14] Pedoman Penerimaan Mahasiswa Baru Universitas Mikroskil Tahun 2027
+BAB II Sistem Rekrutmen dan Seleksi Calon Mahasiswa Baru › 2.2 Prosedur Seleksi
+
+a. Melakukan proses pendaftaran secara daring (online) melalui website https://daftar.mikroskil.ac.id. Proses ini dapat dilakukan di mana saja (tidak harus datang ke Kampus).
+b. Pendaftar membuat akun pendaftaran dengan menggunakan akun google dan mengisi data pribadi.
+c. Pendaftar melakukan pembayaran biaya pendaftaran awal.
+d. Pendaftar menerima kwitansi atau email pemberitahuan keberhasilan pembayaran biaya pendaftaran awal yang dilakukan.
+e. Pendaftar memilih jalur seleksi yang diikuti, mengupload dokumen yang dibutuhkan, serta mengisi data diri di Sistem Informasi Penerimaan Mahasiswa Baru Universitas Mikroskil.
+f. Pengumuman pendaftar yang lolos seleksi dilakukan paling lambat 1 minggu setelah jadwal seleksi.
+g. Pendaftar yang dinyatakan diterima diwajibkan untuk melakukan pembayaran biaya DP3 dan Uang Kuliah untuk dapat dinyatakan sah menjadi mahasiswa baru Universitas Mikroskil.
+h. Pendaftar mengisi data diri lanjutan yang dibutuhkan untuk pelaporan ke PDDIKTI melalui https://mika.mikroskil.ac.id/.",,,
+o014,answerable,"Mau lanjut S2 Magister Manajemen, perlu TOEFL nggak?","Persyaratan khusus MM tidak mencantumkan skor TOEFL: lulusan S1, IPK minimal 2,75, akreditasi prodi asal minimal Baik/B; kelas Eksekutif menambah CV, surat rekomendasi, dan motivation letter. Skor TOEFL minimal 475 hanya untuk MTI. Catatan: daftar pemberkasan Program Magister (umum) memuat sertifikat TOEFL yang masih berlaku, boleh menyusul. Salah bila menyebut MM wajib TOEFL minimal 475.","Untuk program Magister Manajemen (S‑2) tidak ada persyaratan skor TOEFL; hanya diperlukan IPK minimal 2,75 dan akreditasi prodi asal minimal Baik/B/Terakreditasi, serta dokumen lain seperti CV dan surat rekomendasi untuk kelas Eksekutif.",answered,"[pmb/pedoman-pmb-2027#13] Pedoman Penerimaan Mahasiswa Baru Universitas Mikroskil Tahun 2027
+BAB II Sistem Rekrutmen dan Seleksi Calon Mahasiswa Baru › 2.1 Sistem Rekrutmen › c. Persyaratan Khusus per Program Studi yang didaftar
+
+Magister Teknologi Informasi (S-2) / Graduate Program of Information Technology:
+1. Lulusan sarjana dengan latar belakang keilmuan: a. Komputer, teknik, ekonomi, MIPA, atau b. Lainnya (pengalaman kerja di bidang TI minimal 3 tahun)
+2. IPK Sarjana minimal 2.75
+3. Skor TOEFL minimal 475 ke atas
+
+Magister Manajemen (S-2) / Graduate Program of Management:
+1. Lulusan sarjana (S1)
+2. IPK Sarjana minimal 2.75
+3. Akreditasi Prodi Asal minimal Baik / B / Terakreditasi
+Untuk kelas Eksekutif Magister Manajemen, persyaratan tambahan:
+1. Curriculum Vitae (CV) terbaru
+2. Surat rekomendasi (1–2 orang, misalnya dosen/atasan tempat bekerja)
+3. Motivation Letter / Statement of Purpose (Alasan memilih studi lanjut, rencana karier)
+
+Teknik Informatika (S-1) / Undergraduate Program of Computer Science: Lulusan SMA/MA/SMK/Paket C seluruh jurusan
+
+Sistem Informasi (S-1) / Undergraduate Program of Information System: Lulusan SMA/MA/SMK/Paket C seluruh jurusan
+
+Teknologi Informasi (S-1) / Undergraduate Program of Information Technology: Lulusan SMA/MA/SMK/Paket C seluruh jurusan
+
+Manajemen (S-1) / Undergraduate Program of Management: Lulusan SMA/MA/SMK/Paket C seluruh jurusan
+
+Akuntansi (S-1) / Undergraduate Program of Accounting: Lulusan SMA/MA/SMK/Paket C seluruh jurusan
+
+Hukum Bisnis (S-1) / Undergraduate Program of Business Law: Lulusan SMA/MA/SMK/Paket C seluruh jurusan",,,
+o015,answerable,Lulusan SMK jurusan akuntansi boleh daftar Teknik Informatika gak?,Boleh; Teknik Informatika (S1) menerima lulusan SMA/MA/SMK/Paket C seluruh jurusan.,"Boleh, karena program Teknik Informatika menerima lulusan SMA/MA/SMK/Paket C dari semua jurusan, termasuk jurusan Akuntansi.",answered,"[pmb/pedoman-pmb-2027#13] Pedoman Penerimaan Mahasiswa Baru Universitas Mikroskil Tahun 2027
+BAB II Sistem Rekrutmen dan Seleksi Calon Mahasiswa Baru › 2.1 Sistem Rekrutmen › c. Persyaratan Khusus per Program Studi yang didaftar
+
+Magister Teknologi Informasi (S-2) / Graduate Program of Information Technology:
+1. Lulusan sarjana dengan latar belakang keilmuan: a. Komputer, teknik, ekonomi, MIPA, atau b. Lainnya (pengalaman kerja di bidang TI minimal 3 tahun)
+2. IPK Sarjana minimal 2.75
+3. Skor TOEFL minimal 475 ke atas
+
+Magister Manajemen (S-2) / Graduate Program of Management:
+1. Lulusan sarjana (S1)
+2. IPK Sarjana minimal 2.75
+3. Akreditasi Prodi Asal minimal Baik / B / Terakreditasi
+Untuk kelas Eksekutif Magister Manajemen, persyaratan tambahan:
+1. Curriculum Vitae (CV) terbaru
+2. Surat rekomendasi (1–2 orang, misalnya dosen/atasan tempat bekerja)
+3. Motivation Letter / Statement of Purpose (Alasan memilih studi lanjut, rencana karier)
+
+Teknik Informatika (S-1) / Undergraduate Program of Computer Science: Lulusan SMA/MA/SMK/Paket C seluruh jurusan
+
+Sistem Informasi (S-1) / Undergraduate Program of Information System: Lulusan SMA/MA/SMK/Paket C seluruh jurusan
+
+Teknologi Informasi (S-1) / Undergraduate Program of Information Technology: Lulusan SMA/MA/SMK/Paket C seluruh jurusan
+
+Manajemen (S-1) / Undergraduate Program of Management: Lulusan SMA/MA/SMK/Paket C seluruh jurusan
+
+Akuntansi (S-1) / Undergraduate Program of Accounting: Lulusan SMA/MA/SMK/Paket C seluruh jurusan
+
+Hukum Bisnis (S-1) / Undergraduate Program of Business Law: Lulusan SMA/MA/SMK/Paket C seluruh jurusan",,,
+o016,answerable,IPK minimal buat daftar S2 Teknologi Informasi berapa?,"IPK sarjana minimal 2,75 (juga TOEFL minimal 475 dan latar belakang komputer/teknik/ekonomi/MIPA atau pengalaman kerja TI minimal 3 tahun).","IPK minimal yang diperlukan untuk mendaftar program Magister Teknologi Informasi (S2) adalah 2,75.",answered,"[pmb/pedoman-pmb-2027#13] Pedoman Penerimaan Mahasiswa Baru Universitas Mikroskil Tahun 2027
+BAB II Sistem Rekrutmen dan Seleksi Calon Mahasiswa Baru › 2.1 Sistem Rekrutmen › c. Persyaratan Khusus per Program Studi yang didaftar
+
+Magister Teknologi Informasi (S-2) / Graduate Program of Information Technology:
+1. Lulusan sarjana dengan latar belakang keilmuan: a. Komputer, teknik, ekonomi, MIPA, atau b. Lainnya (pengalaman kerja di bidang TI minimal 3 tahun)
+2. IPK Sarjana minimal 2.75
+3. Skor TOEFL minimal 475 ke atas
+
+Magister Manajemen (S-2) / Graduate Program of Management:
+1. Lulusan sarjana (S1)
+2. IPK Sarjana minimal 2.75
+3. Akreditasi Prodi Asal minimal Baik / B / Terakreditasi
+Untuk kelas Eksekutif Magister Manajemen, persyaratan tambahan:
+1. Curriculum Vitae (CV) terbaru
+2. Surat rekomendasi (1–2 orang, misalnya dosen/atasan tempat bekerja)
+3. Motivation Letter / Statement of Purpose (Alasan memilih studi lanjut, rencana karier)
+
+Teknik Informatika (S-1) / Undergraduate Program of Computer Science: Lulusan SMA/MA/SMK/Paket C seluruh jurusan
+
+Sistem Informasi (S-1) / Undergraduate Program of Information System: Lulusan SMA/MA/SMK/Paket C seluruh jurusan
+
+Teknologi Informasi (S-1) / Undergraduate Program of Information Technology: Lulusan SMA/MA/SMK/Paket C seluruh jurusan
+
+Manajemen (S-1) / Undergraduate Program of Management: Lulusan SMA/MA/SMK/Paket C seluruh jurusan
+
+Akuntansi (S-1) / Undergraduate Program of Accounting: Lulusan SMA/MA/SMK/Paket C seluruh jurusan
+
+Hukum Bisnis (S-1) / Undergraduate Program of Business Law: Lulusan SMA/MA/SMK/Paket C seluruh jurusan",,,
+o017,answerable,Daftar S1 berkas apa aja yang harus disiapin?,"Saat pendaftaran: bayar biaya pendaftaran, softcopy rapor (cover, identitas, nilai kelas 11/12), sertifikat prestasi untuk PMDK (opsional), surat keterangan lulus; saat pemberkasan: ijazah legalisir, KTP, Kartu Keluarga, akta kelahiran.","Untuk program Sarjana, berkas yang harus disiapkan antara lain: membayar biaya pendaftaran; file softcopy ijazah terakhir atau surat keterangan pengganti yang telah dilegalisir; file softcopy KTP; file softcopy Kartu Keluarga; file softcopy akta kelahiran; file softcopy ijazah SMA/SMK/MA; file softcopy rapor SMA/MA/SMK (cover, identitas, nilai semester 11 atau 12); file softcopy surat keterangan lulus; file softcopy sertifikat atau foto piagam juara lomba (opsional); serta file softcopy sertifikat TOEFL yang masih berlaku (boleh menyusul).",answered,"[pmb/pedoman-pmb-2027#19] Pedoman Penerimaan Mahasiswa Baru Universitas Mikroskil Tahun 2027
+BAB III REGISTRASI, PEMBERKASAN, PENGUNDURAN DIRI DAN PINDAH › 3.2 Pemberkasan
+
+a. Pemberkasan dilakukan setelah calon mahasiswa dinyatakan diterima di Universitas
+Mikroskil dan telah melakukan Registrasi Administrasi.
+b. Calon Mahasiswa wajib menyerahkan dokumen berikut:
+i. Program Sarjana
+1. File softcopy Ijazah terakhir/surat keterangan pengganti ijazah yang telah
+dilegalisir
+2. File softcopy Kartu Tanda Penduduk
+3. File softcopy Kartu Keluarga
+4. File softcopy Akta Kelahiran
+ii. Program Magister
+1. Surat izin instansi/lembaga tempat bekerja (Opsional)
+2. File softcopy KTP
+3. File softcopy Kartu Keluarga
+4. File softcopy ijazah S1/surat keterangan pengganti ijazah yang dilegalisir
+5. File softcopy transkrip nilai yang dilegalisir
+
+
+6. File softcopy Ijazah SMA/SMK/MA
+7. File softcopy sertifikat TOEFL yang masih berlaku (Boleh menyusul)
+
+[pmb/pedoman-pmb-2027#12] Pedoman Penerimaan Mahasiswa Baru Universitas Mikroskil Tahun 2027
+BAB II Sistem Rekrutmen dan Seleksi Calon Mahasiswa Baru › 2.1 Sistem Rekrutmen › b. Persyaratan Administrasi
+
+i. Program Sarjana
+1) Membayar Biaya Pendaftaran
+2) File softcopy Rapor SMA/MA/SMK (Cover, Identitas Diri, Nilai Rapor Semester Kelas 11 ataupun 12 tergantung gelombang pendaftaran) (Pendaftaran)
+3) File softcopy Sertifikat atau foto piagam juara lomba untuk jalur seleksi PMDK (Opsional) (Pendaftaran)
+4) File softcopy Surat Keterangan Lulus (Pendaftaran)
+5) File softcopy Akta Lahir (Pemberkasan)
+6) File softcopy Kartu Keluarga (Pemberkasan)
+
+ii. Program Magister
+1) Membayar Biaya Pendaftaran (Alumni Mikroskil tidak melakukan pembayaran)
+2) Surat izin instansi/lembaga tempat bekerja (Opsional)
+3) File softcopy KTP
+4) File softcopy Kartu Keluarga
+5) File softcopy Ijazah S1/surat keterangan pengganti ijazah yang dilegalisir
+6) File softcopy transkrip nilai yang dilegalisir
+7) File softcopy Ijazah SMA",,,
+o018,answerable,Sertifikat TOEFL buat S2 harus udah ada pas ngumpulin berkas?,"Tidak harus: pada pemberkasan program magister, sertifikat TOEFL yang masih berlaku boleh menyusul.","Untuk program S2, sertifikat TOEFL yang masih berlaku tidak harus sudah ada saat mengumpulkan berkas; Anda dapat menyusulkannya kemudian.",answered,"[pmb/pedoman-pmb-2027#19] Pedoman Penerimaan Mahasiswa Baru Universitas Mikroskil Tahun 2027
+BAB III REGISTRASI, PEMBERKASAN, PENGUNDURAN DIRI DAN PINDAH › 3.2 Pemberkasan
+
+a. Pemberkasan dilakukan setelah calon mahasiswa dinyatakan diterima di Universitas
+Mikroskil dan telah melakukan Registrasi Administrasi.
+b. Calon Mahasiswa wajib menyerahkan dokumen berikut:
+i. Program Sarjana
+1. File softcopy Ijazah terakhir/surat keterangan pengganti ijazah yang telah
+dilegalisir
+2. File softcopy Kartu Tanda Penduduk
+3. File softcopy Kartu Keluarga
+4. File softcopy Akta Kelahiran
+ii. Program Magister
+1. Surat izin instansi/lembaga tempat bekerja (Opsional)
+2. File softcopy KTP
+3. File softcopy Kartu Keluarga
+4. File softcopy ijazah S1/surat keterangan pengganti ijazah yang dilegalisir
+5. File softcopy transkrip nilai yang dilegalisir
+
+
+6. File softcopy Ijazah SMA/SMK/MA
+7. File softcopy sertifikat TOEFL yang masih berlaku (Boleh menyusul)",,,
+o019,answerable,Daftarnya harus datang ke kampus gak?,Tidak perlu; pendaftaran daring di https://daftar.mikroskil.ac.id dan bisa dilakukan di mana saja.,"Tidak, proses pendaftaran dapat dilakukan secara daring melalui website resmi dan tidak harus datang ke kampus.",answered,"[pmb/pedoman-pmb-2027#14] Pedoman Penerimaan Mahasiswa Baru Universitas Mikroskil Tahun 2027
+BAB II Sistem Rekrutmen dan Seleksi Calon Mahasiswa Baru › 2.2 Prosedur Seleksi
+
+a. Melakukan proses pendaftaran secara daring (online) melalui website https://daftar.mikroskil.ac.id. Proses ini dapat dilakukan di mana saja (tidak harus datang ke Kampus).
+b. Pendaftar membuat akun pendaftaran dengan menggunakan akun google dan mengisi data pribadi.
+c. Pendaftar melakukan pembayaran biaya pendaftaran awal.
+d. Pendaftar menerima kwitansi atau email pemberitahuan keberhasilan pembayaran biaya pendaftaran awal yang dilakukan.
+e. Pendaftar memilih jalur seleksi yang diikuti, mengupload dokumen yang dibutuhkan, serta mengisi data diri di Sistem Informasi Penerimaan Mahasiswa Baru Universitas Mikroskil.
+f. Pengumuman pendaftar yang lolos seleksi dilakukan paling lambat 1 minggu setelah jadwal seleksi.
+g. Pendaftar yang dinyatakan diterima diwajibkan untuk melakukan pembayaran biaya DP3 dan Uang Kuliah untuk dapat dinyatakan sah menjadi mahasiswa baru Universitas Mikroskil.
+h. Pendaftar mengisi data diri lanjutan yang dibutuhkan untuk pelaporan ke PDDIKTI melalui https://mika.mikroskil.ac.id/.",,,
+o020,answerable,"Habis seleksi, pengumuman lulusnya keluar kapan?",Paling lambat 1 minggu setelah jadwal seleksi.,Pengumuman hasil seleksi akan diumumkan paling lama satu minggu setelah jadwal seleksi selesai.,answered,"[pmb/pedoman-pmb-2027#14] Pedoman Penerimaan Mahasiswa Baru Universitas Mikroskil Tahun 2027
+BAB II Sistem Rekrutmen dan Seleksi Calon Mahasiswa Baru › 2.2 Prosedur Seleksi
+
+a. Melakukan proses pendaftaran secara daring (online) melalui website https://daftar.mikroskil.ac.id. Proses ini dapat dilakukan di mana saja (tidak harus datang ke Kampus).
+b. Pendaftar membuat akun pendaftaran dengan menggunakan akun google dan mengisi data pribadi.
+c. Pendaftar melakukan pembayaran biaya pendaftaran awal.
+d. Pendaftar menerima kwitansi atau email pemberitahuan keberhasilan pembayaran biaya pendaftaran awal yang dilakukan.
+e. Pendaftar memilih jalur seleksi yang diikuti, mengupload dokumen yang dibutuhkan, serta mengisi data diri di Sistem Informasi Penerimaan Mahasiswa Baru Universitas Mikroskil.
+f. Pengumuman pendaftar yang lolos seleksi dilakukan paling lambat 1 minggu setelah jadwal seleksi.
+g. Pendaftar yang dinyatakan diterima diwajibkan untuk melakukan pembayaran biaya DP3 dan Uang Kuliah untuk dapat dinyatakan sah menjadi mahasiswa baru Universitas Mikroskil.
+h. Pendaftar mengisi data diri lanjutan yang dibutuhkan untuk pelaporan ke PDDIKTI melalui https://mika.mikroskil.ac.id/.",,,
+o021,answerable,"Kalau udah bayar terus keterima di negeri, uangnya bisa balik gak?","Yang dikembalikan hanya biaya kuliah (pendaftaran, DP3, matrikulasi tidak); biasanya dipotong administrasi 10% dari uang kuliah setahun, tetapi yang diterima PTN jalur reguler (bukan ekstensi) dibebaskan dari potongan itu dengan melampirkan bukti; pengajuan paling lambat H-7 sebelum penutupan pendaftaran.","Bisa, uang kuliah yang sudah dibayar dapat dikembalikan. Biasanya dikenakan biaya administrasi 10 % dari biaya kuliah setahun, namun bagi yang diterima di PTN jalur reguler biaya administrasi itu dibebaskan.",answered,"[pmb/pedoman-pmb-2027#20] Pedoman Penerimaan Mahasiswa Baru Universitas Mikroskil Tahun 2027
+BAB III REGISTRASI, PEMBERKASAN, PENGUNDURAN DIRI DAN PINDAH › 3.3 Pengunduran Diri dan Pengembalian Biaya Pendidikan
+
+a. Ketentuan
+i. Mengajukan surat permohonan secara tertulis, berisi alasan yang jelas dan
+diketahui orang tua/wali yang bersangkutan.
+ii. Melampirkan bukti registrasi.
+iii. Biaya pendidikan yang dapat dikembalikan hanya biaya kuliah.
+iv. Biaya Pendaftaran, DP3, dan matrikulasi tidak dapat dikembalikan (kecuali kondisi
+tertentu).
+v. Pengajuan pengunduran diri dilakukan paling lambat H-7 sebelum penutupan
+pendaftaran.
+vi. Pengunduran diri setelah batas waktu yang ditentukan, maka biaya yang telah
+dibayarkan tidak dapat dikembalikan.
+b. Besarnya Pengembalian Biaya Pendidikan
+i. Biaya pendidikan yang dikembalikan dikenakan biaya administrasi sebesar 10%
+dari uang kuliah setahun.
+ii. Bagi mahasiswa yang diterima di Perguruan Tinggi Negeri (PTN) Jalur Reguler
+(Bukan Ekstensi) dibebaskan biaya administrasi seperti yang dimaksud point i
+dengan melampirkan fotokopi yang menyatakan diterima di PTN tersebut.",,,
+o022,answerable,DP3 bisa dikembalikan kalau mundur?,Tidak (kecuali kondisi tertentu); yang dapat dikembalikan hanya biaya kuliah.,"DP3 tidak dapat dikembalikan, kecuali ada kondisi khusus yang disebutkan dalam kebijakan. Secara umum, biaya pendaftaran, DP3, dan matrikulasi tidak dapat dikembalikan.",answered,"[pmb/pedoman-pmb-2027#20] Pedoman Penerimaan Mahasiswa Baru Universitas Mikroskil Tahun 2027
+BAB III REGISTRASI, PEMBERKASAN, PENGUNDURAN DIRI DAN PINDAH › 3.3 Pengunduran Diri dan Pengembalian Biaya Pendidikan
+
+a. Ketentuan
+i. Mengajukan surat permohonan secara tertulis, berisi alasan yang jelas dan
+diketahui orang tua/wali yang bersangkutan.
+ii. Melampirkan bukti registrasi.
+iii. Biaya pendidikan yang dapat dikembalikan hanya biaya kuliah.
+iv. Biaya Pendaftaran, DP3, dan matrikulasi tidak dapat dikembalikan (kecuali kondisi
+tertentu).
+v. Pengajuan pengunduran diri dilakukan paling lambat H-7 sebelum penutupan
+pendaftaran.
+vi. Pengunduran diri setelah batas waktu yang ditentukan, maka biaya yang telah
+dibayarkan tidak dapat dikembalikan.
+b. Besarnya Pengembalian Biaya Pendidikan
+i. Biaya pendidikan yang dikembalikan dikenakan biaya administrasi sebesar 10%
+dari uang kuliah setahun.
+ii. Bagi mahasiswa yang diterima di Perguruan Tinggi Negeri (PTN) Jalur Reguler
+(Bukan Ekstensi) dibebaskan biaya administrasi seperti yang dimaksud point i
+dengan melampirkan fotokopi yang menyatakan diterima di PTN tersebut.",,,
+o023,answerable,Lulusan Sistem Informasi nanti kerjanya bisa jadi apa aja?,"Antara lain ERP Consultant, ERP Business Analyst, System Analyst, Business Analyst, Digital Marketing Analyst, UI/UX Designer, IS Technopreneur/StartUp Founder (Brosur 2025).","Lulusan Sistem Informasi dapat bekerja sebagai ERP Consultant, ERP Functional Consultant, ERP Business Analyst, ERP Support Specialist, System Analyst, IS Technopreneur atau pendiri startup, Business Analyst, Business Process Analyst, Digital Marketing Analyst, maupun UI/UX Designer.",answered,"[brosur/brosur-pmb-2025#5] Brosur Pendaftaran Universitas Mikroskil 2025
+S1 Fakultas Informatika: Information System (Sistem Informasi) (Brosur hlm 5)
+
+Expertise: Enterprise System / Digital Business & Innovation
+
+Mempersiapkan mahasiswa yang unggul dan berdaya saing global dalam pengajaran, kewirausahaan, dan inovasi di bidang sistem informasi yang berfokus pada penerapan praktik rekayasa proses bisnis perusahaan, khususnya Enterprise System dan Digital Business & Innovation.
+
+Career Path: ERP Consultant, ERP Functional Consultant, ERP Business Analyst, ERP Support Specialist, System Analyst, IS Technopreneur/StartUp Founder, Business Analyst, Business Process Analyst, Digital Marketing Analyst, UI/UX Designer
+
+Biaya Kuliah S1 Fakultas Informatika: Pagi 14.000.000,- / tahun; Sore 15.000.000,- / tahun",,,
+o024,answerable,Berapa persen sih lulusan sini yang cepet dapet kerja?,88% lulusan sudah bekerja kurang dari 6 bulan setelah lulus (tracer study 2025); 66% alumni bekerja di perusahaan nasional dan multinasional.,"Menurut tracer study 2025, sekitar 88 % lulusan Universitas Mikroskil sudah bekerja dalam waktu kurang dari enam bulan setelah lulus.",answered,"[brosur/brosur-pmb-2025#1] Brosur Pendaftaran Universitas Mikroskil 2025
+Tentang Universitas Mikroskil (Brosur hlm 2)
+
+""Berkualitas, Berteknologi & Berkarakter!""
+
+Perguruan tinggi swasta terkemuka di kota Medan, Sumatera Utara, yang telah berpengalaman puluhan tahun mencetak lulusan siap kerja dan berdaya saing tinggi di bidang teknologi informasi dan bisnis. Yayasan Bina Pertiwi Medan mendirikan STMIK pada tahun 1997 dan STIE pada tahun 2008.
+
+Saat ini, Universitas Mikroskil merupakan salah satu kampus swasta terbaik dalam bidang teknologi informasi.
+
+Keunggulan yang disebut di brosur:
+- Kurikulum standar internasional berbasis industri dan teknologi terbaru
+- Sertifikasi internasional
+- Dosen berpengalaman dan tersertifikasi
+- Mengembangkan minat dan bakat melalui organisasi mahasiswa
+- Pembelajaran dengan Microsoft Learning Tools
+
+Angka (tanda * = berdasarkan tracer study 2025):
+- 88% lulusan sudah bekerja < 6 bulan setelah lulus*
+- 66% alumni bekerja di perusahaan nasional dan multinasional*
+- 100+ mitra kerja sama
+- 15k+ alumni
+- 3k students (mahasiswa)
+- 25+ organisasi mahasiswa",,,
+o025,answerable,Teknologi Informasi S1 ada peminatan apa aja?,Cyber Security dan Big Data Analytics.,"Program S1 Teknologi Informasi memiliki dua peminatan, yaitu Cyber Security dan Big Data Analytics.",answered,"[brosur/brosur-pmb-2025#6] Brosur Pendaftaran Universitas Mikroskil 2025
+S1 Fakultas Informatika: Information Technology (Teknologi Informasi) (Brosur hlm 6)
+
+Expertise: Cyber Security / Big Data Analytics
+
+Bidang ilmu yang mempersiapkan mahasiswa unggul dan berdaya saing global dalam pembelajaran inovatif dan berjiwa kewirausahaan di bidang teknologi informasi yang berfokus pada transformasi digital, khususnya Cyber Security dan Big Data Analytics.
+
+Career Path: Data Analyst, Big Data Engineer, Cyber Security Analyst, IT Security Specialist, Cyber Security Engineer, Web Developer, Mobile Developer, IT Consultant, IoT Developer, Freelancer, IT-preneur (Founder), Academician, Staf R&D
+
+Biaya Kuliah S1 Fakultas Informatika: Pagi 14.000.000,- / tahun; Sore 15.000.000,- / tahun",,,
+o026,answerable,Manajemen S1 fokusnya ke mana? katanya ada kuliner ya?,Expertise International Business dan Culinary Business.,"Program S1 Manajemen di Fakultas Bisnis dan Hukum menekankan pada International Business dan Culinary Business, menggabungkan teori dan praktik bisnis serta kuliner.",answered,"[brosur/brosur-pmb-2025#9] Brosur Pendaftaran Universitas Mikroskil 2025
+S1 Fakultas Bisnis dan Hukum: Management (Manajemen) (Brosur hlm 9)
+
+Expertise: International Business / Culinary Business
+
+Melalui kombinasi teori dan praktik, mahasiswa akan mempelajari berbagai aspek bisnis, termasuk manajemen sumber daya manusia, pemasaran, keuangan, operasional, dan strategi guna mengembangkan kemampuan berwirausaha.
+
+Career Path: Professional Manager, Management Consultant, Entrepeneur, Researcher/Academician, International Business Specialist, Culinary Business Specialist.
+
+Biaya Kuliah Manajemen: Pagi 12.500.000,- / tahun; Sore 13.500.000,- / tahun",,,
+o027,answerable,Ada klub olahraga apa aja buat mahasiswa?,"Antara lain basket, futsal, taekwondo, catur, pencak silat, wingchun, dan esports (UKM).","Klub olahraga yang tersedia bagi mahasiswa antara lain Mikroskil Basket Ball Club, Mikroskil Taekwondo Club, Mikroskil Chess Club, Mikroskil Pencak Silat Club, Mikroskil Wingchun Club, dan Mikroskil E-sports.",answered,"[kemahasiswaan/panduan-kemahasiswaan-2021#22] Buku Panduan Peraturan Kemahasiswaan Universitas Mikroskil 2021
+BAB IV LAYANAN KEMAHASISWAAN
+
+Penalaran dan Keilmuan
+Kegiatan ini dimanfaatkan oleh mahasiswa yang ingin memperdalam pengetahuannya di
+bidang bahasa, Komputer (software dan hardware), penelitian, dan lainnya yang
+dibimbing para dosen yang berpengalaman dibidangnya masing-masing, dimana kegiatan
+tersebut terjadwal dan terprogram, yakni:
+a. Big Family of Informatics Student (BITS);
+b. Ikatan Mahasiswa Sistem Informasi (IMSI);
+c. Ikatan Mahasiswa Manajemen (IMM);
+d. Ikatan Mahasiswa Akuntansi (IMA);
+e. One Magister Information Technology Students (One-MITS);
+f. Mikroskil English Club (MEC);
+g. Mikroskil Programming Club (MPC)
+
+Sosial Budaya
+Program ekstrakurikuler/ kokurikuler dalam bidang sosial budaya merupakan kegiatan
+dan pelatihan mahasiswa yang bersifat Unit Kegiatan Mahasiswa (UKM), dimana kegiatan
+UKM tersebut terjadwal dan terprogram, yakni:
+a. Keluarga Mahasiswa Buddhist (KMB);
+b. Keluarga Mahasiswa Islam (KMI);
+c. Keluarga Mahasiswa Kristen (KMK);
+d. Mikroskil Dancing Team (MDT);
+e. Mikroskil Singing Club (MSC);
+
+f. Mikroskil Youth Care (MY Care).
+
+Olahraga
+Program ekstrakurikuler/ kokurikuler dalam bidang olahraga merupakan kegiatan dan
+pelatihan mahasiswa yang bersifat Unit Kegiatan Mahasiswa (UKM), dimana kegiatan
+UKM tersebut terjadwal dan terprogram, yakni:
+a. Mikroskil Basket Ball Club (MBC);
+b. Mikroskil Taekwondo Club (MTC);
+c. Mikroskil Chess Club (MCC)
+d. Mikroskil Pencak Silat Club (MPSC);
+e. Mikroskil Wingchun Club (MWC);
+f. Mikroskil E-sports (ME);",,,
+o030,answerable,"Kalau ada masalah bayar uang kuliah, hubungi ke mana?","Bagian Keuangan: WhatsApp 081170703992 atau chat admin Ms. Teams, atau email fin@mikroskil.ac.id.","Jika mengalami masalah pembayaran uang kuliah, segera hubungi Bagian Keuangan dan Akuntansi lewat WhatsApp 081170703992, chat admin di Ms.Teams, atau kirim email ke fin@mikroskil.ac.id dengan melampirkan data diri dan bukti kendala.",answered,"[keuangan/panduan-pembayaran-2026-2027#20] Panduan Dasar dan Pembayaran Uang Kuliah T.A. 2026/2027
+FAQ
+
+**YA**, kamu dapat mengajukan permohonan penundaan pembayaran Biaya Kuliah paling lambat H-3 sebelum masa pembayaran cicilan Biaya Kuliah dimulai untuk menghindari sanksi keterlambatan. Penundaan diberikan hanya sampai batas cicilan periode selanjutnya.
+
+6. **Saya belum berhasil melakukan pembayaran pada saluran pembayaran yang ada. Apa yang harus saya lakukan?**
+
+Pembayaran Biaya Kuliah yang belum berhasil dilakukan bisa disebabkan oleh kesalahan pengentrian data misalkan NIM atau nominal yang tidak sesuai dengan yang akan dibayarkan. Harap periksa data pembayaran kamu dengan benar. Jika kendala pembayaran terus berlanjut segera hubungi Bagian Keuangan dan Akuntansi di WA 081170703992 atau [chat admin](https://teams.microsoft.com/dl/launcher/launcher.html?url=%2F_%23%2Fl%2Fchat%2F0%2F0%3Fusers%3Dfin%40mikroskil.ac.id\&type=chat\&deeplinkId=6f8b5b73-52bc-4b2a-9444-7972831fb0c5\&directDl=true\&msLaunch=true\&enableMobilePage=true\&suppressPrompt=true) melalui Ms.Teams atau email ke [fin@mikroskil.ac.id](mailto:fin@mikroskil.ac.id) dengan menyertakan data diri dan bukti kendala yang dihadapi.",,,

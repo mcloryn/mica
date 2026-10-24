@@ -1,5 +1,5 @@
 """CLI evaluasi (M-12): annotate, retrieval, gate, generation, copy, stt, latency, dataset,
-vision, vision-scenarios, color, dan annotation.
+vision, vision-scenarios, color, annotation, dan labels.
 
 python -m mica.eval annotate export --config <yaml> --dataset <jsonl> --out <pool.csv> [--force]
 python -m mica.eval annotate import --dataset <jsonl> --pool <pool.csv>
@@ -22,6 +22,8 @@ python -m mica.eval color --config <yaml> --dataset data/eval/vision/<nama> [--l
     [--labels2 colors_rater2.csv] [--out results/E-08]   (docs/E-08.md)
 python -m mica.eval annotation --run <folder run generation> [--compare-saran]
     (ringkasan anotasi halusinasi; --compare-saran: jumlah identik dengan saran Claude)
+python -m mica.eval labels --run <folder run generation>
+    (metrik label per jawaban dari labels_claude.csv, docs/EVAL-DEV-OFFICIAL.md)
 """
 
 from __future__ import annotations
@@ -238,6 +240,9 @@ def build_parser() -> argparse.ArgumentParser:
     ann.add_argument("--run", type=Path, required=True, help="folder run generation")
     ann.add_argument("--compare-saran", action="store_true",
                      help="bandingkan dengan annotate_generation_saran_claude.csv")  # fmt: skip
+
+    lab = sub.add_parser("labels", help="E-02: metrik label per jawaban (labels_claude.csv)")
+    lab.add_argument("--run", type=Path, required=True, help="folder run generation")
     return parser
 
 
@@ -282,6 +287,19 @@ def cmd_annotation(args: argparse.Namespace) -> int:
             c = cmp[col]
             print(f"identik dengan saran Claude, {col}: {c['identical']}/{cmp['n']}"
                   f"{' berbeda: ' + ','.join(c['different_qids']) if c['different_qids'] else ''}")  # fmt: skip
+    return 0
+
+
+def cmd_labels(args: argparse.Namespace) -> int:
+    from mica.eval.labels import LABELS_SUMMARY_FILE, run_labels
+
+    s = run_labels(args.run)
+    for key in ("benar", "halusinasi", "halusinasi_sdd_dikutip", "penolakan_tepat",
+                "penolakan_keliru"):  # fmt: skip
+        m = s[key]
+        rate = "-" if m["rate"] is None else f"{m['rate']:.4f}"
+        print(f"{key}: {m['k']}/{m['n']} = {rate}")
+    print(f"tersimpan: {(args.run / LABELS_SUMMARY_FILE).as_posix()}")
     return 0
 
 
@@ -1067,6 +1085,8 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
     try:
         if args.command == "annotation":
             return cmd_annotation(args)
+        if args.command == "labels":
+            return cmd_labels(args)
         if args.command == "stt":
             return cmd_stt(args)
         if args.command == "vision":

@@ -1,0 +1,4 @@
+﻿retriever,run_dir,config_hash,kb_id,n_questions,recall@5,mrr@10,ndcg@10,latency_p50_ms,latency_p95_ms,unjudged,n_followup,followup_recall@5,followup_mrr@10,followup_ndcg@10
+bm25,20261024-203854-dev-bm25,8b613f9bb9fcc84cad72b6ef97893aed5f6cf1467c633f8e9b4777dcdb4278c0,official-2026-10-24-v4,30,0.8667,0.6722,0.6684,1.43,1.97,0,0,,,
+dense,20261024-203854-dev-dense,d1204741cdf0aec76ab65d527283ba118b1304f27de4e9f041515e17f0843151,official-2026-10-24-v4,30,0.9333,0.9056,0.8885,108.77,122.60,0,0,,,
+hybrid,20261024-203854-dev-hybrid,e7a34dae3c539479293d04ad1ced6319928368d47c64f6a445831852facfa36b,official-2026-10-24-v4,30,1.0000,0.8083,0.8237,112.40,129.26,0,0,,,

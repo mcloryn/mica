@@ -1,0 +1,69 @@
+{
+  "experiment": "E-01",
+  "split": "dev",
+  "lock": null,
+  "retriever": "dense",
+  "reranker_enabled": false,
+  "config_hash": "d1204741cdf0aec76ab65d527283ba118b1304f27de4e9f041515e17f0843151",
+  "kb_id": "official-2026-10-24-v4",
+  "kb_config_hash": "d4ce25f8c3164a6d696cff92da582706aa34fe38e9de5232883729eff65b3dab",
+  "dataset": {
+    "path": "data/eval/dev_official.jsonl",
+    "sha256": "91c77a436365f1c54527c9311a9551d9e2d381d923d37671f763f4c993e4f26c"
+  },
+  "pool": {
+    "path": "data/eval/dev_official/pool.csv",
+    "sha256": "3777c47c35a825987ccc96b00d60f275d081e310ef8f52799d5ebc61eaa89b0a"
+  },
+  "embedder": {
+    "model": "BAAI/bge-m3",
+    "revision": "9a0624b896d81da7492a910ffa53731274b6cf3d"
+  },
+  "depth": 10,
+  "recall_k": 5,
+  "latency": {
+    "repeats": 3,
+    "aggregate": "median",
+    "warmup_queries": 1
+  },
+  "n_questions": {
+    "answerable": 30,
+    "followup_tanpa_rewrite": 0
+  },
+  "metrics": {
+    "answerable": {
+      "n_questions": 30,
+      "recall@5": 0.9333333333333333,
+      "mrr@10": 0.9055555555555556,
+      "ndcg@10": 0.8885082906582148,
+      "latency_p50_ms": 108.76825000377721,
+      "latency_p95_ms": 122.59624999787775,
+      "unjudged": 0
+    },
+    "followup_tanpa_rewrite": {
+      "n_questions": 0
+    }
+  },
+  "environment": {
+    "python": "3.13.7",
+    "torch": "2.14.1+cpu",
+    "torch_num_threads": 14,
+    "sentence_transformers": "6.1.0",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "cpu_count_logical": 20,
+    "power": {
+      "source": "battery",
+      "battery_percent": 63,
+      "battery_saver": false
+    },
+    "power_plan": {
+      "guid": "bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b",
+      "name": "ASUS Recommended",
+      "raw": "Power Scheme GUID: bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b  (ASUS Recommended)"
+    },
+    "git_commit": "49b7472bee48c2acd85111e6d66b7bb7bf0e182b",
+    "git_dirty": false
+  },
+  "started_at": "2026-10-24T20:38:54.767174+07:00"
+}
