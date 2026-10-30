@@ -73,6 +73,7 @@ python -m mica.eval retrieval  --config config/dev.yaml --dataset data/eval/ques
 python -m mica.eval gate       --config config/dev.yaml --dataset data/eval/questions.jsonl --out results/E-02-gate
 python -m mica.eval generation --config config/dev.yaml --dataset data/eval/questions.jsonl --out results/E-02 --gate-off [--model penyedia:id]  # E-02/E-04
 python -m mica.eval annotation --run <folder run generation>                         # tingkat halusinasi
+python -m mica.eval tahap1 --questions data/eval/official/uji-tahap1-129.csv --out data/eval/official/runs/tahap1 [--limit N]  # Uji Tahap 1, resume otomatis
 python -m mica.eval copy  --config config/dev.yaml --runs <folder run> ...            # E-03
 python -m mica.eval stt   --config config/dev.yaml --dataset <manifest.jsonl>         # E-05
 python -m mica.eval vision --config config/dev.yaml --dataset data/eval/vision/<nama> # E-07
