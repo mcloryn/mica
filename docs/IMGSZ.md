@@ -158,6 +158,27 @@ Keterbatasan:
 Versi Python, torch, ultralytics, pycocotools, CPU (`platform.processor()`), RAM total, dan
 SHA-256 bobot model. Semua ditulis otomatis ke `accuracy.json` atau `speed.json`.
 
+Diisi 30 Okt 2026 (CV-2a), `.venv` di `D:\SKRIPSI\mica\.venv`:
+
+- Python 3.13.7 (64 bit), numpy 2.5.4, torch 2.14.1+cpu, ultralytics 8.4.178.
+- pycocotools 2.0.11 (wheel `cp312-abi3-win_amd64`). `pip install pycocotools --dry-run` hanya
+  akan memasang pycocotools; numpy, torch, dan ultralytics tidak berubah. Modul ini tidak punya
+  `__version__`, jadi skrip membaca versi dari `importlib.metadata`.
+- CPU 12th Gen Intel Core i9-12900H (20 thread logis), RAM 16,8 GB.
+- Threads: `--threads 7`, sama dengan `vision.threads: 7` di `config/dev.yaml:88`.
+- Bobot: `models/yolo26n-pose.pt` di worktree adalah salinan dari `D:\SKRIPSI\mica\models`.
+  SHA-256 `eb3bb826…c14522a9` sama dengan kunci di `src/mica/vision/detector.py:30`.
+- Dataset di `D:\SKRIPSI\datasets\coco`, diunduh 30 Okt 2026 dari images.cocodataset.org:
+  - `val2017.zip`: 815.585.330 byte, SHA-256
+    `4f7e2ccb2866ec5041993c9cf2a952bbed69647b115d0f74da7ce8f4bef82f05`, MD5
+    `442b8da7639aecaf257c1dceb8ba8c80`.
+  - `annotations_trainval2017.zip`: 252.907.541 byte, SHA-256
+    `113a836d90195ee1f884e704da6304dfaaecff1f023f49b6ca93c4aaae470268`, MD5
+    `f4bbac642086de4f52a3fdda2de5fa2c`.
+  - MD5 kedua zip sama dengan nilai yang umum dipublikasikan untuk COCO 2017.
+  - Hasil verifikasi: 5000 file `.jpg` di `val2017/`. `person_keypoints_val2017.json` memuat 5000
+    gambar, 11004 anotasi, dan satu kategori (id 1).
+
 ## 9. Ditunda (bukan bagian aturan ini)
 
 - Preview kamera 24 fps (CV-3).
@@ -170,3 +191,26 @@ SHA-256 bobot model. Semua ditulis otomatis ke `accuracy.json` atau `speed.json`
   pengguna sebelum run (CLAUDE.md: jangan menambah library tanpa bertanya).
 - Menurut SDD, `vision.imgsz` ditetapkan di E-07. Hasil sweep ini menjadi masukan untuk E-07.
   Dokumen ini tidak mengubah SDD atau config.
+
+## Amandemen 30 Okt 2026 (CV-2a, sebelum data COCO dilihat)
+
+Bagian 6 (ATURAN PILIH) dan metrik di bagian 4 sampai 5 **tidak berubah**. Yang berubah hanya
+implementasi skrip, dan semuanya dicatat di sini:
+
+1. **Perbaikan thread (penyimpangan implementasi dari commit c9a7213).** Di c9a7213, mode
+   `--speed` memanggil `torch.set_num_threads` sebelum inferensi pertama. Ultralytics 8.4 menimpa
+   setelan itu dengan `min(8, cpu_count - 1)` saat predictor disiapkan (docs/CPU-THREADS.md,
+   `src/mica/vision/worker.py:510-522`), jadi `--threads 7` sebenarnya tidak berlaku. Sekarang
+   `warm_up_threads` melakukan satu inferensi pemanasan pada frame hitam 640×480, lalu baru
+   memasang thread, dengan urutan yang sama seperti aplikasi. Alasannya: tanpa perbaikan ini,
+   bagian 7 tidak bisa dipenuhi.
+2. **`--threads` juga berlaku di mode akurasi.** Tujuannya agar waktu run sesuai dengan aplikasi.
+   Jumlah thread tidak mengubah aturan pemilihan. Thread yang berlaku setelah tiap imgsz dicatat
+   di `timing.threads_after`.
+3. **`--max-images N` (baru).** Opsi ini mengambil N id pertama untuk uji coba alur. Run dengan
+   opsi ini ditandai `"trial": true` dan tidak boleh dipakai untuk memilih. Run resmi tidak
+   memakai opsi ini.
+4. **Catatan waktu dan lingkungan.** `accuracy.json` sekarang memuat `timing` (prediksi, evaluate,
+   dan bootstrap, dalam detik), `torch_threads`, dan versi numpy. Skrip juga berhenti bila ada
+   gambar yang gagal dibaca `cv2.imread`.
+

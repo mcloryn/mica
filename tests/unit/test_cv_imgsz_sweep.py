@@ -178,3 +178,45 @@ def test_cli_dry_run_and_validation(tmp_path, capsys):
         sweep.parse_args(["--data-dir", ".", "--out-dir", str(tmp_path), "--sizes", "640", "300"])
     with pytest.raises(SystemExit):
         sweep.parse_args(["--data-dir", ".", "--out-dir", str(ROOT / "x")])
+
+
+def test_threads_set_after_warm_up_predict():
+    calls = []
+
+    class FakeModel:
+        def predict(self, image, **kw):
+            calls.append(("predict", image.shape, kw["imgsz"]))
+            return [object()]
+
+    class FakeTorch:
+        n = 8
+
+        def set_num_threads(self, n):
+            calls.append(("set", n))
+            self.n = n
+
+        def get_num_threads(self):
+            return self.n
+
+    assert sweep.warm_up_threads(FakeModel(), 7, 640, FakeTorch()) == 7
+    assert calls == [("predict", (480, 640, 3), 640), ("set", 7)]
+    calls.clear()
+    assert sweep.warm_up_threads(FakeModel(), None, 320, FakeTorch()) == 8
+    assert calls == [("predict", (480, 640, 3), 320)]
+
+
+def test_select_image_ids_and_versions():
+    assert sweep.select_image_ids([5, 1, 3], None) == [1, 3, 5]
+    assert sweep.select_image_ids([5, 1, 3], 2) == [1, 3]
+    assert sweep.package_version("numpy") == np.__version__
+    assert sweep.package_version("paket-yang-tidak-ada-xyz") == "tidak tersedia"
+
+
+def test_cli_threads_and_max_images(tmp_path, capsys):
+    base = ["--data-dir", str(tmp_path), "--out-dir", str(tmp_path / "o")]
+    assert sweep.main([*base, "--threads", "7", "--max-images", "20", "--dry-run"]) == 0
+    out = capsys.readouterr().out
+    assert '"threads": 7' in out and '"max_images": 20' in out and '"trial": true' in out
+    for bad in (["--threads", "0"], ["--max-images", "0"]):
+        with pytest.raises(SystemExit):
+            sweep.parse_args([*base, *bad])

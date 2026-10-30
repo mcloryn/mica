@@ -1,7 +1,8 @@
 """Sweep vision.imgsz pada COCO val2017 person (CV-1, pra-registrasi di docs/IMGSZ.md).
 
 python scripts/cv_imgsz_sweep.py --data-dir D:/SKRIPSI/datasets/coco --out-dir D:/SKRIPSI/cv-hasil
-    [--sizes 640 480 416 320 256] [--bootstrap 1000] [--seed 20261030] [--speed] [--dry-run]
+    [--sizes 640 480 416 320 256] [--bootstrap 1000] [--seed 20261030] [--threads 7]
+    [--max-images N] [--speed] [--dry-run]
 
 Akurasi (bawaan): untuk tiap imgsz, yolo26n-pose.pt memprediksi semua gambar di
 annotations/person_keypoints_val2017.json (model.predict, kelas person, CPU, conf 0,001), lalu
@@ -9,6 +10,9 @@ pycocotools COCOeval dijalankan sekali per imgsz (bbox dan keypoints). evalImgs 
 diratakan jadi EvalRecords; bootstrap berpasangan per gambar cukup mengulang accumulate dengan
 bobot = berapa kali gambar terambil (tanpa evaluate ulang). Aturan pilih: lihat choose_imgsz.
 --speed: hanya pengukuran kecepatan (20 gambar pemanasan + 200 gambar terkunci), dilaporkan saja.
+--threads: torch.set_num_threads seperti vision.threads aplikasi, dipasang SETELAH inferensi
+pemanasan (sama dengan mica.vision.worker.warm_up; Ultralytics menimpa setelan yang lebih awal).
+--max-images N: hanya N id gambar pertama (uji coba alur, bukan hasil resmi).
 --dry-run: cek path dan cetak rencana, tanpa memuat model, data, atau pycocotools.
 
 Dataset dan keluaran di luar repo. Tidak ada gambar yang ditulis ke disk; keluaran hanya angka.
@@ -212,11 +216,17 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def environment(model_file: Path, threads: int | None) -> dict[str, Any]:
-    import pycocotools
-    import torch
-    import ultralytics
+def package_version(name: str) -> str:
+    """Versi paket terpasang; pycocotools 2.0.x tidak punya __version__."""
+    from importlib.metadata import PackageNotFoundError, version
 
+    try:
+        return version(name)
+    except PackageNotFoundError:
+        return "tidak tersedia"
+
+
+def environment(model_file: Path, threads: int | None) -> dict[str, Any]:
     try:
         import psutil
 
@@ -225,9 +235,10 @@ def environment(model_file: Path, threads: int | None) -> dict[str, Any]:
         ram = None
     return {
         "python": sys.version,
-        "torch": torch.__version__,
-        "ultralytics": ultralytics.__version__,
-        "pycocotools": getattr(pycocotools, "__version__", "tidak tersedia"),
+        "numpy": package_version("numpy"),
+        "torch": package_version("torch"),
+        "ultralytics": package_version("ultralytics"),
+        "pycocotools": package_version("pycocotools"),
         "cpu": platform.processor(),
         "ram_bytes": ram,
         "torch_threads": threads,
@@ -250,6 +261,27 @@ def predict(model: Any, image: np.ndarray, imgsz: int, conf: float) -> Any:
         image, imgsz=imgsz, conf=conf, classes=[PERSON_CLASS], device="cpu", save=False,
         verbose=False,
     )[0]  # fmt: skip
+
+
+def warm_up_threads(model: Any, threads: int | None, imgsz: int, torch_module: Any = None) -> int:
+    """Inferensi pemanasan lalu --threads, urutan sama dengan mica.vision.worker.warm_up.
+
+    Ultralytics 8.4 select_device memasang torch.set_num_threads(min(8, cpu_count - 1)) saat
+    predictor pertama disiapkan, jadi thread yang dipasang sebelumnya tertimpa
+    (docs/CPU-THREADS.md). Mengembalikan thread intra-op torch yang berlaku.
+    """
+    predict(model, np.zeros((480, 640, 3), dtype=np.uint8), imgsz, EVAL_CONF)
+    if torch_module is None:
+        import torch as torch_module
+    if threads is not None:
+        torch_module.set_num_threads(threads)
+    return int(torch_module.get_num_threads())
+
+
+def select_image_ids(image_ids: list[int], max_images: int | None) -> list[int]:
+    """Id gambar terurut; max_images = ambil N pertama (uji coba), None = semua."""
+    ids = sorted(int(i) for i in image_ids)
+    return ids if max_images is None else ids[:max_images]
 
 
 def coco_detections(result: Any, image_id: int) -> list[dict[str, Any]]:
@@ -275,14 +307,16 @@ def coco_detections(result: Any, image_id: int) -> list[dict[str, Any]]:
     return out
 
 
-def coco_records(gt: Any, dets: list[dict[str, Any]], iou_type: str) -> dict[str, Any]:
+def coco_records(
+    gt: Any, dets: list[dict[str, Any]], iou_type: str, img_ids: list[int]
+) -> dict[str, Any]:
     """COCOeval sekali; stats resmi + EvalRecords untuk area all/medium/large (maxDet terakhir)."""
     from pycocotools.cocoeval import COCOeval
 
     dt = gt.loadRes(dets)
     ev = COCOeval(gt, dt, iouType=iou_type)
     ev.params.catIds = [PERSON_CAT_ID]
-    ev.params.imgIds = sorted(gt.getImgIds())
+    ev.params.imgIds = list(img_ids)
     ev.evaluate()
     ev.accumulate()
     ev.summarize()
@@ -310,7 +344,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     ap.add_argument("--bootstrap", type=int, default=BOOTSTRAP, help="B, jumlah sampel bootstrap")
     ap.add_argument("--seed", type=int, default=SEED)
     ap.add_argument(
-        "--threads", type=int, default=None, help="torch threads (--speed); None=bawaan"
+        "--threads", type=int, default=None, help="torch threads (vision.threads); None=bawaan"
+    )
+    ap.add_argument(
+        "--max-images", type=int, default=None, help="N id gambar pertama saja (uji coba)"
     )
     ap.add_argument("--speed", action="store_true", help="ukur kecepatan saja (dilaporkan)")
     ap.add_argument("--dry-run", action="store_true", help="cek path dan cetak rencana saja")
@@ -321,6 +358,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         ap.error("--sizes harus kelipatan 32 (stride YOLO)")
     if ROOT in args.out_dir.resolve().parents or args.out_dir.resolve() == ROOT:
         ap.error("--out-dir harus di luar repo")
+    if args.threads is not None and args.threads < 1:
+        ap.error("--threads harus >= 1")
+    if args.max_images is not None and args.max_images < 1:
+        ap.error("--max-images harus >= 1")
     return args
 
 
@@ -331,6 +372,9 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
         "sizes": sorted(args.sizes, reverse=True),
         "bootstrap": args.bootstrap,
         "seed": args.seed,
+        "threads": args.threads,
+        "max_images": args.max_images,
+        "trial": args.max_images is not None,
         "annotations": str(ann),
         "annotations_exists": ann.is_file(),
         "images_exists": (args.data_dir / IMAGES).is_dir(),
@@ -342,24 +386,35 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
 
 def run_accuracy(args: argparse.Namespace, out: Path) -> dict[str, Any]:  # pragma: no cover
     import cv2
+    import torch
     from pycocotools.coco import COCO
 
     gt = COCO(str(args.data_dir / ANNOTATIONS))
+    img_ids = select_image_ids(gt.getImgIds(), args.max_images)
     model = load_model(MODEL_FILE)
     sizes = sorted(args.sizes, reverse=True)
+    threads = warm_up_threads(model, args.threads, sizes[0])
+    timing: dict[str, Any] = {"predict_s": {}, "evaluate_s": {}, "threads_after": {}}
     box: dict[str, dict[int, EvalRecords]] = {"all": {}, "medium": {}, "large": {}}
     kp_large: dict[int, EvalRecords] = {}
     official: dict[int, dict[str, Any]] = {}
     for s in sizes:
         dets: list[dict[str, Any]] = []
-        for img_id in sorted(gt.getImgIds()):
+        t0 = time.perf_counter()
+        for img_id in img_ids:
             info = gt.loadImgs(img_id)[0]
             image = cv2.imread(str(args.data_dir / IMAGES / info["file_name"]))
+            if image is None:
+                raise SystemExit(f"gambar {info['file_name']} tidak bisa dibaca")
             dets += coco_detections(predict(model, image, s, EVAL_CONF), img_id)
             del image
+        timing["predict_s"][s] = time.perf_counter() - t0
+        timing["threads_after"][s] = int(torch.get_num_threads())
         (out / f"dets-{s}.json").write_text(json.dumps(dets), encoding="utf-8")
-        b = coco_records(gt, dets, "bbox")
-        k = coco_records(gt, dets, "keypoints")
+        t0 = time.perf_counter()
+        b = coco_records(gt, dets, "bbox", img_ids)
+        k = coco_records(gt, dets, "keypoints", img_ids)
+        timing["evaluate_s"][s] = time.perf_counter() - t0
         for label, by_size in box.items():
             by_size[s] = b["records"][label]
         kp_large[s] = k["records"]["large"]
@@ -369,6 +424,7 @@ def run_accuracy(args: argparse.Namespace, out: Path) -> dict[str, Any]:  # prag
         if abs(ap_l - b["stats"][5]) > 1e-9 or abs(ar_l - b["stats"][11]) > 1e-9:
             raise SystemExit(f"accumulate tidak sama dengan COCOeval pada imgsz {s}")
     n_images = box["large"][REFERENCE].n_images
+    t0 = time.perf_counter()
     counts = bootstrap_counts(n_images, args.bootstrap, args.seed)
     primary = paired_bootstrap(box["large"], counts)
     support = {
@@ -376,6 +432,7 @@ def run_accuracy(args: argparse.Namespace, out: Path) -> dict[str, Any]:  # prag
         "box_medium": paired_bootstrap(box["medium"], counts),
         "keypoint_large": paired_bootstrap(kp_large, counts),
     }
+    timing["bootstrap_s"] = time.perf_counter() - t0
     return {
         "primary_box_ap_large": primary,
         "chosen_imgsz": choose_imgsz(primary),
@@ -383,20 +440,24 @@ def run_accuracy(args: argparse.Namespace, out: Path) -> dict[str, Any]:  # prag
         "ar_large": {s: accumulate(r)[1] for s, r in box["large"].items()},
         "official_stats": official,
         "n_images": n_images,
+        "image_ids_first_last": [img_ids[0], img_ids[-1]],
+        "accumulate_matches_cocoeval": True,
+        "torch_threads": threads,
+        "timing": timing,
     }
 
 
 def run_speed(args: argparse.Namespace) -> dict[str, Any]:  # pragma: no cover
     import cv2
-    import torch
     from pycocotools.coco import COCO
 
-    if args.threads is not None:
-        torch.set_num_threads(args.threads)
     gt = COCO(str(args.data_dir / ANNOTATIONS))
     warm, measured = speed_image_ids(gt.getImgIds(), args.seed)
     model = load_model(MODEL_FILE)
-    out: dict[str, Any] = {"warmup_ids": warm, "measured_ids": measured, "per_size": {}}
+    threads = warm_up_threads(model, args.threads, max(args.sizes))
+    out: dict[str, Any] = {
+        "warmup_ids": warm, "measured_ids": measured, "torch_threads": threads, "per_size": {}
+    }  # fmt: skip
     for s in sorted(args.sizes, reverse=True):
         speeds = []
         for i, img_id in enumerate(warm + measured):
@@ -421,12 +482,8 @@ def main(argv: list[str] | None = None) -> int:
     out = args.out_dir / time.strftime("%Y%m%d-%H%M%S")
     out.mkdir(parents=True, exist_ok=False)
     result = run_speed(args) if args.speed else run_accuracy(args, out)
-    threads = None
-    if args.speed:
-        import torch
-
-        threads = int(torch.get_num_threads())
-    result = {"plan": info, "environment": environment(MODEL_FILE, threads), **result}
+    env = environment(MODEL_FILE, result["torch_threads"])
+    result = {"plan": info, "environment": env, **result}
     name = "speed.json" if args.speed else "accuracy.json"
     (out / name).write_text(json.dumps(result, indent=1, default=str), encoding="utf-8")
     print(out / name)
