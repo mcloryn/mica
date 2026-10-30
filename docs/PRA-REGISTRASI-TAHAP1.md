@@ -43,4 +43,5 @@ Target dospem: ≥ 80% jawaban **tidak halusinasi**.
   - rincian per topik dan per persona penanya.
 
 ## 6. Penyimpangan
-(kosong; isi bila ada, dengan tanggal)
+- **30 Okt 2026, klarifikasi setelah 3 soal pertama (commit 97b055c).** Pra-reg belum mengatur ulang saat API gagal. Aturan yang dipakai: soal diulang hanya bila API error/timeout dan **belum ada jawaban sama sekali**; jawaban pertama yang keluar adalah yang dinilai. Semua percobaan tercatat di `attempts.jsonl`. Kasus: t1-003 (percobaan 1 timeout 10 s, percobaan 2 terjawab).
+- **Catatan teknis (bukan penyimpangan):** hanya gpt-oss-120b, tanpa cadangan ke 20b, sama seperti E-02 dev. `latency_s` ikut menghitung waktu tunggu pembatas laju Groq, jadi tidak dipakai sebagai latensi sistem (latensi diukur terpisah di E-09).
