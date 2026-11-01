@@ -384,18 +384,18 @@ def test_with_prompt_variant_dev(label, variant):
     assert settings.rag.prompt_variant == variant
 
 
-def _kiosk_settings():
+def _prod_settings():
     s = _settings()
-    return s.model_copy(update={"app": s.app.model_copy(update={"mode": "kiosk"})})
+    return s.model_copy(update={"app": s.app.model_copy(update={"mode": "prod"})})
 
 
-def test_with_prompt_variant_rejected_in_kiosk():
+def test_with_prompt_variant_rejected_in_prod():
     with pytest.raises(WebUiError, match="dev"):
-        webui_app.with_prompt_variant(_kiosk_settings(), "v4")
+        webui_app.with_prompt_variant(_prod_settings(), "v4")
 
 
-def test_main_prompt_variant_kiosk_exit_2(monkeypatch, capsys):
-    monkeypatch.setattr(webui_app, "load_settings", lambda *a, **k: _kiosk_settings())
+def test_main_prompt_variant_prod_exit_2(monkeypatch, capsys):
+    monkeypatch.setattr(webui_app, "load_settings", lambda *a, **k: _prod_settings())
     monkeypatch.setattr(webui_app, "run", lambda *a, **k: pytest.fail("run tidak boleh jalan"))
     assert webui_app.main(["--prompt-variant", "v4", "--no-browser"]) == 2
     assert "--prompt-variant hanya boleh" in capsys.readouterr().err

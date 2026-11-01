@@ -264,21 +264,21 @@ def test_resolve_presence_values_arguments_override_config():
     assert sources["dwell_s"] == "argumen CLI" and sources["leave_s"] == "config"
 
 
-def _kiosk_settings():
+def _prod_settings():
     settings = load_settings(DEV_YAML)
-    return settings.model_copy(update={"app": settings.app.model_copy(update={"mode": "kiosk"})})
+    return settings.model_copy(update={"app": settings.app.model_copy(update={"mode": "prod"})})
 
 
-def test_demo_refused_in_kiosk(monkeypatch, capsys):
-    monkeypatch.setattr(cli, "load_settings", lambda path: _kiosk_settings())
+def test_demo_refused_in_prod(monkeypatch, capsys):
+    monkeypatch.setattr(cli, "load_settings", lambda path: _prod_settings())
     clock = FakeClock()
     code, detector = _run_main(["demo", "--no-window", "--seconds", "1", *TEST_ARGS], clock)
     assert code == 2 and detector.calls == 0
     assert "app.mode: dev" in capsys.readouterr().err
 
 
-def test_fetch_model_refused_in_kiosk(monkeypatch, capsys):
-    monkeypatch.setattr(cli, "load_settings", lambda path: _kiosk_settings())
+def test_fetch_model_refused_in_prod(monkeypatch, capsys):
+    monkeypatch.setattr(cli, "load_settings", lambda path: _prod_settings())
     assert cli.main(["fetch-model"]) == 2
     assert "app.mode: dev" in capsys.readouterr().err
 
@@ -454,8 +454,8 @@ def test_fetch_colors_checks_sha_and_writes_npy(tmp_path, monkeypatch, capsys):
     assert sorted(p.name for p in (tmp_path / "models").iterdir()) == ["color_names_w2c.npy"]
 
 
-def test_fetch_colors_refused_in_kiosk(monkeypatch, capsys):
-    monkeypatch.setattr(cli, "load_settings", lambda path: _kiosk_settings())
+def test_fetch_colors_refused_in_prod(monkeypatch, capsys):
+    monkeypatch.setattr(cli, "load_settings", lambda path: _prod_settings())
     assert cli.main(["fetch-colors"]) == 2
     assert "app.mode: dev" in capsys.readouterr().err
 

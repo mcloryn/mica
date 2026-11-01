@@ -1,4 +1,4 @@
-"""UI web (ADR-19, opsi ui.backend: web): rakit KioskController + server Flask + Edge, tanpa Qt.
+"""UI web (ADR-19, opsi ui.backend: web): rakit AppController + server Flask + Edge, tanpa Qt.
 
 python -m mica.webui --config <yaml> [--fake-workers [--fake-camera]] [--fake-pipeline] [--no-browser]
     [--port N]
@@ -11,7 +11,7 @@ python -m mica.webui --config <yaml> [--fake-workers [--fake-camera]] [--fake-pi
 - --record-resources: perekam sumber daya E-09 (mica.eval.resources); hanya dev, kecuali --e09.
 - --measure-preview [--measure-label X]: ukur laju pratinjau kamera dan CPU per detik
   (mica.eval.preview_meter) ke results/preview-fps/<timestamp>/summary.json; hanya dev, butuh
-  pekerja kamera asli (boleh dengan --fake-camera), ditolak di kiosk dan dengan --fake-workers.
+  pekerja kamera asli (boleh dengan --fake-camera), ditolak di prod dan dengan --fake-workers.
 - --guided-test: uji terpandu sekitar 5 menit (mica.webui.guided); kotak petunjuk di halaman,
   program menutup sendiri setelah skenario selesai; hanya dev.
 """
@@ -28,7 +28,7 @@ from typing import Any
 
 from mica.config import ConfigError, Settings, load_settings
 from mica.core import startup
-from mica.core.controller import KioskController
+from mica.core.controller import AppController
 from mica.core.logging import InteractionLog
 from mica.core.session import Session
 from mica.webui.server import HOST, WebUi, start_server, stop_server
@@ -53,11 +53,11 @@ def build_controller(
     pipeline: Any = None,
     clock: Callable[[], float] = time.monotonic,
     measure: bool = False,
-) -> KioskController:
+) -> AppController:
     dev = settings.app.mode == "dev"
     fakes = fake_workers or fake_pipeline or fake_camera or fake_voice
     if not dev and (fakes or bus is not None or pipeline is not None):
-        raise WebUiError("pekerja/pipeline palsu hanya boleh saat app.mode: dev (ditolak di kiosk)")
+        raise WebUiError("pekerja/pipeline palsu hanya boleh saat app.mode: dev (ditolak di prod)")
     log = InteractionLog(Path(settings.logging.dir))
     if bus is None:
         bus = _start_bus(settings, fake_workers, fake_camera, fake_voice, measure)
@@ -93,7 +93,7 @@ def build_controller(
         watch.note_ui_rendered()
 
     webui.on_first_render = first_render
-    controller = KioskController(bus, Session.from_settings(settings), pipeline, webui.show_item,
+    controller = AppController(bus, Session.from_settings(settings), pipeline, webui.show_item,
                                  clock, log, debug=webui.show_debug if dev else None,
                                  display=webui.show_display)  # fmt: skip
     webui.controller = controller
@@ -141,7 +141,7 @@ def _start_bus(settings: Settings, fake_workers: bool, fake_camera: bool, fake_v
 
 def serve(
     webui: WebUi,
-    controller: KioskController,
+    controller: AppController,
     browser: Any | None,
     port: int = 0,
     stop: threading.Event | None = None,
@@ -263,7 +263,7 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
     return 0
 
 
-def make_preview_meter(settings: Settings, webui: WebUi, controller: KioskController,
+def make_preview_meter(settings: Settings, webui: WebUi, controller: AppController,
                        browser: Any, fake_camera: bool, fake_voice: bool,
                        label: str | None, guided: Any = None) -> Any:  # fmt: skip
     import os
@@ -300,7 +300,7 @@ PROMPT_VARIANTS = {"v2": "paraphrase", "v3": "v3", "v4": "v4", "v5": "v5"}
 def with_prompt_variant(settings: Settings, label: str) -> Settings:
     """Settings dengan rag.prompt_variant dari --prompt-variant; hanya app.mode: dev."""
     if settings.app.mode != "dev":
-        raise WebUiError("--prompt-variant hanya boleh saat app.mode: dev (ditolak di kiosk)")
+        raise WebUiError("--prompt-variant hanya boleh saat app.mode: dev (ditolak di prod)")
     rag = settings.rag.model_copy(update={"prompt_variant": PROMPT_VARIANTS[label]})
     return settings.model_copy(update={"rag": rag})
 
@@ -328,7 +328,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--prompt-variant",
         choices=tuple(PROMPT_VARIANTS),
-        help="uji coba langsung varian prompt (v2 = paraphrase); dev saja, kiosk ditolak",
+        help="uji coba langsung varian prompt (v2 = paraphrase); dev saja, prod ditolak",
     )
     parser.add_argument("--no-browser", action="store_true", help="jangan luncurkan Edge")
     parser.add_argument(

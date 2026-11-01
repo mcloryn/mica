@@ -111,7 +111,7 @@ class Bus:
         self.to_main: Any = self.ctx.Queue()
         self.to_vision: Any = self.ctx.Queue()
         self.to_audio: Any = self.ctx.Queue()
-        # pratinjau UI kiosk: antrean TERPISAH dari bus event (maxsize 1, frame lama dibuang);
+        # pratinjau UI web: antrean TERPISAH dari bus event (maxsize 1, frame lama dibuang);
         # pesan bus tetap tanpa frame. None bila ui.camera_preview off.
         preview_on = vision is not None and vision.camera_preview != "off"
         self.preview: Any = self.ctx.Queue(maxsize=1) if preview_on else None

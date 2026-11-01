@@ -7,7 +7,7 @@ import pytest
 import yaml
 from pydantic import SecretStr
 
-from mica.config import CFG_GEMINI_IN_KIOSK, CFG_INVALID, ConfigError, load_settings
+from mica.config import CFG_GEMINI_IN_PROD, CFG_INVALID, ConfigError, load_settings
 from mica.core.types import LlmAnswer, LlmBadOutput, LlmRequest, LlmUnavailable
 from mica.rag.llm import (
     GEMINI_URL,
@@ -262,10 +262,10 @@ def test_make_llm_passes_reasoning_effort_to_gemini():
     assert provider.reasoning_effort == "low"
 
 
-def test_gemini_rejected_in_kiosk():
+def test_gemini_rejected_in_prod():
     with pytest.raises(ConfigError) as exc:
-        GeminiProvider("gemini-x", mode="kiosk", api_key=SecretStr(KEY))
-    assert exc.value.code == CFG_GEMINI_IN_KIOSK
+        GeminiProvider("gemini-x", mode="prod", api_key=SecretStr(KEY))
+    assert exc.value.code == CFG_GEMINI_IN_PROD
 
 
 def test_missing_key_rejected():

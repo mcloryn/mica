@@ -182,7 +182,7 @@ class AudioWorkerConfig:
             return
         if any(self._factories()):
             raise AudioWorkerConfigError(
-                "factory audio palsu hanya boleh saat app.mode: dev (ditolak di kiosk)"
+                "factory audio palsu hanya boleh saat app.mode: dev (ditolak di prod)"
             )
         if self.diagnose:
             raise AudioWorkerConfigError("diagnosis konsol hanya boleh saat app.mode: dev")

@@ -47,7 +47,7 @@ class MeasureRefused(Exception):
 
 def check_allowed(mode: str) -> None:
     if mode != "dev":
-        raise MeasureRefused("--measure-preview hanya boleh saat app.mode: dev (ditolak di kiosk)")
+        raise MeasureRefused("--measure-preview hanya boleh saat app.mode: dev (ditolak di prod)")
 
 
 def _put(out: Any, record: dict[str, Any]) -> None:

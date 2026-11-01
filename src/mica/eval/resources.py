@@ -38,7 +38,7 @@ class RecorderRefused(Exception):
 def check_allowed(mode: str, e09: bool) -> None:
     if mode != "dev" and not e09:
         raise RecorderRefused(
-            "--record-resources hanya untuk app.mode: dev; di kiosk hanya untuk E-09 dengan --e09"
+            "--record-resources hanya untuk app.mode: dev; di prod hanya untuk E-09 dengan --e09"
         )
 
 
@@ -170,7 +170,7 @@ class ResourceRecorder:
         while not self.stop_event.is_set():
             try:
                 self.sample()
-            except Exception:  # noqa: BLE001, S110 - perekam tidak boleh mematikan kiosk
+            except Exception:  # noqa: BLE001, S110 - perekam tidak boleh mematikan aplikasi
                 pass
             self.stop_event.wait(self.interval_s)
 
@@ -219,7 +219,7 @@ def add_arguments(parser: Any) -> None:
         help=f"interval perekam dalam detik (bawaan {DEFAULT_INTERVAL_S:g}, nilai coba)",
     )
     parser.add_argument("--e09", action="store_true",
-                        help="izinkan perekam di app.mode kiosk untuk E-09 (dicatat di run.json)")  # fmt: skip
+                        help="izinkan perekam di app.mode prod untuk E-09 (dicatat di run.json)")  # fmt: skip
 
 
 def bus_roots(bus: Any, browser: Any = None) -> dict[str, int | None]:

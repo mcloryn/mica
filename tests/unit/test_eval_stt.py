@@ -1,4 +1,4 @@
-"""M-12 eval stt (E-05): manifest, metrik, transkripsi palsu, Recall@5, Groq palsu, kiosk.
+"""M-12 eval stt (E-05): manifest, metrik, transkripsi palsu, Recall@5, Groq palsu, prod.
 
 Tanpa mikrofon, model, atau jaringan: VAD dan STT palsu dari tests/fakes.py. Angka di sini data
 uji, bukan ambang.
@@ -20,7 +20,7 @@ from mica.eval import stt as e05
 
 ROOT = Path(__file__).resolve().parents[2]
 DEV_YAML = ROOT / "config" / "dev.yaml"
-KIOSK_YAML = ROOT / "config" / "kiosk.yaml"
+PROD_YAML = ROOT / "config" / "prod.yaml"
 TRIAL = ["--vad-threshold", "0.5", "--min-silence-ms", "160", "--max-utterance-s", "10"]
 
 
@@ -300,20 +300,20 @@ def test_groq_no_speech_filter_and_unknown_model():
 # --- CLI ------------------------------------------------------------------------------------
 
 
-def test_eval_stt_refused_in_kiosk(tmp_path, capsys):
+def test_eval_stt_refused_in_prod(tmp_path, capsys):
     manifest = _manifest(tmp_path, [ROWS[1]])
-    code = cli.main(["stt", "--config", str(KIOSK_YAML), "--dataset", str(manifest), *TRIAL])
+    code = cli.main(["stt", "--config", str(PROD_YAML), "--dataset", str(manifest), *TRIAL])
     assert code == 2
     err = capsys.readouterr().err
-    assert "app.mode: dev" in err or "mode kiosk" in err
+    assert "app.mode: dev" in err or "mode prod" in err
 
 
-def test_eval_stt_refused_in_kiosk_even_when_complete(tmp_path, monkeypatch):
+def test_eval_stt_refused_in_prod_even_when_complete(tmp_path, monkeypatch):
     from mica.config import load_settings
 
     settings = load_settings(DEV_YAML)
-    kiosk = settings.model_copy(update={"app": settings.app.model_copy(update={"mode": "kiosk"})})
-    monkeypatch.setattr(cli, "load_settings", lambda *a, **k: kiosk)
+    prod = settings.model_copy(update={"app": settings.app.model_copy(update={"mode": "prod"})})
+    monkeypatch.setattr(cli, "load_settings", lambda *a, **k: prod)
     args = cli.build_parser().parse_args(["stt", "--config", "x", "--dataset", "y", *TRIAL])
     with pytest.raises(cli.SttEvalError, match="app.mode: dev"):
         cli.cmd_stt(args)

@@ -66,6 +66,6 @@ def test_paraphrase_is_prompt_v2_and_config_unchanged():
     assert SYSTEM_PARAPHRASE == system_prompt("paraphrase")
     import yaml
 
-    for name in ("dev.yaml", "kiosk.yaml"):  # keputusan menunggu penilai manusia
+    for name in ("dev.yaml", "prod.yaml"):  # keputusan menunggu penilai manusia
         raw = yaml.safe_load((ROOT / "config" / name).read_text(encoding="utf-8"))
         assert raw["llm"]["prompt_variants"] == {}

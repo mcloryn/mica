@@ -1,7 +1,7 @@
 """M-10 MainWindow: merender ViewModel dan memancarkan event UI; tanpa logika bisnis (SDD M-10).
 
 Widget hanya membuat objek event (TopicTapped, TextSubmitted, TalkTapped, StopTapped) dan
-memancarkannya lewat sinyal event_emitted; KioskController yang memprosesnya. Panel debug
+memancarkannya lewat sinyal event_emitted; AppController yang memprosesnya. Panel debug
 hanya dibuat di mode dev.
 """
 

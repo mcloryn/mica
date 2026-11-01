@@ -1,9 +1,9 @@
-"""Entry point kiosk.
+"""Entry point aplikasi.
 
-python -m mica [--config config/kiosk.yaml] [--fake-workers] [--fake-pipeline]
+python -m mica [--config config/prod.yaml] [--fake-workers] [--fake-pipeline]
                [--record-resources <folder> [--resource-interval 5] [--e09]]
     jalankan check dulu; bila ada GAGAL, cetak tabel dan keluar 1 tanpa membuka jendela.
-    Bila OK: proses vision + suara (start_workers), KioskController, dan UI sesuai ui.backend:
+    Bila OK: proses vision + suara (start_workers), AppController, dan UI sesuai ui.backend:
     web (mica.webui.app: server Flask + Edge kiosk, UI utama) atau pyside6 (mica.ui.app, cadangan).
     --fake-* hanya boleh di mode dev. --record-resources (perekam E-09, mica.eval.resources)
     hanya di mode dev kecuali dengan --e09, dan hanya untuk ui.backend web (PySide6 dibekukan).
@@ -95,7 +95,7 @@ def main(
         print(format_table(rows))
         print("MICA tidak dijalankan.")
         return 1
-    if args.trial_values:  # Langkah 41: setelah check, di memori; kiosk ditolak
+    if args.trial_values:  # Langkah 41: setelah check, di memori; prod ditolak
         from mica.config import ConfigError
         from mica.trial import load_trial_settings
 

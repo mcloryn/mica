@@ -1,10 +1,10 @@
-"""M-10 aplikasi: QApplication + MainWindow + KioskController (SDD M-10, 3.3).
+"""M-10 aplikasi: QApplication + MainWindow + AppController (SDD M-10, 3.3).
 
 python -m mica.ui [--config config/dev.yaml] [--fake-workers] [--fake-pipeline]
 - QTimer 50 ms memanggil controller.step() (SDD 3.3); sinyal jendela -> controller.submit().
 - Jendela ditutup -> controller.shutdown() (executor pipeline lalu bus).
 - --fake-workers: bus palsu di dalam proses (mica.ui.devfakes), tanpa kamera/mikrofon/speaker;
-  --fake-pipeline: jawaban palsu tanpa Groq. Keduanya ditolak di mode kiosk.
+  --fake-pipeline: jawaban palsu tanpa Groq. Keduanya ditolak di mode prod.
 - ui.fullscreen menentukan layar penuh; ui.font_scale mengalikan ukuran font bawaan Qt.
 - Panel debug dan aliran DebugInfo hanya di mode dev.
 """
@@ -23,7 +23,7 @@ from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication
 
 from mica.config import ConfigError, Settings, load_settings
-from mica.core.controller import KioskController
+from mica.core.controller import AppController
 from mica.core.logging import InteractionLog
 from mica.core.session import Session
 from mica.ui.main_window import MainWindow
@@ -39,7 +39,7 @@ class UiError(Exception):
 @dataclass
 class KioskApp:
     window: MainWindow
-    controller: KioskController
+    controller: AppController
     timer: QTimer
 
 
@@ -55,7 +55,7 @@ def build(
     """Rakit jendela dan controller. bus/pipeline bisa disuntik (tes); QApplication harus ada."""
     dev = settings.app.mode == "dev"
     if not dev and (fake_workers or fake_pipeline or bus is not None or pipeline is not None):
-        raise UiError("pekerja/pipeline palsu hanya boleh saat app.mode: dev (ditolak di kiosk)")
+        raise UiError("pekerja/pipeline palsu hanya boleh saat app.mode: dev (ditolak di prod)")
     log = InteractionLog(Path(settings.logging.dir))
     if bus is None:
         if fake_workers:
@@ -82,7 +82,7 @@ def build(
             stop()
         raise
     window = MainWindow(settings.ui, dev=dev)
-    controller = KioskController(bus, Session.from_settings(settings), pipeline,
+    controller = AppController(bus, Session.from_settings(settings), pipeline,
                                  window.show_item, clock, log,
                                  debug=window.show_debug if dev else None)  # fmt: skip
     window.event_emitted.connect(controller.submit)

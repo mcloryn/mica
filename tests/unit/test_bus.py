@@ -62,16 +62,16 @@ def test_overrides_fill_null_values_and_pickle():
     assert pickle.loads(pickle.dumps(cfg)) == cfg
 
 
-def test_fake_factory_rejected_in_kiosk():
-    with pytest.raises(WorkerConfigError, match="kiosk"):
+def test_fake_factory_rejected_in_prod():
+    with pytest.raises(WorkerConfigError, match="app.mode: dev"):
         VisionWorkerConfig.from_settings(
-            _settings("kiosk"), TEST_VALUES, camera_factory="tests.fakes:make_fake_camera"
+            _settings("prod"), TEST_VALUES, camera_factory="tests.fakes:make_fake_camera"
         )
     cfg = VisionWorkerConfig.from_settings(
         _settings(), TEST_VALUES, camera_factory="tests.fakes:make_fake_camera"
     )
-    forged = VisionWorkerConfig(**{**cfg.__dict__, "mode": "kiosk"})
-    with pytest.raises(WorkerConfigError, match="kiosk"):
+    forged = VisionWorkerConfig(**{**cfg.__dict__, "mode": "prod"})
+    with pytest.raises(WorkerConfigError, match="app.mode: dev"):
         forged.validate()
 
 
@@ -82,4 +82,4 @@ def test_start_workers_rejects_mode_mismatch(tmp_path):
         _settings(), TEST_VALUES, detector_factory="tests.fakes:make_fake_detector"
     )
     with pytest.raises(WorkerConfigError):
-        start_workers(_settings("kiosk"), cfg)
+        start_workers(_settings("prod"), cfg)

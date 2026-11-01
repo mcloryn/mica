@@ -1,5 +1,5 @@
 app:
-  mode: dev                   # kiosk | dev; Gemini hanya boleh di dev
+  mode: dev                   # prod | dev; Gemini hanya boleh di dev
   version: 0.1.0
 kb:
   active_id: official-2026-10-24-v5  # F-17; KB resmi v5 (Langkah 66, docs/KB-RESMI.md)
@@ -22,7 +22,7 @@ rag:
   reranker:
     enabled: false                  # ADR-01; nyala hanya bila lolos aturan E-01
     model: BAAI/bge-reranker-v2-m3
-    revision: null                  # N-14; hash commit lengkap, wajib di kiosk
+    revision: null                  # N-14; hash commit lengkap, wajib di prod
   gate:
     threshold: 0.50                 # ADR-06; provisional, sweep prompt v2 (20b+120b), seri null/.45/.48/.50 -> tertinggi
                                     # nilai coba; dikalibrasi di KB dev, belum diukur ulang di KB resmi
@@ -103,7 +103,7 @@ ui:
     - {label: Fasilitas, question: "Fasilitas apa saja yang tersedia di kampus Mikroskil?"}
     - {label: Lokasi, question: "Di mana alamat kampus Universitas Mikroskil?"}
   logo_path: null                   # file logo lokal; null = placeholder teks "MICA" sampai logo resmi tersedia
-  camera_preview: debug             # off | public | debug (debug ditolak di kiosk); Langkah 37
+  camera_preview: debug             # off | public | debug (debug ditolak di prod); Langkah 37
   preview_pixel_block: 16           # NILAI COBA DESAIN (bukan hasil eksperimen): blok pixelate px pada gambar lebar 320
   preview_fps: 15                   # keputusan desain pengguna 18 Okt 2026: pratinjau minimal 10 fps; dev 15 (keputusan pengguna 21 Okt 2026); tidak menambah inferensi YOLO
   suggestions: {}                   # F-14; topik -> daftar saran pertanyaan, diisi pengembang

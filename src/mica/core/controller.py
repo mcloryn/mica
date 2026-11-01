@@ -1,4 +1,4 @@
-"""KioskController tanpa Qt: memompa bus, meneruskan event ke M-09, mengeksekusi Action (SDD 3.3,
+"""AppController tanpa Qt: memompa bus, meneruskan event ke M-09, mengeksekusi Action (SDD 3.3,
 M-10 Struktur).
 
 - step(): poll bus -> event -> Session.handle(event, now) -> eksekusi aksi; lalu jawaban M-06
@@ -141,7 +141,7 @@ class DisplayUpdate:
     target_color: str | None = None  # warna PersonArrived (None = tanpa warna)
 
 
-class KioskController:
+class AppController:
     def __init__(
         self,
         bus: Any,
@@ -303,7 +303,7 @@ class KioskController:
             else:
                 answer = self.pipeline.answer(question, history, action.session_id,
                                               input_mode=action.input_mode)  # fmt: skip
-        except Exception as exc:  # noqa: BLE001 - pipeline tidak boleh mematikan kiosk
+        except Exception as exc:  # noqa: BLE001 - pipeline tidak boleh mematikan aplikasi
             log.warning("%s: pipeline gagal (%s)", ErrorCode.LLM_UNAVAILABLE, type(exc).__name__)
             answer = FinalAnswer("unavailable", UNAVAILABLE, (), {})
         self.answers.put((AnswerReady(action.session_id, answer), record))

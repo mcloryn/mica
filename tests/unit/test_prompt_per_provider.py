@@ -128,8 +128,8 @@ MAPPING = {BIG: "v4", SMALL: "paraphrase"}
 
 def test_config_default_empty_and_mapping_validated(tmp_path):
     assert load_settings(DEV_YAML).llm.prompt_variants == {}  # bawaan belum diganti ke v4
-    kiosk = yaml.safe_load((ROOT / "config" / "kiosk.yaml").read_text(encoding="utf-8"))
-    assert kiosk["llm"]["prompt_variants"] == {}  # kiosk butuh nilai TBD; cek isi YAML saja
+    prod = yaml.safe_load((ROOT / "config" / "prod.yaml").read_text(encoding="utf-8"))
+    assert prod["llm"]["prompt_variants"] == {}  # prod butuh nilai TBD; cek isi YAML saja
     s = _settings(tmp_path, MAPPING)
     assert s.llm.prompt_variant_for(BIG, "paraphrase") == "v4"
     assert s.llm.prompt_variant_for(SMALL, "v4") == "paraphrase"

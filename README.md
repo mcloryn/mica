@@ -1,11 +1,11 @@
 # MICA
 
-Kiosk informasi Penerimaan Mahasiswa Baru (PMB) Universitas Mikroskil, dibuat untuk skripsi S-1.
+Aplikasi informasi Penerimaan Mahasiswa Baru (PMB) Universitas Mikroskil, dibuat untuk skripsi S-1.
 Kamera mendeteksi pengunjung yang mendekat, lalu MICA menyapa. Pengunjung bisa bertanya lewat
 suara atau ketikan. Jawaban disusun dengan RAG dari dokumen PMB resmi, lengkap dengan sumbernya.
 
 - Rancangan: [`docs/SDD.md`](docs/SDD.md)
-- Pemasangan di laptop kiosk: [`docs/KIOSK.md`](docs/KIOSK.md)
+- Pemasangan di laptop PMB: [`docs/INSTALASI.md`](docs/INSTALASI.md)
 - Daftar perintah: [`docs/PERINTAH.md`](docs/PERINTAH.md)
 
 ## Kebutuhan
@@ -60,10 +60,10 @@ Setelah itu isi `kb.active_id` di `config/dev.yaml` dengan `<id>` tadi.
 ```
 python -m mica check --config config/dev.yaml     # cek kesiapan; semua baris harus OK
 python -m mica --config config/dev.yaml           # mode pengembangan
-python -m mica                                    # mode kiosk (config/kiosk.yaml)
+python -m mica                                    # mode prod (config/prod.yaml)
 ```
 
-Mode kiosk baru lolos `check` kalau semua nilai TBD (`null`) di `config/kiosk.yaml` sudah diisi
+Mode prod baru lolos `check` kalau semua nilai TBD (`null`) di `config/prod.yaml` sudah diisi
 dari hasil eksperimen E-01 sampai E-09.
 
 Untuk menutup MICA, tekan Alt+F4 di jendela Edge atau Ctrl+C di PowerShell.
@@ -79,7 +79,7 @@ Perintah ini berjalan tanpa kamera, mikrofon, maupun Groq, dan hanya boleh dipak
 ## Konfigurasi
 
 - `config/dev.yaml`: untuk pengembangan. Boleh memakai Gemini dan opsi `--fake-*`.
-- `config/kiosk.yaml`: untuk kiosk. Tanpa Gemini, dan nilai TBD wajib diisi sebelum dipakai.
+- `config/prod.yaml`: untuk laptop PMB (mode prod). Tanpa Gemini, dan nilai TBD wajib diisi sebelum dipakai.
 
 ## Tes
 
@@ -92,16 +92,16 @@ ruff format --check .
 ## Struktur
 
 ```
-config/     konfigurasi dev dan kiosk
+config/     konfigurasi dev dan prod
 data/       dataset evaluasi (data/eval); KB dan sumber dokumen dibuat lokal
-docs/       SDD, catatan eksperimen (E-xx), panduan kiosk, tangkapan layar UI
+docs/       SDD, catatan eksperimen (E-xx), panduan instalasi, tangkapan layar UI
 scripts/    skrip pengukuran dan utilitas
 src/mica/   kode program
   audio/    mikrofon, VAD, STT (faster-whisper), TTS (Piper)
   vision/   kamera, deteksi orang (YOLO), kehadiran, warna pakaian
   kb/       parser dokumen, chunker, embedder, indeks
   rag/      retriever, gerbang, LLM, prompt, scrub_pii
-  core/     controller kiosk, sesi, bus antarproses, logging
+  core/     controller aplikasi, sesi, bus antarproses, logging
   webui/    UI web (Flask + Edge), UI utama
   ui/       UI PySide6 (cadangan, dibekukan)
   eval/     alat evaluasi E-01 sampai E-09
@@ -111,6 +111,14 @@ results/    hasil eksperimen
 
 ## Privasi
 
-- Di mode kiosk, frame kamera dan audio mikrofon tidak pernah disimpan ke disk.
+- Di mode prod, frame kamera dan audio mikrofon tidak pernah disimpan ke disk.
 - Teks pertanyaan disamarkan dengan `scrub_pii` sebelum dikirim ke API atau ditulis ke log.
 - Kunci API hanya disimpan di `.env`.
+
+## Catatan istilah
+
+Sejak refactor RF-2 (1 November 2026) MICA adalah web app di satu laptop PMB, bukan kiosk lagi: mode
+`kiosk` menjadi `prod`, `config/kiosk.yaml` menjadi `config/prod.yaml`, dan `KioskController` menjadi
+`AppController`. Catatan eksperimen dan pra-registrasi di `docs/` (E-xx, UI-WEB, PROMPT-Vx, dan lainnya)
+sengaja tetap memakai istilah lama karena menggambarkan kondisi saat itu. Sistem yang diuji di Uji RAG
+Tahap 1 tersimpan di tag `tahap1-beku`.

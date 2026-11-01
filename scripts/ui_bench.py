@@ -51,7 +51,7 @@ from typing import Any
 
 IDLE_S = 60.0  # protokol: diam 60 detik
 N_QUESTIONS = 20  # protokol: 20 pertanyaan ketik
-FACTOR = 3.0  # protokol: perkiraan laptop kiosk ~1/3 laptop dev
+FACTOR = 3.0  # protokol: perkiraan laptop PMB ~1/3 laptop dev
 LIMIT_S = 1.0  # protokol: Nielsen, bukti [52]
 QUESTION = "pertanyaan uji {n}"
 CHILD_TIMEOUT_S = 180.0  # non-ADR: batas tunggu satu tahap proses anak

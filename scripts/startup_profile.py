@@ -8,7 +8,7 @@ Per ulangan:
 1. Salinan config di folder hasil: logging.dir ke folder ulangan, dan kunci TBD (null) yang
    dibutuhkan pekerja asli diisi NILAI COBA SDD bagian 12 (dev saja; tercatat di run.json).
 2. `python -m mica --config <salinan>` (check, pekerja kamera dan suara asli, pipeline asli, Edge
-   kiosk) dengan MICA_STARTUP_LOG ke folder ulangan. --fake-camera: `python -m mica.webui
+   aplikasi) dengan MICA_STARTUP_LOG ke folder ulangan. --fake-camera: `python -m mica.webui
    --fake-workers --fake-camera` (kamera palsu, suara palsu) bila tidak ada kamera.
 3. Menunggu tahap "all_ready" proses utama atau --timeout, lalu menutup jendela Edge sehingga
    aplikasi berhenti rapi (pohon proses dibunuh bila tidak berhenti dalam 30 s).

@@ -20,7 +20,7 @@ from mica.vision import color, detector
 
 ROOT = Path(__file__).resolve().parents[2]
 DEV_YAML = ROOT / "config" / "dev.yaml"
-KIOSK_YAML = ROOT / "config" / "kiosk.yaml"
+PROD_YAML = ROOT / "config" / "prod.yaml"
 FAKE_KEY = "gsk_rahasia_palsu_123456"  # kunci palsu, tidak pernah boleh tercetak
 DEVICES = [{"name": "Mic", "max_input_channels": 1, "max_output_channels": 0},
            {"name": "Speaker", "max_input_channels": 0, "max_output_channels": 2}]  # fmt: skip
@@ -121,7 +121,7 @@ def test_setup_reports_wrong_sha_without_overwriting(tmp_path, locked):
 
 
 def test_setup_bge_blocked_when_revision_null(tmp_path, locked):
-    settings = load_settings(KIOSK_YAML, require_complete=False)
+    settings = load_settings(PROD_YAML, require_complete=False)
     out: list[str] = []
     dl, _ = _fake_downloaders(locked, [])
     assert setup.run_setup(settings, "BGE-M3", tmp_path, dl, out.append) == 1
@@ -178,8 +178,8 @@ def test_check_all_ok_in_dev(tmp_path, locked, monkeypatch):
     assert "diperiksa saat start" in table and "SEMUA OK" in table
 
 
-def test_check_kiosk_nulls_listed_by_key(tmp_path, locked, monkeypatch):
-    rows, settings = _run(tmp_path, KIOSK_YAML, monkeypatch)
+def test_check_prod_nulls_listed_by_key(tmp_path, locked, monkeypatch):
+    rows, settings = _run(tmp_path, PROD_YAML, monkeypatch)
     config_row = rows[0]
     assert config_row.status == "GAGAL"
     for key in ("kb.embedder.revision", "audio.vad.threshold", "session.idle_reset_s",
@@ -211,7 +211,7 @@ def test_check_missing_key_and_devices(tmp_path, locked, monkeypatch):
     assert "GROQ_API_KEY di file .env" in by_item["GROQ_API_KEY"].message
     assert by_item["perangkat audio"].status == "PERINGATAN"
     assert "mikrofon tidak ditemukan" in by_item["perangkat audio"].message
-    assert "kiosk tetap bisa dipakai lewat teks" in by_item["perangkat audio"].message
+    assert "aplikasi tetap bisa dipakai lewat teks" in by_item["perangkat audio"].message
 
 
 def test_check_device_warning_only_exits_zero(tmp_path, locked, monkeypatch):
@@ -281,7 +281,7 @@ def test_check_logs_not_writable(tmp_path, locked, monkeypatch):
 
 def test_main_check_failed_does_not_launch(capsys):
     launched = []
-    rows = [check.CheckRow("config", "GAGAL", "mode kiosk: 1 kunci belum diisi: x")]
+    rows = [check.CheckRow("config", "GAGAL", "mode prod: 1 kunci belum diisi: x")]
     code = entry.main([], check=lambda c, e: (rows, None),
                       launch=lambda s, a: launched.append(s) or 0)  # fmt: skip
     assert code == 1 and launched == []
@@ -289,7 +289,7 @@ def test_main_check_failed_does_not_launch(capsys):
     assert "GAGAL" in out and "MICA tidak dijalankan" in out
 
 
-def test_main_check_ok_launches_with_default_kiosk_config():
+def test_main_check_ok_launches_with_default_prod_config():
     settings = load_settings(DEV_YAML)
     seen = {}
 
@@ -299,7 +299,7 @@ def test_main_check_ok_launches_with_default_kiosk_config():
 
     code = entry.main([], check=fake_check, launch=lambda s, a: seen.setdefault("s", s) and 0)
     assert code == 0 and seen["s"] is settings
-    assert seen["config"] == Path("config/kiosk.yaml")
+    assert seen["config"] == Path("config/prod.yaml")
 
 
 @pytest.mark.parametrize("backend", ["pyside6", "web"])
@@ -315,11 +315,11 @@ def test_main_launches_ui_by_backend(monkeypatch, backend):
     assert calls == [(backend, True)]
 
 
-def test_main_rejects_fake_flags_in_kiosk():
+def test_main_rejects_fake_flags_in_prod():
     settings = load_settings(DEV_YAML)
-    kiosk = settings.model_copy(update={"app": settings.app.model_copy(update={"mode": "kiosk"})})
+    prod = settings.model_copy(update={"app": settings.app.model_copy(update={"mode": "prod"})})
     ok = [check.CheckRow("config", "OK", "ok")]
-    code = entry.main(["--fake-workers"], check=lambda c, e: (ok, kiosk),
+    code = entry.main(["--fake-workers"], check=lambda c, e: (ok, prod),
                       launch=lambda s, a: 0)  # fmt: skip
     assert code == 2
 
@@ -433,14 +433,14 @@ def test_check_catches_similar_topic_question(tmp_path, locked, monkeypatch):
 
 
 def test_repo_topic_questions_pass_leak_check_against_data_eval():
-    # pertanyaan chip di config/dev.yaml dan kiosk.yaml tidak identik/mirip data/eval
+    # pertanyaan chip di config/dev.yaml dan prod.yaml tidak identik/mirip data/eval
     from mica.eval.dataset import load_questions
 
     sets = [ROOT / "data/eval/questions.jsonl", ROOT / "data/eval/official/dev.jsonl",
             ROOT / "data/eval/official/test.jsonl"]  # fmt: skip
     questions = [q for p in sets if p.is_file() for q in load_questions(p)]
     assert questions
-    for name in ("dev.yaml", "kiosk.yaml"):
+    for name in ("dev.yaml", "prod.yaml"):
         raw = yaml.safe_load((ROOT / "config" / name).read_text(encoding="utf-8"))
         hints = [t["question"] for t in raw["ui"]["topics"]] + [
             t["label"] for t in raw["ui"]["topics"]

@@ -18,7 +18,7 @@ Kolom retries_429 dan wait_429_s diambil dari run.json (kosong bila tidak ada).
 Bisa juga membandingkan varian prompt (mis. --labels v2-120b v3-120b; docs/PROMPT-V3.md).
 pipeline_latency_*: t_scrub + t_retrieval + t_gate + t_check + llm_latency_s, dari pertanyaan yang
 memanggil LLM. t_total eval tidak dipakai karena t_llm memuat waktu tunggu pembatas laju
-(TokenRateLimiter, sampai sekitar 60 detik), yang tidak ada di kiosk.
+(TokenRateLimiter, sampai sekitar 60 detik), yang tidak ada di aplikasi.
 follow_up_tidak_null: keluaran LLM dengan follow_up_topic terisi (prompt v3; kolom tidak ada = 0);
 follow_up_tampil: yang juga berstatus answered/false_premise, jadi tawarannya tampil di UI.
 items_tidak_kosong (prompt v4): jawaban answered/false_premise dengan kolom items terisi.

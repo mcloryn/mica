@@ -706,13 +706,13 @@ def test_edge_browser_with_fake_popen(tmp_path):
     assert browser.profile is None
 
 
-def test_fakes_refused_in_kiosk():
+def test_fakes_refused_in_prod():
     s = load_settings(DEV_YAML)
-    kiosk = s.model_copy(update={"app": s.app.model_copy(update={"mode": "kiosk"})})
-    with pytest.raises(WebUiError, match="kiosk"):
-        build_controller(kiosk, WebUi(kiosk.ui, dev=False), fake_workers=True)
-    with pytest.raises(WebUiError, match="kiosk"):
-        build_controller(kiosk, WebUi(kiosk.ui, dev=False), fake_pipeline=True)
+    prod = s.model_copy(update={"app": s.app.model_copy(update={"mode": "prod"})})
+    with pytest.raises(WebUiError, match="prod"):
+        build_controller(prod, WebUi(prod.ui, dev=False), fake_workers=True)
+    with pytest.raises(WebUiError, match="prod"):
+        build_controller(prod, WebUi(prod.ui, dev=False), fake_pipeline=True)
 
 
 def test_fake_build_in_dev_end_to_end(tmp_path):
@@ -746,13 +746,13 @@ def test_webui_imports_no_qt_or_heavy_modules():
     assert out.stdout.strip() == "[]"
 
 
-def test_run_refuses_fakes_in_kiosk(capsys):
+def test_run_refuses_fakes_in_prod(capsys):
     from mica.webui.app import run
 
     s = load_settings(DEV_YAML)
-    kiosk = s.model_copy(update={"app": s.app.model_copy(update={"mode": "kiosk"})})
-    assert run(kiosk, fake_workers=True, no_browser=True) == 2
-    assert "kiosk" in capsys.readouterr().err
+    prod = s.model_copy(update={"app": s.app.model_copy(update={"mode": "prod"})})
+    assert run(prod, fake_workers=True, no_browser=True) == 2
+    assert "prod" in capsys.readouterr().err
 
 
 def test_ack_reports_rendered_view_to_controller_for_k3():

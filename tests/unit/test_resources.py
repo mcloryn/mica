@@ -40,11 +40,11 @@ def sleeper():
 def test_allowed_only_in_dev_or_with_e09():
     check_allowed("dev", False)
     check_allowed("dev", True)
-    check_allowed("kiosk", True)
+    check_allowed("prod", True)
     with pytest.raises(RecorderRefused, match="--e09"):
-        check_allowed("kiosk", False)
+        check_allowed("prod", False)
     with pytest.raises(RecorderRefused):
-        make_recorder(Path("x"), "kiosk", False, dict)
+        make_recorder(Path("x"), "prod", False, dict)
 
 
 def test_pid_groups_split_children(sleeper):
@@ -97,13 +97,13 @@ def test_sample_writes_numbers_only(tmp_path, sleeper):
 
 
 def test_start_stop_writes_run_json(tmp_path):
-    rec = make_recorder(tmp_path / "run", "kiosk", True, dict, interval_s=0.05,
+    rec = make_recorder(tmp_path / "run", "prod", True, dict, interval_s=0.05,
                         info={"ui_backend": "web"})  # fmt: skip
     rec.start()
     rec.stop_event.wait(0.2)
     rec.stop()
     info = json.loads((tmp_path / "run" / "run.json").read_text(encoding="utf-8"))
-    assert info["e09"] is True and info["app_mode"] == "kiosk" and info["interval_s"] == 0.05
+    assert info["e09"] is True and info["app_mode"] == "prod" and info["interval_s"] == 0.05
     assert info["n_samples"] >= 1 and info["stopped_at"] and info["ui_backend"] == "web"
     assert (tmp_path / "run" / "resources.csv").is_file()
 
@@ -113,15 +113,15 @@ def test_invalid_interval_rejected(tmp_path):
         ResourceRecorder(tmp_path, dict, 0)
 
 
-def _kiosk_settings():
+def _prod_settings():
     s = load_settings(DEV_YAML)
-    return s.model_copy(update={"app": s.app.model_copy(update={"mode": "kiosk"})})
+    return s.model_copy(update={"app": s.app.model_copy(update={"mode": "prod"})})
 
 
-def test_webui_run_refuses_recorder_in_kiosk_without_e09(tmp_path, capsys):
+def test_webui_run_refuses_recorder_in_prod_without_e09(tmp_path, capsys):
     from mica.webui.app import run
 
-    code = run(_kiosk_settings(), no_browser=True, record_resources=tmp_path / "r")
+    code = run(_prod_settings(), no_browser=True, record_resources=tmp_path / "r")
     assert code == 2 and "--e09" in capsys.readouterr().err
     assert not (tmp_path / "r").exists()
 
@@ -134,11 +134,11 @@ def test_main_recorder_flags(capsys):
         launched.append((args.record_resources, args.resource_interval, args.e09))
         return 0
 
-    assert entry.main(["--record-resources", "r"], check=lambda c, e: (ok, _kiosk_settings()),
+    assert entry.main(["--record-resources", "r"], check=lambda c, e: (ok, _prod_settings()),
                       launch=launch) == 2  # fmt: skip
     assert "--e09" in capsys.readouterr().err and launched == []
     assert entry.main(["--record-resources", "r", "--e09", "--resource-interval", "2"],
-                      check=lambda c, e: (ok, _kiosk_settings()), launch=launch) == 0  # fmt: skip
+                      check=lambda c, e: (ok, _prod_settings()), launch=launch) == 0  # fmt: skip
     assert launched == [(Path("r"), 2.0, True)]
     s = load_settings(DEV_YAML)
     qt = s.model_copy(update={"ui": s.ui.model_copy(update={"backend": "pyside6"})})

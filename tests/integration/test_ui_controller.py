@@ -1,4 +1,4 @@
-"""M-10 + KioskController lewat QTimer (offscreen): alur ketik lengkap sampai jawaban dan sumber.
+"""M-10 + AppController lewat QTimer (offscreen): alur ketik lengkap sampai jawaban dan sumber.
 
 Bus palsu dari mica.ui.devfakes, pipeline palsu dengan sumber; tanpa perangkat dan tanpa Groq.
 """
@@ -76,8 +76,8 @@ def test_fake_flags_build_in_dev(qtbot, tmp_path):
 
 
 def test_fakes_refused_in_kiosk(tmp_path):
-    settings = _settings(tmp_path, mode="kiosk")
-    with pytest.raises(UiError, match="kiosk"):
+    settings = _settings(tmp_path, mode="prod")
+    with pytest.raises(UiError, match="prod"):
         build(settings, fake_workers=True)
-    with pytest.raises(UiError, match="kiosk"):
+    with pytest.raises(UiError, match="prod"):
         build(settings, fake_pipeline=True)
