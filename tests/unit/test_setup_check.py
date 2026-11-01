@@ -150,18 +150,12 @@ def _dev_config(tmp_path, backend=None):
     return path
 
 
-def _run(tmp_path, config, monkeypatch, key=FAKE_KEY, devices=DEVICES, edge_paths=None):
+def _run(tmp_path, config, monkeypatch, key=FAKE_KEY, devices=DEVICES):
     if key:
         monkeypatch.setenv("GROQ_API_KEY", key)
     else:
         monkeypatch.delenv("GROQ_API_KEY", raising=False)
-    if edge_paths is None:  # Edge palsu: tes tidak bergantung pada Edge di mesin uji
-        fake = tmp_path / "edge-palsu" / "msedge.exe"
-        fake.parent.mkdir(exist_ok=True)
-        fake.write_bytes(b"")
-        edge_paths = (fake,)
-    return check.run_check(config, None, tmp_path, ROOT / "data" / "kb", lambda: devices,
-                           edge_paths)  # fmt: skip
+    return check.run_check(config, None, tmp_path, ROOT / "data" / "kb", lambda: devices)
 
 
 def _web_config(tmp_path):
@@ -235,34 +229,13 @@ def test_check_key_value_never_printed(tmp_path, locked, monkeypatch, capsys):
     assert FAKE_KEY not in out.out + out.err
 
 
-def test_check_web_backend_without_edge_fails(tmp_path, locked, monkeypatch):
+def test_check_has_no_edge_row(tmp_path, locked, monkeypatch):
+    # RF-2: UI dibuka di browser default; check tidak lagi mencari msedge.exe
     config = _web_config(tmp_path)
     _models(tmp_path, locked, load_settings(config))
-    missing = (tmp_path / "tidak-ada" / "msedge.exe",)
-    rows, _ = _run(tmp_path, config, monkeypatch, edge_paths=missing)
-    edge = {r.item: r for r in rows}["Microsoft Edge"]
-    assert edge.status == "GAGAL" and "tidak ditemukan" in edge.message
-    assert check.failed(rows) and "ADA GAGAL" in check.format_table(rows)
-
-
-def test_check_web_backend_with_edge_ok(tmp_path, locked, monkeypatch):
-    config = _web_config(tmp_path)
-    _models(tmp_path, locked, load_settings(config))
-    fake_edge = tmp_path / "msedge.exe"
-    fake_edge.write_bytes(b"")
-    rows, _ = _run(tmp_path, config, monkeypatch,
-                   edge_paths=(tmp_path / "tidak-ada.exe", fake_edge))  # fmt: skip
-    edge = {r.item: r for r in rows}["Microsoft Edge"]
-    assert edge.status == "OK" and str(fake_edge) in edge.message
+    rows, _ = _run(tmp_path, config, monkeypatch)
+    assert "Microsoft Edge" not in {r.item for r in rows}
     assert not check.failed(rows), check.format_table(rows)
-
-
-def test_check_pyside6_backend_has_no_edge_row(tmp_path, locked, monkeypatch):
-    config = _dev_config(tmp_path, backend="pyside6")
-    _models(tmp_path, locked, load_settings(config))
-    missing = (tmp_path / "tidak-ada" / "msedge.exe",)
-    rows, _ = _run(tmp_path, config, monkeypatch, edge_paths=missing)
-    assert "Microsoft Edge" not in {r.item for r in rows} and not check.failed(rows)
 
 
 def test_check_logs_not_writable(tmp_path, locked, monkeypatch):
@@ -356,7 +329,7 @@ def test_check_catches_test_question_in_suggestions(tmp_path, locked, monkeypatc
                                                    "Ada asrama?"])  # fmt: skip
     monkeypatch.setenv("GROQ_API_KEY", FAKE_KEY)
     rows, _ = check.run_check(config, None, tmp_path, ROOT / "data" / "kb", lambda: DEVICES,
-                              (tmp_path / "msedge.exe",), test_set=test_set)  # fmt: skip
+                              test_set=test_set)  # fmt: skip
     leak = {r.item: r for r in rows}["kebocoran set uji"]
     assert leak.status == "GAGAL" and "o-test-001" in leak.message
     assert "o-test-002" not in leak.message and check.failed(rows)
@@ -366,12 +339,11 @@ def test_check_no_leak_ok_and_no_row_without_test_set(tmp_path, locked, monkeypa
     config = _with_suggestions(tmp_path, {"Biaya": ["Biaya kuliah S1 berapa per tahun?"]})
     _models(tmp_path, locked, load_settings(config))
     test_set = _test_set(tmp_path / "test.jsonl", ["Jalur beasiswa apa saja?"])
-    (tmp_path / "msedge.exe").write_bytes(b"")
     monkeypatch.setenv("GROQ_API_KEY", FAKE_KEY)
 
     def run(path):
         return check.run_check(config, None, tmp_path, ROOT / "data" / "kb", lambda: DEVICES,
-                               (tmp_path / "msedge.exe",), test_set=path)[0]  # fmt: skip
+                               test_set=path)[0]  # fmt: skip
 
     leak = {r.item: r for r in run(test_set)}["kebocoran set uji"]
     assert leak.status == "OK" and "1 pertanyaan tidak identik/mirip" in leak.message
@@ -385,7 +357,7 @@ def test_check_catches_test_question_in_topic_cards(tmp_path, locked, monkeypatc
     test_set = _test_set(tmp_path / "test.jsonl", ["Beasiswa?", "Ada asrama?"])
     monkeypatch.setenv("GROQ_API_KEY", FAKE_KEY)
     rows, _ = check.run_check(config, None, tmp_path, ROOT / "data" / "kb", lambda: DEVICES,
-                              (tmp_path / "msedge.exe",), test_set=test_set)  # fmt: skip
+                              test_set=test_set)  # fmt: skip
     leak = {r.item: r for r in rows}["kebocoran set uji"]
     assert leak.status == "GAGAL" and "o-test-001" in leak.message and "ui.topics" in leak.message
 
@@ -404,7 +376,7 @@ def _run_leak(tmp_path, locked, monkeypatch, config, test_set, dev_sets):
     _models(tmp_path, locked, load_settings(config))
     monkeypatch.setenv("GROQ_API_KEY", FAKE_KEY)
     rows, _ = check.run_check(config, None, tmp_path, ROOT / "data" / "kb", lambda: DEVICES,
-                              (tmp_path / "msedge.exe",), test_set=test_set,
+                              test_set=test_set,
                               dev_sets=dev_sets)  # fmt: skip
     return {r.item: r for r in rows}, rows
 

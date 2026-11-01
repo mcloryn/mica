@@ -1,5 +1,6 @@
 """UI web (percobaan ADR-19): serialisasi ViewModel, kesamaan event dengan PySide6, keamanan
-server (Origin, 127.0.0.1, tanpa aset internet), dan siklus hidup Edge. Tanpa browser sungguhan.
+server (Origin, 127.0.0.1, tanpa aset internet), dan siklus hidup server (browser default,
+Ctrl+C). Tanpa browser sungguhan.
 """
 
 import json
@@ -34,13 +35,7 @@ from mica.ui.main_window import format_debug as qt_format_debug
 from mica.ui.viewmodel import ViewModel
 from mica.webui import state
 from mica.webui.app import WebUiError, build_controller, serve
-from mica.webui.browser import (
-    IDLE_SWITCHES,
-    PREVIEW_SWITCHES,
-    RENDERING_SWITCHES,
-    EdgeBrowser,
-    edge_command,
-)
+from mica.webui.browser import DefaultBrowser
 from mica.webui.server import HOST, STATIC_DIR, WebUi, start_server, stop_server
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -554,156 +549,101 @@ def test_broadcast_to_all_active_connections():
 # --- Edge dan siklus hidup ------------------------------------------------------------------
 
 
-def test_edge_command_flags(tmp_path):
-    edge = Path("msedge.exe")
-    url = "http://127.0.0.1:5000/"
-    assert edge_command(edge, url, tmp_path, True) == [
-        "msedge.exe", f"--user-data-dir={tmp_path}", "--no-first-run",
-        "--disable-component-update", "--disable-component-extensions-with-background-pages",
-        "--renderer-process-limit=1", "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding",
-        "--disable-background-timer-throttling",
-        "--kiosk", url, "--edge-kiosk-type=fullscreen"]  # fmt: skip
-    assert edge_command(edge, url, tmp_path, False)[-1] == url
-    plain = edge_command(edge, url, tmp_path, True, keep_rendering=False)
-    assert not set(RENDERING_SWITCHES) & set(plain) and "--kiosk" in plain
-    assert set(IDLE_SWITCHES) <= set(plain)  # pengurang kerja latar tidak ikut dimatikan
-
-
-def test_production_browser_never_opens_devtools_port(tmp_path):
-    # Langkah 38: --remote-debugging-port hanya untuk bench (ui_bench --edge-extra), bukan produksi
-    import mica.webui.browser as browser_mod
-
-    assert "remote-debugging" not in Path(browser_mod.__file__).read_text(encoding="utf-8")
-    url = "http://127.0.0.1:5000/"
-    for preview in ("off", "public", "debug"):
-        for fullscreen in (True, False):
-            for keep in (True, False):
-                cmd = edge_command(Path("msedge.exe"), url, tmp_path, fullscreen, keep, preview)
-                assert not any("remote-debugging" in part for part in cmd)
-
-
-def test_preview_switch_only_when_preview_on(tmp_path):
-    # Langkah 38: K2 lolos (03-k2-vs-base); hanya kondisi yang diukur (pratinjau bukan off)
-    assert PREVIEW_SWITCHES == ("--disable-gpu-compositing",)
-    url = "http://127.0.0.1:5000/"
-    edge = Path("msedge.exe")
-    assert "--disable-gpu-compositing" not in edge_command(edge, url, tmp_path, True)
-    for mode in ("public", "debug"):
-        cmd = edge_command(edge, url, tmp_path, True, camera_preview=mode)
-        assert cmd.count("--disable-gpu-compositing") == 1
-        assert cmd.index("--disable-gpu-compositing") < cmd.index("--kiosk")
-    started = []
-    for mode in ("off", "public"):
-        browser = EdgeBrowser(True, edge=edge, camera_preview=mode,
-                              popen=lambda cmd: started.append(cmd) or FakeProc())  # fmt: skip
-        browser.start(url)
-        browser.close()
-    assert "--disable-gpu-compositing" not in started[0]
-    assert "--disable-gpu-compositing" in started[1]
-
-
-def test_run_passes_camera_preview_to_browser():
-    import inspect
-
-    from mica.webui import app
-
-    src = inspect.getsource(app.run)
-    assert "camera_preview=settings.ui.camera_preview" in src
-
-
-def test_rendering_switches_are_only_verified_ones():
-    # hanya switch yang diverifikasi di content_switches.cc (lihat komentar di browser.py)
-    assert RENDERING_SWITCHES == ("--disable-backgrounding-occluded-windows",
-                                  "--disable-renderer-backgrounding",
-                                  "--disable-background-timer-throttling")  # fmt: skip
-    started = []
-    browser = EdgeBrowser(True, edge=Path("msedge.exe"),
-                          popen=lambda cmd: started.append(cmd) or FakeProc())  # fmt: skip
-    browser.start("http://127.0.0.1:1/")
-    browser.close()
-    assert set(RENDERING_SWITCHES) <= set(started[0])
-    # Langkah 31: hanya switch yang lolos aturan keputusan (changes.csv)
-    assert IDLE_SWITCHES == ("--disable-component-update",
-                             "--disable-component-extensions-with-background-pages",
-                             "--renderer-process-limit=1")  # fmt: skip
-    assert set(IDLE_SWITCHES) <= set(started[0])
-
-
-class FakeProc:
-    def __init__(self) -> None:
-        self.pid = 99999999
-        self.exit_code = None
-
-    def poll(self):
-        return self.exit_code
-
-
 class FakeBrowser:
-    def __init__(self) -> None:
-        self.url = None
-        self.closed = False
-        self.alive_checks = 0
+    """Browser default palsu: hanya mencatat URL; tidak punya PID dan tidak dipantau."""
+
+    def __init__(self, ok: bool = True) -> None:
+        self.urls: list[str] = []
+        self.ok = ok
+
+    @property
+    def url(self):
+        return self.urls[0] if self.urls else None
 
     def start(self, url):
-        self.url = url
-
-    def alive(self):
-        self.alive_checks += 1
-        return self.alive_checks < 3  # jendela "ditutup" setelah beberapa cek
-
-    def close(self):
-        self.closed = True
+        self.urls.append(url)
+        return self.ok
 
 
-def test_closing_browser_stops_server_and_controller():
+def test_default_browser_opens_new_window_once():
+    calls = []
+    browser = DefaultBrowser(opener=lambda url, new: calls.append((url, new)) or True)
+    assert browser.start("http://127.0.0.1:1/") is True
+    assert calls == [("http://127.0.0.1:1/", 1)] and browser.opened
+
+
+def test_default_browser_reports_missing_browser():
+    import webbrowser
+
+    def broken(url, new):
+        raise webbrowser.Error("tidak ada browser")
+
+    assert DefaultBrowser(opener=lambda url, new: False).start("http://x/") is False
+    assert DefaultBrowser(opener=broken).start("http://x/") is False
+
+
+def test_browser_module_has_no_edge_launcher():
+    # RF-2: peluncur Edge, switch, dan --kiosk dihapus; find_edge hanya untuk alat dev
+    import mica.webui.browser as browser_mod
+
+    text = Path(browser_mod.__file__).read_text(encoding="utf-8")
+    for gone in ("EdgeBrowser", "edge_command", "--kiosk", "SWITCHES", "subprocess", "alive"):
+        assert gone not in text
+
+
+def test_server_keeps_running_after_browser_opened_until_stop():
+    # menutup tab browser tidak mematikan server: serve() tidak memantau browser
     webui = WebUi(_ui(), dev=False)
     controller = FakeController()
     webui.controller = controller
     browser = FakeBrowser()
     urls = []
-    done = threading.Thread(target=serve, args=(webui, controller, browser),
-                            kwargs={"on_ready": urls.append}, daemon=True)  # fmt: skip
-    done.start()
-    done.join(10)
-    assert not done.is_alive()
-    assert urls and urls[0].startswith("http://127.0.0.1:") and browser.url == urls[0]
-    assert controller.closed and browser.closed and controller.steps > 0
-
-
-def test_stopping_server_closes_browser():
-    webui = WebUi(_ui(), dev=False)
-    controller = FakeController()
-    webui.controller = controller
-    browser = FakeBrowser()
-    browser.alive = lambda: True
     stop = threading.Event()
     task = threading.Thread(target=serve, args=(webui, controller, browser),
-                            kwargs={"stop": stop, "on_ready": lambda url: None}, daemon=True)  # fmt: skip
+                            kwargs={"stop": stop, "on_ready": urls.append}, daemon=True)  # fmt: skip
     task.start()
-    time.sleep(0.2)
+    deadline = time.monotonic() + 10
+    while not urls and time.monotonic() < deadline:
+        time.sleep(0.02)
+    assert urls and urls[0].startswith("http://127.0.0.1:") and browser.urls == urls
+    time.sleep(0.6)  # lebih lama dari STOP_CHECK_S: server tetap hidup tanpa jendela browser
+    assert task.is_alive()
+    assert httpx.get(urls[0], timeout=5).status_code == 200
     stop.set()
     task.join(10)
-    assert not task.is_alive()
-    assert browser.closed and controller.closed
-    # port sudah dilepas: server benar-benar berhenti
-    with pytest.raises(httpx.TransportError):  # Windows: ditolak atau timeout, tidak dilayani
+    assert not task.is_alive() and controller.closed and controller.steps > 0
+    with pytest.raises(httpx.TransportError):  # port dilepas: server benar-benar berhenti
         httpx.get(f"http://{HOST}:{webui.port}/", timeout=2)
 
 
-def test_edge_browser_with_fake_popen(tmp_path):
-    started = []
+class _CtrlCEvent(threading.Event):
+    """Event stop yang meniru Ctrl+C: wait() di thread utama melempar KeyboardInterrupt."""
 
-    def popen(cmd):
-        started.append(cmd)
-        return FakeProc()
+    def wait(self, timeout=None):
+        if threading.current_thread() is threading.main_thread():
+            raise KeyboardInterrupt
+        return super().wait(timeout)
 
-    browser = EdgeBrowser(True, edge=Path("msedge.exe"), popen=popen)
-    browser.start("http://127.0.0.1:1/")
-    assert browser.alive() and "--kiosk" in started[0] and browser.profile.is_dir()
-    browser.proc.exit_code = 0
-    assert not browser.alive()
-    browser.close()
-    assert browser.profile is None
+
+def test_ctrl_c_stops_server_and_controller():
+    webui = WebUi(_ui(), dev=False)
+    controller = FakeController()
+    webui.controller = controller
+    with pytest.raises(KeyboardInterrupt):
+        serve(webui, controller, FakeBrowser(), stop=_CtrlCEvent(), on_ready=lambda url: None)
+    assert controller.closed
+    with pytest.raises(httpx.TransportError):
+        httpx.get(f"http://{HOST}:{webui.port}/", timeout=2)
+
+
+def test_serve_prints_url_when_browser_cannot_open(capsys):
+    webui = WebUi(_ui(), dev=False)
+    controller = FakeController()
+    webui.controller = controller
+    with pytest.raises(KeyboardInterrupt):
+        serve(webui, controller, FakeBrowser(ok=False), stop=_CtrlCEvent(),
+              on_ready=lambda url: None)  # fmt: skip
+    assert "buka http://127.0.0.1:" in capsys.readouterr().out
 
 
 def test_fakes_refused_in_prod():

@@ -4,8 +4,7 @@ Tidak membuka kamera, mikrofon, atau speaker dan tidak memanggil Groq. Memeriksa
 config (M-01; di mode prod semua null wajib terisi), file model dan sha256, KB aktif dan
 embedder-nya, keberadaan GROQ_API_KEY (nilainya tidak pernah dicetak), daftar perangkat
 audio dari sounddevice.query_devices() (tanpa membuka stream), kamera (hanya "diperiksa saat
-start"), folder log bisa ditulis, bila ui.backend: web, msedge.exe ditemukan (Edge tidak
-dijalankan), dan tidak ada pertanyaan set uji (data/eval/official/test.jsonl) maupun set dev
+start"), folder log bisa ditulis, dan tidak ada pertanyaan set uji (data/eval/official/test.jsonl) maupun set dev
 (data/eval/questions.jsonl, official/dev.jsonl) yang identik atau mirip dengan teks
 ui.suggestions/ui.topics (docs/DATASET.md, larangan bocor). Kode keluar 0 bila semua OK, 1 bila ada GAGAL.
 """
@@ -127,16 +126,6 @@ def _check_logs(settings: Settings) -> CheckRow:
     return CheckRow("folder log", "OK", f"{folder.as_posix()} bisa ditulis")
 
 
-def _check_browser(edge_paths: tuple[Path, ...]) -> CheckRow:
-    """Hanya untuk ui.backend: web; Edge tidak dijalankan, hanya dicari file-nya."""
-    from mica.webui.browser import EdgeMissing, find_edge
-
-    try:
-        return CheckRow("Microsoft Edge", "OK", f"{find_edge(edge_paths)} (ui.backend: web)")
-    except EdgeMissing as exc:
-        return CheckRow("Microsoft Edge", "GAGAL", f"{exc}; ui.backend: web butuh Edge")
-
-
 # Langkah 53: teks UI dianggap mirip bila Jaccard token (setelah normalize_question) >= nilai
 # ini. NILAI PENGAMAN PENGEMBANG, bukan hasil eksperimen; pertanyaan chip saat ini <= 0,33.
 LEAK_TOKEN_JACCARD = 0.5
@@ -203,7 +192,6 @@ def run_check(
     models_dir: Path = Path("models"),
     kb_root: Path = Path("data/kb"),
     query_devices: Callable[[], Any] = _query_devices,
-    edge_paths: tuple[Path, ...] | None = None,
     test_set: Path = Path("data/eval/official/test.jsonl"),
     dev_sets: tuple[Path, ...] = (
         Path("data/eval/questions.jsonl"),
@@ -225,10 +213,6 @@ def run_check(
     rows.append(CheckRow("kamera", "INFO", "diperiksa saat start (tidak dibuka oleh check)"))
     if settings is not None:
         rows.append(_check_logs(settings))
-        if settings.ui.backend == "web":
-            from mica.webui.browser import EDGE_PATHS
-
-            rows.append(_check_browser(EDGE_PATHS if edge_paths is None else edge_paths))
         for leak in (_check_test_leak(settings, Path(test_set)),
                      _check_leak(settings, "kebocoran set dev", tuple(map(Path, dev_sets)))):  # fmt: skip
             if leak is not None:

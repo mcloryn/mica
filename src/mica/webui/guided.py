@@ -124,7 +124,7 @@ class GuidedTest:
     def _loop(self) -> None:
         while not self.stop.is_set():
             if self.step():
-                self.stop.set()  # serve() berhenti rapi: Edge, server, pekerja ditutup
+                self.stop.set()  # serve() berhenti rapi: server dan pekerja ditutup
                 return
             self.stop.wait(1.0)
 

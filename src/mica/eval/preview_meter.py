@@ -8,7 +8,7 @@ Hanya angka yang direkam; tidak ada frame, JPEG, audio, atau teks (N-08). Tiga b
   Speak (waktu sampai suara pertama, total sintesis), dan setelan thread onnxruntime Piper.
 - PreviewMeasurement (proses utama): setiap detik menggabungkan angka pekerja, jumlah frame
   yang dikirim server ke /preview, jumlah frame yang digambar browser (dilaporkan app.js), CPU%
-  per proses (utama, vision, suara, edge) dan total mesin, serta status saat itu:
+  per proses (utama, vision, suara) dan total mesin, serta status saat itu:
   IDLE, MELAYANI-diam (GREETING/READY tanpa suara), MELAYANI-lain (LISTENING/THINKING tanpa
   suara), TTS-menyusun (Piper sedang sintesis, boleh sambil memutar clip sebelumnya),
   TTS-memutar (memutar, tanpa sintesis).
@@ -38,7 +38,7 @@ WINDOW_S = 1.0  # satu baris per detik
 SAMPLE_S = 0.1  # status sesi dibaca 10x per detik
 SUMMARY_NAME = "summary.json"
 STATES = ("IDLE", "MELAYANI-diam", "MELAYANI-lain", "TTS-menyusun", "TTS-memutar")
-CPU_GROUPS = ("utama", "vision", "suara", "edge", "lain")
+CPU_GROUPS = ("utama", "vision", "suara", "lain")
 
 
 class MeasureRefused(Exception):
@@ -481,8 +481,7 @@ def live_line(row: dict[str, Any], wall_ts: float) -> dict[str, Any]:
         "preview_put_fps": r(row.get("preview_put_fps")),
         "server_sent_fps": r(row.get("server_sent_fps")),
         "browser_drawn_fps": r(row.get("browser_drawn_fps")),
-        "cpu_pct": {g: r(cpu.get(g)) for g in ("utama", "vision", "suara", "edge",
-                                                "total_machine")},
+        "cpu_pct": {g: r(cpu.get(g)) for g in ("utama", "vision", "suara", "total_machine")},
         "read_ms": med("read_ms"),
         "detect_ms": med("detect_ms"),
         "render_encode_ms": med("render_encode_ms"),

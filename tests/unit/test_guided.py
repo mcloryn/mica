@@ -83,8 +83,7 @@ def test_guided_scenario_end_closes_program():
     webui = WebUi(_ui(), dev=True, guided=True)
     controller = FakeController()
     webui.controller = controller
-    browser = FakeBrowser()
-    browser.alive = lambda: True  # hanya skenario yang boleh menutup program
+    browser = FakeBrowser()  # browser tidak dipantau: hanya skenario yang menutup program
     stop = threading.Event()
     start = time.perf_counter()
     g = GuidedTest(lambda: start, webui.push_guide, stop, phases=phases, close_delay_s=0.1)
@@ -94,7 +93,7 @@ def test_guided_scenario_end_closes_program():
     task.start()
     task.join(10)
     assert not task.is_alive() and g.finished
-    assert controller.closed and browser.closed
+    assert controller.closed and browser.urls
     assert webui.last_guide is not None and webui.last_guide["done"]
 
 

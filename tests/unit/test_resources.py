@@ -48,16 +48,17 @@ def test_allowed_only_in_dev_or_with_e09():
 
 
 def test_pid_groups_split_children(sleeper):
-    groups = pid_groups(os.getpid(), {"vision": sleeper.pid, "suara": None, "edge": None})
+    groups = pid_groups(os.getpid(), {"vision": sleeper.pid, "suara": None})
     assert set(groups) == set(GROUPS)
     assert groups["utama"] == [os.getpid()]
     # python.exe venv di Windows adalah peluncur dengan satu proses anak: keduanya ikut vision
     assert groups["vision"][0] == sleeper.pid and len(groups["vision"]) >= 1
     assert not set(groups["vision"]) & set(groups["lain"])
-    assert sleeper.pid not in groups["lain"] and groups["suara"] == groups["edge"] == []
+    assert sleeper.pid not in groups["lain"] and groups["suara"] == []
+    assert "edge" not in groups  # RF-2: browser bukan bagian aplikasi, tidak diukur
 
 
-def test_bus_roots_reads_worker_and_browser_pids():
+def test_bus_roots_reads_worker_pids_only():
     class P:
         def __init__(self, pid):
             self.pid = pid
@@ -66,11 +67,8 @@ def test_bus_roots_reads_worker_and_browser_pids():
         def __init__(self):
             self.processes = {"vision": P(11), "audio": P(22)}
 
-    class Browser:
-        pid = 33
-
-    assert bus_roots(Bus(), Browser()) == {"vision": 11, "suara": 22, "edge": 33}
-    assert bus_roots(object(), None) == {"vision": None, "suara": None, "edge": None}
+    assert bus_roots(Bus()) == {"vision": 11, "suara": 22}
+    assert bus_roots(object()) == {"vision": None, "suara": None}
 
 
 def test_sample_writes_numbers_only(tmp_path, sleeper):

@@ -1,4 +1,4 @@
-"""UI web (ADR-19, opsi ui.backend: web): rakit AppController + server Flask + Edge, tanpa Qt.
+"""UI web (ADR-19, opsi ui.backend: web): rakit AppController + server Flask, buka browser default.
 
 python -m mica.webui --config <yaml> [--fake-workers [--fake-camera]] [--fake-pipeline] [--no-browser]
     [--port N]
@@ -6,8 +6,10 @@ python -m mica.webui --config <yaml> [--fake-workers [--fake-camera]] [--fake-pi
 - Rakitan bus/pipeline/controller sama dengan mica.ui.app.build; --fake-* hanya di mode dev.
 - --fake-camera (dengan --fake-workers): proses kamera asli dengan sumber gambar palsu
   (mica.vision.fakesource) sehingga pratinjau, target, dan sapaan bisa dicoba tanpa kamera.
-- Edge ditutup -> server, controller, dan pekerja berhenti rapi; server berhenti -> Edge ditutup.
-- --no-browser: hanya server (URL dicetak), berhenti dengan Ctrl+C.
+- Alamat dibuka di browser default dalam jendela biasa (RF-2). Menutup tab browser tidak
+  mematikan server; Ctrl+C di terminal menghentikan server, controller, serta proses vision dan
+  suara dengan rapi (pekerja mengabaikan SIGINT dan berhenti lewat Bus.stop; mica.core.bus).
+- --no-browser: hanya server (URL dicetak), tanpa membuka browser.
 - --record-resources: perekam sumber daya E-09 (mica.eval.resources); hanya dev, kecuali --e09.
 - --measure-preview [--measure-label X]: ukur laju pratinjau kamera dan CPU per detik
   (mica.eval.preview_meter) ke results/preview-fps/<timestamp>/summary.json; hanya dev, butuh
@@ -34,7 +36,7 @@ from mica.core.session import Session
 from mica.webui.server import HOST, WebUi, start_server, stop_server
 
 DEFAULT_CONFIG = Path("config/dev.yaml")
-WATCH_INTERVAL_S = 0.25  # non-ADR: cek berkala apakah jendela Edge sudah ditutup
+STOP_CHECK_S = 0.25  # non-ADR: thread utama bangun berkala supaya Ctrl+C segera diterima
 
 
 class WebUiError(Exception):
@@ -81,7 +83,7 @@ def build_controller(
             startup.mark("pipeline_ready")
             return built
 
-        # Langkah 40: dirakit di thread latar supaya server + Edge tidak menunggu BGE-M3
+        # Langkah 40: dirakit di thread latar supaya server + browser tidak menunggu BGE-M3
         pipeline = BackgroundPipeline(build, on_ready=watch.note_pipeline_ready,
                                       on_failed=lambda _e: startup.mark("pipeline_failed"))  # fmt: skip
         pipeline.start()
@@ -147,7 +149,9 @@ def serve(
     stop: threading.Event | None = None,
     on_ready: Callable[[str], None] = print,
 ) -> None:
-    """Server + thread poll 50 ms sampai stop di-set atau jendela Edge ditutup; lalu bersih-bersih."""
+    """Server + thread poll 50 ms sampai stop di-set atau Ctrl+C; lalu bersih-bersih.
+
+    browser (opsional) hanya diminta membuka URL sekali; jendelanya tidak dipantau."""
     stop = stop or threading.Event()
     server = start_server(webui, port)
     startup.mark("server_started")
@@ -161,14 +165,15 @@ def serve(
                                 name="mica-webui-preview", daemon=True)  # fmt: skip
         pump.start()
     try:
+        opened = None
         if browser is not None:
-            browser.start(url)
-            startup.mark("edge_launched")
+            opened = browser.start(url)
+            startup.mark("browser_opened")
         on_ready(url)
+        if opened is False:
+            print(f"browser default tidak bisa dibuka; buka {url} secara manual", flush=True)
         while not stop.is_set():
-            if browser is not None and not browser.alive():
-                break  # jendela Edge ditutup
-            stop.wait(WATCH_INTERVAL_S)
+            stop.wait(STOP_CHECK_S)
     finally:
         stop.set()
         poll.join()
@@ -179,8 +184,6 @@ def serve(
         if close is not None:
             close()
         controller.shutdown()
-        if browser is not None:
-            browser.close()
         stop_server(server)
 
 
@@ -190,11 +193,11 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
         e09: bool = False, trial: bool = False, prompt_label: str | None = None,
         measure_preview: bool = False, measure_label: str | None = None,
         guided_test: bool = False) -> int:  # fmt: skip
-    """Rakit lalu jalankan sampai Edge ditutup atau Ctrl+C (dipakai python -m mica dan main)."""
+    """Rakit lalu jalankan sampai Ctrl+C (dipakai python -m mica dan main)."""
     from mica.eval.preview_meter import MeasureRefused
     from mica.eval.preview_meter import check_allowed as check_measure
     from mica.eval.resources import RecorderRefused, check_allowed
-    from mica.webui.browser import EdgeBrowser, EdgeMissing
+    from mica.webui.browser import DefaultBrowser
     from mica.webui.guided import GuidedRefused, GuidedTest
     from mica.webui.guided import check_allowed as check_guided
 
@@ -215,15 +218,11 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
         webui = WebUi(settings.ui, dev=settings.app.mode == "dev", trial=trial,
                       input_mode=settings.audio.input_mode, prompt_label=prompt_label,
                       measure=measure_preview, guided=guided_test)  # fmt: skip
-        browser = (
-            None
-            if no_browser
-            else EdgeBrowser(settings.ui.fullscreen, camera_preview=settings.ui.camera_preview)
-        )
+        browser = None if no_browser else DefaultBrowser()
         controller = build_controller(settings, webui, fake_workers=fake_workers,
                                       fake_pipeline=fake_pipeline, fake_camera=fake_camera,
                                       fake_voice=fake_voice, measure=measure_preview)  # fmt: skip
-    except (WebUiError, EdgeMissing, RecorderRefused, MeasureRefused, GuidedRefused) as exc:
+    except (WebUiError, RecorderRefused, MeasureRefused, GuidedRefused) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     recorder = None
@@ -231,7 +230,7 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
         from mica.eval.resources import bus_roots, make_recorder
 
         recorder = make_recorder(record_resources, settings.app.mode, e09,
-                                 lambda: bus_roots(controller.bus, browser), resource_interval,
+                                 lambda: bus_roots(controller.bus), resource_interval,
                                  {"ui_backend": "web", "fake_workers": fake_workers,
                                   "fake_pipeline": fake_pipeline, "fake_camera": fake_camera,
                                   "camera_preview": settings.ui.camera_preview})  # fmt: skip
@@ -244,13 +243,14 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
         guided.start()
     meter = None
     if measure_preview:
-        meter = make_preview_meter(settings, webui, controller, browser, fake_camera, fake_voice,
+        meter = make_preview_meter(settings, webui, controller, fake_camera, fake_voice,
                                    measure_label, guided)  # fmt: skip
         meter.start()
         print(f"--measure-preview: angka per detik ke {meter.live_path}", flush=True)
     try:
         serve(webui, controller, browser, port, stop=stop,
-              on_ready=lambda url: print(f"MICA web: {url}", flush=True))  # fmt: skip
+              on_ready=lambda url: print(f"MICA web: {url} (Ctrl+C untuk berhenti)",
+                                         flush=True))  # fmt: skip
         if guided is not None and guided.finished:
             print("--guided-test: skenario selesai, program ditutup", flush=True)
     except KeyboardInterrupt:
@@ -264,7 +264,7 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
 
 
 def make_preview_meter(settings: Settings, webui: WebUi, controller: AppController,
-                       browser: Any, fake_camera: bool, fake_voice: bool,
+                       fake_camera: bool, fake_voice: bool,
                        label: str | None, guided: Any = None) -> Any:  # fmt: skip
     import os
 
@@ -274,7 +274,7 @@ def make_preview_meter(settings: Settings, webui: WebUi, controller: AppControll
     bus = controller.bus
     inner = getattr(bus, "vision", None) if fake_voice else bus  # FakeWorkerBus(vision)
     source = getattr(inner, "measure", None)
-    cpu = CpuSampler(lambda: pid_groups(os.getpid(), bus_roots(inner, browser)))
+    cpu = CpuSampler(lambda: pid_groups(os.getpid(), bus_roots(inner)))
     folder = PreviewMeasurement.new_folder()
     return PreviewMeasurement(
         folder, source,
@@ -289,7 +289,7 @@ def make_preview_meter(settings: Settings, webui: WebUi, controller: AppControll
               "preview_fps_config": settings.ui.preview_fps,
               "fps_idle_config": settings.vision.fps_idle,
               "fps_busy_config": settings.vision.fps_busy,
-              "browser_measured": browser is not None, "guided_test": guided is not None},
+              "guided_test": guided is not None},
     )  # fmt: skip
 
 
@@ -330,7 +330,9 @@ def main(argv: list[str] | None = None) -> int:
         choices=tuple(PROMPT_VARIANTS),
         help="uji coba langsung varian prompt (v2 = paraphrase); dev saja, prod ditolak",
     )
-    parser.add_argument("--no-browser", action="store_true", help="jangan luncurkan Edge")
+    parser.add_argument(
+        "--no-browser", action="store_true", help="jangan buka browser (URL dicetak)"
+    )
     parser.add_argument(
         "--measure-preview",
         action="store_true",

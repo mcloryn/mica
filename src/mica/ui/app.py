@@ -5,7 +5,7 @@ python -m mica.ui [--config config/dev.yaml] [--fake-workers] [--fake-pipeline]
 - Jendela ditutup -> controller.shutdown() (executor pipeline lalu bus).
 - --fake-workers: bus palsu di dalam proses (mica.ui.devfakes), tanpa kamera/mikrofon/speaker;
   --fake-pipeline: jawaban palsu tanpa Groq. Keduanya ditolak di mode prod.
-- ui.fullscreen menentukan layar penuh; ui.font_scale mengalikan ukuran font bawaan Qt.
+- ui.font_scale mengalikan ukuran font bawaan Qt.
 - Panel debug dan aliran DebugInfo hanya di mode dev.
 """
 
@@ -99,10 +99,7 @@ def apply_ui_settings(app: QApplication, window: MainWindow, settings: Settings)
     if font.pointSizeF() > 0:
         font.setPointSizeF(font.pointSizeF() * settings.ui.font_scale)
         app.setFont(font)
-    if settings.ui.fullscreen:
-        window.showFullScreen()
-    else:
-        window.show()
+    window.show()  # ui.fullscreen dihapus di RF-2; modul ini dihapus bersama PySide6
 
 
 def main(argv: list[str] | None = None) -> int:

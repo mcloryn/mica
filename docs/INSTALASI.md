@@ -56,19 +56,18 @@ berjalan MICA tidak mengunduh apa pun.
 
    MICA menjalankan `check` lagi; bila ada `GAGAL`, UI tidak dibuka dan tabelnya dicetak.
 
-   UI web adalah UI web (`ui.backend: web`): MICA menjalankan server lokal di 127.0.0.1
-   lalu membuka Microsoft Edge dalam mode kiosk layar penuh. Edge tidak perlu dibuka sendiri.
-   Untuk menutup kiosk, tekan Alt+F4 di jendela Edge (server dan proses kamera/suara ikut
-   berhenti) atau Ctrl+C di PowerShell (Edge ikut tertutup).
+   MICA menjalankan server lokal di 127.0.0.1 lalu membuka alamatnya di browser default
+   laptop dalam jendela biasa. Alamatnya juga dicetak di PowerShell; bila browser tidak
+   terbuka sendiri, salin alamat itu ke browser.
+
+   Untuk menutup MICA, tekan Ctrl+C di PowerShell. Server serta proses kamera dan suara
+   berhenti dengan rapi. Menutup tab atau jendela browser TIDAK mematikan MICA; buka lagi
+   alamatnya untuk kembali ke UI.
 
 Catatan:
 
-- Microsoft Edge wajib terpasang (bawaan Windows 10/11) di
-  `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe` atau
-  `C:\Program Files\Microsoft\Edge\Application\msedge.exe`. Bila tidak ditemukan, `check`
-  menulis baris `Microsoft Edge  GAGAL` dan kiosk tidak dijalankan. Edge memakai profil
-  sementara sendiri, terpisah dari Edge milik pengguna laptop, dan profil itu dihapus saat
-  aplikasi ditutup.
+- Browser apa pun yang modern cukup (Microsoft Edge bawaan Windows 10/11 sudah memadai).
+  `check` tidak lagi memeriksa browser.
 - UI PySide6 lama masih ada sebagai cadangan (`ui.backend: pyside6`), tetapi tidak
   dikembangkan lagi; lihat `docs/UI-WEB.md`.
 

@@ -18,7 +18,7 @@ python -m mica.eval latency --logs logs/ [--from YYYY-MM-DD --to YYYY-MM-DD]
 - Opsional CSV perekam sumber daya (mica.eval.resources): per kelompok rata-rata dan p95 CPU,
   RAM awal/akhir/kemiringan (MB per jam). Sampel tanpa proses tidak dipakai; sampel pertama tiap
   kelompok tidak dipakai untuk CPU (CPU butuh dua sampel); TOTAL hanya dari sampel saat semua
-  kelompok yang pernah aktif punya proses (sebelum Edge diluncurkan dan setelah ditutup tidak).
+  kelompok yang pernah aktif punya proses (sebelum pekerja dimulai dan setelah berhenti tidak).
 Hasil: <out>/<label>-<cap waktu>/ per_turn.csv, summary.csv, resources_summary.csv, verdict.md,
 run.json.
 """
@@ -175,7 +175,7 @@ def resources_summary(path: Path) -> list[dict[str, Any]]:
             by[row["group"]].append({"t": float(row["elapsed_s"]), "cpu": float(row["cpu_pct"]),
                                      "uss": float(row["uss_mb"]),
                                      "n": float(row["n_processes"])})  # fmt: skip
-    # sampel tanpa proses (mis. Edge belum diluncurkan, pekerja tidak dimulai) tidak dipakai;
+    # sampel tanpa proses (mis. pekerja belum atau tidak dimulai) tidak dipakai;
     # TOTAL dimulai saat semua kelompok yang pernah aktif sudah punya proses
     active = {g for g, samples in by.items() if any(s["n"] > 0 for s in samples)}
     present: dict[float, set[str]] = defaultdict(set)

@@ -83,3 +83,56 @@ def test_start_workers_rejects_mode_mismatch(tmp_path):
     )
     with pytest.raises(WorkerConfigError):
         start_workers(_settings("prod"), cfg)
+
+
+def _record_sigint(out):
+    import signal
+
+    out.append(signal.getsignal(signal.SIGINT))
+
+
+def test_worker_main_ignores_ctrl_c_then_runs_target():
+    # RF-2: pekerja mengabaikan Ctrl+C; berhenti lewat Shutdown dari Bus.stop()
+    import signal
+
+    from mica.core.bus import _worker_main
+
+    before = signal.getsignal(signal.SIGINT)
+    seen: list = []
+    try:
+        _worker_main(_record_sigint, seen)
+    finally:
+        signal.signal(signal.SIGINT, before)
+    assert seen == [signal.SIG_IGN]
+
+
+def test_worker_processes_start_through_worker_main(monkeypatch):
+    from mica.core import bus as bus_mod
+
+    started = []
+
+    class FakeProcess:
+        def __init__(self, target, args, name, daemon):
+            started.append((target, args[0], name, daemon))
+            self.pid = 1
+
+        def start(self):
+            pass
+
+    class FakeCtx:
+        Process = FakeProcess
+
+    b = bus_mod.Bus.__new__(bus_mod.Bus)
+    b.__dict__.update(
+        ctx=FakeCtx(),
+        processes={},
+        started_at={},
+        vision_cfg=None,
+        to_vision=None,
+        to_main=None,
+        preview=None,
+        measure=None,
+        tts_busy=None,
+    )
+    b._start_process("vision")
+    assert started == [(bus_mod._worker_main, bus_mod.run_vision_worker, "mica-vision", True)]

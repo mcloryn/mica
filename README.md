@@ -10,7 +10,8 @@ suara atau ketikan. Jawaban disusun dengan RAG dari dokumen PMB resmi, lengkap d
 
 ## Kebutuhan
 
-- Windows 10/11 dan Microsoft Edge. UI kiosk berjalan di Edge mode kiosk.
+- Windows 10/11 dan browser modern (Microsoft Edge bawaan sudah cukup). UI web dibuka di browser
+  default dalam jendela biasa.
 - Python 3.11 atau lebih baru.
 - Ruang disk sekitar 5 GB: sekitar 2 GB untuk `.venv` dan 2,7 GB untuk model.
 - Webcam, mikrofon, dan speaker. Bisa diganti perangkat palsu, lihat bagian "Mencoba tanpa
@@ -66,7 +67,7 @@ python -m mica                                    # mode prod (config/prod.yaml)
 Mode prod baru lolos `check` kalau semua nilai TBD (`null`) di `config/prod.yaml` sudah diisi
 dari hasil eksperimen E-01 sampai E-09.
 
-Untuk menutup MICA, tekan Alt+F4 di jendela Edge atau Ctrl+C di PowerShell.
+Untuk menutup MICA, tekan Ctrl+C di PowerShell. Menutup tab browser tidak mematikan MICA.
 
 ### Mencoba tanpa perangkat
 
@@ -102,7 +103,7 @@ src/mica/   kode program
   kb/       parser dokumen, chunker, embedder, indeks
   rag/      retriever, gerbang, LLM, prompt, scrub_pii
   core/     controller aplikasi, sesi, bus antarproses, logging
-  webui/    UI web (Flask + Edge), UI utama
+  webui/    UI web (Flask, dibuka di browser default), UI utama
   ui/       UI PySide6 (cadangan, dibekukan)
   eval/     alat evaluasi E-01 sampai E-09
 tests/      tes unit dan integrasi (pytest)

@@ -54,6 +54,19 @@ WORKER_NAMES = ("vision", "audio")
 JOIN_TIMEOUT_S = 5.0  # non-ADR: batas tunggu pekerja berhenti sendiri sebelum terminate
 
 
+def _worker_main(target: Any, *args: Any) -> None:
+    """Titik masuk proses pekerja (RF-2): abaikan Ctrl+C (SIGINT) di proses anak.
+
+    Di Windows, Ctrl+C di terminal dikirim ke semua proses di konsol yang sama. Tanpa ini pekerja
+    mati sendiri dengan KeyboardInterrupt di tengah loop. Dengan ini hanya proses utama yang
+    menerima Ctrl+C, lalu Bus.stop() mengirim Shutdown dan pekerja berhenti lewat jalur normal
+    (kamera, mikrofon, dan speaker dilepas dengan rapi)."""
+    import signal
+
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    target(*args)
+
+
 @dataclass(frozen=True)
 class SetVisionRate:
     fps: float
@@ -150,8 +163,8 @@ class Bus:
 
         startup.mark(f"spawn_{name}_start")
         proc = self.ctx.Process(
-            target=target,
-            args=args,
+            target=_worker_main,
+            args=(target, *args),
             name=f"mica-{name}",
             daemon=True,  # ikut mati bila proses utama mati: tidak ada proses yatim
         )
