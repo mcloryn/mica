@@ -44,4 +44,6 @@ Target dospem: ≥ 80% jawaban **tidak halusinasi**.
 
 ## 6. Penyimpangan
 - **30 Okt 2026, klarifikasi setelah 3 soal pertama (commit 97b055c).** Pra-reg belum mengatur ulang saat API gagal. Aturan yang dipakai: soal diulang hanya bila API error/timeout dan **belum ada jawaban sama sekali**; jawaban pertama yang keluar adalah yang dinilai. Semua percobaan tercatat di `attempts.jsonl`. Kasus: t1-003 (percobaan 1 timeout 10 s, percobaan 2 terjawab).
+- **1 Nov 2026, klarifikasi:** t1-150 tidak diulang. Pada percobaan 1, keluaran LLM tidak cocok skema (HTTP 400, LLM_BAD_OUTPUT), lalu sistem menolak lewat gerbang 3. Itu jawaban yang memang akan dilihat pengguna, jadi bukan "API gagal tanpa jawaban". Jawaban ini dinilai seperti soal lain. Ulang karena gagal koneksi: t1-028, t1-128 (2 percobaan), t1-125 (3 percobaan, ConnectError).
+- **Pelaksanaan dua hari:** 88 soal dijalankan 30 Okt (berhenti karena kuota harian Groq habis) dan 41 soal 1 Nov, dengan commit, KB, prompt, dan config yang sama (tercatat di manifest). Total 339.680 token.
 - **Catatan teknis (bukan penyimpangan):** hanya gpt-oss-120b, tanpa cadangan ke 20b, sama seperti E-02 dev. `latency_s` ikut menghitung waktu tunggu pembatas laju Groq, jadi tidak dipakai sebagai latensi sistem (latensi diukur terpisah di E-09).
