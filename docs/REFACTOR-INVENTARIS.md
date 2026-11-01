@@ -668,3 +668,39 @@ diff ../verif-tahap1-beku.txt ../verif-refactor_webapp.txt && echo "retrieval sa
 | K1-465 | `README.md:114` | - Di mode kiosk, frame kamera dan audio mikrofon tidak pernah disimpan ke disk. | K1 | ganti kata: kiosk -> prod / aplikasi | rendah (komentar/pesan) |
 | K1-466 | `.env.example:3` | # Gemini hanya untuk mode dev (app.mode: dev); jangan dipakai di mode kiosk. | K1 | ganti kata: kiosk -> prod / aplikasi | rendah (komentar/pesan) |
 | K1-467 | `pyproject.toml:8` | description = "MICA: kiosk informasi PMB Universitas Mikroskil" | K1 | ganti kata: kiosk -> prod / aplikasi | rendah (komentar/pesan) |
+
+## Bukti RF-2 (1 Nov 2026)
+
+Pertanyaan: apakah refactor RF-2 mengubah perilaku retrieval RAG? Jawabannya tidak. Hasil
+retrieval 10 soal pertama Uji RAG Tahap 1 sebelum dan sesudah refactor identik.
+
+**Hasil: LULUS.** chunk_id top-5 dan urutannya identik untuk 10/10 soal, keputusan gerbang 1
+identik (9 lolos, 1 ditolak: t1-009), dan selisih skor maksimum (RRF, dense, bm25, dense@1) adalah
+**0,000e+00** (batas 1e-6).
+
+| | Sebelum | Sesudah |
+|---|---|---|
+| Kode | tag `tahap1-beku` (1a9b537), worktree `D:\SKRIPSI\mica-tahap1` | branch `refactor/webapp` (0a0162b) |
+| `mica.__file__` yang dimuat | `D:\SKRIPSI\mica-tahap1\src\mica\__init__.py` | `D:\SKRIPSI\mica\src\mica\__init__.py` |
+| Config | `config/dev.yaml` di tag | `config/dev.yaml` di branch |
+| config_hash | 17d5b6e5b279… (sama dengan manifest run Tahap 1) | 37e423888a3b… (berubah karena `ui.backend`/`ui.fullscreen` dihapus, temuan 4) |
+| KB, retriever, rrf_k, top_k, followup_mode | official-2026-10-24-v5, hybrid, 60, 5, dual | sama |
+
+- Alat (di luar repo, tidak di-commit): `D:\SKRIPSI\alat\banding_retrieval.py` (alur sama dengan
+  `AnswerPipeline.run` tanpa riwayat: `scrub_pii` -> `followup.search` -> `gate.decide`, tanpa LLM,
+  tanpa Groq) dan `D:\SKRIPSI\alat\banding.py`. Hasil: `D:\SKRIPSI\alat\hasil-tahap1-beku.json` dan
+  `D:\SKRIPSI\alat\hasil-refactor.json`.
+- Cek kewajaran garis dasar: top-5 chunk_id dan dense@1 dari tag sama persis dengan
+  `data/eval/official/runs/tahap1/answers.jsonl` untuk 10 soal itu, dan t1-009 juga tercatat
+  ditolak gerbang 1 di run resmi.
+- Catatan: `data/eval/official/runs/tahap1/run.json` tidak ada; config run Tahap 1 diambil dari
+  `manifest.json` di folder yang sama (`config_hash_note`: config yang dimuat, tanpa override),
+  dan hash `config/dev.yaml` di tag cocok dengan manifest.
+
+Commit RF-2: 649ac68 (SDD), 6648a9a (K1 ganti nama), 5befe70 (K2 browser default), 0a0162b (K3
+hapus PySide6). Tidak ada commit K4: K4-3 dan K4-4 sudah terhapus bersama K3 dan K2, sedangkan
+K4-1, K4-2, K4-5, dan K4-6 berstatus "biarkan". Grep ulang setelah K2/K3 tidak menemukan definisi
+baru yang mati karena refactor. Ada empat konstanta yang hanya didefinisikan (`rag/prompts.py`
+`SYSTEM_PARAPHRASE`/`SYSTEM_PLAIN`, `eval/color.py` `METHODS`, `eval/labels.py` `LABEL_COLUMNS`).
+Keempatnya bukan baris K4 dan dua di antaranya bagian prompt RAG, jadi dibiarkan.
+`src/mica/vision/`: 0 baris diubah.
