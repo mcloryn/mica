@@ -73,7 +73,7 @@ Komponen berstatus Provisional atau Terbuka selalu ditaruh di balik antarmuka da
 ### 2.3 Asumsi
 
 - Laptop PMB: Windows 10/11 64-bit, CPU x86-64 tanpa GPU, minimal 8 GB RAM, webcam, mikrofon, speaker, dan internet. Spesifikasi sebenarnya belum diketahui (pertanyaan terbuka PRD), sehingga asumsi ini konservatif dan dicek di E-09. Browser modern (Microsoft Edge bawaan Windows 10/11 sudah cukup) wajib ada karena UI berbasis web.
-- Python 3.11 atau lebih baru (PySide6 6.12 mendukung 3.10 sampai 3.15 \[41\]).
+- Python 3.11 atau lebih baru.
 - Model BGE-M3, YOLO, Whisper, Silero VAD, dan suara Piper diunduh sekali saat instalasi lalu dipakai offline.
 - Satu laptop PMB, satu pengunjung dalam satu waktu, sesuai Bab 1. Sejak bimbingan 22 Oktober 2026 MICA bukan lagi kiosk, melainkan web app yang dibuka di browser laptop PMB dalam jendela biasa; pengunjung duduk atau berdiri di depan laptop.
 - Dokumen resmi PMB datang dalam format TXT, MD, PDF berteks (bukan hasil pindai), atau DOCX. PDF hasil pindai butuh OCR dan di luar cakupan.
@@ -163,7 +163,7 @@ Arah dependensi: M-10 hanya bergantung pada M-09; M-09 memanggil M-06; M-06 mema
 | --- | --- | --- | --- |
 | Proses utama, thread latar controller | M-09 lewat `AppController` (tanpa Qt sejak Langkah 23); mem-poll bus dan antrean internal setiap 50 ms | M-09 satu-satunya pemilik state kunjungan | ViewModel baru disiarkan ke koneksi WebSocket aktif (dengan lock) |
 | Proses utama, `ThreadPoolExecutor` (1 thread) | M-06 untuk satu pertanyaan pada satu waktu | Tidak menyimpan state; hasil membawa `session_id` | `AnswerReady` lewat antrean internal controller |
-| Proses utama, server Flask (Werkzeug threaded) | M-10: halaman, file static, dan WebSocket; hanya 127.0.0.1 | Tidak menyimpan state kunjungan | Event input ke controller; JSON ViewModel ke Edge |
+| Proses utama, server Flask (Werkzeug threaded) | M-10: halaman, file static, dan WebSocket; hanya 127.0.0.1 | Tidak menyimpan state kunjungan | Event input ke controller; JSON ViewModel ke browser |
 | Proses browser (terpisah) | Menampilkan UI web dalam jendela biasa | Hanya tampilan (DOM sesi aktif) | WebSocket ke server Flask lokal |
 | Proses utama, thread penulis log | M-11 | File log | Antrean di dalam proses |
 | Proses vision | Loop kamera, deteksi, tracking, warna | State tracker | `bus.to_main` dan `bus.to_vision` |
@@ -784,7 +784,7 @@ PRD tidak menetapkan milestone implementasi, jadi urutan di bawah adalah usulan.
 | Tugas | File | Selesai bila |
 | --- | --- | --- |
 | M-09 Session | `core/session.py` | Setiap baris tabel 7.1 punya tes yang lulus |
-| M-10 UI dan `AppController` | `ui/` | Tiga syarat ADR-19 terbukti di laptop dev |
+| M-10 UI dan `AppController` | `webui/, core/controller.py` | Tiga syarat ADR-19 terbukti di laptop dev |
 | M-13 pengawasan pekerja | `core/bus.py` | Tes pekerja mati lulus |
 | Tes integrasi 9.2 | `tests/integration/` | Semua lulus |
 | Uji di laptop yang setara laptop PMB | - | Anggaran latensi 3.3 diukur; `fps_busy` dan jumlah thread ditetapkan |
