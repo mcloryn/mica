@@ -138,11 +138,6 @@ def test_main_recorder_flags(capsys):
     assert entry.main(["--record-resources", "r", "--e09", "--resource-interval", "2"],
                       check=lambda c, e: (ok, _prod_settings()), launch=launch) == 0  # fmt: skip
     assert launched == [(Path("r"), 2.0, True)]
-    s = load_settings(DEV_YAML)
-    qt = s.model_copy(update={"ui": s.ui.model_copy(update={"backend": "pyside6"})})
-    assert entry.main(["--record-resources", "r"], check=lambda c, e: (ok, qt),
-                      launch=launch) == 2  # fmt: skip
-    assert "ui.backend: web" in capsys.readouterr().err
 
 
 def test_default_interval_is_trial_value():

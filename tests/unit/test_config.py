@@ -71,22 +71,16 @@ def test_complete_prod_config_loads(tmp_path):
     assert settings.app.mode == "prod"
 
 
-def test_ui_backend_web_default_and_pyside6_accepted(tmp_path):
-    # ADR-19: web dipilih pemilik proyek (17 Okt 2026); pyside6 tetap bisa dipilih (cadangan beku)
-    assert load_settings(DEV_YAML).ui.backend == "web"
-    prod = yaml.safe_load(PROD_YAML.read_text(encoding="utf-8"))
-    assert prod["ui"]["backend"] == "web"
+@pytest.mark.parametrize(("field", "value"), [("backend", "web"), ("fullscreen", True)])
+def test_removed_ui_keys_rejected(tmp_path, field, value):
+    # RF-2: ADR-19 final = web; ui.backend dan ui.fullscreen tidak ada lagi
+    for path in (DEV_YAML, PROD_YAML):
+        assert field not in yaml.safe_load(path.read_text(encoding="utf-8"))["ui"]
     raw = _dev_raw()
-    raw["ui"]["backend"] = "pyside6"
-    assert load_settings(_write(tmp_path, raw)).ui.backend == "pyside6"
-
-
-def test_ui_backend_required(tmp_path):
-    raw = _dev_raw()
-    del raw["ui"]["backend"]
+    raw["ui"][field] = value
     with pytest.raises(ConfigError) as exc:
         load_settings(_write(tmp_path, raw))
-    assert "ui.backend" in str(exc.value)
+    assert f"ui.{field}" in str(exc.value)
 
 
 @pytest.mark.parametrize(
@@ -122,10 +116,7 @@ def test_unknown_field_rejected(tmp_path):
         ("rag", "top_k", "lima"),
         ("rag", "top_k", "5"),
         ("rag", "retriever", "vector"),
-        ("ui", "fullscreen", "ya"),
-        ("ui", "backend", "qt"),
-        ("ui", "backend", "Web"),
-        ("ui", "backend", None),
+        ("ui", "font_scale", "besar"),
     ],
 )
 def test_wrong_type_rejected(tmp_path, section, field, value):

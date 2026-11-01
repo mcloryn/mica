@@ -1,9 +1,9 @@
-"""UI web (ADR-19, opsi ui.backend: web): rakit AppController + server Flask, buka browser default.
+"""UI web (ADR-19 final): rakit AppController + server Flask, buka browser default.
 
 python -m mica.webui --config <yaml> [--fake-workers [--fake-camera]] [--fake-pipeline] [--no-browser]
     [--port N]
     [--record-resources <folder> [--resource-interval 5] [--e09]]
-- Rakitan bus/pipeline/controller sama dengan mica.ui.app.build; --fake-* hanya di mode dev.
+- --fake-* hanya di mode dev.
 - --fake-camera (dengan --fake-workers): proses kamera asli dengan sumber gambar palsu
   (mica.vision.fakesource) sehingga pratinjau, target, dan sapaan bisa dicoba tanpa kamera.
 - Alamat dibuka di browser default dalam jendela biasa (RF-2). Menutup tab browser tidak

@@ -104,7 +104,7 @@ src/mica/   kode program
   rag/      retriever, gerbang, LLM, prompt, scrub_pii
   core/     controller aplikasi, sesi, bus antarproses, logging
   webui/    UI web (Flask, dibuka di browser default), UI utama
-  ui/       UI PySide6 (cadangan, dibekukan)
+  ui/       ViewModel dan pekerja palsu dev (tanpa Qt; UI PySide6 dihapus di RF-2)
   eval/     alat evaluasi E-01 sampai E-09
 tests/      tes unit dan integrasi (pytest)
 results/    hasil eksperimen

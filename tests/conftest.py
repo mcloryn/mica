@@ -2,10 +2,6 @@ import os
 
 import pytest
 
-# Tes Qt (pytest-qt) tidak pernah membuka jendela sungguhan; diatur di sini, bukan di kode
-# aplikasi. Harus sebelum QApplication pertama dibuat.
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-
 
 @pytest.fixture(autouse=True)
 def _no_model_download(monkeypatch):

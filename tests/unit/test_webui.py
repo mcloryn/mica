@@ -1,4 +1,4 @@
-"""UI web (percobaan ADR-19): serialisasi ViewModel, kesamaan event dengan PySide6, keamanan
+"""UI web (ADR-19 final): serialisasi ViewModel, pesan browser -> event controller, keamanan
 server (Origin, 127.0.0.1, tanpa aset internet), dan siklus hidup server (browser default,
 Ctrl+C). Tanpa browser sungguhan.
 """
@@ -14,7 +14,6 @@ from pathlib import Path
 
 import httpx
 import pytest
-from PySide6.QtCore import Qt
 from simple_websocket import Client
 from simple_websocket import ConnectionError as WsRejected
 
@@ -30,8 +29,6 @@ from mica.core.session import (
     VisitState,
 )
 from mica.core.types import Chunk
-from mica.ui.main_window import MainWindow
-from mica.ui.main_window import format_debug as qt_format_debug
 from mica.ui.viewmodel import ViewModel
 from mica.webui import state
 from mica.webui.app import WebUiError, build_controller, serve
@@ -83,22 +80,14 @@ def test_view_json_answer_with_sources():
 
 
 @pytest.mark.parametrize("scene", range(len(SCENES)))
-def test_view_json_matches_pyside6_render(qtbot, scene):
-    window = MainWindow(_ui(), dev=False)
-    qtbot.addWidget(window)
+def test_view_json_serializable_for_every_scene(scene):
+    # RF-2: tes kesetaraan dengan PySide6 dihapus bersama UI Qt; yang tersisa sisi web
     vm = ViewModel()
     for item in SCENES[scene]:
-        window.show_item(item)
         vm.apply(item)
     v = state.view_json(vm)
-    assert v["status_label"] == window.status_label.text()
-    assert v["camera_label"] == window.camera_label.text()
-    assert v["mic_label"] == window.mic_label.text()
-    assert v["send_enabled"] == window.send_button.isEnabled()
-    assert v["talk_enabled"] == window.talk_button.isEnabled()
-    assert v["home"] == (window.stack.currentIndex() == 0)
-    assert (v["last_transcript"] is not None) == window.transcript_row.isVisibleTo(window)
-    assert len(v["messages"]) == window.rendered
+    json.dumps(v)
+    assert isinstance(v["status_label"], str) and isinstance(v["send_enabled"], bool)
 
 
 def test_config_json_topics_and_texts():
@@ -113,24 +102,22 @@ def test_config_json_topics_and_texts():
     assert "Gambar tidak disimpan" in c["texts"]["notice"] and c["dev"] is True
 
 
-def test_format_debug_same_as_pyside6():
+def test_format_debug_text_unchanged():
+    # keluaran dikunci dari mica.ui.main_window.format_debug sebelum PySide6 dihapus (RF-2)
     info = DebugInfo(V.SPEAKING, 4.8, "answered", {"passed": True}, (("03#2", 0.61),),
                      "groq:openai/gpt-oss-120b", {"llm": 0.9})  # fmt: skip
-    assert state.format_debug(info) == qt_format_debug(info)
-    assert state.format_debug(DebugInfo(V.IDLE)) == qt_format_debug(DebugInfo(V.IDLE))
+    assert state.format_debug(info) == (
+        "state M-09: SPEAKING\nFPS kamera: 4.8\nstatus jawaban: answered\n"
+        "gerbang: {'passed': True}\npenyedia LLM: groq:openai/gpt-oss-120b\n"
+        "potongan teratas:\n  03#2  0.610\nwaktu per tahap (s):\n  llm: 0.900"
+    )
+    assert state.format_debug(DebugInfo(V.IDLE)) == (
+        "state M-09: IDLE\nFPS kamera: -\nstatus jawaban: -\ngerbang: -\n"
+        "penyedia LLM: -\npotongan teratas:\n  -\nwaktu per tahap (s):\n  -"
+    )
 
 
-# --- event: web sama dengan PySide6 -------------------------------------------------------
-
-
-def _qt_events(qtbot, ui, prepare=()):
-    window = MainWindow(ui, dev=False)
-    qtbot.addWidget(window)
-    for item in prepare:
-        window.show_item(item)
-    events = []
-    window.event_emitted.connect(events.append)
-    return window, events
+# --- event: pesan browser -> event controller ---------------------------------------------
 
 
 def _web_event(msg, ui, prepare=()):
@@ -140,38 +127,29 @@ def _web_event(msg, ui, prepare=()):
     return state.event_from_message(msg, vm, ui)
 
 
-def test_typing_same_event(qtbot):
+def test_typing_event():
     ui = _ui()
-    window, events = _qt_events(qtbot, ui)
-    qtbot.keyClicks(window.input_edit, "  Jalur masuk apa saja?  ")
-    qtbot.keyClick(window.input_edit, Qt.Key.Key_Return)
     web = _web_event({"type": "text", "text": "  Jalur masuk apa saja?  "}, ui)
-    assert events == [web] == [TextSubmitted("Jalur masuk apa saja?")]
+    assert web == TextSubmitted("Jalur masuk apa saja?")
     assert _web_event({"type": "text", "text": "   "}, ui) is None
 
 
-def test_typing_blocked_while_thinking_in_both(qtbot):
+def test_typing_blocked_while_thinking():
     ui = _ui()
     busy = [ShowView(V.THINKING, transcript="x", send_enabled=False)]
-    window, events = _qt_events(qtbot, ui, busy)
-    qtbot.keyClicks(window.input_edit, "lagi")
-    qtbot.keyClick(window.input_edit, Qt.Key.Key_Return)
-    assert events == [] and _web_event({"type": "text", "text": "lagi"}, ui, busy) is None
+    assert _web_event({"type": "text", "text": "lagi"}, ui, busy) is None
 
 
 @pytest.mark.parametrize("suggestions", [{}, {"Biaya": ("Biaya S1 berapa?", "Kelas sore?")}])
-def test_topic_same_event(qtbot, suggestions):
+def test_topic_event(suggestions):
     ui = _ui(suggestions=suggestions)
-    window, events = _qt_events(qtbot, ui)
-    qtbot.mouseClick(window.topic_buttons["Biaya"], Qt.MouseButton.LeftButton)
-    for hint in window.suggestion_buttons:
-        qtbot.mouseClick(hint, Qt.MouseButton.LeftButton)
     c = state.config_json(ui, dev=False)
     biaya = next(t for t in c["topics"] if t["topic"] == "Biaya")
     web = [_web_event({"type": "topic", "topic": "Biaya", "question": biaya["question"]}, ui)]
     web += [_web_event({"type": "topic", "topic": "Biaya", "question": q}, ui)
             for q in biaya["suggestions"]]  # fmt: skip
-    assert events == web and all(isinstance(e, TopicTapped) for e in web)
+    assert len(web) == 1 + len(suggestions.get("Biaya", ()))
+    assert all(isinstance(e, TopicTapped) for e in web)
 
 
 def test_topic_with_unknown_question_rejected():
@@ -182,27 +160,20 @@ def test_topic_with_unknown_question_rejected():
     assert _web_event({"type": "topic", "topic": "Tidak ada", "question": "Tidak ada"}, ui) is None
 
 
-def test_talk_and_stop_same_event(qtbot):
+def test_talk_and_stop_event():
     ui = _ui()
-    window, events = _qt_events(qtbot, ui)
-    qtbot.mouseClick(window.talk_button, Qt.MouseButton.LeftButton)
-    qtbot.mouseClick(window.stop_button, Qt.MouseButton.LeftButton)
     web = [_web_event({"type": "talk"}, ui), _web_event({"type": "stop"}, ui)]
-    assert events == web == [TalkTapped(), StopTapped()]
+    assert web == [TalkTapped(), StopTapped()]
     no_mic = [ShowView(V.READY, mic_ok=False)]
-    window, events = _qt_events(qtbot, ui, no_mic)
-    qtbot.mouseClick(window.talk_button, Qt.MouseButton.LeftButton)
-    assert events == [] and _web_event({"type": "talk"}, ui, no_mic) is None
+    assert _web_event({"type": "talk"}, ui, no_mic) is None
 
 
-def test_resend_edited_transcript_same_event(qtbot):
+def test_resend_edited_transcript_event():
     ui = _ui()
     turn = [ShowView(V.THINKING, transcript="biaya kulia", send_enabled=False),
             ShowView(V.SPEAKING, transcript="biaya kulia", answer="x")]  # fmt: skip
-    window, events = _qt_events(qtbot, ui, turn)
-    window.transcript_edit.setText("biaya kuliah")
-    qtbot.mouseClick(window.resend_button, Qt.MouseButton.LeftButton)
-    assert events == [_web_event({"type": "resend", "text": "biaya kuliah"}, ui, turn)]
+    event = _web_event({"type": "resend", "text": "biaya kuliah"}, ui, turn)
+    assert event == TextSubmitted("biaya kuliah")
 
 
 # --- statis: tanpa aset internet ----------------------------------------------------------

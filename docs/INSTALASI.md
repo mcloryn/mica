@@ -68,8 +68,6 @@ Catatan:
 
 - Browser apa pun yang modern cukup (Microsoft Edge bawaan Windows 10/11 sudah memadai).
   `check` tidak lagi memeriksa browser.
-- UI PySide6 lama masih ada sebagai cadangan (`ui.backend: pyside6`), tetapi tidak
-  dikembangkan lagi; lihat `docs/UI-WEB.md`.
 
 - Tanpa argumen, ketiga perintah memakai `config/prod.yaml`. Untuk mode pengembangan pakai
   `--config config/dev.yaml`.

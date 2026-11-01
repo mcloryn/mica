@@ -140,11 +140,9 @@ def _models(tmp_path, content, settings):
             c.fetch()
 
 
-def _dev_config(tmp_path, backend=None):
+def _dev_config(tmp_path):
     raw = yaml.safe_load(DEV_YAML.read_text(encoding="utf-8"))
     raw["logging"]["dir"] = str(tmp_path / "logs")
-    if backend is not None:
-        raw["ui"]["backend"] = backend
     path = tmp_path / "dev.yaml"
     path.write_text(yaml.safe_dump(raw, allow_unicode=True), encoding="utf-8")
     return path
@@ -156,10 +154,6 @@ def _run(tmp_path, config, monkeypatch, key=FAKE_KEY, devices=DEVICES):
     else:
         monkeypatch.delenv("GROQ_API_KEY", raising=False)
     return check.run_check(config, None, tmp_path, ROOT / "data" / "kb", lambda: devices)
-
-
-def _web_config(tmp_path):
-    return _dev_config(tmp_path, backend="web")
 
 
 def test_check_all_ok_in_dev(tmp_path, locked, monkeypatch):
@@ -231,7 +225,7 @@ def test_check_key_value_never_printed(tmp_path, locked, monkeypatch, capsys):
 
 def test_check_has_no_edge_row(tmp_path, locked, monkeypatch):
     # RF-2: UI dibuka di browser default; check tidak lagi mencari msedge.exe
-    config = _web_config(tmp_path)
+    config = _dev_config(tmp_path)
     _models(tmp_path, locked, load_settings(config))
     rows, _ = _run(tmp_path, config, monkeypatch)
     assert "Microsoft Edge" not in {r.item for r in rows}
@@ -275,17 +269,14 @@ def test_main_check_ok_launches_with_default_prod_config():
     assert seen["config"] == Path("config/prod.yaml")
 
 
-@pytest.mark.parametrize("backend", ["pyside6", "web"])
-def test_main_launches_ui_by_backend(monkeypatch, backend):
-    s = load_settings(DEV_YAML)
-    settings = s.model_copy(update={"ui": s.ui.model_copy(update={"backend": backend})})
+def test_main_launches_web_ui(monkeypatch):
+    # ADR-19 final (RF-2): hanya UI web; tidak ada pilihan ui.backend
+    settings = load_settings(DEV_YAML)
     calls = []
-    for name in ("pyside6", "web"):
-        monkeypatch.setitem(entry.LAUNCHERS, name,
-                            lambda st, a, name=name: calls.append((name, a.fake_pipeline)) or 0)  # fmt: skip
+    monkeypatch.setattr(entry, "_launch_web", lambda st, a: calls.append(a.fake_pipeline) or 0)
     ok = [check.CheckRow("config", "OK", "ok")]
     assert entry.main(["--fake-pipeline"], check=lambda c, e: (ok, settings)) == 0
-    assert calls == [(backend, True)]
+    assert calls == [True] and not hasattr(entry, "LAUNCHERS")
 
 
 def test_main_rejects_fake_flags_in_prod():

@@ -29,7 +29,6 @@ python -m mica.webui --config config/dev.yaml --fake-workers --fake-camera     #
 python -m mica.webui --config config/dev.yaml --no-browser                     # server saja, Ctrl+C
 python -m mica.webui --config config/dev.yaml --guided-test                    # uji terpandu ~5 menit (dev)
 python -m mica.webui --config config/dev.yaml --measure-preview                # ukur fps pratinjau (dev)
-python -m mica.ui --config config/dev.yaml                                     # UI PySide6 (cadangan beku)
 ```
 
 ## 3. Knowledge base (M-02) dan RAG

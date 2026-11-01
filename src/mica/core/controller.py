@@ -22,7 +22,7 @@ M-10 Struktur).
   (target memenuhi dwell_s) sampai first_audio_t; null bila tidak ada audio atau sesi direset.
 - display (opsional, UI web): info tampilan saja tanpa mengubah M-09: teks sapaan yang diucapkan
   (Speak saat IDLE -> GREETING) dan target vision (PersonArrived warna -> terkunci; PersonLeft ->
-  tanpa orang). Tidak ada frame; PySide6 tidak memakainya.
+  tanpa orang). Tidak ada frame; UI tidak memakainya.
 - Tidak mengimpor Qt; waktu dari clock (monotonic) dan wall_clock (ts log) yang bisa disuntik.
 """
 

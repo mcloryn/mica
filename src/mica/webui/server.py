@@ -1,8 +1,8 @@
-"""UI web (ADR-19, opsi ui.backend: web): server Flask + flask-sock, HTTP + WebSocket di satu port,
+"""UI web (ADR-19 final): server Flask + flask-sock, HTTP + WebSocket di satu port,
 hanya 127.0.0.1.
 
-- AppController dan ViewModel yang sama dengan PySide6; web hanya merender ViewModel.
-- Thread latar memanggil tick() setiap 50 ms (setara QTimer di mica.ui.app): event dari browser
+- AppController dan ViewModel (mica.ui.viewmodel, tanpa Qt); web hanya merender ViewModel.
+- Thread latar memanggil tick() setiap 50 ms (dulu setara QTimer di UI PySide6, dihapus di RF-2): event dari browser
   diteruskan ke controller, controller.step(), lalu ViewModel yang berubah disiarkan ke semua
   koneksi aktif. Controller hanya disentuh thread itu; koneksi WebSocket (satu thread per
   koneksi di server Werkzeug) hanya mengantre event. Semua state bersama dijaga satu lock.
@@ -50,7 +50,7 @@ from mica.webui.state import config_json, event_from_message, format_debug, view
 log = logging.getLogger(__name__)
 
 HOST = "127.0.0.1"  # tidak pernah 0.0.0.0: UI hanya untuk laptop PMB itu sendiri
-POLL_INTERVAL_S = 0.05  # SDD 3.3: setara QTimer 50 ms PySide6
+POLL_INTERVAL_S = 0.05  # SDD 3.3: poll 50 ms
 STATIC_DIR = Path(__file__).with_name("static")
 CSP = (
     "default-src 'self'; connect-src 'self'; img-src 'self' blob:; style-src 'self'; "

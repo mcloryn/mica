@@ -275,9 +275,7 @@ class TopicConfig(_Model):
 
 
 class UiConfig(_Model):
-    # ADR-19: web = Flask, dibuka di browser default (keputusan pemilik proyek 17 Okt 2026;
-    # jendela biasa sejak RF-2, 1 Nov 2026); pyside6 = cadangan beku (docs/UI-WEB.md).
-    backend: Literal["pyside6", "web"]
+    # ADR-19 final (RF-2, 1 Nov 2026): UI web saja; ui.backend dan PySide6 dihapus
     font_scale: PositiveFloat
     topics: tuple[TopicConfig, ...] = Field(strict=False)
     # saran pertanyaan per topik (F-14); kosong = tombol topik mengirim nama topik sebagai
