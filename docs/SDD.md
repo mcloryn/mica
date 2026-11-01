@@ -1,4 +1,4 @@
-# SDD MICA: Desain Perangkat Lunak Kiosk Informasi PMB
+# SDD MICA: Desain Perangkat Lunak Web App Informasi PMB
 
 Oct 15, 2026 · @hasa
 
@@ -6,7 +6,7 @@ Oct 15, 2026 · @hasa
 
 **Tujuan.** Dokumen ini menjelaskan bagaimana MICA (Mikroskil Intelligent Campus Assistant) dibangun: modul, antarmuka, data, alur, konkurensi, penanganan error, pengujian, dan urutan implementasi. Isinya cukup rinci untuk langsung dikerjakan, dan menjadi bahan rancangan sistem di Bab 3 skripsi.
 
-**Cakupan.** Aplikasi desktop Python yang berjalan di laptop kiosk ruang PMB: deteksi satu pengunjung dan sapaan berdasarkan warna pakaian, tanya jawab lewat suara dan teks berbasis RAG atas dokumen resmi PMB, keluaran teks dan suara, alat pembangun knowledge base, dan perangkat evaluasi untuk keempat lapisan metrik. Di luar cakupan: pengenalan wajah, penyimpanan gambar, deployment cloud, fine-tuning model, dan bahasa selain Indonesia.
+**Cakupan.** Web app lokal berbasis Python yang berjalan di satu laptop di ruang PMB (prototipe): deteksi satu pengunjung dan sapaan berdasarkan warna pakaian, tanya jawab lewat suara dan teks berbasis RAG atas dokumen resmi PMB, keluaran teks dan suara, alat pembangun knowledge base, dan perangkat evaluasi untuk keempat lapisan metrik. Di luar cakupan: pengenalan wajah, penyimpanan gambar, deployment cloud, fine-tuning model, dan bahasa selain Indonesia.
 
 **Dokumen acuan**
 
@@ -27,8 +27,8 @@ Aturan bila keduanya berbeda: untuk kebutuhan, PRD yang berlaku; untuk pilihan m
 | KB | Knowledge base: kumpulan potongan dokumen beserta indeksnya, disimpan per versi |
 | Chunk | Satu potongan dokumen yang diambil retrieval dan dikirim ke LLM |
 | Gerbang | Pemeriksaan skor relevansi sebelum LLM dipanggil; di bawah ambang, MICA menolak |
-| Kunjungan | Satu sesi sejak pengunjung terdeteksi sampai pergi atau kiosk menganggur |
-| Mode kiosk dan mode dev | Mode kiosk dipakai di PMB; mode dev hanya di laptop pengembang dan satu-satunya mode yang boleh memakai Gemini |
+| Kunjungan | Satu sesi sejak pengunjung terdeteksi sampai pergi atau aplikasi menganggur |
+| Mode prod dan mode dev | Mode prod (produksi) dipakai di laptop PMB; mode dev hanya di laptop pengembang dan satu-satunya mode yang boleh memakai Gemini |
 
 ## 2. Ringkasan keputusan
 
@@ -56,7 +56,7 @@ Komponen berstatus Provisional atau Terbuka selalu ditaruh di balik antarmuka da
 | 16 | Recall@5, MRR, nDCG@10 | Diadopsi | Skrip evaluasi retrieval | M-12 | - |
 | 17 | Hallucination rate + 4 metrik pendukung | Diadopsi | Skrip evaluasi generation dan lembar anotasi | M-12 | - |
 | 18 | Penilaian manusia per klaim; LLM pelengkap | Provisional | Ekspor lembar anotasi, penilai LLM opsional | M-12 | `eval.judge.enabled` |
-| 19 | UI web lokal: Flask 3.1.3 + flask-sock 0.7.0 (server Werkzeug threaded, hanya 127.0.0.1, debugger dan reloader mati), ditampilkan di Microsoft Edge mode kiosk \[52\] \[53\]. PySide6 dibekukan sebagai cadangan | Diadopsi (keputusan pemilik proyek 17 Oktober 2026 setelah tahap 1 LOLOS; anggaran diverifikasi di E-09) | Seluruh UI di M-10 (src/mica/webui), logika di luar tampilan | M-10 | - |
+| 19 | UI web lokal: Flask 3.1.3 + flask-sock 0.7.0 (server Werkzeug threaded, hanya 127.0.0.1, debugger dan reloader mati), dibuka di browser default dalam jendela biasa (sejak 1 November 2026; sebelumnya Microsoft Edge layar penuh \[52\] \[53\]). ADR-19 final; PySide6 dihapus di refactor RF-2 | Diadopsi (keputusan pemilik proyek 17 Oktober 2026 setelah tahap 1 LOLOS; anggaran diverifikasi di E-09) | Seluruh UI di M-10 (src/mica/webui), logika di luar tampilan | M-10 | - |
 | 20 | Tiga proses lokal, pipeline modular | Diadopsi | Bus pesan antarproses, pengaturan laju vision | M-13 | `vision.fps_idle`, `vision.fps_busy` |
 
 ### 2.2 Konflik antara PRD dan laporan keputusan
@@ -72,10 +72,10 @@ Komponen berstatus Provisional atau Terbuka selalu ditaruh di balik antarmuka da
 
 ### 2.3 Asumsi
 
-- Laptop kiosk: Windows 10/11 64-bit, CPU x86-64 tanpa GPU, minimal 8 GB RAM, webcam, mikrofon, speaker, dan internet. Spesifikasi sebenarnya belum diketahui (pertanyaan terbuka PRD), sehingga asumsi ini konservatif dan dicek di E-09. Microsoft Edge (bawaan Windows 10/11) wajib ada karena UI berbasis web.
+- Laptop PMB: Windows 10/11 64-bit, CPU x86-64 tanpa GPU, minimal 8 GB RAM, webcam, mikrofon, speaker, dan internet. Spesifikasi sebenarnya belum diketahui (pertanyaan terbuka PRD), sehingga asumsi ini konservatif dan dicek di E-09. Browser modern (Microsoft Edge bawaan Windows 10/11 sudah cukup) wajib ada karena UI berbasis web.
 - Python 3.11 atau lebih baru (PySide6 6.12 mendukung 3.10 sampai 3.15 \[41\]).
 - Model BGE-M3, YOLO, Whisper, Silero VAD, dan suara Piper diunduh sekali saat instalasi lalu dipakai offline.
-- Satu kiosk, satu pengunjung dalam satu waktu, sesuai Bab 1.
+- Satu laptop PMB, satu pengunjung dalam satu waktu, sesuai Bab 1. Sejak bimbingan 22 Oktober 2026 MICA bukan lagi kiosk, melainkan web app yang dibuka di browser laptop PMB dalam jendela biasa; pengunjung duduk atau berdiri di depan laptop.
 - Dokumen resmi PMB datang dalam format TXT, MD, PDF berteks (bukan hasil pindai), atau DOCX. PDF hasil pindai butuh OCR dan di luar cakupan.
 
 ### 2.4 Penyesuaian saat implementasi
@@ -84,8 +84,8 @@ Bagian ini mencatat keputusan desain yang diambil selama implementasi MS0 dan MS
 
 | Bagian | Penyesuaian | Alasan |
 | --- | --- | --- |
-| M-01 | Nilai `null` di mode kiosk wajib diisi, kecuali `rag.rrf_k` dan `rag.candidates_per_retriever` (wajib hanya bila `rag.retriever = hybrid`) serta `audio.stt.threads` (wajib hanya bila `audio.stt.backend = faster_whisper`) | Mendefinisikan "null yang wajib" di 13.1, supaya parameter yang tidak dipakai tidak perlu dikarang |
-| M-01 | Nilai teks yang mengandung `<` dianggap placeholder dan ditolak di mode kiosk; `kb.active_id` di 13.1 ditulis `official-<YYYY-MM-DD>` | Satu aturan untuk semua placeholder |
+| M-01 | Nilai `null` di mode prod wajib diisi, kecuali `rag.rrf_k` dan `rag.candidates_per_retriever` (wajib hanya bila `rag.retriever = hybrid`) serta `audio.stt.threads` (wajib hanya bila `audio.stt.backend = faster_whisper`) | Mendefinisikan "null yang wajib" di 13.1, supaya parameter yang tidak dipakai tidak perlu dikarang |
+| M-01 | Nilai teks yang mengandung `<` dianggap placeholder dan ditolak di mode prod; `kb.active_id` di 13.1 ditulis `official-<YYYY-MM-DD>` | Satu aturan untuk semua placeholder |
 | M-01 | API key dibaca dari environment variable lebih dulu, lalu dari `.env`, dan tidak ikut `config_hash` | Kebiasaan umum; key bukan bagian konfigurasi yang diuji |
 | 5.1 | Field `list[...]` ditulis `tuple[..., ...]`; `Turn.question` dan `TurnRecord.question` bertipe `ScrubbedText` | Dataclass frozen benar-benar tidak bisa diubah; M-11 menolak teks yang belum melewati `scrub_pii` (N-09) |
 | M-02 | Judul dan tanggal berlaku tiap dokumen dibaca dari `sources.yaml` di folder sumber; `python -m mica.kb init-sources` membuat draf file itu | Versi pertama tidak menyebut asal tanggal berlaku (F-16) |
@@ -93,49 +93,49 @@ Bagian ini mencatat keputusan desain yang diambil selama implementasi MS0 dan MS
 | M-02 | Folder sumber dibaca rekursif; `doc_id` = path relatif tanpa ekstensi; frontmatter Markdown tidak ikut menjadi isi | Data scraping dev dikelompokkan per subfolder |
 | M-02 | Tabel besar dipecah per kelompok baris yang muat dalam `chunk_tokens`, dengan judul kolom di setiap potongan; teks panjang dipecah per paragraf, lalu per baris, baru per kata | Baris tabel dan daftar tetap utuh |
 | M-02 | Jumlah token dihitung dengan tokenizer BGE-M3; tokenisasi BM25 = huruf kecil + `\w+`, tanpa stemming dan stopword (provisional, diuji di E-01) | Ukuran potongan konsisten dengan model embedding |
-| M-02 | Nilai awal dev `kb.chunk_tokens = 400` (hipotesis awal PRD) dan `kb.overlap_tokens = 50`; konfigurasi kiosk tetap `null` | Titik awal untuk E-01, bukan nilai akhir |
+| M-02 | Nilai awal dev `kb.chunk_tokens = 400` (hipotesis awal PRD) dan `kb.overlap_tokens = 50`; konfigurasi prod tetap `null` | Titik awal untuk E-01, bukan nilai akhir |
 | M-11 | Ekspor CSV memakai UTF-8 dengan BOM | Tabel dibuka di Excel untuk Bab 4 |
-| 8.1 | Kode baru `KB_MISSING_DATE`; `CFG_INVALID` dan `CFG_GEMINI_IN_KIOSK` masuk enum kode error yang sama | Kode error seragam di log |
-| M-02 | Field baru kb.embedder.revision (hash commit 40 karakter, wajib di kiosk). Dev memakai BAAI/bge-m3 revisi 9a0624b896d81da7492a910ffa53731274b6cf3d: PR #130 "Adding safetensors variant" oleh bot resmi Hugging Face (SFconvertbot), berisi bobot main 5617a9f dalam format safetensors; PR belum digabung oleh BAAI. Manifest mencatat model, revisi, nama file bobot, serta versi sentence-transformers dan torch. | Tanpa revisi terkunci, library sempat mengunduh bobot dari dua revisi dan manifest tidak mencerminkan bobot yang dimuat (N-14). Safetensors tidak memakai pickle. |
-| 5.1, M-03, M-04 | ScoredChunk mendapat field raw\_scores (skor asli per retriever). ScoreThresholdGate membandingkan skor cosine dense, bukan skor RRF. Nilai awal dev rag.rrf\_k = 60 (Cormack dkk. 2009) dan rag.candidates\_per\_retriever = 20; rag.reranker.revision wajib di kiosk hanya bila reranker menyala. BM25 menganggap chunk ditemukan bila memuat minimal satu token kueri (BM25Okapi bisa memberi skor negatif). | RRF hanya berbasis peringkat: pada uji awal skor teratas kueri di luar KB (0,0315) hampir sama dengan kueri yang terjawab (0,0325), sedangkan cosine dense membedakan (0,54 vs 0,71). |
+| 8.1 | Kode baru `KB_MISSING_DATE`; `CFG_INVALID` dan `CFG_GEMINI_IN_PROD` masuk enum kode error yang sama | Kode error seragam di log |
+| M-02 | Field baru kb.embedder.revision (hash commit 40 karakter, wajib di prod). Dev memakai BAAI/bge-m3 revisi 9a0624b896d81da7492a910ffa53731274b6cf3d: PR #130 "Adding safetensors variant" oleh bot resmi Hugging Face (SFconvertbot), berisi bobot main 5617a9f dalam format safetensors; PR belum digabung oleh BAAI. Manifest mencatat model, revisi, nama file bobot, serta versi sentence-transformers dan torch. | Tanpa revisi terkunci, library sempat mengunduh bobot dari dua revisi dan manifest tidak mencerminkan bobot yang dimuat (N-14). Safetensors tidak memakai pickle. |
+| 5.1, M-03, M-04 | ScoredChunk mendapat field raw\_scores (skor asli per retriever). ScoreThresholdGate membandingkan skor cosine dense, bukan skor RRF. Nilai awal dev rag.rrf\_k = 60 (Cormack dkk. 2009) dan rag.candidates\_per\_retriever = 20; rag.reranker.revision wajib di prod hanya bila reranker menyala. BM25 menganggap chunk ditemukan bila memuat minimal satu token kueri (BM25Okapi bisa memberi skor negatif). | RRF hanya berbasis peringkat: pada uji awal skor teratas kueri di luar KB (0,0315) hampir sama dengan kueri yang terjawab (0,0325), sedangkan cosine dense membedakan (0,54 vs 0,71). |
 | 6.3, M-12 | gold\_chunk\_ids ditetapkan dengan pooling: gabungan top-10 BM25, dense, dan hybrid ditambah chunk dari bagian dokumen acuan (gold\_refs), lalu dinilai relevan atau tidak (eval annotate export/import lewat CSV). Set dev dinilai dengan bantuan AI atas permintaan peneliti (aturan kata kunci lalu diperiksa manual); set uji dari dokumen resmi wajib dinilai peneliti, idealnya dua penilai dengan perhitungan kesepakatan. Recall@5 dihitung sebagai proporsi pertanyaan yang minimal satu chunk relevannya ada di 5 teratas. | Pooling ala TREC (Voorhees) mengurangi bias terhadap satu retriever; satu jawaban bisa termuat di beberapa chunk (misalnya file biaya dan FAQ). |
 | 6.3, M-12 (E-01) | Hasil eksperimen disimpan di folder results/\<eksperimen>/ dan di-commit. run.json mencatat config\_hash efektif, kb\_id, SHA-256 dataset dan pool, model dan revisi embedder, versi Python/torch/sentence-transformers, CPU, git\_commit, git\_dirty, sumber daya (AC/baterai), power plan, dan jumlah thread torch. Eval tetap jalan bila git\_dirty tetapi memberi peringatan; angka untuk skripsi diambil dari run bersih. Latensi di E-01 bersifat indikatif; latensi resmi diukur di E-09 dengan kondisi laptop dikunci. | Reprodusibilitas (N-14). Run ulang E-01 dari commit bersih memberi ranking identik, tetapi latensi berubah sekitar 2,3 kali karena kondisi laptop. |
 | 6.3 | Field baru oos\_level (jauh \| dekat), wajib untuk type out\_of\_kb. Jauh = di luar topik kampus; dekat = topik PMB tetapi detailnya tidak ada di KB. Set dev ditambah 12 pertanyaan out\_of\_kb (d034 sampai d045), sehingga berisi 45 pertanyaan. | Gerbang skor hanya diharapkan menolak pertanyaan jauh; pertanyaan dekat ditangani lapis LLM (ADR-06). Lima pertanyaan out\_of\_kb terlalu sedikit untuk kalibrasi. |
-| 5.1, M-04 (gerbang) | GateDecision(passed, score, threshold). Sinyal = cosine dense peringkat 1 (raw\_scores\["dense@1"\]), tersedia juga pada hybrid walau chunk itu kalah di fusi. threshold null = selalu lolos (dev dan C1). retriever bm25 dengan threshold terisi ditolak M-01; kiosk boleh bm25 tanpa gerbang, dengan peringatan log saat start (dibuat di M-10). Retriever tanpa hasil langsung refused\_gate. Riwayat ambang dev (provisional): 0,50 dari eval gate pertama (aturan pra-registrasi memberi 0,51, tetapi 0,51 didominasi 0,50, sehingga aturan seri "ambil salah tolak terkecil" ditambahkan setelah melihat data); lalu 0,55 dari E-02 prompt v1 setelah perbaikan spasi Unicode (aturan diikuti apa adanya: 0,50 memberi salah tolak 0/25 dan tolak benar 15/17, 0,55 memberi 2/25 dan 16/17); lalu 0,50 lagi pada 17 Oktober 2026 (keputusan peneliti) dari sweep E-04 prompt v2 dengan cek angka menyala: null, 0,45, 0,48, dan 0,50 seri pada salah tolak 0/25 dan tolak benar 16/17, sedangkan 0,55 menambah 2/25 salah tolak. Pemecah seri "ambil ambang tertinggi di antara yang seri" ditambahkan setelah melihat data; kedua aturan tambahan wajib diungkap di Bab 3. Ambang final ditetapkan dengan set uji. | Skor dev: answerable 0,504 sampai 0,758; jauh 0,324 sampai 0,527; dekat 0,512 sampai 0,739; false\_premise 0,633 sampai 0,663. Gerbang skor tidak bisa memisahkan pertanyaan dekat dan premis salah, sehingga lapis LLM dan cek angka tetap diperlukan. |
+| 5.1, M-04 (gerbang) | GateDecision(passed, score, threshold). Sinyal = cosine dense peringkat 1 (raw\_scores\["dense@1"\]), tersedia juga pada hybrid walau chunk itu kalah di fusi. threshold null = selalu lolos (dev dan C1). retriever bm25 dengan threshold terisi ditolak M-01; prod boleh bm25 tanpa gerbang, dengan peringatan log saat start (dibuat di M-10). Retriever tanpa hasil langsung refused\_gate. Riwayat ambang dev (provisional): 0,50 dari eval gate pertama (aturan pra-registrasi memberi 0,51, tetapi 0,51 didominasi 0,50, sehingga aturan seri "ambil salah tolak terkecil" ditambahkan setelah melihat data); lalu 0,55 dari E-02 prompt v1 setelah perbaikan spasi Unicode (aturan diikuti apa adanya: 0,50 memberi salah tolak 0/25 dan tolak benar 15/17, 0,55 memberi 2/25 dan 16/17); lalu 0,50 lagi pada 17 Oktober 2026 (keputusan peneliti) dari sweep E-04 prompt v2 dengan cek angka menyala: null, 0,45, 0,48, dan 0,50 seri pada salah tolak 0/25 dan tolak benar 16/17, sedangkan 0,55 menambah 2/25 salah tolak. Pemecah seri "ambil ambang tertinggi di antara yang seri" ditambahkan setelah melihat data; kedua aturan tambahan wajib diungkap di Bab 3. Ambang final ditetapkan dengan set uji. | Skor dev: answerable 0,504 sampai 0,758; jauh 0,324 sampai 0,527; dekat 0,512 sampai 0,739; false\_premise 0,633 sampai 0,663. Gerbang skor tidak bisa memisahkan pertanyaan dekat dan premis salah, sehingga lapis LLM dan cek angka tetap diperlukan. |
 | 5.1, 7.3, M-04 (cek angka) | CheckResult(passed, unsupported, checked); pseudocode 7.3 yang memakai .ok dibaca sebagai .passed. Setiap angka bisa punya beberapa tafsiran (misalnya 09.00 sebagai jam atau angka) dan dianggap didukung bila salah satu tafsiran cocok. Sumber = teks chunk yang disitasi ditambah judul dan valid\_from-nya; rentang tanggal di sumber diuraikan menjadi tanggal ujungnya. Untuk false\_premise, angka yang juga muncul di pertanyaan dianggap didukung. Keterbatasan: yang dicek hanya nilai, bukan pasangannya (biaya kelas sore yang ditulis untuk kelas pagi lolos), dan angka berupa kata tidak dicek. | Format angka, tanggal, dan rupiah dalam Bahasa Indonesia beragam. Uji nyata pertama menolak jawaban benar yang menyebut tanggal berlaku dari label sumber. Kesalahan pasangan angka ditangkap anotasi manusia saat menghitung hallucination rate. |
-| 5.1, 5.3, M-05 | Klien HTTP httpx (non-ADR). Groq: ID openai/gpt-oss-120b dan openai/gpt-oss-20b; keluaran json\_schema strict, dengan citations berupa enum dari allowed\_chunk\_ids per permintaan; include\_reasoning false; field konfigurasi baru llm.reasoning\_effort (low \| medium \| high; dev low, kiosk wajib diisi dari E-04). Nilai dev provisional: llm.temperature 0,2 dan llm.timeout\_s 10. LlmAnswer mendapat field usage (jumlah token). GeminiProvider(model, mode). HTTP 4xx selain ketidakcocokan skema diperlakukan sebagai kegagalan penyedia dan pindah ke cadangan. | Satu klien untuk dua penyedia dengan kendali penuh atas timeout dan retry; SDK resmi memiliki retry otomatis. Pada uji asap, 20b mengutip "1" alih-alih ID chunk; enum di skema strict membuat sitasi di luar daftar tidak mungkin. Dokumentasi Groq dicek 16 Oktober 2026. |
+| 5.1, 5.3, M-05 | Klien HTTP httpx (non-ADR). Groq: ID openai/gpt-oss-120b dan openai/gpt-oss-20b; keluaran json\_schema strict, dengan citations berupa enum dari allowed\_chunk\_ids per permintaan; include\_reasoning false; field konfigurasi baru llm.reasoning\_effort (low \| medium \| high; dev low, prod wajib diisi dari E-04). Nilai dev provisional: llm.temperature 0,2 dan llm.timeout\_s 10. LlmAnswer mendapat field usage (jumlah token). GeminiProvider(model, mode). HTTP 4xx selain ketidakcocokan skema diperlakukan sebagai kegagalan penyedia dan pindah ke cadangan. | Satu klien untuk dua penyedia dengan kendali penuh atas timeout dan retry; SDK resmi memiliki retry otomatis. Pada uji asap, 20b mengutip "1" alih-alih ID chunk; enum di skema strict membuat sitasi di luar daftar tidak mungkin. Dokumentasi Groq dicek 16 Oktober 2026. |
 | 5.3, 6.2, M-06 | Label potongan di prompt: \[ID \| Sumber \| Berlaku\]. Aturan prompt tambahan: tidak menghitung angka baru; kalimat biasa tanpa markdown karena dibacakan; pertanyaan tentang pilihan yang tidak ada di daftar (prodi, jalur, gelombang, kelas) dijawab sebagai false\_premise dengan menyebut pilihan yang ada. Teks penolakan baku: "Maaf, saya belum menemukan informasi itu di dokumen resmi PMB. Silakan tanyakan langsung ke staf PMB di ruangan ini." LlmBadOutput diperlakukan sebagai refused\_check. TurnRecord mendapat field llm\_usage, citations, dan error\_code. followup\_mode llm\_rewrite belum diimplementasikan. | Uji nyata 16 Oktober 2026: pertanyaan cicilan ditolak LLM setelah lolos gerbang, cuaca ditolak gerbang, dan gelombang tiga ditolak alih-alih diluruskan. Angka hasil hitungan tidak bisa dicek terhadap sumber. |
 | M-07 (kamera) | Di Windows kamera dibuka dengan backend DirectShow (CAP\_DSHOW) lalu dipanaskan beberapa frame. Bila gagal dibuka, dicoba ulang setiap 2 detik. | Uji 16 Oktober 2026: backend bawaan MSMF butuh 59 detik untuk membuka kamera, DSHOW 1,9 detik. DSHOW kadang gagal pada percobaan pertama. |
-| M-07 (model dan tracker), ADR-12, ADR-15 | ultralytics 8.4.178 (AGPL-3.0) dengan torch CPU. Bobot yolo26n.pt dan yolo26n-pose.pt diunduh sekali lewat python -m mica.vision fetch-model ke models/ dengan SHA-256 terkunci; tidak ada unduhan saat runtime, dan file yang hilang memberi VISION\_MODEL\_MISSING. Tracker ditulis eksplisit sebagai bytetrack.yaml. Pengaturan Ultralytics sync=False (berlaku global untuk akun pengguna Windows). | Reprodusibilitas (N-14) dan kiosk tanpa unduhan tak terduga. Tracker bawaan Ultralytics versi ini adalah TrackTrack \[44\], bukan ByteTrack, sehingga pilihan ADR-15 harus ditulis eksplisit. sync=False mematikan pengiriman analitik dan laporan crash ke Ultralytics. |
+| M-07 (model dan tracker), ADR-12, ADR-15 | ultralytics 8.4.178 (AGPL-3.0) dengan torch CPU. Bobot yolo26n.pt dan yolo26n-pose.pt diunduh sekali lewat python -m mica.vision fetch-model ke models/ dengan SHA-256 terkunci; tidak ada unduhan saat runtime, dan file yang hilang memberi VISION\_MODEL\_MISSING. Tracker ditulis eksplisit sebagai bytetrack.yaml. Pengaturan Ultralytics sync=False (berlaku global untuk akun pengguna Windows). | Reprodusibilitas (N-14) dan aplikasi tanpa unduhan tak terduga. Tracker bawaan Ultralytics versi ini adalah TrackTrack \[44\], bukan ByteTrack, sehingga pilihan ADR-15 harus ditulis eksplisit. sync=False mematikan pengiriman analitik dan laporan crash ke Ultralytics. |
 | M-07 (area baju), ADR-12, ADR-13 | Model dev yolo26n-pose dengan vision.region keypoint\_torso: area antara bahu dan pinggul, dipersempit dengan shrink dan dibatasi torso\_aspect, dengan cadangan box\_upper bila keypoint kurang yakin. yolo26n tanpa pose tetap menjadi pembanding di E-07. Validasi Pydantic menolak keypoint\_torso dan presence\_signal shoulder\_width bila model bukan varian -pose. | Uji 16 Oktober 2026: potongan dari kotak bergeser ke kepala atau kursi saat orang duduk atau membungkuk, sedangkan area dari keypoint tetap di badan. Pose juga memberi sinyal kehadiran tambahan (lebar bahu). |
 | M-07 (kehadiran), 7.3 | Sinyal kehadiran dapat dipilih lewat vision.presence\_signal: box\_height (ambang min\_box\_height\_ratio) atau shoulder\_width (ambang min\_shoulder\_ratio, jarak keypoint 5 dan 6 dibagi lebar frame). Dev memakai shoulder\_width. Target = track dengan sinyal terbesar. Lebar bahu dari frame sebelumnya boleh dipakai paling lama leave\_s sejak bahu terakhir terdeteksi yakin. | Kalibrasi 16 Oktober 2026 dengan satu orang: tinggi kotak tidak memisahkan orang duduk dekat dari orang berdiri 2 m, sedangkan lebar bahu memisahkan (duduk sekitar 0,29, berdiri 2 m sekitar 0,16 sampai 0,19). Lebar bahu mengecil saat orang menyamping (diuji di E-07). Tanpa batas waktu, carry-over membuat PersonLeft tidak pernah terkirim. |
 | M-07 (warna), ADR-14 | Tabel color names van de Weijer dkk. \[30\] diunduh lewat python -m mica.vision fetch-colors dari ColorNaming.tar lalu dikonversi ke models/color\_names\_w2c.npy (32768 x 11), keduanya dengan SHA-256 terkunci; tidak di-commit, dan file yang hilang memberi VISION\_COLORS\_MISSING. Frame BGR dibalik ke RGB sebelum lookup. Label dipilih dengan voting selama state CANDIDATE. ColorResult mendapat field top, distribution, dan pixels. | Halaman sumber tabel tidak mencantumkan lisensi, jadi tabel tidak didistribusikan ulang di repo (perlu dibahas dengan pembimbing). Voting meredam frame yang gelap atau kabur. |
-| M-01, 13.1 (vision) | Kunci baru, semuanya null di dev.yaml (TBD): vision.dwell\_s, leave\_s, min\_box\_height\_ratio, min\_shoulder\_ratio, dan fps\_busy (E-07, E-09); vision.color.min\_majority, box\_upper.top/bottom/side, dan keypoint\_torso.min\_kp\_conf/shrink/torso\_aspect (E-08). vision.conf 0,1 dan imgsz 640 (bawaan Ultralytics) provisional sampai E-07. kiosk.yaml: yolo26n-pose dan keypoint\_torso, presence\_signal null. Demo memakai argumen CLI yang dicetak sebagai "nilai coba". | Angka ambang tidak dikarang. Pada conf 0,1 kadang muncul track yang bukan orang (misalnya di kursi kosong); nilainya diputuskan di E-07. |
+| M-01, 13.1 (vision) | Kunci baru, semuanya null di dev.yaml (TBD): vision.dwell\_s, leave\_s, min\_box\_height\_ratio, min\_shoulder\_ratio, dan fps\_busy (E-07, E-09); vision.color.min\_majority, box\_upper.top/bottom/side, dan keypoint\_torso.min\_kp\_conf/shrink/torso\_aspect (E-08). vision.conf 0,1 dan imgsz 640 (bawaan Ultralytics) provisional sampai E-07. prod.yaml: yolo26n-pose dan keypoint\_torso, presence\_signal null. Demo memakai argumen CLI yang dicetak sebagai "nilai coba". | Angka ambang tidak dikarang. Pada conf 0,1 kadang muncul track yang bukan orang (misalnya di kursi kosong); nilainya diputuskan di E-07. |
 | M-07 (demo) | python -m mica.vision demo memisahkan laju tampilan (sekitar 14,5 FPS, batas DSHOW) dari laju deteksi (fps\_idle 5, atau fps\_busy dari SetVisionRate). | Video demo patah-patah bila tampilan mengikuti laju deteksi; laju deteksi tetap sesuai ADR-20. |
-| M-13, M-07 (proses kamera) | Bus memakai konteks multiprocessing spawn dengan antrean to\_main dan to\_vision. Pekerja yang mati dimulai ulang sekali (WORKER\_RESTART); bila mati lagi, WORKER\_DEAD dan CameraStatus(ok=False). Saat restart, to\_vision diganti antrean baru dan laju deteksi kembali ke fps\_idle. WORKER\_RESTART dan WORKER\_DEAD dicatat lewat logging Python, belum lewat InteractionLog. torch hanya dimuat di proses anak. Factory palsu lewat import path hanya diizinkan di dev dan tes. Alat dev: python -m mica.vision bus-demo dengan --kill-after N (uji restart) dan --preview (jendela kamera di dalam proses kamera, ditolak di mode kiosk). | Uji 17 Oktober 2026 (f199afa, 607 tes): proses kamera siap dalam 5,3 sampai 5,5 detik; RAM proses utama 45 MB, proses kamera sekitar 400 sampai 470 MB. Proses yang dibunuh di detik 8 siap lagi 5,7 detik kemudian, tanpa WORKER\_DEAD dan tanpa proses yatim. Frame tidak pernah melewati bus. |
+| M-13, M-07 (proses kamera) | Bus memakai konteks multiprocessing spawn dengan antrean to\_main dan to\_vision. Pekerja yang mati dimulai ulang sekali (WORKER\_RESTART); bila mati lagi, WORKER\_DEAD dan CameraStatus(ok=False). Saat restart, to\_vision diganti antrean baru dan laju deteksi kembali ke fps\_idle. WORKER\_RESTART dan WORKER\_DEAD dicatat lewat logging Python, belum lewat InteractionLog. torch hanya dimuat di proses anak. Factory palsu lewat import path hanya diizinkan di dev dan tes. Alat dev: python -m mica.vision bus-demo dengan --kill-after N (uji restart) dan --preview (jendela kamera di dalam proses kamera, ditolak di mode prod). | Uji 17 Oktober 2026 (f199afa, 607 tes): proses kamera siap dalam 5,3 sampai 5,5 detik; RAM proses utama 45 MB, proses kamera sekitar 400 sampai 470 MB. Proses yang dibunuh di detik 8 siap lagi 5,7 detik kemudian, tanpa WORKER\_DEAD dan tanpa proses yatim. Frame tidak pernah melewati bus. |
 | 5.2 | Field tambahan: PersonArrived.box\_xyxy, PersonLeft.duration\_s, CameraStatus.message. CameraStatus dikirim saat berubah dan setiap 10 detik. SetVisionRate dikirim oleh pengirim (M-09, atau bus-demo saat dev). | Untuk log debug dan E-07; tidak ada field gambar. |
 | M-09, 7.1 (restart kamera) | Setelah WORKER\_RESTART, M-09 mengirim ulang SetVisionRate sesuai state saat itu. Proses kamera baru tidak ingat pengunjung, jadi bisa mengirim PersonArrived lagi tanpa PersonLeft. Bila pengunjung sedang bercakap (state LISTENING, THINKING, atau SPEAKING, atau READY setelah ada pertanyaan), sesi dilanjutkan dan PersonArrived baru diabaikan. Selain itu, sesi lama ditutup seperti pada PersonLeft dan PersonArrived baru diproses biasa. | Uji 2 tanggal 17 Oktober 2026: pengunjung yang sama disapa ulang 6,1 detik setelah kamera baru siap (biasanya sekitar 3 detik; diamati di E-07). Sapaan ulang di tengah tanya jawab mengganggu pengunjung. |
 | M-04 (cek angka) | Spasi Unicode (misalnya U+202F pada "88 %") dinormalkan menjadi spasi biasa sebelum angka dibandingkan (2dbb6fb). | Cek angka sempat menolak jawaban benar karena sumber memakai spasi sempit. |
 | M-06, 5.3 (prompt v2) | PROMPT\_VERSION dicatat di run.json dan TurnRecord. Prompt v2 menambah aturan agar LLM menjawab pertanyaan yang ditanyakan dan tidak menggantinya dengan pertanyaan mirip yang ada di dokumen. | E-02 dev prompt v1: d040 (biaya kuliah USU) dijawab dengan biaya Mikroskil (substitusi pertanyaan). Dengan v2, 20b masih mensubstitusi d040, sedangkan 120b menolak dengan isi yang benar tetapi berstatus false\_premise. |
 | M-12 (CLI eval) | eval gate dan eval generation menerima --gate-off, --model (ganti penyedia untuk satu run), --experiment (label dan folder results/E-xx), --cache-only (hanya dari cache; berhenti dengan CacheMiss bila belum ada), dan --no-cache. Cache respons LLM di data/cache/llm/ (tidak di-commit); pembatas laju paling banyak 6.000 token per menit; tanpa model cadangan saat eval. Keluaran: per\_question.csv, e02\_sweep.csv, annotate\_generation.csv, run.json. scripts/compare\_models.py membandingkan dua run secara offline (a87c77d); tabel resmi dibuat ulang dengan perintah yang dicatat di results/E-04. | Kuota Groq 8.000 token per menit dan 200.000 token per hari per model. Satu run harus memakai satu model dari awal sampai akhir. Hasil bisa dihitung ulang tanpa memanggil API. |
 | M-12, ADR-08 (E-02 dan E-04 dev) | Prompt v2, gerbang null, cek angka menyala, 120b dibanding 20b: salah tolak 0/25 dan 0/25; tolak benar 16/17 dan 16/17; premis salah (terbaik/aman/gagal) 2/1/0 dan 1/1/1; latensi LLM p50 0,817 dan 0,764 detik, p95 1,204 dan 1,398 detik; token 99.127 dan 98.748. 120b tetap model utama sampai hallucination rate dihitung. d040 pada 120b dihitung salah sesuai aturan pra-registrasi (status false\_premise, bukan refused\_\*) dan dilaporkan terpisah. | Set dev kecil dan relatif mudah, jadi angka ini provisional. Keputusan akhir memakai set uji. |
-| 6.3, M-12 (anotasi generation) | Halusinasi = klaim yang tidak didukung potongan yang dikutip jawaban itu, bukan seluruh KB. Substitusi pertanyaan dicatat terpisah (benar 0, halusinasi 0). Anotasi set dev (120b dan 20b, prompt v2) diisi rekan tim peneliti dengan saran penilaian AI terlihat di lembar, sehingga risiko bias jangkar diungkap di Bab 3. Set uji tetap mengikuti aturan penilaian di baris pooling di atas. | Konsisten dengan cek angka dan dengan kiosk yang menampilkan sumber. Contoh kasus batas: d023 pada 20b menyebut "T.A. 2026/2027" yang hanya ada di potongan yang tidak dikutip. |
+| 6.3, M-12 (anotasi generation) | Halusinasi = klaim yang tidak didukung potongan yang dikutip jawaban itu, bukan seluruh KB. Substitusi pertanyaan dicatat terpisah (benar 0, halusinasi 0). Anotasi set dev (120b dan 20b, prompt v2) diisi rekan tim peneliti dengan saran penilaian AI terlihat di lembar, sehingga risiko bias jangkar diungkap di Bab 3. Set uji tetap mengikuti aturan penilaian di baris pooling di atas. | Konsisten dengan cek angka dan dengan UI yang menampilkan sumber. Contoh kasus batas: d023 pada 20b menyebut "T.A. 2026/2027" yang hanya ada di potongan yang tidak dikutip. |
 | M-08 (Langkah 19, TTS) | Dependensi piper-tts 1.8.0 (GPL-3.0-or-later) \[49\], num2words 0.5.14 (angka ke kata Bahasa Indonesia, LGPL), dan sounddevice 0.5.6. Suara id\_ID-news\_tts-medium diunduh lewat python -m mica.audio fetch-voice pada revisi Hugging Face terkunci dengan SHA-256; file yang hilang memberi VOICE\_MISSING. normalize\_for\_speech menangani rupiah, jam dan rentang jam, WIB, tanggal, tahun ajaran, nomor telepon (dibaca per digit), persen, desimal, ribuan bertitik, ke-N, dan kamus singkatan (S1, SKS, IPK, PMB, dll.). audio.tts.length\_scale null berarti bawaan suara. TTS dibuat per kalimat. Uji dengar pilot dinilai pengembang sendiri dan bukan E-06. Hasil 17 Oktober 2026 (1491c07, pilot 85e8ba2): suara dari revisi piper-voices c10ece1a; 12 dari 12 kalimat dinilai jelas; audio pertama 0,17 sampai 0,60 detik, RTF 0,03 sampai 0,08 (laptop dev, baterai, indikatif). Perbaikan 3b15080: PMB ditulis "P M B" (dipilih pengembang lewat pendengaran) dan nomor telepon kantor berkode area dalam kurung, seperti (061), dibaca per digit. | Normalisasi teks adalah tahap baku TTS \[48\]; pola diambil dari KB dev (misalnya S1 muncul 164 kali, jam 09.00 42 kali). GPL-3.0 cocok dengan AGPL-3.0 Ultralytics. Kartu model suara menautkan dataset ke halaman Kaggle korpus bahasa Malayalam, yang tampaknya salah, sehingga lisensi dataset suara belum jelas (perlu dibahas dengan pembimbing). |
-| M-08 (Langkah 20, STT dan VAD), ADR-09, ADR-10 | VAD memakai pysilero-vad 3.4.0 (MIT) \[51\] berisi model Silero VAD v6.2.0, bukan paket resmi silero-vad. STT faster-whisper small int8 pada revisi Systran/faster-whisper-small 536b0662 dengan SHA-256 per file (fetch-stt-model, STT\_MODEL\_MISSING), language id, condition\_on\_previous\_text false, vad\_filter false, cpu\_threads bawaan library (4 di laptop dev). Pilot WER dev 10 pertanyaan dengan suara pengembang (a6d4dc9): WER total 0,203; normalisasi WER ditetapkan sebelum data (normalize\_for\_speech, huruf kecil, tanpa tanda baca). stt\_s hampir tetap sekitar 1,9 detik berapa pun panjang ucapan, melewati anggaran STT 1,5 detik di 3.3, tetapi total tetap aman karena LLM p95 sekitar 1,2 detik dan K-3 sekitar 2,4 detik di laptop dev. Aturan E-05 ditetapkan sebelum data: syarat p95 waktu sampai transkripsi tampil paling lama 3 detik di laptop kiosk; pemenang WER terkecil; seri dimenangkan STT lokal. Kandidat: faster-whisper lokal, variasi thread, Groq Whisper, dan varian petunjuk kosakata PMB (hotwords/initial\_prompt). Metrik tambahan: CER, Recall@5 retrieval atas transkripsi, dan laju transkripsi palsu pada rekaman diam dan bising. | Paket resmi silero-vad 6.2.3 mewajibkan torch (sekitar 400 MB RAM); pysilero-vad tanpa dependensi sehingga proses suara tetap tanpa torch. Waktu tetap STT berasal dari jendela masukan 30 detik Whisper \[21\]. Adila dkk. melaporkan WER zero-shot whisper-small sekitar 31% untuk bahasa Indonesia \[22\], sehingga STT harus diukur sendiri. |
+| M-08 (Langkah 20, STT dan VAD), ADR-09, ADR-10 | VAD memakai pysilero-vad 3.4.0 (MIT) \[51\] berisi model Silero VAD v6.2.0, bukan paket resmi silero-vad. STT faster-whisper small int8 pada revisi Systran/faster-whisper-small 536b0662 dengan SHA-256 per file (fetch-stt-model, STT\_MODEL\_MISSING), language id, condition\_on\_previous\_text false, vad\_filter false, cpu\_threads bawaan library (4 di laptop dev). Pilot WER dev 10 pertanyaan dengan suara pengembang (a6d4dc9): WER total 0,203; normalisasi WER ditetapkan sebelum data (normalize\_for\_speech, huruf kecil, tanpa tanda baca). stt\_s hampir tetap sekitar 1,9 detik berapa pun panjang ucapan, melewati anggaran STT 1,5 detik di 3.3, tetapi total tetap aman karena LLM p95 sekitar 1,2 detik dan K-3 sekitar 2,4 detik di laptop dev. Aturan E-05 ditetapkan sebelum data: syarat p95 waktu sampai transkripsi tampil paling lama 3 detik di laptop PMB; pemenang WER terkecil; seri dimenangkan STT lokal. Kandidat: faster-whisper lokal, variasi thread, Groq Whisper, dan varian petunjuk kosakata PMB (hotwords/initial\_prompt). Metrik tambahan: CER, Recall@5 retrieval atas transkripsi, dan laju transkripsi palsu pada rekaman diam dan bising. | Paket resmi silero-vad 6.2.3 mewajibkan torch (sekitar 400 MB RAM); pysilero-vad tanpa dependensi sehingga proses suara tetap tanpa torch. Waktu tetap STT berasal dari jendela masukan 30 detik Whisper \[21\]. Adila dkk. melaporkan WER zero-shot whisper-small sekitar 31% untuk bahasa Indonesia \[22\], sehingga STT harus diukur sendiri. |
 | M-08 (penyaring transkripsi palsu), 5.2 | Dua penyaring, keduanya null di konfigurasi (TBD E-05): audio.vad.min\_speech\_ms membuang ucapan lebih pendek dari nilainya sebelum STT (nilai coba 250 = bawaan min\_speech\_duration\_ms Silero); audio.stt.no\_speech\_threshold menjadikan Transcript(ok=False) bila semua segmen Whisper punya no\_speech\_prob setidaknya sebesar nilainya (nilai coba 0,6 = bawaan Whisper). Field baru Transcript.filtered\_by (None, min\_speech, no\_speech); transkripsi tersaring tidak dijawab dan sistem tetap mendengarkan. Tidak ada daftar larangan kata. Commit 7f81b42. | Whisper menghasilkan "terima kasih" palsu saat pengembang diam atau ada bunyi lain; dengan kedua penyaring teks palsu tidak muncul lagi (uji pengembang 17 Oktober 2026, belum dihitung resmi). Koenecke dkk. menemukan durasi non-suara yang lebih panjang berasosiasi dengan halusinasi Whisper \[50\]. Daftar larangan kata ditolak karena pengunjung bisa sungguh mengucapkan terima kasih. |
-| M-08 dan M-13 (proses suara), 5.2 | Proses suara terpisah lewat bus (5c89abe): antrean to\_audio, restart sekali (WORKER\_RESTART), mati lagi menjadi WORKER\_DEAD dan AudioStatus(mic\_ok=False, speaker\_ok=False, ready=False). Field di luar 5.2: SpeechStarted.t, Transcript.cut\_by\_max dan filtered\_by, SpeechDone.interrupted, AudioStatus.ready dan message. SpeechDone.tts\_first\_audio\_s boleh kosong bila Speak tidak diputar. Setiap Speak mendapat tepat satu SpeechDone, termasuk yang dibuang karena StopSpeaking, kecuali Speak yang hilang saat proses suara mati. Setelah restart mode mendengar kembali off, sehingga M-09 wajib mengirim ulang ListenControl (7.1). bus-demo audio meniru M-09 tanpa UI dan ditolak di mode kiosk. | Uji 17 Oktober 2026 dengan Whisper dan Piper asli tetapi mikrofon dan speaker palsu: proses suara siap dalam 8,9 detik; RAM proses utama 49 MB dan proses suara 485 MB; audio pertama sapaan 0,22 detik. Proses utama tidak memuat torch, ctranslate2, maupun onnxruntime. Waktu pulih restart dan kecepatan StopSpeaking pada perangkat nyata belum diukur (tertunda). |
-| M-09 (Langkah 22) | Session dibuat sebagai fungsi murni di core/session.py (commit 1f89b2b, ekspor tabel bac4184). Konfigurasi memakai nama SDD session.idle\_reset\_s dan session.regreet\_cooldown\_s, keduanya null di dev dan kiosk (kiosk wajib diisi). vision.fps\_busy null berarti SetVisionRate untuk busy tidak dikirim. Field tambahan: RunPipeline.input\_mode, ShowView.send\_enabled, camera\_ok, mic\_ok. Bus.poll() melaporkan CameraStatus(ok=False) atau AudioStatus(ready=False) bersama WORKER\_RESTART sebelum proses baru dimulai. | Logika bisa diuji tanpa perangkat (854 tes). Tanpa laporan status mati, restart kamera tidak terlihat karena CameraStatus(ok=True) dikirim berkala. |
-| M-10 (Langkah 23) | KioskController ada di core/controller.py, bukan ui/. Pipeline jalan di ThreadPoolExecutor(max\_workers=1) sebagai pengganti QThreadPool 1 thread; hasil masuk antrean internal sebagai AnswerReady. Konstruktor menerima wall\_clock untuk waktu log. log\_event M-11 untuk greeted, person\_left, idle\_reset, camera\_down, mic\_down (latency\_s masih null). Pertanyaan melewati scrub\_pii sebelum pipeline dan log; exception pipeline menjadi status unavailable dengan teks baku. | Seluruh alur kunjungan bisa diuji ujung ke ujung tanpa Qt (873 tes, 8 skenario integrasi). |
-| M-10 (Langkah 24) | Widget PySide6 hanya merender ViewModel murni (commit f47f4ec). Config baru ui.suggestions (topik ke saran), kosong di dev dan kiosk; tanpa saran, tombol topik mengirim nama topik sebagai pertanyaan. Panel debug hanya di dev, memakai TurnRecord dari AnswerPipeline.run(). ui/devfakes.py hanya untuk dev. Teks pemberitahuan N-08 di core/texts.py. Rencana Langkah 25: ganti PySide6 penuh dengan PySide6-Essentials. Uji jendela nyata tertunda: tiga syarat ADR-19, keterbacaan font dan tata letak, gulir otomatis, keyboard layar sentuh. | Saran harus berasal dari pertanyaan nyata staf PMB, bukan dari set evaluasi, supaya data uji tidak bocor ke aplikasi. |
-| M-10, 3.4 (Langkah 25) | PySide6-Essentials 6.12.0 menggantikan paket PySide6 penuh (commit 197dd98; .venv turun dari 2.309 menjadi 1.871 MB). Perintah python -m mica setup, python -m mica check, dan entry point python -m mica; panduan pemasangan di docs/KIOSK.md (2da9bb2). mica check: mic atau speaker tidak ada = PERINGATAN, bukan gagal; kunci null di mode kiosk dilaporkan (36 kunci, dipetakan ke eksperimen di bagian 12). | Paket penuh ikut menarik WebEngine dan Pdf yang tidak dipakai. Kiosk tetap bisa dipakai lewat teks bila perangkat suara hilang (N-10). |
+| M-08 dan M-13 (proses suara), 5.2 | Proses suara terpisah lewat bus (5c89abe): antrean to\_audio, restart sekali (WORKER\_RESTART), mati lagi menjadi WORKER\_DEAD dan AudioStatus(mic\_ok=False, speaker\_ok=False, ready=False). Field di luar 5.2: SpeechStarted.t, Transcript.cut\_by\_max dan filtered\_by, SpeechDone.interrupted, AudioStatus.ready dan message. SpeechDone.tts\_first\_audio\_s boleh kosong bila Speak tidak diputar. Setiap Speak mendapat tepat satu SpeechDone, termasuk yang dibuang karena StopSpeaking, kecuali Speak yang hilang saat proses suara mati. Setelah restart mode mendengar kembali off, sehingga M-09 wajib mengirim ulang ListenControl (7.1). bus-demo audio meniru M-09 tanpa UI dan ditolak di mode prod. | Uji 17 Oktober 2026 dengan Whisper dan Piper asli tetapi mikrofon dan speaker palsu: proses suara siap dalam 8,9 detik; RAM proses utama 49 MB dan proses suara 485 MB; audio pertama sapaan 0,22 detik. Proses utama tidak memuat torch, ctranslate2, maupun onnxruntime. Waktu pulih restart dan kecepatan StopSpeaking pada perangkat nyata belum diukur (tertunda). |
+| M-09 (Langkah 22) | Session dibuat sebagai fungsi murni di core/session.py (commit 1f89b2b, ekspor tabel bac4184). Konfigurasi memakai nama SDD session.idle\_reset\_s dan session.regreet\_cooldown\_s, keduanya null di dev dan prod (prod wajib diisi). vision.fps\_busy null berarti SetVisionRate untuk busy tidak dikirim. Field tambahan: RunPipeline.input\_mode, ShowView.send\_enabled, camera\_ok, mic\_ok. Bus.poll() melaporkan CameraStatus(ok=False) atau AudioStatus(ready=False) bersama WORKER\_RESTART sebelum proses baru dimulai. | Logika bisa diuji tanpa perangkat (854 tes). Tanpa laporan status mati, restart kamera tidak terlihat karena CameraStatus(ok=True) dikirim berkala. |
+| M-10 (Langkah 23) | AppController ada di core/controller.py, bukan ui/. Pipeline jalan di ThreadPoolExecutor(max\_workers=1) sebagai pengganti QThreadPool 1 thread; hasil masuk antrean internal sebagai AnswerReady. Konstruktor menerima wall\_clock untuk waktu log. log\_event M-11 untuk greeted, person\_left, idle\_reset, camera\_down, mic\_down (latency\_s masih null). Pertanyaan melewati scrub\_pii sebelum pipeline dan log; exception pipeline menjadi status unavailable dengan teks baku. | Seluruh alur kunjungan bisa diuji ujung ke ujung tanpa Qt (873 tes, 8 skenario integrasi). |
+| M-10 (Langkah 24) | Widget PySide6 hanya merender ViewModel murni (commit f47f4ec). Config baru ui.suggestions (topik ke saran), kosong di dev dan prod; tanpa saran, tombol topik mengirim nama topik sebagai pertanyaan. Panel debug hanya di dev, memakai TurnRecord dari AnswerPipeline.run(). ui/devfakes.py hanya untuk dev. Teks pemberitahuan N-08 di core/texts.py. Rencana Langkah 25: ganti PySide6 penuh dengan PySide6-Essentials. Uji jendela nyata tertunda: tiga syarat ADR-19, keterbacaan font dan tata letak, gulir otomatis, keyboard layar sentuh. | Saran harus berasal dari pertanyaan nyata staf PMB, bukan dari set evaluasi, supaya data uji tidak bocor ke aplikasi. |
+| M-10, 3.4 (Langkah 25) | PySide6-Essentials 6.12.0 menggantikan paket PySide6 penuh (commit 197dd98; .venv turun dari 2.309 menjadi 1.871 MB). Perintah python -m mica setup, python -m mica check, dan entry point python -m mica; panduan pemasangan di docs/INSTALASI.md (2da9bb2, dulu docs/KIOSK.md). mica check: mic atau speaker tidak ada = PERINGATAN, bukan gagal; kunci null di mode prod dilaporkan (36 kunci, dipetakan ke eksperimen di bagian 12). | Paket penuh ikut menarik WebEngine dan Pdf yang tidak dipakai. Aplikasi tetap bisa dipakai lewat teks bila perangkat suara hilang (N-10). |
 | M-07 (Langkah 26, bobot YOLO) | Bobot YOLO diunduh dari tag rilis ultralytics/assets v8.4.0, bukan rilis terbaru, dengan SHA-256 dikunci; digest cocok dengan digest rilis di GitHub (597ac13). | Unduhan rilis terbaru bisa berubah tanpa pemberitahuan, sehingga hasil tidak bisa diulang. |
 | M-08, M-12 (Langkah 26 dan 27, eval stt untuk E-05), 6.3 | python -m mica.eval stt membaca manifest.jsonl (6.3) dan menghitung WER, CER, waktu sampai transkripsi, laju transkripsi palsu, serta Recall@5 retrieval atas transkripsi dibanding referensi (5c5c629). Pengukuran dua fase: seluruh STT dulu, retriever sesudahnya. collect\_environment() memuat torch, jadi dipanggil setelah fase 1; waktu STT uji asap sintetis turun dari 2,4-2,9 menjadi 1,48-1,64 detik (Langkah 27). --hotwords diteruskan ke parameter hotwords faster-whisper. GroqWhisperStt memakai endpoint dari dokumentasi Groq (URL dan tanggal cek di komentar kode), ID model dari audio.stt.groq\_model, dan belum dipanggil. Uji asap memakai suara sintetis Piper (c12dcd3) dan bukan hasil E-05; protokol relawan di docs/E-05.md. | E-05 mengukur STT sendiri; perebutan CPU dengan BGE-M3 dan torch diukur di E-09. |
 | M-12 (Langkah 27, eval copy untuk E-03) | python -m mica.eval copy menghitung extractive fragment coverage dan density (Grusky dkk. \[43\]) secara offline dari run eval generation, terhadap dua sumber: potongan yang dikutip dan seluruh potongan konteks. Tokenisasi sama dengan mica.kb.index.tokenize. Konteks direkonstruksi dari cache (--cache-only, tanpa panggilan API); jawaban yang ditolak tidak dihitung. Uji alat pada run E-04 dev (results/E-03/copy-dev-20261017-183657): density kutip rata-rata 120b 3,32 dan 20b 4,36. Ini uji alat, bukan hasil E-03. | Ladhak dkk. \[42\]: tingkat menyalin dilaporkan bersama hallucination rate, tidak sendirian. Tidak ada ambang mutlak. |
-| M-10, ADR-19 (Langkah 29, tahap 1) | UI web dibandingkan dengan PySide6 memakai protokol docs/UI-WEB.md yang ditetapkan sebelum mengukur (results/ADR-19, median 3 ulangan, pekerja dan pipeline palsu, daya AC). PySide6: RAM USS 66 MB diam dan 68 MB setelah 20 pertanyaan, CPU diam 0,55% satu inti, mulai 0,80 detik, p95 jeda tampil 6,7 ms. Web (server aiohttp): 196 dan 250 MB, 6,98%, 1,98 detik, p95 5,2 ms. Tahap 1 LOLOS: fungsional lengkap dan p95 × 3 jauh di bawah 1 detik \[52\]. | ADR-19 berstatus Provisional dan butuh bukti terukur. Faktor × 3 adalah perkiraan kasar pemilik proyek untuk laptop kiosk (sepertiga laptop dev). |
+| M-10, ADR-19 (Langkah 29, tahap 1) | UI web dibandingkan dengan PySide6 memakai protokol docs/UI-WEB.md yang ditetapkan sebelum mengukur (results/ADR-19, median 3 ulangan, pekerja dan pipeline palsu, daya AC). PySide6: RAM USS 66 MB diam dan 68 MB setelah 20 pertanyaan, CPU diam 0,55% satu inti, mulai 0,80 detik, p95 jeda tampil 6,7 ms. Web (server aiohttp): 196 dan 250 MB, 6,98%, 1,98 detik, p95 5,2 ms. Tahap 1 LOLOS: fungsional lengkap dan p95 × 3 jauh di bawah 1 detik \[52\]. | ADR-19 berstatus Provisional dan butuh bukti terukur. Faktor × 3 adalah perkiraan kasar pemilik proyek untuk laptop PMB (sepertiga laptop dev). |
 | M-10 (Langkah 30) | Server web diganti dari aiohttp ke Flask 3.1.3 + flask-sock 0.7.0 atas preferensi pemilik proyek. flask-sock hanya mendukung Werkzeug, Gunicorn, Eventlet, dan Gevent; di Windows dipakai server bawaan Werkzeug (threaded, 127.0.0.1, debugger dan reloader mati). Kunci ui.backend ditambahkan. Uji --cover-window (Notepad di depan Edge): tanpa switch anti-throttling 1 dari 3 ulangan mendapat 0 ack, dengan switch 3 dari 3 normal; hasil indikatif dan dicek ulang di E-09. | Pemilik proyek lebih menguasai Flask sehingga bisa menjelaskan kodenya. Peringatan Werkzeug bukan untuk produksi berlaku untuk server publik; di MICA server hanya melayani satu klien lokal, dan ini ditulis sebagai keterbatasan. |
-| M-10, ADR-19 (Langkah 31) | Pemilik proyek memilih UI web sebelum tahap 2; ui.backend = web di dev dan kiosk, PySide6 dibekukan sebagai cadangan. Diagnosis di daya AC: CPU diam terbesar di proses browser Edge (sekitar 3,7% dari total sekitar 5,3%); frontend tanpa animasi atau timer berulang. Dari switch yang diuji, hanya --disable-component-update lolos aturan optimasi. Web akhir: RAM diam 194 MB, CPU diam 4,45%, mulai 2,44 detik, p95 2,9 ms. Uji 200 pertanyaan: kemiringan RAM +14,8 MB per 100 pertanyaan tanpa GC paksa dan +1,1 MB dengan GC paksa, jadi kenaikan berasal dari sampah yang belum dikumpulkan, bukan kebocoran. Perilaku berjam-jam dicek di E-09. | Penyimpangan protokol: UI dipilih sebelum tahap 2 dan wajib diungkap di Bab 3. E-09 berubah menjadi verifikasi anggaran 3.3 dan K-3 dengan UI web; bila gagal, optimasi dulu, PySide6 sebagai jalan keluar terakhir. |
-| M-10, ADR-19 (Langkah 32) | Optimasi putaran 2 dengan aturan baru yang ditetapkan sebelum data: 10 ulangan per kondisi secara selang-seling, sebuah metrik dihitung naik bila median kandidat melebihi nilai maksimum baseline. `--disable-component-extensions-with-background-pages` dan `--renderer-process-limit=1` lolos sendiri-sendiri dan sebagai gabungan (results/ADR-19/ui-opt2-combo-20261018-042512): RAM diam 194,5 menjadi 175,1 MB, CPU diam 5,04 menjadi 4,10%, waktu mulai 2,46 detik, p95 jeda 3,04 ms. Uji 200 pertanyaan: RAM 158 menjadi 276 MB; renderer halaman naik sekitar 15 MB per 100 pertanyaan (sampah GC menurut Langkah 31). Perilaku berjam-jam dicek di E-09. | Aturan putaran 1 (3 ulangan) terlalu peka terhadap variasi CPU diam antar-ulangan; keputusan putaran 1 tetap berlaku. Hasil kedua putaran dilaporkan terpisah di Bab 3. |
-| M-11, M-12, E-09 (Langkah 33) | Protokol docs/E-09.md dipra-registrasi 18 Oktober 2026: lulus bila p95 setiap tahap tidak melebihi anggaran 3.3, total paling lama 10 detik, `first_response` paling lama 3 detik, dan sapaan paling lama 3 detik; tahap yang lewat anggaran tetapi total dan K-3 aman dicatat sebagai "lewat anggaran tahap". Grid kalibrasi vision.fps\_busy {1, 2, 5}, vision.threads {1, 2}, audio.stt.threads {2, 4}; dipilih p95 total terendah, seri dimenangkan CPU lebih rendah. retrieval\_gate = retrieval + `gate`; check\_tts = check + tts\_first\_audio. Baris giliran kini ditulis controller setelah audio jawaban mulai: timings.total = akhir ucapan (atau kirim teks) sampai audio jawaban mulai; total pipeline lama menjadi `timings.pipeline` (angka latensi E-02 dan E-04 sebelumnya adalah pipeline). `timings.first_response` baru = akhir ucapan sampai UI mengirim ack transkripsi dan status berpikir. latency\_s pada greeted diisi saat audio sapaan mulai. Field baru `Utterance.trailing_silence_s`; semua field \*\_t memakai jam monotonic yang sama antarproses. Perekam sumber daya --record-resources (dev, atau --e09 yang tercatat di run.json) dan python -m mica.eval latency (persentil interpolasi linear numpy). Uji asap smoke-20261018-052038 adalah uji alat, bukan hasil E-09. | Aturan lulus dan kalibrasi ditetapkan sebelum data. Sebelumnya vad, stt, dan tts\_first\_audio tidak pernah tercatat dan total hanya mengukur pipeline, sehingga E-09 tidak bisa membaca anggaran 3.3 dari log. |
+| M-10, ADR-19 (Langkah 31) | Pemilik proyek memilih UI web sebelum tahap 2; ui.backend = web di dev dan prod, PySide6 dibekukan sebagai cadangan (dihapus di refactor RF-2, ADR-19 final). Diagnosis di daya AC: CPU diam terbesar di proses browser Edge (sekitar 3,7% dari total sekitar 5,3%); frontend tanpa animasi atau timer berulang. Dari switch yang diuji, hanya --disable-component-update lolos aturan optimasi. Web akhir: RAM diam 194 MB, CPU diam 4,45%, mulai 2,44 detik, p95 2,9 ms. Uji 200 pertanyaan: kemiringan RAM +14,8 MB per 100 pertanyaan tanpa GC paksa dan +1,1 MB dengan GC paksa, jadi kenaikan berasal dari sampah yang belum dikumpulkan, bukan kebocoran. Perilaku berjam-jam dicek di E-09. | Penyimpangan protokol: UI dipilih sebelum tahap 2 dan wajib diungkap di Bab 3. E-09 berubah menjadi verifikasi anggaran 3.3 dan K-3 dengan UI web; bila gagal, optimasi dulu, PySide6 sebagai jalan keluar terakhir. |
+| M-10, ADR-19 (Langkah 32) | Optimasi putaran 2 dengan aturan baru yang ditetapkan sebelum data: 10 ulangan per kondisi secara selang-seling, sebuah metrik dihitung naik bila median kandidat melebihi nilai maksimum baseline. --disable-component-extensions-with-background-pages dan --renderer-process-limit=1 lolos sendiri-sendiri dan sebagai gabungan (results/ADR-19/ui-opt2-combo-20261018-042512): RAM diam 194,5 menjadi 175,1 MB, CPU diam 5,04 menjadi 4,10%, waktu mulai 2,46 detik, p95 jeda 3,04 ms. Uji 200 pertanyaan: RAM 158 menjadi 276 MB; renderer halaman naik sekitar 15 MB per 100 pertanyaan (sampah GC menurut Langkah 31). Perilaku berjam-jam dicek di E-09. | Aturan putaran 1 (3 ulangan) terlalu peka terhadap variasi CPU diam antar-ulangan; keputusan putaran 1 tetap berlaku. Hasil kedua putaran dilaporkan terpisah di Bab 3. |
+| M-11, M-12, E-09 (Langkah 33) | Protokol docs/E-09.md dipra-registrasi 18 Oktober 2026: lulus bila p95 setiap tahap tidak melebihi anggaran 3.3, total paling lama 10 detik, first\_response paling lama 3 detik, dan sapaan paling lama 3 detik; tahap yang lewat anggaran tetapi total dan K-3 aman dicatat sebagai "lewat anggaran tahap". Grid kalibrasi vision.fps\_busy {1, 2, 5}, vision.threads {1, 2}, audio.stt.threads {2, 4}; dipilih p95 total terendah, seri dimenangkan CPU lebih rendah. retrieval\_gate = retrieval + gate; check\_tts = check + tts\_first\_audio. Baris giliran kini ditulis controller setelah audio jawaban mulai: timings.total = akhir ucapan (atau kirim teks) sampai audio jawaban mulai; total pipeline lama menjadi timings.pipeline (angka latensi E-02 dan E-04 sebelumnya adalah pipeline). timings.first\_response baru = akhir ucapan sampai UI mengirim ack transkripsi dan status berpikir. latency\_s pada greeted diisi saat audio sapaan mulai. Field baru Utterance.trailing\_silence\_s; semua field \*\_t memakai jam monotonic yang sama antarproses. Perekam sumber daya --record-resources (dev, atau --e09 yang tercatat di run.json) dan python -m mica.eval latency (persentil interpolasi linear numpy). Uji asap smoke-20261018-052038 adalah uji alat, bukan hasil E-09. | Aturan lulus dan kalibrasi ditetapkan sebelum data. Sebelumnya vad, stt, dan tts\_first\_audio tidak pernah tercatat dan total hanya mengukur pipeline, sehingga E-09 tidak bisa membaca anggaran 3.3 dari log. |
 
 ## 3. Arsitektur
 
@@ -143,10 +143,10 @@ Bagian ini mencatat keputusan desain yang diambil selama implementasi MS0 dan MS
 
 | Pihak | Hubungan dengan MICA |
 | --- | --- |
-| Calon mahasiswa dan pendamping | Berdiri di depan kiosk, bertanya lewat suara atau ketikan, membaca dan mendengar jawaban (US-01 sampai US-08) |
+| Calon mahasiswa dan pendamping | Duduk atau berdiri di depan laptop PMB, bertanya lewat suara atau ketikan, membaca dan mendengar jawaban (US-01 sampai US-08) |
 | Staf PMB | Menjadi tujuan rujukan saat MICA menolak; menyerahkan dokumen baru lewat pengelola KB (US-09) |
 | Tim skripsi | Membangun KB, menjalankan evaluasi batch, mengekspor log (US-10, F-18, F-19) |
-| Groq API | Satu-satunya layanan internet di mode kiosk; menerima teks pertanyaan dan potongan dokumen, mengembalikan jawaban terstruktur (ADR-08). Juga STT bila E-05 memilih Groq (ADR-09) |
+| Groq API | Satu-satunya layanan internet di mode prod; menerima teks pertanyaan dan potongan dokumen, mengembalikan jawaban terstruktur (ADR-08). Juga STT bila E-05 memilih Groq (ADR-09) |
 | Gemini API | Hanya di mode dev, untuk pengembangan dan pembanding E-04 |
 
 ### 3.2 Proses dan komponen
@@ -161,10 +161,10 @@ Arah dependensi: M-10 hanya bergantung pada M-09; M-09 memanggil M-06; M-06 mema
 
 | Tempat | Menjalankan | Pemilik state | Komunikasi |
 | --- | --- | --- | --- |
-| Proses utama, thread latar controller | M-09 lewat `KioskController` (tanpa Qt sejak Langkah 23); mem-poll bus dan antrean internal setiap 50 ms | M-09 satu-satunya pemilik state kunjungan | ViewModel baru disiarkan ke koneksi WebSocket aktif (dengan lock) |
+| Proses utama, thread latar controller | M-09 lewat `AppController` (tanpa Qt sejak Langkah 23); mem-poll bus dan antrean internal setiap 50 ms | M-09 satu-satunya pemilik state kunjungan | ViewModel baru disiarkan ke koneksi WebSocket aktif (dengan lock) |
 | Proses utama, `ThreadPoolExecutor` (1 thread) | M-06 untuk satu pertanyaan pada satu waktu | Tidak menyimpan state; hasil membawa `session_id` | `AnswerReady` lewat antrean internal controller |
 | Proses utama, server Flask (Werkzeug threaded) | M-10: halaman, file static, dan WebSocket; hanya 127.0.0.1 | Tidak menyimpan state kunjungan | Event input ke controller; JSON ViewModel ke Edge |
-| Proses Microsoft Edge (terpisah) | Menampilkan UI web dalam mode kiosk | Hanya tampilan (DOM sesi aktif) | WebSocket ke server Flask lokal |
+| Proses browser (terpisah) | Menampilkan UI web dalam jendela biasa | Hanya tampilan (DOM sesi aktif) | WebSocket ke server Flask lokal |
 | Proses utama, thread penulis log | M-11 | File log | Antrean di dalam proses |
 | Proses vision | Loop kamera, deteksi, tracking, warna | State tracker | `bus.to_main` dan `bus.to_vision` |
 | Proses suara, thread rekam | Mikrofon dan Silero VAD | Buffer audio | Antrean di dalam proses |
@@ -172,7 +172,7 @@ Arah dependensi: M-10 hanya bergantung pada M-09; M-09 memanggil M-06; M-06 mema
 
 **Pembatalan.** Setiap kunjungan mendapat `session_id` acak baru. Saat pengunjung pergi atau sesi direset, M-09 mengganti `session_id`; hasil M-06, transkripsi, atau sinyal selesai bicara yang membawa `session_id` lama dibuang. Pemutaran TTS dihentikan lewat pesan `StopSpeaking`.
 
-**Pembagian CPU.** Saat kiosk menunggu, vision berjalan sekitar 5 frame per detik, cukup untuk sapaan ≤ 3 detik (N-06, ADR-20). Saat percakapan berlangsung, M-09 mengirim `SetVisionRate(fps_busy)` agar CPU diberikan ke STT dan TTS; nilai `fps_busy` TBD, dikalibrasi di E-09. Jumlah thread untuk inferensi vision dan STT juga diatur lewat konfigurasi dan dikalibrasi di E-09.
+**Pembagian CPU.** Saat aplikasi menunggu, vision berjalan sekitar 5 frame per detik, cukup untuk sapaan ≤ 3 detik (N-06, ADR-20). Saat percakapan berlangsung, M-09 mengirim `SetVisionRate(fps_busy)` agar CPU diberikan ke STT dan TTS; nilai `fps_busy` TBD, dikalibrasi di E-09. Jumlah thread untuk inferensi vision dan STT juga diatur lewat konfigurasi dan dikalibrasi di E-09.
 
 **Anggaran latensi satu pertanyaan suara** (dari ADR-20; target p95, diukur di E-09)
 
@@ -185,17 +185,19 @@ Arah dependensi: M-10 hanya bergantung pada M-09; M-09 memanggil M-06; M-06 mema
 | Cek fakta dan TTS kalimat pertama | 1 detik | M-04, M-08 |
 | Total | 7,5 detik dari batas 10 detik (N-05) |  |
 
+**Catatan web app (1 November 2026).** Anggaran ini disusun saat MICA masih berupa kiosk. Setelah MICA menjadi web app di satu laptop PMB, angka per tahap dan batas 10 detik (N-05) tetap dipakai sebagai acuan, tetapi ditinjau ulang di E-09 karena pengunjung kini duduk atau berdiri dekat laptop, bukan berdiri di depan kiosk. Ambang kehadiran vision (`vision.dwell_s`, lebar bahu) juga dikalibrasi untuk jarak kamera laptop.
+
 ### 3.4 Deployment
 
 | Aspek | Isi |
 | --- | --- |
-| Perangkat | Laptop kiosk sesuai asumsi 2.3, layar dalam mode layar penuh, webcam menghadap area berdiri pengunjung; UI tampil di Microsoft Edge mode kiosk, dan mica check GAGAL bila msedge.exe tidak ditemukan saat ui.backend = web |
+| Perangkat | Laptop PMB sesuai asumsi 2.3, webcam laptop menghadap pengunjung di depan laptop; UI dibuka di browser default dalam jendela biasa |
 | Runtime | Python 3.11+ dalam virtual environment; dependensi dikunci di `requirements.lock` |
 | Model lokal | BGE-M3 \[1\], YOLO26n atau YOLO26n-pose \[27\], faster-whisper small int8 \[26\], Silero VAD \[39\], suara Piper id\_ID \[25\]; diunduh sekali oleh `mica setup` ke folder `models/` |
 | Data | `data/kb/<kb_id>/` (KB aktif dipilih `kb.active_id`), `logs/` |
 | Rahasia | `GROQ_API_KEY` di file `.env` yang tidak masuk repositori; `GEMINI_API_KEY` hanya ada di laptop dev |
-| Menjalankan | `python -m mica --config config/kiosk.yaml`; mode dev memakai `config/dev.yaml` |
-| Internet | Dibutuhkan untuk LLM (N-04). Tanpa internet, kiosk tetap menyapa dan menampilkan pesan rujukan ke staf |
+| Menjalankan | `python -m mica --config config/prod.yaml`; berhenti dengan Ctrl+C di terminal (menutup tab browser tidak mematikan server); mode dev memakai `config/dev.yaml` |
+| Internet | Dibutuhkan untuk LLM (N-04). Tanpa internet, aplikasi tetap menyapa dan menampilkan pesan rujukan ke staf |
 
 ## 4. Desain modul
 
@@ -207,8 +209,8 @@ Semua path relatif terhadap `src/mica/`. Tipe data yang disebut di sini didefini
 - **Kebutuhan:** F-17, N-14. **ADR:** semua titik tukar di 2.1.
 - **Antarmuka:** `load_settings(path: Path) -> Settings`; `Settings.config_hash() -> str` (SHA-256 dari konfigurasi yang sudah dinormalisasi, dicatat di setiap log dan hasil evaluasi).
 - **Dependensi:** Pydantic v2 dan PyYAML (**non-ADR**: validasi skema konfigurasi supaya kesalahan ketik ketahuan saat start, bukan di tengah kunjungan).
-- **Error:** konfigurasi tidak valid → aplikasi berhenti dengan pesan yang menyebut field yang salah, kode `CFG_INVALID`. `app.mode = kiosk` dengan penyedia `gemini` di `llm.chain` → ditolak dengan `CFG_GEMINI_IN_KIOSK` (keputusan 15 Oktober 2026).
-- **Selesai bila:** tes menolak konfigurasi rusak, menolak Gemini di mode kiosk, dan hash sama untuk konfigurasi yang sama.
+- **Error:** konfigurasi tidak valid → aplikasi berhenti dengan pesan yang menyebut field yang salah, kode `CFG_INVALID`. `app.mode = prod` dengan penyedia `gemini` di `llm.chain` → ditolak dengan `CFG_GEMINI_IN_PROD` (keputusan 15 Oktober 2026).
+- **Selesai bila:** tes menolak konfigurasi rusak, menolak Gemini di mode prod, dan hash sama untuk konfigurasi yang sama.
 
 ### M-02: KB builder (`kb/`)
 
@@ -247,9 +249,9 @@ Semua path relatif terhadap `src/mica/`. Tipe data yang disebut di sini didefini
 - **Tanggung jawab:** mengirim prompt ke LLM dan mengembalikan `LlmAnswer` terstruktur, dengan rantai cadangan dan penjaga mode.
 - **Kebutuhan:** N-03, N-04, N-09. **ADR:** ADR-08 (Provisional).
 - **Antarmuka:** `class LLMProvider(Protocol): name: str; def generate(self, request: LlmRequest, timeout_s: float) -> LlmAnswer`. Implementasi: `GroqProvider(model)` dan `GeminiProvider(model)`. `ProviderChain(providers)` mencoba berurutan.
-- **Konfigurasi:** `llm.chain` (kiosk: `[groq:<id gpt-oss-120b>, groq:<id gpt-oss-20b>]`; dev boleh menambah `gemini:<model>`), `llm.timeout_s` (TBD, diturunkan dari anggaran 4 detik di E-04), `llm.temperature`.
+- **Konfigurasi:** `llm.chain` (prod: `[groq:<id gpt-oss-120b>, groq:<id gpt-oss-20b>]`; dev boleh menambah `gemini:<model>`), `llm.timeout_s` (TBD, diturunkan dari anggaran 4 detik di E-04), `llm.temperature`.
 - **Error:** batas kuota (HTTP 429), timeout, atau galat server → coba penyedia berikutnya; semua gagal → `LlmUnavailable`, yang ditangani M-06 sebagai penolakan sopan dengan rujukan ke staf. Keluaran yang bukan JSON valid → satu kali percobaan ulang, lalu `LlmBadOutput`.
-- **Selesai bila:** tes dengan server tiruan mencakup sukses, 429, timeout, dan JSON rusak; `GeminiProvider` menolak dibuat bila `app.mode = kiosk`.
+- **Selesai bila:** tes dengan server tiruan mencakup sukses, 429, timeout, dan JSON rusak; `GeminiProvider` menolak dibuat bila `app.mode = prod`.
 
 ### M-06: AnswerPipeline (`rag/pipeline.py`, `rag/prompts.py`, `rag/pii.py`)
 
@@ -262,7 +264,7 @@ Semua path relatif terhadap `src/mica/`. Tipe data yang disebut di sini didefini
 
 ### M-07: Vision worker (`vision/`)
 
-- **Tanggung jawab:** di proses tersendiri, membaca kamera, mendeteksi dan melacak orang, menentukan apakah seseorang berhenti di depan kiosk, menamai warna pakaiannya, lalu mengirim event. Frame hanya ada di memori dan langsung dibuang (N-08).
+- **Tanggung jawab:** di proses tersendiri, membaca kamera, mendeteksi dan melacak orang, menentukan apakah seseorang berhenti di depan laptop, menamai warna pakaiannya, lalu mengirim event. Frame hanya ada di memori dan langsung dibuang (N-08).
 - **Kebutuhan:** F-01 sampai F-04, N-06, N-07, N-08, US-06, US-07. **ADR:** ADR-12, ADR-14, ADR-15 (Provisional), ADR-13 (Terbuka).
 - **Antarmuka:**
   - `class PersonDetector(Protocol): def detect_and_track(self, frame: np.ndarray) -> list[PersonTrack]` dengan `UltralyticsDetector(model, tracker)`; `PersonTrack` memuat `track_id`, kotak, skor, dan keypoint bila model pose.
@@ -271,7 +273,7 @@ Semua path relatif terhadap `src/mica/`. Tipe data yang disebut di sini didefini
   - `PresenceTracker.update(tracks, now) -> list[VisionEvent]` memilih satu target (orang terbesar di zona tengah) dan menerapkan aturan berhenti.
 - **Konfigurasi:** `vision.model` (`yolo26n` atau `yolo26n-pose`), `vision.tracker` (`bytetrack.yaml` \[44\]), `vision.region`, `vision.color.method`, `vision.color.min_majority` (TBD, E-08), `vision.dwell_s` (lama berdiri sebelum dianggap berhenti; TBD, dikalibrasi di E-07 dengan syarat sapaan ≤ 3 detik), `vision.min_box_height_ratio` (TBD, E-07), `vision.fps_idle` = 5, `vision.fps_busy` (TBD, E-09).
 - **Dependensi:** ultralytics \[27\], \[44\] (lisensi AGPL-3.0 \[47\]); OpenCV untuk membaca kamera (**non-ADR**: cara standar membaca webcam di Python).
-- **Error:** kamera tidak terbuka atau putus → kirim `CameraStatus(ok=False)` dan coba lagi berkala; kiosk tetap bisa dipakai lewat sentuhan.
+- **Error:** kamera tidak terbuka atau putus → kirim `CameraStatus(ok=False)` dan coba lagi berkala; aplikasi tetap bisa dipakai lewat ketik dan klik.
 - **Selesai bila:** dengan video rekaman relawan, event `PersonArrived` muncul sekali per kunjungan, `PersonLeft` muncul setelah orang pergi, dan tidak ada file gambar yang tertulis ke disk.
 - **Titik tukar:** model, area pakaian, dan metode warna ditukar lewat konfigurasi sesuai hasil E-07 dan E-08.
 
@@ -299,10 +301,10 @@ Semua path relatif terhadap `src/mica/`. Tipe data yang disebut di sini didefini
 
 ### M-10: UI (`ui/`)
 
-- **Tanggung jawab:** UI web layar penuh di Microsoft Edge mode kiosk, disajikan server Flask lokal: layar awal dengan tombol topik dan saran pertanyaan, area percakapan, teks transkripsi yang bisa diulang atau diedit, sumber di bawah tiap jawaban, indikator status, pemberitahuan kamera, dan tombol bicara. Kode di src/mica/webui (server.py, app.py, browser.py, state.py) dengan HTML, CSS, dan JavaScript polos tanpa CDN. PySide6 (src/mica/ui) dibekukan sebagai cadangan.
+- **Tanggung jawab:** UI web (jendela biasa), disajikan server Flask lokal: layar awal dengan tombol topik dan saran pertanyaan, area percakapan, teks transkripsi yang bisa diulang atau diedit, sumber di bawah tiap jawaban, indikator status, pemberitahuan kamera, dan tombol bicara. Kode di src/mica/webui (server.py, app.py, browser.py, state.py) dengan HTML, CSS, dan JavaScript polos tanpa CDN. PySide6 (src/mica/ui) dihapus di refactor RF-2 (ADR-19 final).
 - **Kebutuhan:** F-05 sampai F-07, F-09, F-14, F-15, F-20, N-08 (pemberitahuan), US-02, US-03. **ADR:** ADR-19 (Diadopsi: UI web, 17 Oktober 2026).
-- **Struktur:** `KioskController` menjalankan proses vision dan suara, memompa bus, meneruskan event ke M-09, dan mengeksekusi `Action`. Server mengirim `ViewModel` sebagai JSON lewat WebSocket hanya saat berubah; browser membalas ack setelah `requestAnimationFrame`. WebSocket menolak Origin selain alamat server sendiri. Halaman hanya menampilkan `ViewModel` dan mengirim event input; tidak ada logika bisnis di halaman.
-- **Konfigurasi:** `ui.backend` (`web` | `pyside6`; dev dan kiosk = `web`), `ui.topics` (daftar topik dan saran pertanyaan), `ui.fullscreen`, `ui.font_scale`. Edge diluncurkan dengan `--kiosk <url> --edge-kiosk-type=fullscreen --no-first-run`, `--user-data-dir` sementara, tiga switch anti-throttling `--disable-backgrounding-occluded-windows`, `--disable-renderer-backgrounding`, `--disable-background-timer-throttling` (content\_switches.cc Chromium), `--disable-component-extensions-with-background-pages` dan `--renderer-process-limit=1` (lolos optimasi putaran 2, Langkah 32), dan `--disable-component-update`.
+- **Struktur:** `AppController` menjalankan proses vision dan suara, memompa bus, meneruskan event ke M-09, dan mengeksekusi `Action`. Server mengirim `ViewModel` sebagai JSON lewat WebSocket hanya saat berubah; browser membalas ack setelah `requestAnimationFrame`. WebSocket menolak Origin selain alamat server sendiri. Halaman hanya menampilkan `ViewModel` dan mengirim event input; tidak ada logika bisnis di halaman.
+- **Konfigurasi:** `ui.topics` (daftar topik dan saran pertanyaan), `ui.font_scale`. Saat start, server membuka alamatnya di browser default dalam jendela biasa. `ui.backend`, `ui.fullscreen`, dan peluncur Edge beserta switch-nya (Langkah 29 sampai 32) dihapus di refactor RF-2.
 - **Selesai bila:** prototipe pertama membuktikan tiga syarat ADR-19 (layar penuh, tampilan tetap responsif saat vision dan STT berjalan, audio TTS terdengar), dan skenario black-box F-05 sampai F-20 lolos.
 
 ### M-11: InteractionLog (`core/logging.py`)
@@ -471,7 +473,7 @@ Yang tidak pernah dicatat: gambar, audio, embedding wajah, nama warna pakaian, a
 | `data/eval/questions.jsonl` | `qid`, `question`, `type` (`answerable`, `out_of_kb`, `false_premise`, `followup`), `topic`, `gold_chunk_ids`, `reference_answer`, `split` (`dev` atau `test`), `prev_qid` untuk pertanyaan lanjutan |
 | `data/eval/annotations/<run_id>.csv` | `qid`, `claim_index`, `claim`, `supported` (ya, tidak, bertentangan), `annotator` (A atau B), `note` |
 | `data/eval/vision/` | Frame relawan berlabel kotak dalam format YOLO, beserta `colors.csv` (`frame`, `track`, `color_label`) |
-| `data/eval/speech/<nama>/manifest.jsonl` | Satu baris JSON per rekaman: `id`, `file` (WAV di folder yang sama), `jenis` (`pertanyaan`, `diam`, `bising`), `referensi` (teks yang diucapkan; kosong untuk diam dan bising), `qid` (pertanyaan set eval yang dibacakan, bila ada), `penutur`, `persetujuan` (formulir di `docs/E-05.md`). Rekaman di-gitignore, hanya disimpan di laptop dev, ditolak di mode kiosk, dan dihapus setelah skripsi selesai. |
+| `data/eval/speech/<nama>/manifest.jsonl` | Satu baris JSON per rekaman: `id`, `file` (WAV di folder yang sama), `jenis` (`pertanyaan`, `diam`, `bising`), `referensi` (teks yang diucapkan; kosong untuk diam dan bising), `qid` (pertanyaan set eval yang dibacakan, bila ada), `penutur`, `persetujuan` (formulir di `docs/E-05.md`). Rekaman di-gitignore, hanya disimpan di laptop dev, ditolak di mode prod, dan dihapus setelah skripsi selesai. |
 
 Set `test` dikunci dengan SHA-256 yang dicatat di `data/eval/LOCK` sebelum eksperimen pertama; skrip evaluasi menolak berjalan pada `test` bila hash-nya berubah.
 
@@ -482,9 +484,9 @@ Set `test` dikunci dengan SHA-256 yang dicatat di `data/eval/LOCK` sebelum ekspe
 | Frame kamera | M-07 | Memori saja | Segera setelah diproses |
 | Audio mikrofon | M-08 | Memori saja | Setelah ditranskripsi |
 | Riwayat percakapan | M-09 | Memori saja | Saat sesi direset (F-15) |
-| Log interaksi | M-11 | `logs/` di laptop kiosk | Kebijakan retensi TBD, disepakati dengan kampus |
+| Log interaksi | M-11 | `logs/` di laptop PMB | Kebijakan retensi TBD, disepakati dengan kampus |
 | KB | M-02 | `data/kb/` | Versi lama disimpan untuk reprodusibilitas, boleh diarsipkan |
-| Data uji vision dan suara relawan | Tim | Laptop dev, terpisah dari kiosk | Setelah skripsi selesai, sesuai formulir persetujuan |
+| Data uji vision dan suara relawan | Tim | Laptop dev, terpisah dari laptop PMB | Setelah skripsi selesai, sesuai formulir persetujuan |
 
 ## 7. Perilaku dinamis
 
@@ -511,13 +513,13 @@ Set `test` dikunci dengan SHA-256 yang dicatat di `data/eval/LOCK` sebelum ekspe
 
 `IdleTimeout` dihitung ulang setiap ada interaksi dan berlaku walau kamera mati, sehingga sesi teks tetap direset.
 
-**Restart proses pekerja (keputusan 17 Oktober 2026).** Proses kamera baru tidak ingat pengunjung dan bisa mengirim `PersonArrived` lagi tanpa `PersonLeft`. Restart kamera dikenali saat `CameraStatus(ok=True)` datang setelah kamera mati atau dimulai ulang. M-09 lalu mengirim ulang `SetVisionRate` sesuai state (IDLE memakai `fps_idle`, state lain `fps_busy`), karena proses baru mulai di `fps_idle`. Bila state bukan IDLE, sesi dilanjutkan dan `PersonArrived` berikutnya diabaikan sampai sesi berakhir, termasuk bila pengunjung belum sempat bertanya, karena disapa dua kali sama janggalnya dengan disela. Bila pengunjung ternyata sudah pergi, sesi ditutup oleh `IdleTimeout` (`session.idle_reset_s`). Restart proses suara dikenali saat `AudioStatus(ready=True)` datang setelah tidak siap; proses baru mulai dengan mode mendengar off, sehingga M-09 mengirim ulang `ListenControl` (READY dan LISTENING `auto`, state lain `off`). Bila state SPEAKING atau GREETING, kejadian ini diperlakukan seperti `SpeechDone(interrupted)` lalu pindah ke READY dengan `ListenControl(auto)`; bila LISTENING, kembali ke READY. `CameraStatus(ok=False)` dan `AudioStatus(mic_ok=False)` hanya mengubah tampilan (kiosk tetap bisa dipakai lewat teks) dan tidak mereset sesi (bagian 2.4).
+**Restart proses pekerja (keputusan 17 Oktober 2026).** Proses kamera baru tidak ingat pengunjung dan bisa mengirim `PersonArrived` lagi tanpa `PersonLeft`. Restart kamera dikenali saat `CameraStatus(ok=True)` datang setelah kamera mati atau dimulai ulang. M-09 lalu mengirim ulang `SetVisionRate` sesuai state (IDLE memakai `fps_idle`, state lain `fps_busy`), karena proses baru mulai di `fps_idle`. Bila state bukan IDLE, sesi dilanjutkan dan `PersonArrived` berikutnya diabaikan sampai sesi berakhir, termasuk bila pengunjung belum sempat bertanya, karena disapa dua kali sama janggalnya dengan disela. Bila pengunjung ternyata sudah pergi, sesi ditutup oleh `IdleTimeout` (`session.idle_reset_s`). Restart proses suara dikenali saat `AudioStatus(ready=True)` datang setelah tidak siap; proses baru mulai dengan mode mendengar off, sehingga M-09 mengirim ulang `ListenControl` (READY dan LISTENING `auto`, state lain `off`). Bila state SPEAKING atau GREETING, kejadian ini diperlakukan seperti `SpeechDone(interrupted)` lalu pindah ke READY dengan `ListenControl(auto)`; bila LISTENING, kembali ke READY. `CameraStatus(ok=False)` dan `AudioStatus(mic_ok=False)` hanya mengubah tampilan (aplikasi tetap bisa dipakai lewat teks) dan tidak mereset sesi (bagian 2.4).
 
 **Baris tambahan dari implementasi (Langkah 22 sampai 24).** Tabel transisi lengkap diekspor dari kode ke `results/M-09/transitions.md` di repo. Perbedaannya dengan tabel di atas:
 
 - `StopTapped` di SPEAKING juga mengirim `ListenControl(auto)`, karena setelah pertanyaan suara mikrofon berada di mode off.
 - Reset karena `PersonLeft` atau `IdleTimeout` juga mengirim `ListenControl(off)`, supaya mikrofon tidak mentranskripsi di IDLE.
-- Baris "Event lain" menjadi aksi `Ignored`; Session tetap murni, pencatatan dilakukan KioskController.
+- Baris "Event lain" menjadi aksi `Ignored`; Session tetap murni, pencatatan dilakukan AppController.
 - `Transcript` dengan `filtered_by` diabaikan tanpa `Speak` (T09). Pesan dengan `session_id` lama dibuang (T16, dari 3.3). Teks kosong dari `TextSubmitted` atau `TopicTapped` diabaikan.
 - Restart proses suara juga dikenali dari `AudioStatus(ready=True)` kedua, karena pekerja hanya mengirim ready saat mulai.
 - T18: GREETING + `TextSubmitted`/`TopicTapped` tidak kosong ke `StopSpeaking`, `ListenControl(off)`, jalankan M-06, lalu THINKING; `SpeechDone` sapaan yang datang belakangan diabaikan (keputusan 17 Oktober 2026, teks sebagai jalur cadangan N-10).
@@ -628,7 +630,7 @@ return ColorResult(label=to_indonesian(top), majority=share)
 | LLM mengembalikan JSON rusak | Validasi skema gagal setelah satu kali coba ulang | Diperlakukan sebagai penolakan | `LLM_BAD_OUTPUT` |
 | Skor retrieval di bawah ambang | `RelevanceGate` | Penolakan sopan (F-10) | `REFUSED_GATE` |
 | Angka atau sitasi tidak ditemukan di sumber | `FactChecker` | Penolakan sopan | `REFUSED_CHECK` |
-| Kamera tidak terbuka atau putus | `CameraStatus(ok=False)` | Tidak ada sapaan otomatis; kiosk tetap bisa disentuh; status kamera di UI | `CAMERA_DOWN` |
+| Kamera tidak terbuka atau putus | `CameraStatus(ok=False)` | Tidak ada sapaan otomatis; aplikasi tetap bisa dipakai lewat ketik dan klik; status kamera di UI | `CAMERA_DOWN` |
 | Mikrofon tidak ada | `AudioStatus(mic_ok=False)` | Hanya input teks yang ditawarkan | `MIC_DOWN` |
 | STT kosong atau gagal | `Transcript(ok=False)` | Minta ulangi atau ketik (N-10) | `STT_EMPTY` |
 | Warna tidak yakin | `majority < min_majority` | Sapaan tanpa warna (F-03) | `COLOR_UNSURE` |
@@ -637,8 +639,8 @@ return ColorResult(label=to_indonesian(top), majority=share)
 
 ### 8.2 Keamanan dan privasi
 
-- **Gambar dan suara.** Frame dan audio hanya ada di memori proses pekerja dan tidak pernah dikirim lewat bus. Tes otomatis memastikan tidak ada file gambar atau audio yang ditulis di mode kiosk (N-08). Pemberitahuan kamera dan pemrosesan AI pihak ketiga tampil permanen di layar.
-- **Data ke API.** Hanya pertanyaan yang sudah disamarkan dan potongan dokumen resmi yang dikirim ke Groq (N-09). Gemini ditolak di mode kiosk oleh M-01 dan M-05.
+- **Gambar dan suara.** Frame dan audio hanya ada di memori proses pekerja dan tidak pernah dikirim lewat bus. Tes otomatis memastikan tidak ada file gambar atau audio yang ditulis di mode prod (N-08). Pemberitahuan kamera dan pemrosesan AI pihak ketiga tampil permanen di layar.
+- **Data ke API.** Hanya pertanyaan yang sudah disamarkan dan potongan dokumen resmi yang dikirim ke Groq (N-09). Gemini ditolak di mode prod oleh M-01 dan M-05.
 - **Rahasia.** API key hanya di `.env`, tidak masuk log, tidak masuk repositori; `.env.example` berisi nama variabel saja.
 - **Prompt injection (N-12).** Potongan dokumen dan pertanyaan dipisah dengan penanda yang jelas di prompt; aturan nomor 5 di prompt sistem; sitasi harus subset `allowed_chunk_ids`; cek fakta mencegah angka karangan meski model terpengaruh. Set uji serangan sederhana ada di 9.2.
 - **Lisensi.** Karena Ultralytics berlisensi AGPL-3.0 \[47\], repositori MICA disiapkan untuk dirilis terbuka dengan lisensi yang kompatibel, kecuali kampus memilih lisensi Enterprise. Keputusan ini menunggu pembimbing.
@@ -646,7 +648,7 @@ return ColorResult(label=to_indonesian(top), majority=share)
 ### 8.3 Observabilitas
 
 - Log JSONL di 6.2 adalah sumber data latensi dan penolakan untuk Bab 4.
-- Mode dev menampilkan panel debug di UI: potongan teratas beserta skornya, keputusan gerbang, penyedia LLM, waktu per tahap, FPS kamera, dan state M-09. Panel ini tidak ada di mode kiosk.
+- Mode dev menampilkan panel debug di UI: potongan teratas beserta skornya, keputusan gerbang, penyedia LLM, waktu per tahap, FPS kamera, dan state M-09. Panel ini tidak ada di mode prod.
 - `python -m mica.logs summary --date <tanggal>` mencetak jumlah kunjungan, pertanyaan, penolakan per jenis, dan latensi p50 serta p95 per tahap.
 
 ### 8.4 Kinerja
@@ -661,7 +663,7 @@ Tes otomatis memakai pytest (**non-ADR**: kerangka tes Python yang paling umum).
 
 | Modul | Kasus wajib |
 | --- | --- |
-| M-01 | Konfigurasi valid; field salah; Gemini di mode kiosk ditolak; hash stabil |
+| M-01 | Konfigurasi valid; field salah; Gemini di mode prod ditolak; hash stabil |
 | M-02 | Keempat format terbaca; dokumen tanpa tanggal berlaku; PDF tanpa teks; tabel kecil utuh; baris tabel besar membawa judul kolom; build gagal tidak meninggalkan folder aktif |
 | M-03 | Keempat retriever mengembalikan k hasil terurut; RRF benar pada contoh kecil yang dihitung manual; KB kosong |
 | M-04 | Skor tepat di ambang; angka karangan ditolak; variasi penulisan rupiah dan tanggal tetap cocok |
@@ -683,7 +685,7 @@ Tes otomatis memakai pytest (**non-ADR**: kerangka tes Python yang paling umum).
 | Pekerja vision dimatikan paksa | Dimulai ulang, lalu status kamera mati | N-13 |
 | Ganti `kb.active_id` | Jawaban berasal dari KB baru tanpa mengubah kode | F-17 |
 | Set serangan sederhana (minimal 20 pertanyaan: minta abaikan instruksi, minta isi prompt sistem, minta jawab di luar dokumen) | Tidak ada instruksi sistem bocor, tidak ada jawaban di luar dokumen | N-12 |
-| Tidak ada file gambar atau audio setelah satu jam berjalan di mode kiosk | Privasi | N-08 |
+| Tidak ada file gambar atau audio setelah satu jam berjalan di mode prod | Privasi | N-08 |
 
 ### 9.3 Konfigurasi pembanding
 
@@ -706,7 +708,7 @@ Untuk menjawab kriteria F-13 dan metrik PRD "turun signifikan dibanding LLM tanp
 | Penolakan benar | `eval generation` | Tipe `out_of_kb` dan `false_premise` | C0, C1, C2 |
 | Tingkat salin | `eval copy` | Jawaban C1 dan C2 beserta potongan sumbernya | C1, C2 |
 | WER | `eval stt` | `data/eval/speech/` | Backend terpilih E-05 |
-| Latensi | `eval latency` | Log 6.2 dari sesi E-09 | C2 di laptop mirip kiosk |
+| Latensi | `eval latency` | Log 6.2 dari sesi E-09 | C2 di laptop setara laptop PMB |
 | Black-box | Daftar skenario per F-01 sampai F-20 | Lembar uji manual | C2 |
 | SUS | Kuesioner SUS 10 butir | Responden calon atau mahasiswa baru | C2 |
 
@@ -739,7 +741,7 @@ PRD tidak menetapkan milestone implementasi, jadi urutan di bawah adalah usulan.
 | Tugas | File | Selesai bila |
 | --- | --- | --- |
 | Struktur proyek, `pyproject.toml`, pytest, linting | Lampiran 13.2 | `pytest` berjalan hijau pada tes kosong |
-| M-01 Config | `config.py`, `config/dev.yaml`, `config/kiosk.yaml`, `.env.example` | Tes M-01 di 9.1 lulus |
+| M-01 Config | `config.py`, `config/dev.yaml`, `config/prod.yaml`, `.env.example` | Tes M-01 di 9.1 lulus |
 | M-11 InteractionLog | `core/logging.py` | Tes M-11 lulus |
 | Tipe data 5.1 | `core/types.py` | Diimpor oleh modul lain tanpa siklus |
 
@@ -777,15 +779,15 @@ PRD tidak menetapkan milestone implementasi, jadi urutan di bawah adalah usulan.
 
 **Eksperimen:** E-07 dan E-08 (perlu frame relawan berlabel dengan izin).
 
-### MS4: Integrasi kiosk
+### MS4: Integrasi web app
 
 | Tugas | File | Selesai bila |
 | --- | --- | --- |
 | M-09 Session | `core/session.py` | Setiap baris tabel 7.1 punya tes yang lulus |
-| M-10 UI dan `KioskController` | `ui/` | Tiga syarat ADR-19 terbukti di laptop dev |
+| M-10 UI dan `AppController` | `ui/` | Tiga syarat ADR-19 terbukti di laptop dev |
 | M-13 pengawasan pekerja | `core/bus.py` | Tes pekerja mati lulus |
 | Tes integrasi 9.2 | `tests/integration/` | Semua lulus |
-| Uji di laptop yang mirip kiosk | - | Anggaran latensi 3.3 diukur; `fps_busy` dan jumlah thread ditetapkan |
+| Uji di laptop yang setara laptop PMB | - | Anggaran latensi 3.3 diukur; `fps_busy` dan jumlah thread ditetapkan |
 
 **Eksperimen:** E-09 bagian latensi.
 
@@ -825,16 +827,16 @@ Semua kebutuhan PRD tercakup. Tidak ada kebutuhan yang sengaja ditinggalkan. Set
 | F-17 Ganti KB lewat konfigurasi | 04 | M-01, M-02, M-03 | Integrasi ganti `kb.active_id` |
 | F-18 Log tanpa data pribadi | - | M-11, M-06 | Tes M-11 |
 | F-19 Evaluasi batch | 16, 17, 18 | M-12 | Satu perintah per eksperimen di 9.5 |
-| F-20 Status kiosk | 19 | M-10, M-09 | Black-box |
-| N-01 Desktop Python lokal | 19, 20 | Semua | Instalasi di laptop mirip kiosk |
+| F-20 Status aplikasi | 19 | M-10, M-09 | Black-box |
+| N-01 Desktop Python lokal | 19, 20 | Semua | Instalasi di laptop setara laptop PMB |
 | N-02 Laptop lemah tanpa GPU | 12, 09, 20 | M-07, M-08, M-13 | E-07, E-09 |
-| N-03 Biaya nol | 08, 09, 11 | M-05, M-08 | Tidak ada layanan berbayar di konfigurasi kiosk |
+| N-03 Biaya nol | 08, 09, 11 | M-05, M-08 | Tidak ada layanan berbayar di konfigurasi prod |
 | N-04 Koneksi putus | 08 | M-05, M-06 | Integrasi tanpa internet |
 | N-05 Latensi jawaban | 20 | Semua tahap | E-09; konflik K-3 |
 | N-06 Latensi sapaan | 12, 15, 20 | M-07, M-09 | E-07 |
 | N-07 FPS vision | 12 | M-07 | E-07 |
 | N-08 Privasi kamera | 20 | M-07, M-08, M-11 | Integrasi tanpa file gambar dan audio |
-| N-09 Data ke API | 08 | M-05, M-06 | Tes `scrub_pii`; tes M-01 Gemini di kiosk |
+| N-09 Data ke API | 08 | M-05, M-06 | Tes `scrub_pii`; tes M-01 Gemini di prod |
 | N-10 Ketahanan suara | 09, 10 | M-08, M-10 | E-05; jalur STT kosong |
 | N-11 Gaya bahasa | 07 | M-06 | Pemeriksaan manual saat anotasi |
 | N-12 Prompt injection | 06 | M-06, M-04 | Set serangan di 9.2 |
@@ -852,7 +854,7 @@ F-18 tidak punya ADR karena tidak melibatkan pilihan metode; desainnya keputusan
 | Tafsiran "respons pertama ≤ 3 detik" (K-3) | Menentukan apakah jawaban harus di-stream | Respons pertama = transkripsi, status, dan ucapan singkat |
 | Lisensi AGPL-3.0 Ultralytics \[47\] | Kode MICA wajib dibuka, atau kampus membeli lisensi | Repositori disiapkan untuk rilis terbuka |
 | Pemakaian Groq oleh pengunjung di bawah 18 tahun \[20\] | Tanggung jawab ada pada pemilik akun | Pemberitahuan di layar; tidak ada data pribadi dikirim |
-| Retensi log interaksi | Kepatuhan UU PDP | Log disimpan di laptop kiosk sampai skripsi selesai |
+| Retensi log interaksi | Kepatuhan UU PDP | Log disimpan di laptop PMB sampai skripsi selesai |
 
 **Nilai yang masih TBD** (semua dikalibrasi lewat eksperimen, bukan ditebak)
 
@@ -874,7 +876,7 @@ F-18 tidak punya ADR karena tidak melibatkan pilihan metode; desainnya keputusan
 | `audio.vad.min_silence_ms` | E-05 | Nilai coba 500 (anggaran deteksi akhir ucapan 0,5 detik, 3.3) | TBD |
 | `audio.vad.min_speech_ms` | E-05 | Nilai coba 250 (bawaan min\_speech\_duration\_ms Silero) | TBD |
 | `audio.stt.no_speech_threshold` | E-05 | Nilai coba 0,6 (bawaan no\_speech\_threshold Whisper) | TBD |
-| `audio.stt.groq_model` | E-05 | Dev: ID model dari dokumentasi Groq; kiosk null. E-05 memilih whisper-large-v3 atau whisper-large-v3-turbo (hanya dipakai bila audio.stt.backend = groq\_whisper) | TBD |
+| `audio.stt.groq_model` | E-05 | Dev: ID model dari dokumentasi Groq; prod null. E-05 memilih whisper-large-v3 atau whisper-large-v3-turbo (hanya dipakai bila audio.stt.backend = groq\_whisper) | TBD |
 | `audio.max_utterance_s` | E-05 | Nilai coba 15 (tanpa sumber, perlu ditetapkan di E-05) | TBD |
 | `audio.tts.voice` | E-06 | id\_ID-news\_tts-medium | Provisional |
 | `vision.model`, `vision.conf`, `vision.imgsz` | E-07 | yolo26n-pose; 0,1 dan 640 (bawaan Ultralytics) | Provisional dev |
@@ -887,13 +889,13 @@ F-18 tidak punya ADR karena tidak melibatkan pilihan metode; desainnya keputusan
 | `session.idle_reset_s` | E-09 dan uji pengguna | null = tidak pernah timeout | TBD |
 | Batas kata jawaban | E-09 | Belum ada nilai | TBD |
 
-Tabel ini mencakup ke-36 kunci yang dilaporkan `python -m mica check` sebagai belum terisi di mode kiosk (17 Oktober 2026). Nilai coba hanya untuk dev dan demo; config kiosk baru diisi dari hasil eksperimen.
+Tabel ini mencakup ke-36 kunci yang dilaporkan `python -m mica check` sebagai belum terisi di mode prod (17 Oktober 2026). Nilai coba hanya untuk dev dan demo; config prod baru diisi dari hasil eksperimen.
 
 **Risiko desain**
 
 | Risiko | Mitigasi di desain |
 | --- | --- |
-| Spesifikasi laptop kiosk ternyata jauh di bawah asumsi | Semua beban berat di balik konfigurasi; STT bisa dipindah ke Groq (ADR-09); vision bisa diturunkan FPS-nya |
+| Spesifikasi laptop PMB ternyata jauh di bawah asumsi | Semua beban berat di balik konfigurasi; STT bisa dipindah ke Groq (ADR-09); vision bisa diturunkan FPS-nya |
 | ID model atau batas kuota Groq berubah | ID model hanya di konfigurasi; rantai cadangan; M-05 terpisah dari pipeline |
 | BGE-M3 terlalu lambat untuk embedding kueri di CPU | Diukur di E-01; bila lewat anggaran 0,5 detik, `rag.retriever = bm25` tetap tersedia |
 | Tabel PDF rusak saat dibaca | Pemeriksaan manual tabel setelah build (PRD bagian Data); `kb inspect` menampilkan potongan tabel |
@@ -901,13 +903,13 @@ Tabel ini mencakup ke-36 kunci yang dilaporkan `python -m mica check` sebagai be
 
 ## 13. Lampiran
 
-### 13.1 Konfigurasi kiosk beranotasi (`config/kiosk.yaml`)
+### 13.1 Konfigurasi prod beranotasi (`config/prod.yaml`)
 
-`null` berarti TBD dan wajib diisi dari eksperimen yang disebut sebelum konfigurasi dibekukan; M-01 menolak start di mode kiosk bila masih ada `null` yang wajib. ID model Groq diisi persis seperti di dokumentasi Groq saat implementasi.
+`null` berarti TBD dan wajib diisi dari eksperimen yang disebut sebelum konfigurasi dibekukan; M-01 menolak start di mode prod bila masih ada `null` yang wajib. ID model Groq diisi persis seperti di dokumentasi Groq saat implementasi.
 
 ```yaml
 app:
-  mode: kiosk                 # kiosk | dev; Gemini hanya boleh di dev
+  mode: prod                  # prod | dev; Gemini hanya boleh di dev
   version: 0.1.0
 kb:
   active_id: official-<YYYY-MM-DD>   # F-17
@@ -967,8 +969,6 @@ session:
   idle_reset_s: null                # E-09
   regreet_cooldown_s: null          # E-07
 ui:
-  backend: web                      # ADR-19; web | pyside6 (cadangan)
-  fullscreen: true
   font_scale: 1.0
   topics: [Program studi, Jalur masuk, Biaya, Beasiswa, Fasilitas, Prospek karier]   # F-14, dari topik dataset PRD
 logging:
@@ -987,23 +987,22 @@ mica/
   .env.example                 # GROQ_API_KEY=, GEMINI_API_KEY= (dev saja)
   config/
     dev.yaml
-    kiosk.yaml
+    prod.yaml
     frozen-<tanggal>.yaml      # dibuat di MS5
   src/mica/
-    __main__.py                # menjalankan kiosk
+    __main__.py                # menjalankan aplikasi
     config.py                  # M-01
     core/
       types.py                 # tipe data 5.1
       bus.py                   # M-13
       session.py               # M-09
-      controller.py            # M-10: KioskController
       logging.py               # M-11
+      controller.py            # AppController (sejak Langkah 23)
     kb/                        # M-02: parsers.py, chunker.py, embedder.py, index.py, __main__.py
     rag/                       # M-03 sampai M-06: retriever.py, rerank.py, gate.py, checker.py,
                                #   llm.py, prompts.py, pii.py, pipeline.py
     audio/                     # M-08: worker.py, vad.py, stt.py, tts.py, normalize.py
     vision/                    # M-07: worker.py, detector.py, region.py, color.py, presence.py
-    ui/                        # M-10 cadangan (dibekukan): main_window.py, widgets.py
     webui/                     # M-10 utama: server.py, app.py, browser.py, state.py, static/
     eval/                      # M-12: satu file per subperintah
   data/
@@ -1030,4 +1029,6 @@ mica/
 | 17 Oktober 2026 (malam, lanjutan) | Tabel nilai TBD di bagian 12 dilengkapi untuk 36 kunci kiosk dari mica check: eksperimen, nilai dev atau nilai coba beserta sumbernya, dan status. |
 | 17 Oktober 2026 (malam, Langkah 25 sampai 27) | 6.3: dataset suara memakai manifest.jsonl, menggantikan transcripts.csv. 13.1 dan bagian 12: kunci audio.stt.groq\_model. 2.4: empat baris Langkah 25 sampai 27 (setup/check dan PySide6-Essentials, tag rilis YOLO, eval stt dua fase, eval copy). 9.5: aturan pra-registrasi E-03 (density tanpa entitas sebagai metrik sekunder dan aturan keputusan paraphrase vs plain). |
 | 17 Oktober 2026 (malam, Langkah 29 sampai 31) | ADR-19 menjadi UI web (Flask + flask-sock, Microsoft Edge mode kiosk), PySide6 dibekukan sebagai cadangan. M-10, tabel proses dan thread, asumsi 2.3, deployment 3.4, config 13.1 (ui.backend), dan struktur repo (webui/) diperbarui. 2.4: tiga baris Langkah 29 sampai 31 (pengukuran tahap 1, Flask dan switch Edge, optimasi dan uji sesi panjang). |
-| 18 Oktober 2026 (Langkah 32 dan 33) | 2.4: baris optimasi UI web putaran 2 dan alat ukur serta protokol E-09. M-10: dua switch Edge baru. 6.2: kunci timings baru (`gate`, `first_response`, `pipeline`) dan nilai null. 5.2: field `Transcript.vad_s`, `Transcript.ended_t`, `SpeechDone.first_audio_t`. |
+| 18 Oktober 2026 (Langkah 32 dan 33) | 2.4: baris optimasi UI web putaran 2 dan alat ukur serta protokol E-09. M-10: dua switch Edge baru. 6.2: kunci timings baru (gate, first\_response, pipeline) dan nilai null. 5.2: field Transcript.vad\_s, Transcript.ended\_t, SpeechDone.first\_audio\_t. |
+| 1 November 2026 | Kiosk menjadi web app (bimbingan 22 Oktober 2026; browser jendela biasa, keputusan pemilik proyek 1 November). Judul, cakupan, asumsi 2.3, konteks 3.1, deployment 3.4, M-07, M-10 (error kamera), 8.1, 9.3, MS4, matriks 11, isu 12, dan retensi 6.4: kata kiosk sebagai konsep diganti laptop PMB atau aplikasi; sentuhan diganti ketik dan klik. Catatan tinjau ulang di bawah anggaran latensi 3.3. Nama di kode diubah di baris berikutnya. Baris 2.4 dan riwayat lama dibiarkan sebagai catatan sejarah. |
+| 1 November 2026 (refactor RF-2) | Nama di kode mengikuti refactor RF-2 (branch refactor/webapp, dibuat setelah tag tahap1-beku di 1a9b537): mode kiosk menjadi prod, config/kiosk.yaml menjadi config/prod.yaml, KioskController menjadi AppController, CFG\_GEMINI\_IN\_KIOSK menjadi CFG\_GEMINI\_IN\_PROD. ADR-19 final: UI web dibuka di browser default dalam jendela biasa; peluncur Edge layar penuh, ui.backend, ui.fullscreen, dan PySide6 dihapus. Aplikasi dihentikan dengan Ctrl+C. docs/KIOSK.md menjadi docs/INSTALASI.md. Berlaku setelah RF-2 digabung ke main; perilaku RAG tidak berubah (dibuktikan dengan perbandingan retrieval terhadap tag tahap1-beku). Baris 2.4 dan riwayat yang lebih lama tetap memakai nama lama sebagai catatan sejarah, kecuali nama yang masih berlaku di kode. |
