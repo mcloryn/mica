@@ -1,4 +1,4 @@
-"""Uji terpandu (--guided-test, dev saja): kotak petunjuk kecil di halaman kiosk berisi langkah
+"""Uji terpandu (--guided-test, dev saja): kotak petunjuk kecil di halaman aplikasi berisi langkah
 sekarang, hitung mundur, dan langkah berikutnya; program menutup sendiri setelah skenario selesai.
 
 Skenario dimulai saat halaman pertama kali tampil (ack render pertama), bukan saat proses mulai,
@@ -22,7 +22,7 @@ class GuidedRefused(Exception):
 
 def check_allowed(mode: str) -> None:
     if mode != "dev":
-        raise GuidedRefused("--guided-test hanya boleh saat app.mode: dev (ditolak di kiosk)")
+        raise GuidedRefused("--guided-test hanya boleh saat app.mode: dev (ditolak di prod)")
 
 
 @dataclass(frozen=True)
@@ -36,7 +36,7 @@ class Phase:
 # NILAI DESAIN skenario uji (Langkah 50), bukan hasil ukur; total 5 menit
 PHASES = (
     Phase("idle", 0, 45, "Menjauh dari kamera, jangan terlihat di pratinjau."),
-    Phase("disapa", 45, 90, "Berdiri di depan kiosk dan tunggu sampai MICA menyapa."),
+    Phase("disapa", 45, 90, "Berdiri di depan laptop dan tunggu sampai MICA menyapa."),
     Phase("ketik", 90, 180, "Ketik 2 pertanyaan bebas tentang PMB; dengarkan jawaban sampai habis."),
     Phase("suara", 180, 255,
           "Tanya 2 pertanyaan lewat suara (tahan tombol Bicara); dengarkan sampai habis."),
@@ -124,7 +124,7 @@ class GuidedTest:
     def _loop(self) -> None:
         while not self.stop.is_set():
             if self.step():
-                self.stop.set()  # serve() berhenti rapi: Edge, server, pekerja ditutup
+                self.stop.set()  # serve() berhenti rapi: server dan pekerja ditutup
                 return
             self.stop.wait(1.0)
 

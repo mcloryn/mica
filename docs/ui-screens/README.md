@@ -1,4 +1,4 @@
-# Tangkapan layar UI kiosk
+# Tangkapan layar UI web
 
 Dibuat otomatis dengan `python scripts/ui_screens.py` (Edge headless + Chrome DevTools Protocol).
 Data tampilan buatan, tanpa gambar orang sungguhan.

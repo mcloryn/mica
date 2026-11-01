@@ -26,7 +26,7 @@ from pydantic import (
 from mica.core.types import ErrorCode
 
 CFG_INVALID = ErrorCode.CFG_INVALID
-CFG_GEMINI_IN_KIOSK = ErrorCode.CFG_GEMINI_IN_KIOSK
+CFG_GEMINI_IN_PROD = ErrorCode.CFG_GEMINI_IN_PROD
 
 LLM_PROVIDERS = ("groq", "gemini")
 API_KEY_VARS = {"groq": "GROQ_API_KEY", "gemini": "GEMINI_API_KEY"}
@@ -45,13 +45,13 @@ class _Model(BaseModel):
 
 
 class AppConfig(_Model):
-    mode: Literal["kiosk", "dev"]
+    mode: Literal["prod", "dev"]
     version: str
 
 
 class EmbedderConfig(_Model):
     model: str
-    # hash commit Hugging Face lengkap (N-14); wajib di kiosk, null di dev = revisi main
+    # hash commit Hugging Face lengkap (N-14); wajib di prod, null di dev = revisi main
     revision: str | None = Field(default=None, pattern=r"^[0-9a-f]{40}$")
 
 
@@ -66,7 +66,7 @@ class KbConfig(_Model):
 class RerankerConfig(_Model):
     enabled: bool
     model: str
-    # hash commit Hugging Face lengkap (N-14); wajib di kiosk, null di dev = revisi main
+    # hash commit Hugging Face lengkap (N-14); wajib di prod, null di dev = revisi main
     revision: str | None = Field(default=None, pattern=r"^[0-9a-f]{40}$")
 
 
@@ -150,7 +150,7 @@ class SttConfig(_Model):
     compute_type: str
     threads: PositiveInt | None = None
     no_speech_threshold: float | None = None  # E-05; penyaring no_speech_prob segmen Whisper
-    # ID model Groq Whisper (SDD 13.1, bagian 12); dipilih di E-05, wajib di kiosk hanya bila
+    # ID model Groq Whisper (SDD 13.1, bagian 12); dipilih di E-05, wajib di prod hanya bila
     # backend groq_whisper. Nilai yang dikenal ada di mica.audio.stt.GROQ_STT_MODELS.
     groq_model: str | None = None
 
@@ -163,7 +163,7 @@ class VadConfig(_Model):
 
 class TtsConfig(_Model):
     voice: str  # nama suara Piper, file models/piper/<voice>.onnx (+ .onnx.json)
-    # null = bawaan file .onnx.json suara (inference.length_scale); boleh null di kiosk
+    # null = bawaan file .onnx.json suara (inference.length_scale); boleh null di prod
     length_scale: PositiveFloat | None = None
     # thread onnxruntime Piper (intra_op; inter_op 1). null = bawaan onnxruntime. E-09 /
     # docs/CPU-THREADS.md; konsisten dengan audio.stt.threads
@@ -275,10 +275,7 @@ class TopicConfig(_Model):
 
 
 class UiConfig(_Model):
-    # ADR-19: web = Flask + Edge kiosk, UI utama (keputusan pemilik proyek 17 Okt 2026);
-    # pyside6 = cadangan beku, keputusan hapus setelah E-09 (docs/UI-WEB.md).
-    backend: Literal["pyside6", "web"]
-    fullscreen: bool
+    # ADR-19 final (RF-2, 1 Nov 2026): UI web saja; ui.backend dan PySide6 dihapus
     font_scale: PositiveFloat
     topics: tuple[TopicConfig, ...] = Field(strict=False)
     # saran pertanyaan per topik (F-14); kosong = tombol topik mengirim nama topik sebagai
@@ -358,10 +355,10 @@ class Settings(_Model):
 
     @model_validator(mode="after")
     def _preview_debug_dev_only(self) -> Settings:
-        if self.app.mode == "kiosk" and self.ui.camera_preview == "debug":
+        if self.app.mode == "prod" and self.ui.camera_preview == "debug":
             raise ValueError(
                 "ui.camera_preview debug (tanpa samaran) hanya boleh saat app.mode: dev; "
-                "kiosk memakai public atau off"
+                "prod memakai public atau off"
             )
         return self
 
@@ -401,10 +398,17 @@ def _load_api_keys(env_file: Path | None) -> ApiKeys:
     return ApiKeys(**keys)
 
 
-def _check_gemini_in_kiosk(raw: dict[str, Any]) -> None:
+def _check_old_kiosk_mode(raw: dict[str, Any]) -> None:
+    # RF-2 (1 Nov 2026): nama mode lama diberi pesan jelas, bukan galat Literal biasa
+    app = raw.get("app")
+    if isinstance(app, dict) and app.get("mode") == "kiosk":
+        raise ConfigError(CFG_INVALID, "app.mode kiosk sudah diganti menjadi prod")
+
+
+def _check_gemini_in_prod(raw: dict[str, Any]) -> None:
     app = raw.get("app")
     llm = raw.get("llm")
-    if not isinstance(app, dict) or app.get("mode") != "kiosk" or not isinstance(llm, dict):
+    if not isinstance(app, dict) or app.get("mode") != "prod" or not isinstance(llm, dict):
         return
     chain = llm.get("chain")
     if not isinstance(chain, list):
@@ -412,7 +416,7 @@ def _check_gemini_in_kiosk(raw: dict[str, Any]) -> None:
     for i, entry in enumerate(chain):
         if isinstance(entry, str) and entry.partition(":")[0].strip() == "gemini":
             raise ConfigError(
-                CFG_GEMINI_IN_KIOSK,
+                CFG_GEMINI_IN_PROD,
                 f"llm.chain[{i}]: penyedia gemini hanya boleh saat app.mode: dev",
             )
 
@@ -425,7 +429,7 @@ def _format_validation_error(err: ValidationError) -> str:
     return "konfigurasi tidak valid\n  " + "\n  ".join(lines)
 
 
-def _optional_in_kiosk(settings: Settings) -> set[str]:
+def _optional_in_prod(settings: Settings) -> set[str]:
     # Field null yang hanya wajib bila komponennya dipakai.
     # null = bawaan .onnx.json suara; null = placeholder teks logo "MICA"
     optional: set[str] = {"audio.tts.length_scale", "ui.logo_path"}
@@ -453,10 +457,10 @@ def _optional_in_kiosk(settings: Settings) -> set[str]:
     return optional
 
 
-def _missing_kiosk_fields(settings: Settings) -> list[str]:
+def _missing_prod_fields(settings: Settings) -> list[str]:
     # null yang wajib, dan nilai placeholder (mengandung "<"), misalnya ID model Groq.
     missing: list[str] = []
-    optional = _optional_in_kiosk(settings)
+    optional = _optional_in_prod(settings)
 
     def walk(node: Any, path: str) -> None:
         if isinstance(node, dict):
@@ -475,16 +479,16 @@ def _missing_kiosk_fields(settings: Settings) -> list[str]:
     return missing
 
 
-def missing_kiosk_fields(settings: Settings) -> list[str]:
-    """Kunci yang masih null/placeholder dan wajib diisi di mode kiosk (untuk python -m mica check)."""
-    return _missing_kiosk_fields(settings)
+def missing_prod_fields(settings: Settings) -> list[str]:
+    """Kunci yang masih null/placeholder dan wajib diisi di mode prod (untuk python -m mica check)."""
+    return _missing_prod_fields(settings)
 
 
 def load_settings(
     path: Path, env_file: Path | None = None, *, require_complete: bool = True
 ) -> Settings:
-    """require_complete False: lewati cek null mode kiosk (hanya untuk check, yang melaporkan
-    daftar kuncinya sendiri lewat missing_kiosk_fields)."""
+    """require_complete False: lewati cek null mode prod (hanya untuk check, yang melaporkan
+    daftar kuncinya sendiri lewat missing_prod_fields)."""
     return settings_from_raw(read_raw(path), env_file, require_complete=require_complete)
 
 
@@ -503,7 +507,8 @@ def settings_from_raw(
     raw: dict[str, Any], env_file: Path | None = None, *, require_complete: bool = True
 ) -> Settings:
     """Validasi dict config (dari read_raw, mungkin sudah diisi nilai coba dev; mica.trial)."""
-    _check_gemini_in_kiosk(raw)
+    _check_old_kiosk_mode(raw)
+    _check_gemini_in_prod(raw)
 
     if "api_keys" in raw:
         raise ConfigError(CFG_INVALID, "api_keys: API key hanya boleh di .env")
@@ -513,11 +518,11 @@ def settings_from_raw(
     except ValidationError as exc:
         raise ConfigError(CFG_INVALID, _format_validation_error(exc)) from None
 
-    if settings.app.mode == "kiosk" and require_complete:
-        missing = _missing_kiosk_fields(settings)
+    if settings.app.mode == "prod" and require_complete:
+        missing = _missing_prod_fields(settings)
         if missing:
             raise ConfigError(
                 CFG_INVALID,
-                "mode kiosk: field berikut belum diisi\n  " + "\n  ".join(missing),
+                "mode prod: field berikut belum diisi\n  " + "\n  ".join(missing),
             )
     return settings

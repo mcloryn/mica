@@ -1,6 +1,6 @@
-"""Pratinjau kamera UI kiosk (Langkah 37): pixelate public dibandingkan piksel dengan sumber palsu,
+"""Pratinjau kamera UI web (Langkah 37): pixelate public dibandingkan piksel dengan sumber palsu,
 debug tanpa samaran, antrean membuang frame lama, preview off tanpa JPEG, tanpa file (N-08),
-debug ditolak di kiosk, laju pratinjau tidak menambah inferensi, dan jalur /preview server."""
+debug ditolak di prod, laju pratinjau tidak menambah inferensi, dan jalur /preview server."""
 
 from __future__ import annotations
 
@@ -246,8 +246,8 @@ def test_debug_preview_rejected_outside_dev(tmp_path):
     from dataclasses import replace
 
     with pytest.raises(WorkerConfigError, match="debug"):
-        replace(cfg, mode="kiosk").validate()
-    replace(cfg, mode="kiosk", camera_preview="public").validate()
+        replace(cfg, mode="prod").validate()
+    replace(cfg, mode="prod", camera_preview="public").validate()
 
 
 def test_bus_preview_queue_only_when_not_off(tmp_path):

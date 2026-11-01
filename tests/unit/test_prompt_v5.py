@@ -127,7 +127,7 @@ def test_v5_pipeline_rejects_citation_outside_allowed(tmp_path):
     assert final.status != "answered"
 
 
-@pytest.mark.parametrize("name", ["dev.yaml", "kiosk.yaml"])
+@pytest.mark.parametrize("name", ["dev.yaml", "prod.yaml"])
 def test_configs_activate_v5_with_pmb_priority(name):
     raw = yaml.safe_load((ROOT / "config" / name).read_text(encoding="utf-8"))
     assert raw["rag"]["prompt_variant"] == "v5"

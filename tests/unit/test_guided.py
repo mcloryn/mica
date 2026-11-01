@@ -23,19 +23,19 @@ from mica.webui.guided import (
 from mica.webui.server import STATIC_DIR, WebUi
 
 
-def _kiosk():
+def _prod():
     s = load_settings(DEV_YAML)
-    return s.model_copy(update={"app": s.app.model_copy(update={"mode": "kiosk"})})
+    return s.model_copy(update={"app": s.app.model_copy(update={"mode": "prod"})})
 
 
-def test_refused_in_kiosk(capsys):
+def test_refused_in_prod(capsys):
     from mica.webui.app import run
 
     check_allowed("dev")
-    with pytest.raises(GuidedRefused, match="kiosk"):
-        check_allowed("kiosk")
-    assert run(_kiosk(), no_browser=True, guided_test=True) == 2
-    assert "kiosk" in capsys.readouterr().err
+    with pytest.raises(GuidedRefused, match="prod"):
+        check_allowed("prod")
+    assert run(_prod(), no_browser=True, guided_test=True) == 2
+    assert "prod" in capsys.readouterr().err
     assert not WebUi(_ui(), dev=False, guided=True).guided
 
 
@@ -83,8 +83,7 @@ def test_guided_scenario_end_closes_program():
     webui = WebUi(_ui(), dev=True, guided=True)
     controller = FakeController()
     webui.controller = controller
-    browser = FakeBrowser()
-    browser.alive = lambda: True  # hanya skenario yang boleh menutup program
+    browser = FakeBrowser()  # browser tidak dipantau: hanya skenario yang menutup program
     stop = threading.Event()
     start = time.perf_counter()
     g = GuidedTest(lambda: start, webui.push_guide, stop, phases=phases, close_delay_s=0.1)
@@ -94,7 +93,7 @@ def test_guided_scenario_end_closes_program():
     task.start()
     task.join(10)
     assert not task.is_alive() and g.finished
-    assert controller.closed and browser.closed
+    assert controller.closed and browser.urls
     assert webui.last_guide is not None and webui.last_guide["done"]
 
 

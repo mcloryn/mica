@@ -1,4 +1,4 @@
-"""KioskController ujung ke ujung: bus palsu di dalam proses, pipeline palsu, jam palsu.
+"""AppController ujung ke ujung: bus palsu di dalam proses, pipeline palsu, jam palsu.
 
 Tanpa kamera, mikrofon, speaker, Qt, atau Groq. Angka di sini data uji, bukan ambang.
 """
@@ -22,7 +22,7 @@ from mica.audio.messages import (
     Transcript,
 )
 from mica.core.bus import SetVisionRate
-from mica.core.controller import KioskController
+from mica.core.controller import AppController
 from mica.core.logging import InteractionLog
 from mica.core.session import (
     ClearScreen,
@@ -102,7 +102,7 @@ class Rig:
         self.views: list = []
         self.clock = Clock()
         self.log_dir = tmp_path / "logs"
-        self.ctrl = KioskController(
+        self.ctrl = AppController(
             self.bus, self.session, self.pipeline, self.views.append, self.clock,
             InteractionLog(self.log_dir), wall_clock=lambda: datetime(2026, 10, 17, tzinfo=UTC),
         )  # fmt: skip

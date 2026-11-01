@@ -1,11 +1,11 @@
-"""python -m mica setup: unduh semua model kiosk dengan revisi/sha256 terkunci (N-14).
+"""python -m mica setup: unduh semua model aplikasi dengan revisi/sha256 terkunci (N-14).
 
 Urutan: yolo26n-pose, yolo26n (vision, E-07 membandingkan keduanya), tabel warna, BGE-M3
 (kb.embedder.revision), faster-whisper (audio.stt.model), suara Piper (audio.tts.voice).
 Memakai pengunduh yang sudah ada (mica.vision/mica.audio fetch-*); file yang sudah ada dan
 cocok dilewati, file yang ada tetapi sha256-nya salah tidak ditimpa otomatis (dilaporkan).
-Berbeda dari fetch-* (dev saja), setup boleh dijalankan dengan config kiosk karena dipakai
-saat pemasangan, sebelum kiosk berjalan; kiosk sendiri tidak pernah mengunduh.
+Berbeda dari fetch-* (dev saja), setup boleh dijalankan dengan config prod karena dipakai
+saat pemasangan, sebelum aplikasi berjalan; aplikasi sendiri tidak pernah mengunduh.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from typing import Any
 from mica.config import ConfigError, Settings, load_settings
 
 DEFAULT_MODELS_DIR = Path("models")
-DEFAULT_CONFIG = Path("config/kiosk.yaml")
+DEFAULT_CONFIG = Path("config/prod.yaml")
 # file yang dibutuhkan SentenceTransformer untuk BGE-M3 di snapshot revisi terkunci
 EMBEDDER_FILES = (
     "modules.json", "config.json", "config_sentence_transformers.json",

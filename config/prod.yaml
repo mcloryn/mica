@@ -1,5 +1,5 @@
 app:
-  mode: kiosk                 # kiosk | dev; Gemini hanya boleh di dev
+  mode: prod                 # prod | dev; Gemini hanya boleh di dev
   version: 0.1.0
 kb:
   active_id: official-2026-10-24-v5  # F-17; KB resmi v5 (Langkah 66, docs/KB-RESMI.md)
@@ -7,13 +7,13 @@ kb:
   # active_id: official-2026-10-24-v3  # arsip; KB resmi v3 (Langkah 63), tidak dihapus
   # active_id: official-2026-10-24-v2  # arsip; KB resmi v2 (Langkah 62), tidak dihapus
   # active_id: official-2026-10-23-v1  # arsip; KB resmi v1 (Langkah 61), tidak dihapus
-  # active_id: dev-2026-10-15-v2  # arsip, dipakai E-01..E-04 (KB dev tidak dipakai di kiosk)
+  # active_id: dev-2026-10-15-v2  # arsip, dipakai E-01..E-04 (KB dev tidak dipakai di prod)
   chunker: structure_then_fixed     # ADR-03; alternatif: fixed
   chunk_tokens: null                # E-01
   overlap_tokens: null              # E-01
   embedder:
     model: BAAI/bge-m3              # ADR-02
-    revision: null                  # N-14; hash commit lengkap, wajib di kiosk
+    revision: null                  # N-14; hash commit lengkap, wajib di prod
 rag:
   retriever: hybrid                 # ADR-01; bm25 | dense | hybrid
   top_k: 5                          # ADR-16, diuji ulang di E-01
@@ -22,7 +22,7 @@ rag:
   reranker:
     enabled: false                  # ADR-01; nyala hanya bila lolos aturan E-01
     model: BAAI/bge-reranker-v2-m3
-    revision: null                  # N-14; hash commit lengkap, wajib di kiosk
+    revision: null                  # N-14; hash commit lengkap, wajib di prod
   gate:
     threshold: null                 # ADR-06, E-02
   fact_check:
@@ -89,8 +89,6 @@ session:
   idle_reset_s: null                # E-09
   regreet_cooldown_s: null          # E-07
 ui:
-  backend: web                      # ADR-19: web | pyside6; web dipilih pemilik proyek 17 Okt 2026, pyside6 cadangan beku (docs/UI-WEB.md)
-  fullscreen: true
   font_scale: 1.0
   topics:                           # F-14; kartu/chip UI web: klik = kirim question (Langkah 53)
     # question sementara, ganti dengan pertanyaan nyata staf PMB; wajib lolos cek kebocoran
@@ -102,7 +100,7 @@ ui:
     - {label: Fasilitas, question: "Fasilitas apa saja yang tersedia di kampus Mikroskil?"}
     - {label: Lokasi, question: "Di mana alamat kampus Universitas Mikroskil?"}
   logo_path: null                   # file logo lokal; null = placeholder teks "MICA" sampai logo resmi tersedia
-  camera_preview: public            # off | public | debug (debug ditolak di kiosk); Langkah 37
+  camera_preview: public            # off | public | debug (debug ditolak di prod); Langkah 37
   preview_pixel_block: 16           # NILAI COBA DESAIN (bukan hasil eksperimen): blok pixelate px pada gambar lebar 320
   preview_fps: 10                   # keputusan desain pengguna 18 Okt 2026: pratinjau minimal 10 fps; tidak menambah inferensi YOLO
   suggestions: {}                   # F-14; topik -> daftar saran pertanyaan, diisi pengembang

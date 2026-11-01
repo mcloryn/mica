@@ -5,7 +5,7 @@ import yaml
 from pydantic import ValidationError
 
 from mica.config import (
-    CFG_GEMINI_IN_KIOSK,
+    CFG_GEMINI_IN_PROD,
     CFG_INVALID,
     ConfigError,
     Settings,
@@ -14,7 +14,7 @@ from mica.config import (
 
 ROOT = Path(__file__).resolve().parents[2]
 DEV_YAML = ROOT / "config" / "dev.yaml"
-KIOSK_YAML = ROOT / "config" / "kiosk.yaml"
+PROD_YAML = ROOT / "config" / "prod.yaml"
 
 
 @pytest.fixture(autouse=True)
@@ -45,16 +45,16 @@ def _dummy(key: str):
 
 
 def _fill_nulls(node):
-    # Isi semua null dengan nilai dummy supaya bisa diuji di mode kiosk.
+    # Isi semua null dengan nilai dummy supaya bisa diuji di mode prod.
     if isinstance(node, dict):
         return {k: (_dummy(k) if v is None else _fill_nulls(v)) for k, v in node.items()}
     return node
 
 
-def _complete_kiosk_raw() -> dict:
+def _complete_prod_raw() -> dict:
     raw = _fill_nulls(_dev_raw())
-    raw["app"]["mode"] = "kiosk"
-    raw["ui"]["camera_preview"] = "public"  # debug ditolak di kiosk
+    raw["app"]["mode"] = "prod"
+    raw["ui"]["camera_preview"] = "public"  # debug ditolak di prod
     raw["kb"]["active_id"] = "official-2026-11-02"
     raw["llm"]["chain"] = ["groq:model-a", "groq:model-b"]
     return raw
@@ -66,27 +66,21 @@ def test_dev_yaml_loads():
     assert settings.rag.top_k == 5
 
 
-def test_complete_kiosk_config_loads(tmp_path):
-    settings = load_settings(_write(tmp_path, _complete_kiosk_raw()))
-    assert settings.app.mode == "kiosk"
+def test_complete_prod_config_loads(tmp_path):
+    settings = load_settings(_write(tmp_path, _complete_prod_raw()))
+    assert settings.app.mode == "prod"
 
 
-def test_ui_backend_web_default_and_pyside6_accepted(tmp_path):
-    # ADR-19: web dipilih pemilik proyek (17 Okt 2026); pyside6 tetap bisa dipilih (cadangan beku)
-    assert load_settings(DEV_YAML).ui.backend == "web"
-    kiosk = yaml.safe_load(KIOSK_YAML.read_text(encoding="utf-8"))
-    assert kiosk["ui"]["backend"] == "web"
+@pytest.mark.parametrize(("field", "value"), [("backend", "web"), ("fullscreen", True)])
+def test_removed_ui_keys_rejected(tmp_path, field, value):
+    # RF-2: ADR-19 final = web; ui.backend dan ui.fullscreen tidak ada lagi
+    for path in (DEV_YAML, PROD_YAML):
+        assert field not in yaml.safe_load(path.read_text(encoding="utf-8"))["ui"]
     raw = _dev_raw()
-    raw["ui"]["backend"] = "pyside6"
-    assert load_settings(_write(tmp_path, raw)).ui.backend == "pyside6"
-
-
-def test_ui_backend_required(tmp_path):
-    raw = _dev_raw()
-    del raw["ui"]["backend"]
+    raw["ui"][field] = value
     with pytest.raises(ConfigError) as exc:
         load_settings(_write(tmp_path, raw))
-    assert "ui.backend" in str(exc.value)
+    assert f"ui.{field}" in str(exc.value)
 
 
 @pytest.mark.parametrize(
@@ -122,10 +116,7 @@ def test_unknown_field_rejected(tmp_path):
         ("rag", "top_k", "lima"),
         ("rag", "top_k", "5"),
         ("rag", "retriever", "vector"),
-        ("ui", "fullscreen", "ya"),
-        ("ui", "backend", "qt"),
-        ("ui", "backend", "Web"),
-        ("ui", "backend", None),
+        ("ui", "font_scale", "besar"),
     ],
 )
 def test_wrong_type_rejected(tmp_path, section, field, value):
@@ -146,22 +137,31 @@ def test_unknown_llm_provider_rejected(tmp_path):
     assert "llm.chain" in str(exc.value)
 
 
-def test_gemini_rejected_in_kiosk(tmp_path):
-    raw = _complete_kiosk_raw()
+def test_old_kiosk_mode_rejected_with_clear_message(tmp_path):
+    raw = _complete_prod_raw()
+    raw["app"]["mode"] = "kiosk"
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert exc.value.code == CFG_INVALID
+    assert "app.mode kiosk sudah diganti menjadi prod" in str(exc.value)
+
+
+def test_gemini_rejected_in_prod(tmp_path):
+    raw = _complete_prod_raw()
     raw["llm"]["chain"].append("gemini:gemini-flash")
     with pytest.raises(ConfigError) as exc:
         load_settings(_write(tmp_path, raw))
-    assert exc.value.code == CFG_GEMINI_IN_KIOSK
+    assert exc.value.code == CFG_GEMINI_IN_PROD
 
 
 def test_gemini_check_runs_before_other_validation(tmp_path):
     raw = _dev_raw()  # masih berisi null dan placeholder
-    raw["app"]["mode"] = "kiosk"
+    raw["app"]["mode"] = "prod"
     raw["rag"]["top_k"] = "lima"
     raw["llm"]["chain"] = ["gemini:gemini-flash"]
     with pytest.raises(ConfigError) as exc:
         load_settings(_write(tmp_path, raw))
-    assert exc.value.code == CFG_GEMINI_IN_KIOSK
+    assert exc.value.code == CFG_GEMINI_IN_PROD
 
 
 def test_gemini_accepted_in_dev(tmp_path):
@@ -171,8 +171,8 @@ def test_gemini_accepted_in_dev(tmp_path):
     assert settings.llm.chain == ("gemini:gemini-flash",)
 
 
-def test_null_rejected_in_kiosk(tmp_path):
-    raw = _complete_kiosk_raw()
+def test_null_rejected_in_prod(tmp_path):
+    raw = _complete_prod_raw()
     raw["rag"]["gate"]["threshold"] = None
     raw["vision"]["dwell_s"] = None
     with pytest.raises(ConfigError) as exc:
@@ -182,8 +182,8 @@ def test_null_rejected_in_kiosk(tmp_path):
     assert "vision.dwell_s" in str(exc.value)
 
 
-def test_placeholder_model_id_rejected_in_kiosk(tmp_path):
-    raw = _complete_kiosk_raw()
+def test_placeholder_model_id_rejected_in_prod(tmp_path):
+    raw = _complete_prod_raw()
     raw["llm"]["chain"] = ["groq:<id gpt-oss-120b>"]
     with pytest.raises(ConfigError) as exc:
         load_settings(_write(tmp_path, raw))
@@ -191,9 +191,9 @@ def test_placeholder_model_id_rejected_in_kiosk(tmp_path):
     assert "llm.chain[0]" in str(exc.value)
 
 
-def test_current_kiosk_yaml_rejected():
+def test_current_prod_yaml_rejected():
     with pytest.raises(ConfigError) as exc:
-        load_settings(KIOSK_YAML)
+        load_settings(PROD_YAML)
     assert exc.value.code == CFG_INVALID
     message = str(exc.value)
     for field in ("kb.chunk_tokens", "rag.gate.threshold", "llm.timeout_s", "llm.chain[0]"):
@@ -269,19 +269,19 @@ def test_api_key_hidden_in_repr_and_str(tmp_path):
     assert settings.api_keys.groq.get_secret_value() == "rahasia-groq"
 
 
-def test_current_kiosk_yaml_has_official_active_id():
-    # Langkah 61: kb.active_id kiosk diisi KB resmi; field TBD lain masih membuat kiosk.yaml ditolak
+def test_current_prod_yaml_has_official_active_id():
+    # Langkah 61: kb.active_id prod diisi KB resmi; field TBD lain masih membuat prod.yaml ditolak
     with pytest.raises(ConfigError) as exc:
-        load_settings(KIOSK_YAML)
+        load_settings(PROD_YAML)
     assert "kb.active_id" not in str(exc.value)
     assert "kb.chunk_tokens" in str(exc.value)
-    raw = yaml.safe_load(KIOSK_YAML.read_text(encoding="utf-8"))
+    raw = yaml.safe_load(PROD_YAML.read_text(encoding="utf-8"))
     assert raw["kb"]["active_id"].startswith("official-")
 
 
 @pytest.mark.parametrize("field", ["rrf_k", "candidates_per_retriever"])
-def test_hybrid_params_required_for_hybrid_in_kiosk(tmp_path, field):
-    raw = _complete_kiosk_raw()
+def test_hybrid_params_required_for_hybrid_in_prod(tmp_path, field):
+    raw = _complete_prod_raw()
     raw["rag"]["retriever"] = "hybrid"
     raw["rag"][field] = None
     with pytest.raises(ConfigError) as exc:
@@ -291,8 +291,8 @@ def test_hybrid_params_required_for_hybrid_in_kiosk(tmp_path, field):
 
 
 @pytest.mark.parametrize("retriever", ["bm25", "dense"])
-def test_hybrid_params_optional_for_other_retrievers_in_kiosk(tmp_path, retriever):
-    raw = _complete_kiosk_raw()
+def test_hybrid_params_optional_for_other_retrievers_in_prod(tmp_path, retriever):
+    raw = _complete_prod_raw()
     raw["rag"]["retriever"] = retriever
     raw["rag"]["rrf_k"] = None
     raw["rag"]["candidates_per_retriever"] = None
@@ -302,8 +302,8 @@ def test_hybrid_params_optional_for_other_retrievers_in_kiosk(tmp_path, retrieve
     assert settings.rag.rrf_k is None
 
 
-def test_stt_threads_required_for_faster_whisper_in_kiosk(tmp_path):
-    raw = _complete_kiosk_raw()
+def test_stt_threads_required_for_faster_whisper_in_prod(tmp_path):
+    raw = _complete_prod_raw()
     raw["audio"]["stt"]["backend"] = "faster_whisper"
     raw["audio"]["stt"]["threads"] = None
     with pytest.raises(ConfigError) as exc:
@@ -312,8 +312,8 @@ def test_stt_threads_required_for_faster_whisper_in_kiosk(tmp_path):
     assert "audio.stt.threads" in str(exc.value)
 
 
-def test_groq_model_required_in_kiosk_only_for_groq_backend(tmp_path):
-    raw = _complete_kiosk_raw()
+def test_groq_model_required_in_prod_only_for_groq_backend(tmp_path):
+    raw = _complete_prod_raw()
     raw["audio"]["stt"]["groq_model"] = None
     raw["audio"]["stt"]["backend"] = "faster_whisper"
     assert load_settings(_write(tmp_path, raw)).audio.stt.groq_model is None
@@ -323,14 +323,14 @@ def test_groq_model_required_in_kiosk_only_for_groq_backend(tmp_path):
     assert "audio.stt.groq_model" in str(exc.value)
 
 
-def test_groq_model_dev_value_and_kiosk_null():
+def test_groq_model_dev_value_and_prod_null():
     assert load_settings(DEV_YAML).audio.stt.groq_model == "whisper-large-v3-turbo"
-    kiosk = load_settings(KIOSK_YAML, require_complete=False)
-    assert kiosk.audio.stt.groq_model is None
+    prod = load_settings(PROD_YAML, require_complete=False)
+    assert prod.audio.stt.groq_model is None
 
 
-def test_stt_threads_optional_for_groq_whisper_in_kiosk(tmp_path):
-    raw = _complete_kiosk_raw()
+def test_stt_threads_optional_for_groq_whisper_in_prod(tmp_path):
+    raw = _complete_prod_raw()
     raw["audio"]["stt"]["backend"] = "groq_whisper"
     raw["audio"]["stt"]["threads"] = None
     raw["audio"]["stt"]["no_speech_threshold"] = None
@@ -348,7 +348,7 @@ def test_ui_suggestions_empty_and_must_match_topics(tmp_path):
         load_settings(_write(tmp_path, raw))
 
 
-@pytest.mark.parametrize("path", [DEV_YAML, KIOSK_YAML])
+@pytest.mark.parametrize("path", [DEV_YAML, PROD_YAML])
 def test_ui_topics_have_label_and_question(path):
     # Langkah 53: label tetap, question satu kalimat tanya; ditandai sementara di komentar
     raw = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -403,8 +403,8 @@ def test_embedder_revision_null_allowed_in_dev(tmp_path):
     assert load_settings(_write(tmp_path, raw)).kb.embedder.revision is None
 
 
-def test_embedder_revision_required_in_kiosk(tmp_path):
-    raw = _complete_kiosk_raw()
+def test_embedder_revision_required_in_prod(tmp_path):
+    raw = _complete_prod_raw()
     raw["kb"]["embedder"]["revision"] = None
     with pytest.raises(ConfigError) as exc:
         load_settings(_write(tmp_path, raw))
@@ -428,8 +428,8 @@ def test_dev_yaml_pins_embedder_revision():
     assert revision is not None and len(revision) == 40
 
 
-def test_reranker_revision_required_in_kiosk_when_enabled(tmp_path):
-    raw = _complete_kiosk_raw()
+def test_reranker_revision_required_in_prod_when_enabled(tmp_path):
+    raw = _complete_prod_raw()
     raw["rag"]["reranker"]["enabled"] = True
     raw["rag"]["reranker"]["revision"] = None
     with pytest.raises(ConfigError) as exc:
@@ -437,8 +437,8 @@ def test_reranker_revision_required_in_kiosk_when_enabled(tmp_path):
     assert "rag.reranker.revision" in str(exc.value)
 
 
-def test_reranker_revision_optional_in_kiosk_when_disabled(tmp_path):
-    raw = _complete_kiosk_raw()
+def test_reranker_revision_optional_in_prod_when_disabled(tmp_path):
+    raw = _complete_prod_raw()
     raw["rag"]["reranker"]["enabled"] = False
     raw["rag"]["reranker"]["revision"] = None
     assert load_settings(_write(tmp_path, raw)).rag.reranker.revision is None
@@ -452,8 +452,8 @@ def test_reranker_revision_must_be_full_hash(tmp_path):
     assert "rag.reranker.revision" in str(exc.value)
 
 
-def test_vision_conf_imgsz_required_in_kiosk(tmp_path):
-    raw = _complete_kiosk_raw()
+def test_vision_conf_imgsz_required_in_prod(tmp_path):
+    raw = _complete_prod_raw()
     raw["vision"]["conf"] = None
     raw["vision"]["imgsz"] = None
     with pytest.raises(ConfigError) as exc:
@@ -482,8 +482,8 @@ def test_dev_yaml_vision_tbd_values_stay_null():
     )
 
 
-def test_box_upper_required_in_kiosk_when_used(tmp_path):
-    raw = _complete_kiosk_raw()
+def test_box_upper_required_in_prod_when_used(tmp_path):
+    raw = _complete_prod_raw()
     raw["vision"]["region"] = "box_upper"
     raw["vision"]["box_upper"]["top"] = None
     with pytest.raises(ConfigError) as exc:
@@ -491,8 +491,8 @@ def test_box_upper_required_in_kiosk_when_used(tmp_path):
     assert "vision.box_upper.top" in str(exc.value)
 
 
-def test_box_upper_required_in_kiosk_as_keypoint_fallback(tmp_path):
-    raw = _complete_kiosk_raw()
+def test_box_upper_required_in_prod_as_keypoint_fallback(tmp_path):
+    raw = _complete_prod_raw()
     raw["vision"]["region"] = "keypoint_torso"
     raw["vision"]["box_upper"]["side"] = None
     with pytest.raises(ConfigError) as exc:
@@ -500,8 +500,8 @@ def test_box_upper_required_in_kiosk_as_keypoint_fallback(tmp_path):
     assert "vision.box_upper.side" in str(exc.value)
 
 
-def test_keypoint_torso_required_in_kiosk_when_used(tmp_path):
-    raw = _complete_kiosk_raw()
+def test_keypoint_torso_required_in_prod_when_used(tmp_path):
+    raw = _complete_prod_raw()
     raw["vision"]["region"] = "keypoint_torso"
     raw["vision"]["keypoint_torso"]["shrink"] = None
     with pytest.raises(ConfigError) as exc:
@@ -509,8 +509,8 @@ def test_keypoint_torso_required_in_kiosk_when_used(tmp_path):
     assert "vision.keypoint_torso.shrink" in str(exc.value)
 
 
-def test_keypoint_torso_optional_in_kiosk_for_box_upper(tmp_path):
-    raw = _complete_kiosk_raw()
+def test_keypoint_torso_optional_in_prod_for_box_upper(tmp_path):
+    raw = _complete_prod_raw()
     raw["vision"]["region"] = "box_upper"
     raw["vision"]["presence_signal"] = "box_height"
     raw["vision"]["keypoint_torso"] = {"min_kp_conf": None, "shrink": None, "torso_aspect": None}
@@ -574,8 +574,8 @@ def test_keypoint_features_need_pose_model(tmp_path, region, signal, needle):
     assert load_settings(_write(tmp_path, raw)).vision.model == "yolo26n"
 
 
-def test_unused_signal_threshold_optional_in_kiosk(tmp_path):
-    raw = _complete_kiosk_raw()
+def test_unused_signal_threshold_optional_in_prod(tmp_path):
+    raw = _complete_prod_raw()
     raw["vision"]["presence_signal"] = "shoulder_width"
     raw["vision"]["min_box_height_ratio"] = None
     assert load_settings(_write(tmp_path, raw)).vision.min_box_height_ratio is None
@@ -585,8 +585,8 @@ def test_unused_signal_threshold_optional_in_kiosk(tmp_path):
     assert "vision.min_shoulder_ratio" in str(exc.value)
 
 
-def test_kiosk_yaml_vision_uses_pose_and_signal_is_tbd():
-    raw = yaml.safe_load(KIOSK_YAML.read_text(encoding="utf-8"))["vision"]
+def test_prod_yaml_vision_uses_pose_and_signal_is_tbd():
+    raw = yaml.safe_load(PROD_YAML.read_text(encoding="utf-8"))["vision"]
     assert (raw["model"], raw["region"]) == ("yolo26n-pose", "keypoint_torso")
     assert raw["presence_signal"] is None and raw["min_shoulder_ratio"] is None
 
@@ -596,8 +596,8 @@ def test_dev_yaml_presence_signal_shoulder_width():
     assert vision.presence_signal == "shoulder_width" and vision.min_shoulder_ratio is None
 
 
-def test_camera_preview_debug_rejected_in_kiosk(tmp_path):
-    raw = _complete_kiosk_raw()
+def test_camera_preview_debug_rejected_in_prod(tmp_path):
+    raw = _complete_prod_raw()
     raw["ui"]["camera_preview"] = "debug"
     with pytest.raises(ConfigError) as exc:
         load_settings(_write(tmp_path, raw))
@@ -607,23 +607,23 @@ def test_camera_preview_debug_rejected_in_kiosk(tmp_path):
     assert load_settings(DEV_YAML).ui.camera_preview == "debug"
 
 
-def test_kiosk_yaml_preview_public_with_trial_values():
-    raw = yaml.safe_load(KIOSK_YAML.read_text(encoding="utf-8"))
+def test_prod_yaml_preview_public_with_trial_values():
+    raw = yaml.safe_load(PROD_YAML.read_text(encoding="utf-8"))
     assert raw["ui"]["camera_preview"] == "public"
-    text = KIOSK_YAML.read_text(encoding="utf-8")
+    text = PROD_YAML.read_text(encoding="utf-8")
     line = next(ln for ln in text.splitlines() if ln.strip().startswith("preview_pixel_block:"))
     assert "NILAI COBA DESAIN" in line
 
 
-@pytest.mark.parametrize(("path", "fps"), [(DEV_YAML, 15), (KIOSK_YAML, 10)])
+@pytest.mark.parametrize(("path", "fps"), [(DEV_YAML, 15), (PROD_YAML, 10)])
 def test_preview_fps_user_design_decision(path, fps):
     # Langkah 38: keputusan desain pengguna, bukan hasil eksperimen; laju deteksi tidak berubah.
-    # dev 15 sejak 21 Okt 2026 (keputusan pengguna); kiosk tetap 10
+    # dev 15 sejak 21 Okt 2026 (keputusan pengguna); prod tetap 10
     raw = yaml.safe_load(path.read_text(encoding="utf-8"))
     assert raw["ui"]["preview_fps"] == fps
     assert raw["vision"]["fps_idle"] == 5 and raw["vision"]["fps_busy"] is None
     line = next(ln for ln in path.read_text(encoding="utf-8").splitlines()
                 if ln.strip().startswith("preview_fps:"))  # fmt: skip
     assert "keputusan desain pengguna 18 Okt 2026: pratinjau minimal 10 fps" in line
-    if path == DEV_YAML:  # kiosk.yaml masih berisi TBD (null), dimuat lengkap di tes lain
+    if path == DEV_YAML:  # prod.yaml masih berisi TBD (null), dimuat lengkap di tes lain
         assert load_settings(path).ui.preview_fps == fps

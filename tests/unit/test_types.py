@@ -91,7 +91,7 @@ def test_error_code_covers_sdd_8_1():
 
 def test_error_code_includes_config_codes():
     assert ErrorCode.CFG_INVALID == "CFG_INVALID"
-    assert ErrorCode.CFG_GEMINI_IN_KIOSK == "CFG_GEMINI_IN_KIOSK"
+    assert ErrorCode.CFG_GEMINI_IN_PROD == "CFG_GEMINI_IN_PROD"
 
 
 def test_config_error_uses_error_code():

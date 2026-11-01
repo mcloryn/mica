@@ -34,8 +34,8 @@ def test_config_defaults_null():
     assert VisionConfig.model_fields["threads"].default is None
     import yaml
 
-    kiosk = yaml.safe_load((ROOT / "config/kiosk.yaml").read_text(encoding="utf-8"))
-    assert kiosk["audio"]["tts"]["threads"] is None and kiosk["vision"]["threads"] is None
+    prod = yaml.safe_load((ROOT / "config/prod.yaml").read_text(encoding="utf-8"))
+    assert prod["audio"]["tts"]["threads"] is None and prod["vision"]["threads"] is None
 
 
 def test_session_options_null_keeps_onnxruntime_defaults():

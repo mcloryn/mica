@@ -1,4 +1,4 @@
-// UI kiosk MICA (Langkah 37c): merender JSON ViewModel dari server dan mengirim event input.
+// UI web MICA (Langkah 37c): merender JSON ViewModel dari server dan mengirim event input.
 // Tidak ada logika state di sini; aturan event diperiksa lagi di server (mica.webui.state).
 // Tidak ada timer atau animasi JS. Warna sesi diberikan lewat body[data-color] (tokens.css).
 "use strict";

@@ -413,12 +413,12 @@ def test_listen_script_needs_out():
         _listen(["--script"], FakeMic([]), FakeStt())
 
 
-def test_listen_refused_in_kiosk():
+def test_listen_refused_in_prod():
     s = load_settings(DEV_YAML)
-    kiosk = s.model_copy(update={"app": s.app.model_copy(update={"mode": "kiosk"})})
+    prod = s.model_copy(update={"app": s.app.model_copy(update={"mode": "prod"})})
     args = cli.build_parser().parse_args(["listen", *VAD])
     with pytest.raises(cli.AudioCliError, match="app.mode: dev"):
-        cli.cmd_listen(args, kiosk, mic_factory=lambda d: FakeMic([]))
+        cli.cmd_listen(args, prod, mic_factory=lambda d: FakeMic([]))
 
 
 def test_audio_modules_do_not_import_torch():

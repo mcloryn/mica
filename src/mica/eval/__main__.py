@@ -191,7 +191,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     lat = sub.add_parser("latency", help="E-09: latensi per tahap dari log 6.2 dan verdict")
     lat.add_argument("--logs", type=Path, default=Path("logs"))
-    lat.add_argument("--label", required=True, help="nama run, mis. kiosk-fps2-t1")
+    lat.add_argument("--label", required=True, help="nama run, mis. prod-fps2-t1")
     lat.add_argument("--resources", type=Path, help="resources.csv dari --record-resources")
     lat.add_argument("--from", dest="start", type=date.fromisoformat, help="YYYY-MM-DD")
     lat.add_argument("--to", dest="end", type=date.fromisoformat, help="YYYY-MM-DD")
@@ -403,7 +403,7 @@ def _vision_settings(args: argparse.Namespace, command: str) -> Any:
     settings = load_settings(args.config)
     if settings.app.mode != "dev":
         raise VisionEvalError(
-            f"eval {command} hanya boleh saat app.mode: dev (frame relawan ditolak di mode kiosk)"
+            f"eval {command} hanya boleh saat app.mode: dev (frame relawan ditolak di mode prod)"
         )
     return settings
 
@@ -487,7 +487,7 @@ def cmd_vision_scenarios(args: argparse.Namespace) -> int:
     settings = _vision_settings(args, "vision-scenarios")
     if not args.model.endswith("-pose"):
         raise VisionEvalError(
-            f"model {args.model} tanpa keypoint: kiosk wajib model -pose (amandemen 1 E-07); "
+            f"model {args.model} tanpa keypoint: prod wajib model -pose (amandemen 1 E-07); "
             "sinyal shoulder_width butuh keypoint bahu"
         )
     path = model_path(args.model, args.models_dir)
@@ -870,7 +870,7 @@ def cmd_stt(
 
     settings = load_settings(args.config, env_file=args.env_file)
     if settings.app.mode != "dev":
-        raise SttEvalError("eval stt hanya boleh saat app.mode: dev (ditolak di kiosk)")
+        raise SttEvalError("eval stt hanya boleh saat app.mode: dev (ditolak di prod)")
     items = load_manifest(args.dataset)
     audio = {i.id: read_wav(i.file) for i in items}
     values, sources = resolve_vad_values(settings.audio, args)

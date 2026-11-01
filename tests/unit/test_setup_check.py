@@ -20,7 +20,7 @@ from mica.vision import color, detector
 
 ROOT = Path(__file__).resolve().parents[2]
 DEV_YAML = ROOT / "config" / "dev.yaml"
-KIOSK_YAML = ROOT / "config" / "kiosk.yaml"
+PROD_YAML = ROOT / "config" / "prod.yaml"
 FAKE_KEY = "gsk_rahasia_palsu_123456"  # kunci palsu, tidak pernah boleh tercetak
 DEVICES = [{"name": "Mic", "max_input_channels": 1, "max_output_channels": 0},
            {"name": "Speaker", "max_input_channels": 0, "max_output_channels": 2}]  # fmt: skip
@@ -121,7 +121,7 @@ def test_setup_reports_wrong_sha_without_overwriting(tmp_path, locked):
 
 
 def test_setup_bge_blocked_when_revision_null(tmp_path, locked):
-    settings = load_settings(KIOSK_YAML, require_complete=False)
+    settings = load_settings(PROD_YAML, require_complete=False)
     out: list[str] = []
     dl, _ = _fake_downloaders(locked, [])
     assert setup.run_setup(settings, "BGE-M3", tmp_path, dl, out.append) == 1
@@ -140,32 +140,20 @@ def _models(tmp_path, content, settings):
             c.fetch()
 
 
-def _dev_config(tmp_path, backend=None):
+def _dev_config(tmp_path):
     raw = yaml.safe_load(DEV_YAML.read_text(encoding="utf-8"))
     raw["logging"]["dir"] = str(tmp_path / "logs")
-    if backend is not None:
-        raw["ui"]["backend"] = backend
     path = tmp_path / "dev.yaml"
     path.write_text(yaml.safe_dump(raw, allow_unicode=True), encoding="utf-8")
     return path
 
 
-def _run(tmp_path, config, monkeypatch, key=FAKE_KEY, devices=DEVICES, edge_paths=None):
+def _run(tmp_path, config, monkeypatch, key=FAKE_KEY, devices=DEVICES):
     if key:
         monkeypatch.setenv("GROQ_API_KEY", key)
     else:
         monkeypatch.delenv("GROQ_API_KEY", raising=False)
-    if edge_paths is None:  # Edge palsu: tes tidak bergantung pada Edge di mesin uji
-        fake = tmp_path / "edge-palsu" / "msedge.exe"
-        fake.parent.mkdir(exist_ok=True)
-        fake.write_bytes(b"")
-        edge_paths = (fake,)
-    return check.run_check(config, None, tmp_path, ROOT / "data" / "kb", lambda: devices,
-                           edge_paths)  # fmt: skip
-
-
-def _web_config(tmp_path):
-    return _dev_config(tmp_path, backend="web")
+    return check.run_check(config, None, tmp_path, ROOT / "data" / "kb", lambda: devices)
 
 
 def test_check_all_ok_in_dev(tmp_path, locked, monkeypatch):
@@ -178,8 +166,8 @@ def test_check_all_ok_in_dev(tmp_path, locked, monkeypatch):
     assert "diperiksa saat start" in table and "SEMUA OK" in table
 
 
-def test_check_kiosk_nulls_listed_by_key(tmp_path, locked, monkeypatch):
-    rows, settings = _run(tmp_path, KIOSK_YAML, monkeypatch)
+def test_check_prod_nulls_listed_by_key(tmp_path, locked, monkeypatch):
+    rows, settings = _run(tmp_path, PROD_YAML, monkeypatch)
     config_row = rows[0]
     assert config_row.status == "GAGAL"
     for key in ("kb.embedder.revision", "audio.vad.threshold", "session.idle_reset_s",
@@ -211,7 +199,7 @@ def test_check_missing_key_and_devices(tmp_path, locked, monkeypatch):
     assert "GROQ_API_KEY di file .env" in by_item["GROQ_API_KEY"].message
     assert by_item["perangkat audio"].status == "PERINGATAN"
     assert "mikrofon tidak ditemukan" in by_item["perangkat audio"].message
-    assert "kiosk tetap bisa dipakai lewat teks" in by_item["perangkat audio"].message
+    assert "aplikasi tetap bisa dipakai lewat teks" in by_item["perangkat audio"].message
 
 
 def test_check_device_warning_only_exits_zero(tmp_path, locked, monkeypatch):
@@ -235,34 +223,13 @@ def test_check_key_value_never_printed(tmp_path, locked, monkeypatch, capsys):
     assert FAKE_KEY not in out.out + out.err
 
 
-def test_check_web_backend_without_edge_fails(tmp_path, locked, monkeypatch):
-    config = _web_config(tmp_path)
+def test_check_has_no_edge_row(tmp_path, locked, monkeypatch):
+    # RF-2: UI dibuka di browser default; check tidak lagi mencari msedge.exe
+    config = _dev_config(tmp_path)
     _models(tmp_path, locked, load_settings(config))
-    missing = (tmp_path / "tidak-ada" / "msedge.exe",)
-    rows, _ = _run(tmp_path, config, monkeypatch, edge_paths=missing)
-    edge = {r.item: r for r in rows}["Microsoft Edge"]
-    assert edge.status == "GAGAL" and "tidak ditemukan" in edge.message
-    assert check.failed(rows) and "ADA GAGAL" in check.format_table(rows)
-
-
-def test_check_web_backend_with_edge_ok(tmp_path, locked, monkeypatch):
-    config = _web_config(tmp_path)
-    _models(tmp_path, locked, load_settings(config))
-    fake_edge = tmp_path / "msedge.exe"
-    fake_edge.write_bytes(b"")
-    rows, _ = _run(tmp_path, config, monkeypatch,
-                   edge_paths=(tmp_path / "tidak-ada.exe", fake_edge))  # fmt: skip
-    edge = {r.item: r for r in rows}["Microsoft Edge"]
-    assert edge.status == "OK" and str(fake_edge) in edge.message
+    rows, _ = _run(tmp_path, config, monkeypatch)
+    assert "Microsoft Edge" not in {r.item for r in rows}
     assert not check.failed(rows), check.format_table(rows)
-
-
-def test_check_pyside6_backend_has_no_edge_row(tmp_path, locked, monkeypatch):
-    config = _dev_config(tmp_path, backend="pyside6")
-    _models(tmp_path, locked, load_settings(config))
-    missing = (tmp_path / "tidak-ada" / "msedge.exe",)
-    rows, _ = _run(tmp_path, config, monkeypatch, edge_paths=missing)
-    assert "Microsoft Edge" not in {r.item for r in rows} and not check.failed(rows)
 
 
 def test_check_logs_not_writable(tmp_path, locked, monkeypatch):
@@ -281,7 +248,7 @@ def test_check_logs_not_writable(tmp_path, locked, monkeypatch):
 
 def test_main_check_failed_does_not_launch(capsys):
     launched = []
-    rows = [check.CheckRow("config", "GAGAL", "mode kiosk: 1 kunci belum diisi: x")]
+    rows = [check.CheckRow("config", "GAGAL", "mode prod: 1 kunci belum diisi: x")]
     code = entry.main([], check=lambda c, e: (rows, None),
                       launch=lambda s, a: launched.append(s) or 0)  # fmt: skip
     assert code == 1 and launched == []
@@ -289,7 +256,7 @@ def test_main_check_failed_does_not_launch(capsys):
     assert "GAGAL" in out and "MICA tidak dijalankan" in out
 
 
-def test_main_check_ok_launches_with_default_kiosk_config():
+def test_main_check_ok_launches_with_default_prod_config():
     settings = load_settings(DEV_YAML)
     seen = {}
 
@@ -299,27 +266,24 @@ def test_main_check_ok_launches_with_default_kiosk_config():
 
     code = entry.main([], check=fake_check, launch=lambda s, a: seen.setdefault("s", s) and 0)
     assert code == 0 and seen["s"] is settings
-    assert seen["config"] == Path("config/kiosk.yaml")
+    assert seen["config"] == Path("config/prod.yaml")
 
 
-@pytest.mark.parametrize("backend", ["pyside6", "web"])
-def test_main_launches_ui_by_backend(monkeypatch, backend):
-    s = load_settings(DEV_YAML)
-    settings = s.model_copy(update={"ui": s.ui.model_copy(update={"backend": backend})})
+def test_main_launches_web_ui(monkeypatch):
+    # ADR-19 final (RF-2): hanya UI web; tidak ada pilihan ui.backend
+    settings = load_settings(DEV_YAML)
     calls = []
-    for name in ("pyside6", "web"):
-        monkeypatch.setitem(entry.LAUNCHERS, name,
-                            lambda st, a, name=name: calls.append((name, a.fake_pipeline)) or 0)  # fmt: skip
+    monkeypatch.setattr(entry, "_launch_web", lambda st, a: calls.append(a.fake_pipeline) or 0)
     ok = [check.CheckRow("config", "OK", "ok")]
     assert entry.main(["--fake-pipeline"], check=lambda c, e: (ok, settings)) == 0
-    assert calls == [(backend, True)]
+    assert calls == [True] and not hasattr(entry, "LAUNCHERS")
 
 
-def test_main_rejects_fake_flags_in_kiosk():
+def test_main_rejects_fake_flags_in_prod():
     settings = load_settings(DEV_YAML)
-    kiosk = settings.model_copy(update={"app": settings.app.model_copy(update={"mode": "kiosk"})})
+    prod = settings.model_copy(update={"app": settings.app.model_copy(update={"mode": "prod"})})
     ok = [check.CheckRow("config", "OK", "ok")]
-    code = entry.main(["--fake-workers"], check=lambda c, e: (ok, kiosk),
+    code = entry.main(["--fake-workers"], check=lambda c, e: (ok, prod),
                       launch=lambda s, a: 0)  # fmt: skip
     assert code == 2
 
@@ -356,7 +320,7 @@ def test_check_catches_test_question_in_suggestions(tmp_path, locked, monkeypatc
                                                    "Ada asrama?"])  # fmt: skip
     monkeypatch.setenv("GROQ_API_KEY", FAKE_KEY)
     rows, _ = check.run_check(config, None, tmp_path, ROOT / "data" / "kb", lambda: DEVICES,
-                              (tmp_path / "msedge.exe",), test_set=test_set)  # fmt: skip
+                              test_set=test_set)  # fmt: skip
     leak = {r.item: r for r in rows}["kebocoran set uji"]
     assert leak.status == "GAGAL" and "o-test-001" in leak.message
     assert "o-test-002" not in leak.message and check.failed(rows)
@@ -366,12 +330,11 @@ def test_check_no_leak_ok_and_no_row_without_test_set(tmp_path, locked, monkeypa
     config = _with_suggestions(tmp_path, {"Biaya": ["Biaya kuliah S1 berapa per tahun?"]})
     _models(tmp_path, locked, load_settings(config))
     test_set = _test_set(tmp_path / "test.jsonl", ["Jalur beasiswa apa saja?"])
-    (tmp_path / "msedge.exe").write_bytes(b"")
     monkeypatch.setenv("GROQ_API_KEY", FAKE_KEY)
 
     def run(path):
         return check.run_check(config, None, tmp_path, ROOT / "data" / "kb", lambda: DEVICES,
-                               (tmp_path / "msedge.exe",), test_set=path)[0]  # fmt: skip
+                               test_set=path)[0]  # fmt: skip
 
     leak = {r.item: r for r in run(test_set)}["kebocoran set uji"]
     assert leak.status == "OK" and "1 pertanyaan tidak identik/mirip" in leak.message
@@ -385,7 +348,7 @@ def test_check_catches_test_question_in_topic_cards(tmp_path, locked, monkeypatc
     test_set = _test_set(tmp_path / "test.jsonl", ["Beasiswa?", "Ada asrama?"])
     monkeypatch.setenv("GROQ_API_KEY", FAKE_KEY)
     rows, _ = check.run_check(config, None, tmp_path, ROOT / "data" / "kb", lambda: DEVICES,
-                              (tmp_path / "msedge.exe",), test_set=test_set)  # fmt: skip
+                              test_set=test_set)  # fmt: skip
     leak = {r.item: r for r in rows}["kebocoran set uji"]
     assert leak.status == "GAGAL" and "o-test-001" in leak.message and "ui.topics" in leak.message
 
@@ -404,7 +367,7 @@ def _run_leak(tmp_path, locked, monkeypatch, config, test_set, dev_sets):
     _models(tmp_path, locked, load_settings(config))
     monkeypatch.setenv("GROQ_API_KEY", FAKE_KEY)
     rows, _ = check.run_check(config, None, tmp_path, ROOT / "data" / "kb", lambda: DEVICES,
-                              (tmp_path / "msedge.exe",), test_set=test_set,
+                              test_set=test_set,
                               dev_sets=dev_sets)  # fmt: skip
     return {r.item: r for r in rows}, rows
 
@@ -433,14 +396,14 @@ def test_check_catches_similar_topic_question(tmp_path, locked, monkeypatch):
 
 
 def test_repo_topic_questions_pass_leak_check_against_data_eval():
-    # pertanyaan chip di config/dev.yaml dan kiosk.yaml tidak identik/mirip data/eval
+    # pertanyaan chip di config/dev.yaml dan prod.yaml tidak identik/mirip data/eval
     from mica.eval.dataset import load_questions
 
     sets = [ROOT / "data/eval/questions.jsonl", ROOT / "data/eval/official/dev.jsonl",
             ROOT / "data/eval/official/test.jsonl"]  # fmt: skip
     questions = [q for p in sets if p.is_file() for q in load_questions(p)]
     assert questions
-    for name in ("dev.yaml", "kiosk.yaml"):
+    for name in ("dev.yaml", "prod.yaml"):
         raw = yaml.safe_load((ROOT / "config" / name).read_text(encoding="utf-8"))
         hints = [t["question"] for t in raw["ui"]["topics"]] + [
             t["label"] for t in raw["ui"]["topics"]

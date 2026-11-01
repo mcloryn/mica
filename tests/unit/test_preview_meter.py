@@ -46,27 +46,27 @@ def _primitive(value) -> bool:
     return value is None or isinstance(value, bool | int | float | str)
 
 
-def test_refused_in_kiosk():
+def test_refused_in_prod():
     check_allowed("dev")
-    with pytest.raises(MeasureRefused, match="kiosk"):
-        check_allowed("kiosk")
+    with pytest.raises(MeasureRefused, match="prod"):
+        check_allowed("prod")
 
 
-def test_worker_configs_refuse_measure_in_kiosk(tmp_path):
+def test_worker_configs_refuse_measure_in_prod(tmp_path):
     vision = VisionWorkerConfig.from_settings(_settings(), TEST_VALUES, models_dir=tmp_path)
     with pytest.raises(WorkerConfigError, match="pengukuran"):
-        replace(vision, mode="kiosk", camera_preview="public", measure=True).validate()
-    audio = AudioWorkerConfig.from_settings(audio_settings("kiosk"), VALUES)
+        replace(vision, mode="prod", camera_preview="public", measure=True).validate()
+    audio = AudioWorkerConfig.from_settings(audio_settings("prod"), VALUES)
     with pytest.raises(AudioWorkerConfigError, match="pengukuran"):
         replace(audio, measure=True).validate()
 
 
-def test_run_refuses_measure_in_kiosk(capsys):
+def test_run_refuses_measure_in_prod(capsys):
     from mica.webui.app import run
 
-    s = _settings("kiosk")
+    s = _settings("prod")
     assert run(s, no_browser=True, measure_preview=True) == 2
-    assert "kiosk" in capsys.readouterr().err
+    assert "prod" in capsys.readouterr().err
 
 
 def test_vision_loop_reports_numbers_only(tmp_path):
@@ -179,7 +179,7 @@ def test_server_counts_browser_draws_only_when_measuring():
     off = WebUi(s.ui, dev=True)
     off.handle_message({"type": "preview_drawn", "n": 7})
     assert off.previews_drawn == 0
-    assert not WebUi(s.ui, dev=False, measure=True).measure  # kiosk: tidak pernah aktif
+    assert not WebUi(s.ui, dev=False, measure=True).measure  # prod: tidak pernah aktif
 
 
 def test_live_jsonl_one_line_per_second_numbers_only(tmp_path):

@@ -2,9 +2,9 @@
 
 Semua perintah dijalankan dari akar repo (PowerShell) setelah `.venv\Scripts\Activate.ps1`.
 Opsi lengkap tiap perintah: tambahkan `--help`. Perintah bertanda **(dev)** ditolak bila
-`app.mode: kiosk`.
+`app.mode: prod`.
 
-## 1. Pemasangan (sekali, lihat docs/KIOSK.md)
+## 1. Pemasangan (sekali, lihat docs/INSTALASI.md)
 
 ```
 python -m venv .venv
@@ -21,7 +21,7 @@ python -m mica setup --only BGE-M3        # ulang satu komponen saja
 
 ```
 python -m mica check                                  # cek kesiapan, kode keluar 1 bila GAGAL
-python -m mica                                        # kiosk (config/kiosk.yaml)
+python -m mica                                        # mode prod (config/prod.yaml)
 python -m mica --config config/dev.yaml               # mode dev, perangkat asli
 python -m mica --config config/dev.yaml --trial-values  # isi null dengan nilai coba SDD 12 (dev)
 python -m mica.webui --config config/dev.yaml --fake-workers --fake-pipeline   # tanpa kamera/mic/Groq (dev)
@@ -29,7 +29,6 @@ python -m mica.webui --config config/dev.yaml --fake-workers --fake-camera     #
 python -m mica.webui --config config/dev.yaml --no-browser                     # server saja, Ctrl+C
 python -m mica.webui --config config/dev.yaml --guided-test                    # uji terpandu ~5 menit (dev)
 python -m mica.webui --config config/dev.yaml --measure-preview                # ukur fps pratinjau (dev)
-python -m mica.ui --config config/dev.yaml                                     # UI PySide6 (cadangan beku)
 ```
 
 ## 3. Knowledge base (M-02) dan RAG

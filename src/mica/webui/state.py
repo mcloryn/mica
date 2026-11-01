@@ -1,8 +1,8 @@
-"""UI web (ADR-19, opsi ui.backend: web): serialisasi ViewModel ke JSON dan pesan browser ke event controller.
+"""UI web (ADR-19 final): serialisasi ViewModel ke JSON dan pesan browser ke event controller.
 
-Tanpa Qt dan tanpa Flask, supaya bisa diuji murni. Aturan tampilan dan event di sini harus
-sama dengan mica.ui.main_window (PySide6); kesamaan itu dibuktikan tes yang membandingkan
-keduanya. Pesan hanya berisi teks tampilan, tidak pernah frame atau audio (N-08).
+Tanpa Qt dan tanpa Flask, supaya bisa diuji murni. Aturan tampilan dan event di sini dulu
+disamakan dengan UI PySide6; sejak RF-2 (1 Nov 2026) UI Qt dihapus dan ini satu-satunya versi.
+Pesan hanya berisi teks tampilan, tidak pernah frame atau audio (N-08).
 """
 
 from __future__ import annotations
@@ -174,7 +174,7 @@ def config_json(ui: UiConfig, dev: bool, trial: bool = False,
 
 
 def event_from_message(msg: dict[str, Any], vm: ViewModel, ui: UiConfig) -> Event | None:
-    """Pesan input browser -> event yang sama dengan sinyal MainWindow; selain itu None."""
+    """Pesan input browser -> event controller; selain itu None."""
     kind = msg.get("type")
     if kind == "typing":  # Langkah 51: tanda mengetik tanpa isi teks
         return Typing()
@@ -202,7 +202,7 @@ def event_from_message(msg: dict[str, Any], vm: ViewModel, ui: UiConfig) -> Even
 
 
 def format_debug(info: DebugInfo) -> str:
-    """Salinan mica.ui.main_window.format_debug (tanpa memuat Qt); kesamaan dibuktikan tes."""
+    """Teks panel debug (dev). Dulu salinan versi Qt; keluarannya dikunci tes (RF-2)."""
 
     def fmt(value: Any) -> str:
         return "-" if value is None else str(value)
