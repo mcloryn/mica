@@ -704,3 +704,12 @@ baru yang mati karena refactor. Ada empat konstanta yang hanya didefinisikan (`r
 `SYSTEM_PARAPHRASE`/`SYSTEM_PLAIN`, `eval/color.py` `METHODS`, `eval/labels.py` `LABEL_COLUMNS`).
 Keempatnya bukan baris K4 dan dua di antaranya bagian prompt RAG, jadi dibiarkan.
 `src/mica/vision/`: 0 baris diubah.
+
+**Koreksi (RF-3, 1 Nov 2026).** Laporan RF-2 menulis bahwa `ruff check .` lulus setelah setiap
+commit. Itu tidak benar sejak 0a0162b: hasil "lulus" berasal dari cache ruff. Tanpa cache
+(`ruff check --no-cache .`), ada 1 temuan I001 di `scripts/ui_bench.py`. Penyebabnya,
+`child_pyside6` masih mengimpor `mica.ui.app` yang sudah dihapus, sehingga ruff menganggapnya
+paket luar. Hasil pytest dan `ruff format --check` tidak terpengaruh. Di RF-3, jalur PySide6
+(`child_pyside6`, `--ui both|pyside6`) dibuang dari skrip itu, dan sejak itu ruff selalu
+dijalankan dengan `--no-cache`. Skrip lain di `scripts/` tidak ada yang mengimpor modul `mica.ui`
+yang sudah dihapus (`camera_rate.py` memakai `mica.ui.devfakes`, yang masih ada).

@@ -1,7 +1,11 @@
-"""Pengukuran percobaan ADR-19 (docs/UI-WEB.md, tahap 1): PySide6 vs UI web.
+"""Pengukuran percobaan ADR-19 (docs/UI-WEB.md, tahap 1): dulu PySide6 vs UI web.
+
+RF-3 (1 Nov 2026): jalur PySide6 (child_pyside6, --ui both|pyside6) dihapus karena mica.ui.app
+sudah dihapus di RF-2; versi lengkap yang dipakai mengukur ada di tag tahap1-beku. Bench web di
+bawah juga masih memakai peluncur Edge lama dan hanya bisa dijalankan dari tag itu.
 
 python scripts/ui_bench.py [--config config/dev.yaml] [--reps 3] [--out results/ADR-19]
-                           [--ui both|pyside6|web] [--name ui-bench]
+                           [--ui web] [--name ui-bench]
                            [--cover-window] [--edge-switches on|off] [--long]
 
 Per UI dan ulangan, proses anak menjalankan UI dengan pekerja palsu + pipeline palsu, lalu:
@@ -152,76 +156,6 @@ class LongDriver:
         self.asked += 1
         self.in_block += 1
         self.controller.submit(TextSubmitted(QUESTION.format(n=self.asked)))
-
-
-# --- proses anak: PySide6 ---------------------------------------------------------------
-
-
-def child_pyside6(config: Path) -> int:
-    from PySide6.QtCore import QEvent, QObject, QTimer
-    from PySide6.QtWidgets import QApplication
-
-    from mica.config import load_settings
-    from mica.ui.app import apply_ui_settings, build
-
-    settings = load_settings(config)
-    app = QApplication(sys.argv[:1])
-    kiosk = build(settings, fake_workers=True, fake_pipeline=True)
-    window, controller = kiosk.window, kiosk.controller
-    pending: list[float] = []
-    latencies: list[float] = []
-    state = {"painted": False, "measure": False}
-    original = controller.view
-
-    def view(item: Any) -> None:
-        if state["measure"] and not pending:
-            pending.append(time.perf_counter())
-        original(item)
-        window.update()
-
-    controller.view = view
-
-    class PaintWatch(QObject):
-        def eventFilter(self, obj: Any, event: Any) -> bool:
-            if event.type() == QEvent.Type.Paint and hasattr(obj, "window") and \
-                    obj.window() is window:  # fmt: skip
-                now = time.perf_counter()
-                if not state["painted"]:
-                    state["painted"] = True
-                    emit("painted")
-                if pending:
-                    latencies.append(now - pending.pop())
-            return False
-
-    watch = PaintWatch()
-    app.installEventFilter(watch)
-    driver = Driver(controller, window.vm)
-    commands = stdin_commands()
-
-    def poll() -> None:
-        try:
-            cmd = commands.get_nowait()
-        except queue.Empty:
-            cmd = None
-        if cmd == "go":
-            state["measure"] = True
-            driver.active = True
-        elif cmd == "quit":
-            window.close()
-            app.quit()
-            return
-        driver.tick()
-        if driver.done and driver.active:
-            driver.active = False
-            emit("done", latencies=latencies, updates=len(latencies), unacked=len(pending))
-
-    timer = QTimer()
-    timer.setInterval(50)
-    timer.timeout.connect(poll)
-    timer.start()
-    apply_ui_settings(app, window, settings)
-    kiosk.timer.start()
-    return app.exec()
 
 
 # --- proses anak: web -------------------------------------------------------------------
@@ -643,9 +577,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, default=Path("results/ADR-19"))
     parser.add_argument(
         "--ui",
-        choices=("both", "pyside6", "web"),
-        default="both",
-        help="UI yang diukur (both = PySide6 sebagai pembanding + web)",
+        choices=("web",),
+        default="web",
+        help="UI yang diukur (hanya web sejak RF-3; PySide6 dihapus)",
     )
     parser.add_argument("--name", help="awalan folder hasil (bawaan ui-bench, --long: ui-long)")
     parser.add_argument("--cover-window", action="store_true",
@@ -659,7 +593,7 @@ def main(argv: list[str] | None = None) -> int:
                         help="--long: paksa GC dan baca heap JS/DOM lewat DevTools di tiap reset")  # fmt: skip
     parser.add_argument("--long", action="store_true",
                         help="uji sesi panjang web: 200 pertanyaan, reset tiap 10, RAM tiap reset")  # fmt: skip
-    parser.add_argument("--child", choices=("pyside6", "web"))
+    parser.add_argument("--child", choices=("web",))
     parser.add_argument(
         "--fake-camera",
         action="store_true",
@@ -671,8 +605,6 @@ def main(argv: list[str] | None = None) -> int:
         help="anak web: layani file statis dari folder ini (A/B gaya, bench saja)",
     )
     args = parser.parse_args(argv)
-    if args.child == "pyside6":
-        return child_pyside6(args.config)
     if args.child == "web":
         return child_web(args.config, keep_rendering=args.edge_switches == "on", long=args.long,
                          edge_extra=tuple(args.edge_extra),
@@ -834,7 +766,7 @@ def _bench(args: argparse.Namespace, settings: Any, collect_environment: Any,
                            check=False, capture_output=True, text=True)  # fmt: skip
     tests_line = (tests.stdout.strip().splitlines() or ["-"])[-1]
     print(f"tes UI web: {tests_line}", flush=True)
-    uis = ("pyside6", "web") if args.ui == "both" else (args.ui,)
+    uis = (args.ui,)
     runs: list[dict[str, Any]] = []
     for rep in range(1, args.reps + 1):
         for ui in uis:
@@ -894,8 +826,6 @@ def _bench(args: argparse.Namespace, settings: Any, collect_environment: Any,
         cols = list(summary[uis[0]]) + ["keputusan_tahap1", "alasan"]
         w = csv.DictWriter(f, fieldnames=cols)
         w.writeheader()
-        if "pyside6" in summary:
-            w.writerow({**summary["pyside6"], "keputusan_tahap1": "", "alasan": "pembanding"})
         if "web" in summary:
             w.writerow({**summary["web"], "keputusan_tahap1": verdict,
                         "alasan": "; ".join(reasons)})  # fmt: skip
@@ -913,15 +843,12 @@ def _bench(args: argparse.Namespace, settings: Any, collect_environment: Any,
         "factor": FACTOR, "limit_s": LIMIT_S,
         "latency_definition": {
             "web": "kirim JSON -> ack browser setelah requestAnimationFrame berikutnya (jam Python)",
-            "pyside6": "show_item pertama sejak paint terakhir -> event Paint berikutnya jendela; "
-                       "bench memanggil window.update() agar setiap pembaruan memicu Paint",
         },
         "functional_checks": functional,
         "functional_by_tests": {"command": "pytest -q tests/unit/test_webui.py",
                                 "result": tests_line, "returncode": tests.returncode},
         "decision": {"verdict": verdict, "reasons": reasons},
-        "versions": {"PySide6-Essentials": package_version("PySide6-Essentials"),
-                     "Flask": package_version("Flask"),
+        "versions": {"Flask": package_version("Flask"),
                      "flask-sock": package_version("flask-sock"),
                      "Werkzeug": package_version("Werkzeug"), "psutil": package_version("psutil"),
                      "edge": _edge_version(find_edge())},
