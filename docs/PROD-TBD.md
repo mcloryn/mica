@@ -25,21 +25,23 @@ orang lain.
 
 ### A. RAG dan LLM (11 kunci)
 
+Sejak PROD-2, kesebelas kunci ini diisi di `config/prod.yaml` dengan nilai config Tahap 1 (kolom "Config uji Tahap 1"). Komentarnya di prod.yaml: "# Tahap 1 (tahap1-beku)".
+
 | Kunci | Eksperimen (SDD 12) | config/dev.yaml | Config uji Tahap 1 | Protokol pra-registrasi | Data yang dibutuhkan | Sendiri? |
 |---|---|---|---|---|---|---|
-| kb.chunk_tokens | E-01 | 400 | 400 (KB v5 dibangun dengan 400) | Belum ada docs/E-01.md. Hanya ada tabel hook SDD 9.5 dan aturan di laporan keputusan. Run resmi `results/E-01/official-20261024-203849` ada. | Tidak ada (memakai nilai Tahap 1) | ya, tinggal menyalin nilai Tahap 1 |
-| kb.overlap_tokens | E-01 | 50 | 50 (KB v5) | sama dengan baris di atas | Tidak ada | ya |
-| kb.embedder.revision | Keputusan rekayasa N-14 | 9a0624b896d81da7492a910ffa53731274b6cf3d | sama (juga tercatat di manifest KB v5) | Tidak perlu protokol (keputusan rekayasa). `mica check` juga gagal di baris "KB aktif" karena kunci ini null. | Tidak ada | ya |
-| rag.rrf_k | E-01 | 60 | 60 | sama dengan kb.chunk_tokens | Tidak ada | ya |
-| rag.candidates_per_retriever | E-01 | 20 | 20 | sama dengan kb.chunk_tokens | Tidak ada | ya |
-| rag.gate.threshold | E-02 | 0.5 | 0.5 | Belum ada docs/E-02.md. Hanya ada SDD 9.5. Aturan seri ditambah setelah melihat data (SDD 12). Run resmi `results/E-02/official-20261024-204004` ada. | Tidak ada | ya |
-| llm.chain[0] | E-04 | groq:openai/gpt-oss-120b | groq:openai/gpt-oss-120b | docs/E-04.md (pra-registrasi 1d04e85, 19 Okt 2026; amandemen e23dd81). Isinya pembanding Gemini. | Tidak ada | ya |
-| llm.chain[1] | E-04 | groq:openai/gpt-oss-20b | groq:openai/gpt-oss-20b ada di config, tetapi **tidak dipakai** (cadangan dimatikan di Tahap 1) | sama dengan llm.chain[0] | Tidak ada | ya, tetapi nilai ini tidak teruji di Tahap 1 |
-| llm.timeout_s | E-04 | 10 | 10 | sama dengan llm.chain[0] | Tidak ada | ya |
-| llm.temperature | E-04 | 0.2 | 0.2 | sama dengan llm.chain[0] | Tidak ada | ya |
-| llm.reasoning_effort | E-04 | low | low | sama dengan llm.chain[0] | Tidak ada | ya |
+| kb.chunk_tokens **Terisi (PROD-2)** | E-01 | 400 | 400 (KB v5 dibangun dengan 400) | Belum ada docs/E-01.md. Hanya ada tabel hook SDD 9.5 dan aturan di laporan keputusan. Run resmi `results/E-01/official-20261024-203849` ada. | Tidak ada (memakai nilai Tahap 1) | ya, tinggal menyalin nilai Tahap 1 |
+| kb.overlap_tokens **Terisi (PROD-2)** | E-01 | 50 | 50 (KB v5) | sama dengan baris di atas | Tidak ada | ya |
+| kb.embedder.revision **Terisi (PROD-2)** | Keputusan rekayasa N-14 | 9a0624b896d81da7492a910ffa53731274b6cf3d | sama (juga tercatat di manifest KB v5) | Tidak perlu protokol (keputusan rekayasa). `mica check` juga gagal di baris "KB aktif" karena kunci ini null. | Tidak ada | ya |
+| rag.rrf_k **Terisi (PROD-2)** | E-01 | 60 | 60 | sama dengan kb.chunk_tokens | Tidak ada | ya |
+| rag.candidates_per_retriever **Terisi (PROD-2)** | E-01 | 20 | 20 | sama dengan kb.chunk_tokens | Tidak ada | ya |
+| rag.gate.threshold **Terisi (PROD-2)** | E-02 | 0.5 | 0.5 | Belum ada docs/E-02.md. Hanya ada SDD 9.5. Aturan seri ditambah setelah melihat data (SDD 12). Run resmi `results/E-02/official-20261024-204004` ada. | Tidak ada | ya |
+| llm.chain[0] **Terisi (PROD-2)** | E-04 | groq:openai/gpt-oss-120b | groq:openai/gpt-oss-120b | docs/E-04.md (pra-registrasi 1d04e85, 19 Okt 2026; amandemen e23dd81). Isinya pembanding Gemini. | Tidak ada | ya |
+| llm.chain[1] **Terisi (PROD-2)** | E-04 | groq:openai/gpt-oss-20b | groq:openai/gpt-oss-20b ada di config, tetapi **tidak dipakai** (cadangan dimatikan di Tahap 1) | sama dengan llm.chain[0] | Tidak ada | ya, tetapi nilai ini tidak teruji di Tahap 1 |
+| llm.timeout_s **Terisi (PROD-2)** | E-04 | 10 | 10 | sama dengan llm.chain[0] | Tidak ada | ya |
+| llm.temperature **Terisi (PROD-2)** | E-04 | 0.2 | 0.2 | sama dengan llm.chain[0] | Tidak ada | ya |
+| llm.reasoning_effort **Terisi (PROD-2)** | E-04 | low | low | sama dengan llm.chain[0] | Tidak ada | ya |
 
-Di `config/prod.yaml`, llm.chain[0] dan llm.chain[1] masih berisi teks pengganti
+Sebelum PROD-2, llm.chain[0] dan llm.chain[1] di `config/prod.yaml` berisi teks pengganti
 `groq:<id gpt-oss-120b>` dan `groq:<id gpt-oss-20b>`, jadi `mica check` menghitungnya belum terisi.
 
 ### B. Suara, E-05 (6 kunci)
@@ -97,6 +99,23 @@ bagian 12 statusnya masih TBD atau Provisional:
 - vision.color.method = lut_vote (SDD: TBD, E-08)
 
 Nilainya sama dengan dev dan Tahap 1. Dicatat saja; tidak ada yang diputuskan.
+
+## Status per 2 Nov 2026 (setelah PROD-2)
+
+`python -m mica check --config config/prod.yaml` sekarang melaporkan **24 kunci** belum diisi
+(sebelumnya 35). Baris "model BGE-M3" dan "KB aktif" kini OK. Baris yang masih GAGAL hanya
+"config".
+
+| Kelompok | Sisa | Kunci |
+|---|---|---|
+| A. RAG dan LLM | 0 | - |
+| B. Suara (E-05) | 6 | audio.stt.threads, audio.stt.no_speech_threshold, audio.vad.threshold, audio.vad.min_silence_ms, audio.vad.min_speech_ms, audio.max_utterance_s |
+| C. Vision (E-07, E-08) | 14 | vision.conf, vision.presence_signal, vision.min_shoulder_ratio, vision.min_box_height_ratio, vision.dwell_s, vision.leave_s, session.regreet_cooldown_s, vision.box_upper.top, vision.box_upper.bottom, vision.box_upper.side, vision.keypoint_torso.min_kp_conf, vision.keypoint_torso.shrink, vision.keypoint_torso.torso_aspect, vision.color.min_majority |
+| D. Beban laptop (E-09) | 4 | audio.tts.threads, vision.fps_busy, vision.threads, session.idle_reset_s |
+
+Catatan: SDD bagian 12 masih menulis kunci kelompok A sebagai "Provisional dev" dan berbunyi
+"Config prod baru diisi dari hasil eksperimen". Atas keputusan pengguna, SDD tidak diubah di
+PROD-2.
 
 ## 3. RAG/LLM: dev sekarang vs config Tahap 1
 

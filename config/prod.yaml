@@ -9,22 +9,22 @@ kb:
   # active_id: official-2026-10-23-v1  # arsip; KB resmi v1 (Langkah 61), tidak dihapus
   # active_id: dev-2026-10-15-v2  # arsip, dipakai E-01..E-04 (KB dev tidak dipakai di prod)
   chunker: structure_then_fixed     # ADR-03; alternatif: fixed
-  chunk_tokens: null                # E-01
-  overlap_tokens: null              # E-01
+  chunk_tokens: 400                 # Tahap 1 (tahap1-beku)
+  overlap_tokens: 50                # Tahap 1 (tahap1-beku)
   embedder:
     model: BAAI/bge-m3              # ADR-02
-    revision: null                  # N-14; hash commit lengkap, wajib di prod
+    revision: 9a0624b896d81da7492a910ffa53731274b6cf3d  # Tahap 1 (tahap1-beku)
 rag:
   retriever: hybrid                 # ADR-01; bm25 | dense | hybrid
   top_k: 5                          # ADR-16, diuji ulang di E-01
-  rrf_k: null                       # E-01
-  candidates_per_retriever: null    # E-01
+  rrf_k: 60                         # Tahap 1 (tahap1-beku)
+  candidates_per_retriever: 20      # Tahap 1 (tahap1-beku)
   reranker:
     enabled: false                  # ADR-01; nyala hanya bila lolos aturan E-01
     model: BAAI/bge-reranker-v2-m3
     revision: null                  # N-14; hash commit lengkap, wajib di prod
   gate:
-    threshold: null                 # ADR-06, E-02
+    threshold: 0.50                 # Tahap 1 (tahap1-beku)
   fact_check:
     enabled: true                   # ADR-06 lapis 3
   followup_mode: dual               # dipilih FOLLOWUP.md (Langkah 55, provisional dev); concat | dual | llm_rewrite
@@ -34,11 +34,11 @@ rag:
   source_priority: [pmb]            # prompt v5; nilai rancangan, bukan hasil kalibrasi
 llm:
   chain:                            # ADR-08; urutan coba
-    - groq:<id gpt-oss-120b>
-    - groq:<id gpt-oss-20b>
-  timeout_s: null                   # E-04, dari anggaran 4 detik
-  temperature: null                 # ditetapkan rendah, E-04
-  reasoning_effort: null            # low | medium | high; E-04
+    - groq:openai/gpt-oss-120b      # Tahap 1 (tahap1-beku)
+    - groq:openai/gpt-oss-20b       # Tahap 1 (tahap1-beku); cadangan; tidak teruji di Tahap 1
+  timeout_s: 10                     # Tahap 1 (tahap1-beku)
+  temperature: 0.2                  # Tahap 1 (tahap1-beku)
+  reasoning_effort: low             # Tahap 1 (tahap1-beku)
   prompt_variants: {}               # docs/PROMPT-V4.md; {} = semua rag.prompt_variant. Rencana bila anotasi 120b
                                     # halusinasi 0/28: {groq:openai/gpt-oss-120b: v4, groq:openai/gpt-oss-20b: paraphrase}
 audio:

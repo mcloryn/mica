@@ -121,7 +121,12 @@ def test_setup_reports_wrong_sha_without_overwriting(tmp_path, locked):
 
 
 def test_setup_bge_blocked_when_revision_null(tmp_path, locked):
-    settings = load_settings(PROD_YAML, require_complete=False)
+    # prod.yaml kini berisi revisi (PROD-2); salinan dengan revisi null tetap diblokir
+    raw = yaml.safe_load(PROD_YAML.read_text(encoding="utf-8"))
+    raw["kb"]["embedder"]["revision"] = None
+    path = tmp_path / "prod-null.yaml"
+    path.write_text(yaml.safe_dump(raw, allow_unicode=True), encoding="utf-8")
+    settings = load_settings(path, require_complete=False)
     out: list[str] = []
     dl, _ = _fake_downloaders(locked, [])
     assert setup.run_setup(settings, "BGE-M3", tmp_path, dl, out.append) == 1
@@ -170,9 +175,10 @@ def test_check_prod_nulls_listed_by_key(tmp_path, locked, monkeypatch):
     rows, settings = _run(tmp_path, PROD_YAML, monkeypatch)
     config_row = rows[0]
     assert config_row.status == "GAGAL"
-    for key in ("kb.embedder.revision", "audio.vad.threshold", "session.idle_reset_s",
-                "llm.chain[0]"):  # fmt: skip
+    for key in ("audio.vad.threshold", "session.idle_reset_s", "vision.conf"):
         assert key in config_row.message
+    for key in ("kb.embedder.revision", "llm.chain[0]", "rag.gate.threshold"):  # PROD-2: terisi
+        assert key not in config_row.message
     assert settings is not None and check.failed(rows)
 
 
