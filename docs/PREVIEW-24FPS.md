@@ -1,6 +1,6 @@
 # PREVIEW-24FPS: pratinjau kamera 24 fps (CV-3)
 
-Status: **HASIL**, 2 Nov 2026, branch `cv/imgsz` (worktree `D:\SKRIPSI\mica-cv`). Target 24 fps
+Status: **HASIL** (CV-3 dan CV-3b di bagian 7), 2 Nov 2026, branch `cv/imgsz` (worktree `D:\SKRIPSI\mica-cv`). Target 24 fps
 untuk pratinjau di browser berasal dari dosen pembimbing. Ini **nilai coba**, bukan hasil
 eksperimen. Laju deteksi YOLO (`vision.fps_idle` 5, `vision.fps_busy` null) dan `vision.imgsz`
 640 (keputusan final CV-2) tidak diubah. Kode dan config RAG juga tidak diubah.
@@ -120,3 +120,41 @@ dengan 7 thread torch. CPU vision juga naik. Laju deteksi tetap 5/s sesuai `fps_
 - Pipeline RAG tidak aktif (tanpa `.env`), jadi beban STT/LLM saat bertanya tidak ikut terukur.
   Sapaan TTS ada di awal sesi, sebelum jendela analisis.
 - Penyebab jeda inferensi sekitar 1 detik di A tidak diketahui (lihat bagian 4).
+
+## 7. CV-3b: Pengukuran B ulang di ruang lebih terang (2 Nov 2026)
+
+Kode sama dengan B (`7dbab59`). Exposure kamera **tetap otomatis**; tidak ada setelan manual di
+kode. Cara ukur sama dengan bagian 3: 60 detik, pengguna di depan kamera, hanya angka, label
+`CV3b-B`. Data ada di `results/preview-fps/20261102-135039/` dan
+`results/preview-fps/live-20261102-135039.jsonl`. Jendela analisis 13:51:16-13:52:18.
+
+- **Mode daya:** charger terpasang (baterai 99%), skema "ASUS Recommended", overlay AC
+  `961cc777-…` = Best power efficiency. Tidak ada proses Python lain sebelum run.
+- **fps asli kamera** (tanpa YOLO, sebelum run, skrip diagnosis yang sama): `CAP_PROP_FPS` −1,
+  **15,0 fps** (150 frame / 10 s, median jarak 64,1 ms). Exposure otomatis terbaca −4
+  (≈ 62,5 ms), gain 93, brightness 128, rata-rata luma satu frame 107,5 (hanya angka). Driver C270
+  tidak memendekkan exposure walaupun ruangan lebih terang.
+
+| CV-3b (ruang terang), per detik | median | p5 | p95 |
+|---|---|---|---|
+| fps tampilan browser | **14,8** | 14,5 | 15,7 |
+| fps dikirim server | 14,8 | 14,4 | 15,8 |
+| fps baca kamera | 14,9 | 14,9 | 15,1 |
+| Deteksi YOLO per detik | 5,0 | 5,0 | 6,0 |
+| Waktu satu deteksi (ms) | 106,5 | 96,8 | 119,6 |
+| Jeda maksimum antar-gambar (ms) | 81 | 80 | 98 |
+| CPU vision (% satu inti) | 532 | 402 | 578 |
+| CPU total mesin (%) | 45,8 | 42,2 | 50,2 |
+
+**Keputusan:** median tampilan 14,8 < 24, jadi **`config/prod.yaml` tidak diubah** (tetap 10).
+fps tampilan dibatasi fps kamera pada pencahayaan itu. Laju baca kamera (14,9) sama dengan fps asli
+webcam (15,0), dan setiap frame kamera sampai ke browser. Pada C270 dengan exposure otomatis,
+pencahayaan ruangan ini belum cukup untuk membuat driver memendekkan exposure di bawah sekitar
+62,5 ms.
+
+**Waktu deteksi naik.** Waktu satu deteksi di B naik dari sekitar 48 ms (A di luar jeda, loop
+tunggal) ke sekitar 103 ms (B) dan 106,5 ms (CV-3b). Ini dicatat sebagai akibat berbagi CPU
+dengan thread pembaca di proses yang sama: decode, resize, pixelate atau overlay, dan JPEG sekitar
+15 kali per detik, ditambah GIL Python, berebut dengan 7 thread torch. Penyebab ini belum diisolasi
+dengan pengukuran terpisah. Laju deteksi tetap 5/s (`fps_idle`), dan median 106,5 ms masih jauh
+di bawah jatah 200 ms per deteksi. Waktu sapaan (N-06) belum diukur ulang.
