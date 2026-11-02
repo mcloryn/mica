@@ -42,8 +42,8 @@ Pola frame terbaru di `src/mica/vision/worker.py`, tanpa library baru:
   frame terbaru dan membuang yang lama, error kamera diteruskan, dan CameraStatus terkirim.
 
 Config: `ui.preview_fps` di `config/dev.yaml` = **24** (nilai coba CV-3; sebelumnya 15).
-`config/prod.yaml` tetap 10. Dua tes yang mengunci nilai dev 15 disesuaikan ke 24
-(`tests/unit/test_livepreview.py`, `tests/unit/test_config.py`).
+`config/prod.yaml` tetap 10. Tiga tes yang mengunci nilai dev 15 disesuaikan ke 24
+(dua di `tests/unit/test_livepreview.py`, satu di `tests/unit/test_config.py`).
 
 ## 3. Cara ukur
 
