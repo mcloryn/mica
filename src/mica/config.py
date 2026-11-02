@@ -433,7 +433,9 @@ def _optional_in_prod(settings: Settings) -> set[str]:
     # Field null yang hanya wajib bila komponennya dipakai.
     # null = bawaan .onnx.json suara; null = placeholder teks logo "MICA"
     optional: set[str] = {"audio.tts.length_scale", "ui.logo_path"}
-    if settings.rag.retriever != "hybrid":
+    # rrf_k dipakai fusi hybrid dan followup dual (RRF kueri asli + concat); pool kandidat
+    # dual = rag.candidates_per_retriever (rag/followup.py), jadi keduanya wajib (RF-5, temuan 36)
+    if settings.rag.retriever != "hybrid" and settings.rag.followup_mode != "dual":
         optional |= {"rag.rrf_k", "rag.candidates_per_retriever"}
     if settings.rag.retriever == "bm25":
         # bm25 tidak punya sinyal dense untuk gerbang, jadi threshold wajib null

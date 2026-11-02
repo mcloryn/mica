@@ -10,6 +10,7 @@ from mica.config import (
     ConfigError,
     Settings,
     load_settings,
+    missing_prod_fields,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -294,12 +295,45 @@ def test_hybrid_params_required_for_hybrid_in_prod(tmp_path, field):
 def test_hybrid_params_optional_for_other_retrievers_in_prod(tmp_path, retriever):
     raw = _complete_prod_raw()
     raw["rag"]["retriever"] = retriever
+    raw["rag"]["followup_mode"] = "concat"  # dual juga butuh rrf_k (RF-5)
     raw["rag"]["rrf_k"] = None
     raw["rag"]["candidates_per_retriever"] = None
     if retriever == "bm25":
         raw["rag"]["gate"]["threshold"] = None
     settings = load_settings(_write(tmp_path, raw))
     assert settings.rag.rrf_k is None
+
+
+@pytest.mark.parametrize("retriever", ["bm25", "dense"])
+@pytest.mark.parametrize("field", ["rrf_k", "candidates_per_retriever"])
+def test_rrf_params_required_for_followup_dual_in_prod(tmp_path, retriever, field):
+    # RF-5 (audit temuan 36): dual menggabung dua retrieval dengan RRF walau retriever bukan hybrid
+    raw = _complete_prod_raw()
+    raw["rag"]["retriever"] = retriever
+    raw["rag"]["followup_mode"] = "dual"
+    raw["rag"][field] = None
+    if retriever == "bm25":
+        raw["rag"]["gate"]["threshold"] = None
+    with pytest.raises(ConfigError) as exc:
+        load_settings(_write(tmp_path, raw))
+    assert exc.value.code == CFG_INVALID
+    assert f"rag.{field}" in str(exc.value)
+
+
+def test_rrf_params_dual_not_required_in_dev(tmp_path):
+    raw = _dev_raw()
+    raw["rag"]["retriever"] = "dense"
+    raw["rag"]["followup_mode"] = "dual"
+    raw["rag"]["rrf_k"] = None
+    assert load_settings(_write(tmp_path, raw)).rag.rrf_k is None  # dev: null tetap boleh
+
+
+def test_current_prod_yaml_still_valid_and_lists_rrf_params():
+    # prod.yaml (hybrid + dual) tidak diubah: skema tetap valid, rrf_k dan pool tetap TBD E-01
+    settings = load_settings(PROD_YAML, require_complete=False)
+    assert settings.rag.followup_mode == "dual"
+    missing = missing_prod_fields(settings)
+    assert "rag.rrf_k" in missing and "rag.candidates_per_retriever" in missing
 
 
 def test_stt_threads_required_for_faster_whisper_in_prod(tmp_path):
