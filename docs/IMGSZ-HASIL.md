@@ -1,6 +1,6 @@
-# IMGSZ-HASIL: hasil sweep `vision.imgsz` (CV-2b)
+# IMGSZ-HASIL: hasil sweep `vision.imgsz` (CV-2b, CV-2c)
 
-Status: **HASIL**. Pra-registrasi ada di `docs/IMGSZ.md` (commit `c9a7213`, amandemen `4e1f9f0`).
+Status: **HASIL** (akurasi CV-2b, kecepatan CV-2c). Pra-registrasi ada di `docs/IMGSZ.md` (commit `c9a7213`, amandemen `4e1f9f0`).
 Dokumen ini hanya melaporkan hasil. Aturan pilih dan config tidak diubah.
 
 ## 1. Run
@@ -86,20 +86,112 @@ Tidak ada kandidat yang memenuhi, jadi **imgsz terpilih = 640**. Ini sama dengan
 - Di kode, `bootstrap_counts(n_images, args.bootstrap, seed)` membuat tepat B baris, dan
   `paired_bootstrap` menghitung AP untuk tiap baris.
 
-## 7. Kecepatan
+## 7. Kecepatan (CV-2c, dilaporkan, tidak menentukan)
 
-**Belum diukur.** Tidak ada `speed.json` di `D:\SKRIPSI\cv-hasil\`. Waktu di `timing.predict_s`
-run akurasi bukan pengukuran kecepatan (termasuk `cv2.imread`, `conf` 0,001, dan konversi deteksi
-ke JSON). Nilainya per gambar: 640 51,0 ms, 480 70,1 ms, 416 67,2 ms, 320 22,9 ms, 256 18,9 ms.
-480 dan 416 lebih lambat daripada 640; penyebabnya belum diketahui, dan angka ini tidak dipakai.
+### 7.1 Run
 
-Perintah sesuai bagian 7 pra-registrasi (20 pemanasan, 200 gambar terkunci dari seed 20261030,
-threads 7, urutan 640 → 256), dijalankan pengguna dengan charger terpasang dan tanpa run RAG:
+- Keluaran: `D:\SKRIPSI\cv-hasil\20261102-125149\speed.json`. Log:
+  `D:\SKRIPSI\cv-hasil\sweep-imgsz-speed.log`.
+- Dijalankan 2 Nov 2026 dengan perintah di 7.4 (tidak diubah). Sebelum run: `PowerLineStatus`
+  Online (charger terpasang, baterai 55% sedang diisi) dan tidak ada proses Python lain (tidak ada
+  run RAG).
+- **Mode daya (dicatat manual):** skema `powercfg` "ASUS Recommended"
+  (`bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b`). Mode daya Windows untuk AC (registry
+  `ActiveOverlayAcPowerScheme`) = `961cc777-2547-4f9d-8174-7d86181b8a7a`, yaitu **Best power
+  efficiency**. Jadi angka di bawah diukur pada mode hemat daya; pada mode Best performance
+  angkanya kemungkinan lebih kecil. Mode daya run akurasi tidak tercatat (bagian 1).
+- `plan.mode` speed, `threads` 7, `torch_threads` 7, seed 20261030, 20 id pemanasan + 200 id
+  terukur (tertulis di file), urutan 640 → 256. Lingkungan sama dengan run akurasi (Python
+  3.13.7, torch 2.14.1, ultralytics 8.4.178, SHA-256 bobot `eb3bb826…c14522a9`), CPU Intel64
+  Family 6 Model 154. Inferensi memakai `conf` 0,001 seperti run akurasi.
+
+### 7.2 Hasil (ms per gambar, `Results.speed` Ultralytics, n = 200)
+
+| imgsz | preprocess median | preprocess p95 | inference median | inference p95 | postprocess median | postprocess p95 | total median | total p95 |
+|---|---|---|---|---|---|---|---|---|
+| 640 | 1,10 | 1,99 | 43,81 | 61,89 | 0,80 | 1,56 | 45,92 | 65,56 |
+| 480 | 1,07 | 1,43 | 29,36 | 37,45 | 0,73 | 1,01 | 31,25 | 39,31 |
+| 416 | 0,90 | 1,17 | 25,51 | 31,87 | 0,73 | 1,00 | 27,24 | 33,86 |
+| 320 | 0,59 | 0,85 | 18,36 | 23,96 | 0,73 | 1,04 | 19,75 | 25,52 |
+| 256 | 0,52 | 0,73 | 14,91 | 18,82 | 0,70 | 1,06 | 16,21 | 20,23 |
+
+`total` = preprocess + inference + postprocess per gambar; median dan p95 dihitung per kolom,
+jadi median total tidak harus sama dengan jumlah median tahap. Tidak termasuk `cv2.imread`,
+pelacakan, atau langkah aplikasi lain.
+
+Waktu turun monoton terhadap imgsz. Relatif terhadap 640, median total 480 = 0,68×, 416 = 0,59×,
+320 = 0,43×, 256 = 0,35×. Inference mendominasi (lebih dari 92% total di semua ukuran);
+postprocess hampir konstan (sekitar 0,7 ms).
+
+### 7.3 Kenapa 480/416 lebih lambat di run akurasi
+
+**speed.json tidak menunjukkan hal yang sama**: 480 dan 416 lebih cepat daripada 640 (median
+total 31,3 dan 27,2 ms vs 45,9 ms). Jadi kelambatan di `timing.predict_s` run akurasi (per gambar
+640 51,0 ms, 480 70,1 ms, 416 67,2 ms, 320 22,9 ms, 256 18,9 ms) bukan sifat model atau ukuran
+tensor. Pemeriksaan (tanpa mengubah kode aplikasi; skrip analisis di luar repo yang memakai
+`load_model` dan `predict` dari skrip sweep apa adanya):
+
+1. **Ukuran tensor input sebenarnya.** Predict Ultralytics memakai letterbox `rect` (sisi
+   terpanjang = imgsz, sisi pendek dibulatkan ke kelipatan stride 32), bukan kotak N×N
+   (`docs/IMGSZ.md` bagian 2). Bentuk tensor dicatat dengan membungkus `predictor.preprocess`
+   pada 200 gambar terukur, dan cocok 100% dengan `LetterBox(imgsz, auto=True, stride=32)`.
+   Rumus yang sama lalu diterapkan ke 5000 gambar dari ukuran di anotasi:
+
+   | imgsz | bentuk (h, w) tersering, 5000 gambar | rata-rata piksel, 5000 | rata-rata piksel, 200 speed | rasio ke 640 | piksel N×N |
+   |---|---|---|---|---|---|
+   | 640 | (480, 640) 1522; (448, 640) 1509; (640, 480) 530 | 300.655 | 299.622 | 1,00 | 409.600 |
+   | 480 | (384, 480) 1541; (320, 480) 1290; (480, 384) 544 | 171.875 | 171.571 | 0,57 | 230.400 |
+   | 416 | (320, 416) 1609; (288, 416) 1570; (416, 320) 568 | 128.306 | 127.995 | 0,43 | 173.056 |
+   | 320 | (256, 320) 1658; (224, 320) 1621; (320, 256) 585 | 77.533 | 77.005 | 0,26 | 102.400 |
+   | 256 | (192, 256) 3092; (256, 192) 1036; (256, 256) 266 | 49.794 | 49.725 | 0,17 | 65.536 |
+
+   Piksel tensor turun monoton, dan sampel 200 gambar mewakili 5000 gambar. Tidak ada imgsz yang
+   membuat tensor 480/416 lebih besar daripada 640. Variasi bentuk antar-gambar (rect) ada di
+   semua imgsz, bukan khusus 480/416. Waktu inference turun lebih lambat daripada jumlah piksel
+   (480: 0,67× waktu untuk 0,57× piksel), wajar karena ada overhead tetap per lapis.
+2. **`evaluate_s` juga melonjak di blok 480.** `timing.evaluate_s` (COCOeval, pycocotools murni,
+   tanpa model) = 16,0 / **35,0** / 15,2 / 14,5 / 13,7 detik untuk 640 / 480 / 416 / 320 / 256.
+   Langkah ini hampir tidak bergantung pada imgsz, tetapi di 480 waktunya 2,2× ukuran lain. Ini
+   menunjukkan mesin melambat secara umum selama blok 480 (dan selama predict 416), misalnya karena
+   mode daya, pembatasan termal, atau proses latar. Penyebab persisnya tidak bisa dipastikan: run
+   akurasi tidak mencatat mode daya, suhu, atau beban CPU per waktu.
+3. Faktor yang ada di run akurasi tetapi tidak di speed.json (`cv2.imread`, konversi deteksi ke
+   JSON) berlaku di semua imgsz dan tidak menjelaskan mengapa hanya 480/416 yang lambat.
+
+Kesimpulan: kelambatan 480/416 di run akurasi paling mungkin artefak kondisi mesin saat run, bukan
+sifat imgsz. Ini inferensi dari data waktu, bukan pengukuran langsung. Angka kecepatan yang
+dilaporkan adalah speed.json di 7.2.
+
+### 7.4 Perintah
+
+Sesuai bagian 7 pra-registrasi (20 pemanasan, 200 gambar terkunci dari seed 20261030,
+threads 7, urutan 640 → 256), dengan charger terpasang dan tanpa run RAG:
 
 ```powershell
 Add-Type -AssemblyName System.Windows.Forms; if ([System.Windows.Forms.SystemInformation]::PowerStatus.PowerLineStatus -ne 'Online') { Write-Error 'Charger tidak terpasang: run dibatalkan' } else { powercfg /getactivescheme *>&1 | Tee-Object -FilePath D:\SKRIPSI\cv-hasil\sweep-imgsz-speed.log; & D:\SKRIPSI\mica\.venv\Scripts\python.exe D:\SKRIPSI\mica-cv\scripts\cv_imgsz_sweep.py --data-dir D:\SKRIPSI\datasets\coco --out-dir D:\SKRIPSI\cv-hasil --speed --threads 7 --seed 20261030 *>&1 | Tee-Object -FilePath D:\SKRIPSI\cv-hasil\sweep-imgsz-speed.log -Append }
 ```
 
-Perkiraan lama: 5 ukuran × 220 gambar = 1100 inferensi. Dengan waktu per gambar di atas, sekitar
-220 × (51 + 70 + 67 + 23 + 19) ms ≈ 51 detik, ditambah memuat anotasi dan model. Total sekitar
-**1-2 menit**.
+`powercfg /getactivescheme` hanya mencatat skema daya, bukan mode daya Windows (slider). Mode
+daya dibaca terpisah dari registry `HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes`
+(`ActiveOverlayAcPowerScheme`).
+
+## 8. Catatan: rumusan aturan vs tujuan (ANALISIS PASCA-DATA)
+
+**Label: PASCA-DATA.** Bagian ini ditulis setelah hasil akurasi dan kecepatan diketahui. Ia tidak
+mengubah aturan pilih, config, atau `docs/IMGSZ.md`.
+
+- **Keputusan resmi tetap mengikuti aturan yang dikunci: imgsz = 640** (bagian 4).
+- Rumusan aturan ("pilih imgsz terkecil yang CI 95% selisih 640 − imgsz **mencakup 0**") tidak
+  selaras dengan tujuannya, yaitu memilih ukuran terkecil yang **tidak terbukti lebih buruk**
+  daripada 640. Aturan itu menolak dua jenis kandidat: yang terbukti lebih buruk (CI > 0, sesuai
+  tujuan) dan yang terbukti lebih baik (CI < 0, tidak sesuai tujuan). 480 dan 416 masuk jenis
+  kedua. Rumusan yang selaras dengan tujuan adalah "batas bawah CI ≤ 0" (atau, untuk
+  non-inferioritas yang sebenarnya, "batas atas CI < margin δ" dengan δ ditetapkan sebelum data).
+- Bila rumusan "batas bawah CI ≤ 0" dipakai (**pasca-data, bukan keputusan**), kandidat terkecil
+  yang lolos adalah 416 (CI [−0,0107; −0,0002]); 320 dan 256 tetap gagal. Menurut speed.json,
+  416 memangkas median total dari 45,9 ke 27,2 ms (0,59×).
+- Yang menahan kesimpulan itu, juga pasca-data: AP keypoint large di 416 turun 0,0249
+  [0,0184; 0,0314] (bagian 5 butir 2), padahal MICA memakai keypoint bahu. Metrik utama berbasis
+  box tidak menangkap ini.
+- Perubahan aturan atau imgsz, bila diinginkan, harus lewat keputusan baru yang dicatat terpisah
+  (amandemen pra-registrasi untuk run berikutnya), bukan dengan menafsirkan ulang hasil ini.
