@@ -1,6 +1,6 @@
 # PREVIEW-24FPS: pratinjau kamera 24 fps (CV-3)
 
-Status: **HASIL** (CV-3 dan CV-3b di bagian 7), 2 Nov 2026, branch `cv/imgsz` (worktree `D:\SKRIPSI\mica-cv`). Target 24 fps
+Status: **HASIL** (CV-3; CV-3b di bagian 7; uji kemampuan CV-3c di bagian 8), 2 Nov 2026, branch `cv/imgsz` (worktree `D:\SKRIPSI\mica-cv`). Target 24 fps
 untuk pratinjau di browser berasal dari dosen pembimbing. Ini **nilai coba**, bukan hasil
 eksperimen. Laju deteksi YOLO (`vision.fps_idle` 5, `vision.fps_busy` null) dan `vision.imgsz`
 640 (keputusan final CV-2) tidak diubah. Kode dan config RAG juga tidak diubah.
@@ -158,3 +158,88 @@ dengan thread pembaca di proses yang sama: decode, resize, pixelate atau overlay
 15 kali per detik, ditambah GIL Python, berebut dengan 7 thread torch. Penyebab ini belum diisolasi
 dengan pengukuran terpisah. Laju deteksi tetap 5/s (`fps_idle`), dan median 106,5 ms masih jauh
 di bawah jatah 200 ms per deteksi. Waktu sapaan (N-06) belum diukur ulang.
+
+## 8. CV-3c: uji kemampuan fps dengan exposure manual (2 Nov 2026)
+
+**Ini UJI KEMAMPUAN, bukan perubahan aplikasi.** Tujuannya mengukur fps tampilan browser yang
+sanggup dicapai program bila kamera tidak membatasi. **Aplikasi tetap memakai exposure
+otomatis**: `config/dev.yaml` dan `config/prod.yaml` tidak memuat setelan exposure, dan
+`ui.preview_fps` dev kembali ke 24 setelah uji (prod tetap 10).
+
+### 8.1 Opsi uji (bawaan MATI)
+
+- CLI `python -m mica.webui ... --measure-preview --test-exposure -5`. Opsi ini ditolak tanpa
+  `--measure-preview` (`WebUiError`) dan ditolak di luar `app.mode: dev` (`WorkerConfigError`;
+  `--measure-preview` sendiri juga ditolak di prod). Opsi ini bukan kunci config.
+- Jalurnya: `webui/app.py` (`--test-exposure` → `_start_bus`) → `VisionWorkerConfig.test_exposure`
+  (bawaan `None`) → `Camera(exposure=...)` → `apply_manual_exposure`
+  (`CAP_PROP_AUTO_EXPOSURE` 0,25 lalu `CAP_PROP_EXPOSURE` −5, yaitu 2⁻⁵ s ≈ 31 ms).
+  `test_exposure` dicatat di `summary.json`.
+- **Temuan:** driver Logi C270 (DSHOW) **menyimpan exposure manual setelah kamera dilepas**.
+  Setelah C2 dihentikan (proses dibunuh, jadi `release` tidak sempat berjalan), membuka kamera
+  tanpa setelan apa pun masih memberi exposure −5 dan 30 fps. Exposure otomatis dipulihkan manual
+  (`CAP_PROP_AUTO_EXPOSURE` 0,75). Setelah itu dicek dengan membuka ulang tanpa setelan apa pun:
+  exposure −4, 15,0 fps. Pengaman ditambahkan: `Camera.release()` memanggil
+  `restore_auto_exposure` bila `exposure` diisi. Bila proses dibunuh sebelum `release`, exposure
+  otomatis harus dipulihkan manual seperti di atas.
+- Tes: `tests/unit/test_test_exposure.py` (8 tes). Isinya: bawaan tidak menyentuh exposure, nilai
+  manual dipasang, otomatis dipulihkan saat release, ditolak tanpa measure atau di prod, dan
+  config dev/prod tidak memuat exposure.
+
+### 8.2 Kondisi dan cara ukur
+
+Cara ukur sama persis dengan B (bagian 3). Satu-satunya perbedaan adalah `--test-exposure -5`,
+dengan `ui.preview_fps` 20 (C1) atau 24 (C2) di `config/dev.yaml` selama uji. Pengguna di
+depan kamera, ruangan seperti CV-3b, 60 detik per uji, hanya angka. Mode daya: charger terpasang
+(baterai 100%), "ASUS Recommended", overlay AC **Best power efficiency**. Tidak ada proses Python
+lain sebelum uji.
+
+### 8.3 Kecerahan rata-rata frame (angka saja, frame tidak disimpan)
+
+Diukur sebelum C1 dengan skrip di luar repo: 45 frame pemanasan, lalu 8 detik. Per frame dihitung
+rata-rata V (HSV) dan luminans (grayscale), lalu dirata-ratakan. Pengguna ada di depan kamera.
+
+| exposure | fps kamera | V rata-rata (median) | luminans rata-rata | gain |
+|---|---|---|---|---|
+| otomatis (−4) | 15,0 | 115,2 (115,2) | 97,5 | 101 |
+| manual −5 | **29,75** | **71,0** (70,8) | **57,8** | 93 |
+| otomatis lagi | 15,0 | 112,9 (114,7) | 95,2 | 101 |
+
+Exposure −5 menurunkan V sekitar 38% (115 → 71) dan luminans sekitar 41%. Ini **risiko bagi
+pengenalan warna baju**: nama warna dari tabel w2c bergantung pada kecerahan, sehingga warna
+terang bisa terbaca lebih gelap atau abu-abu. Risiko ini belum diukur, dan pengenal warna tidak
+diubah.
+
+### 8.4 Hasil C1 dan C2 (per detik: median [p5; p95])
+
+| | C1: exposure −5, preview_fps 20 (14:24:33-14:25:40) | C2: exposure −5, preview_fps 24 (14:28:44-14:29:47) |
+|---|---|---|
+| fps kamera (`capture_fps`) | 29,8 [29,8; 29,8] | 29,8 [29,8; 29,8] |
+| JPEG dibuat (`preview_put_fps`) | 20,2 [16,0; 20,2] | 24,0 [23,1; 24,0] |
+| fps dikirim server | 19,9 [11,2; 20,8] | 23,9 [23,2; 24,8] |
+| **fps tampilan browser** | **19,9** [11,2; 20,6] | **23,9** [23,1; 24,7] |
+| Deteksi YOLO per detik | 5,0 [5,0; 6,0] | 5,0 [5,0; 6,0] |
+| Waktu satu deteksi (ms) | 107,2 [96,3; 137,1] | 103,8 [95,4; 121,3] |
+| Jeda maksimum antar-gambar (ms) | 81 [65; 220] | 66 [65; 90] |
+| CPU vision (% satu inti) | 526 [327; 585] | 545 [418; 586] |
+| CPU proses utama (% satu inti) | 9,1 [4,6; 99,6] | 7,7 [4,3; 12,3] |
+| CPU total mesin (%) | 47,3 [42,9; 52,1] | 45,9 [43,0; 50,8] |
+
+Catatan C1: 6 dari 60 detik jatuh saat sapaan TTS (1 detik menyusun, 5 detik memutar), dan p5
+turun ke 11,2. Tanpa 6 detik itu: 19,9 [14,7; 20,7] (n = 54). C2 tidak memuat detik TTS.
+
+### 8.5 Kesimpulan uji kemampuan
+
+- **≥ 20 fps: sanggup.** C1 median 19,9 fps, sama dengan batas `preview_fps` 20. Batasnya penjadwal
+  pratinjau, bukan kamera (29,8) atau CPU (total mesin sekitar 47%).
+- **24 fps: sanggup secara praktis.** C2 median 23,9 fps (99,6% dari 24), dengan p5 23,1 dan p95
+  24,7. Pratinjau dibuat tepat 24,0 per detik; selisih 0,1 berasal dari penghitungan per jendela 1
+  detik di browser. Bila syaratnya dibaca ketat (median ≥ 24,0), 23,9 belum memenuhi.
+- Laju dan waktu deteksi YOLO tidak berubah oleh fps pratinjau (5/s, sekitar 104-107 ms), dan
+  CPU total tetap sekitar 46-47%.
+- Jadi batas fps tampilan di aplikasi (sekitar 15 fps, bagian 4 dan 7) adalah **fps kamera pada
+  exposure otomatis**, bukan program. Untuk 24 fps di aplikasi dibutuhkan kamera yang memberi
+  ≥ 24 fps dengan exposure otomatis (cahaya jauh lebih terang atau webcam lain), atau keputusan
+  baru tentang exposure manual beserta uji pengenalan warnanya. Belum ada yang diputuskan.
+- Keterbatasan sama dengan bagian 6: satu laptop, satu webcam, satu sesi per uji, 60 detik, dan
+  mode Best power efficiency.

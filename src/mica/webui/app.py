@@ -56,6 +56,7 @@ def build_controller(
     pipeline: Any = None,
     clock: Callable[[], float] = time.monotonic,
     measure: bool = False,
+    test_exposure: float | None = None,
 ) -> AppController:
     dev = settings.app.mode == "dev"
     fakes = fake_workers or fake_pipeline or fake_camera or fake_voice
@@ -63,7 +64,7 @@ def build_controller(
         raise WebUiError("pekerja/pipeline palsu hanya boleh saat app.mode: dev (ditolak di prod)")
     log = InteractionLog(Path(settings.logging.dir))
     if bus is None:
-        bus = _start_bus(settings, fake_workers, fake_camera, fake_voice, measure)
+        bus = _start_bus(settings, fake_workers, fake_camera, fake_voice, measure, test_exposure)
     # Langkah 40: pembungkus pasif (pesan bus tidak diubah) untuk tahap start-up dan untuk
     # mengakhiri "Menyiapkan kamera/mikrofon..." saat status pertama pekerja datang
     watch = bus = startup.StartupBus(bus, on_status=webui.device_status)
@@ -105,7 +106,7 @@ def build_controller(
 
 
 def _start_bus(settings: Settings, fake_workers: bool, fake_camera: bool, fake_voice: bool,
-               measure: bool = False) -> Any:  # fmt: skip
+               measure: bool = False, test_exposure: float | None = None) -> Any:  # fmt: skip
     """Pekerja kamera dan suara, masing-masing asli atau palsu (dev; Langkah 41):
     - --fake-workers: suara palsu di proses utama, kamera palsu (tanpa kamera) atau, dengan
       --fake-camera, proses kamera dengan sumber gambar palsu;
@@ -118,12 +119,15 @@ def _start_bus(settings: Settings, fake_workers: bool, fake_camera: bool, fake_v
     from mica.ui.devfakes import FakeWorkerBus, fake_camera_config, start_fake_camera
     from mica.vision.worker import VisionWorkerConfig
 
+    if test_exposure is not None and not measure:  # CV-3c: hanya uji kemampuan terukur
+        raise WebUiError("--test-exposure hanya bersama --measure-preview (dev)")
     if measure:  # --measure-preview: pekerja asli dengan antrean pengukuran (dev)
         if fake_workers:
             raise WebUiError("--measure-preview butuh pekerja asli (tidak dengan --fake-workers)")
         vision_cfg = (fake_camera_config(settings) if fake_camera
                       else VisionWorkerConfig.from_settings(settings))  # fmt: skip
-        vision_cfg = replace(vision_cfg, measure=True)
+        vision_cfg = replace(vision_cfg, measure=True, test_exposure=test_exposure)
+        vision_cfg.validate()  # --test-exposure di prod ditolak sebelum pekerja dimulai
         if fake_voice:
             return FakeWorkerBus(start_workers(settings, vision=vision_cfg, workers=("vision",)))
         audio_cfg = replace(AudioWorkerConfig.from_settings(settings), measure=True)
@@ -193,7 +197,7 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
         port: int = 0, record_resources: Path | None = None, resource_interval: float = 5.0,
         e09: bool = False, trial: bool = False, prompt_label: str | None = None,
         measure_preview: bool = False, measure_label: str | None = None,
-        guided_test: bool = False) -> int:  # fmt: skip
+        guided_test: bool = False, test_exposure: float | None = None) -> int:  # fmt: skip
     """Rakit lalu jalankan sampai Ctrl+C (dipakai python -m mica dan main)."""
     from mica.eval.preview_meter import MeasureRefused
     from mica.eval.preview_meter import check_allowed as check_measure
@@ -224,7 +228,8 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
         browser = None if no_browser else DefaultBrowser()
         controller = build_controller(settings, webui, fake_workers=fake_workers,
                                       fake_pipeline=fake_pipeline, fake_camera=fake_camera,
-                                      fake_voice=fake_voice, measure=measure_preview)  # fmt: skip
+                                      fake_voice=fake_voice, measure=measure_preview,
+                                      test_exposure=test_exposure)  # fmt: skip
     except (WebUiError, RecorderRefused, MeasureRefused, GuidedRefused) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -247,7 +252,7 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
     meter = None
     if measure_preview:
         meter = make_preview_meter(settings, webui, controller, fake_camera, fake_voice,
-                                   measure_label, guided)  # fmt: skip
+                                   measure_label, guided, test_exposure)  # fmt: skip
         meter.start()
         print(f"--measure-preview: angka per detik ke {meter.live_path}", flush=True)
     try:
@@ -268,7 +273,8 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
 
 def make_preview_meter(settings: Settings, webui: WebUi, controller: AppController,
                        fake_camera: bool, fake_voice: bool,
-                       label: str | None, guided: Any = None) -> Any:  # fmt: skip
+                       label: str | None, guided: Any = None,
+                       test_exposure: float | None = None) -> Any:  # fmt: skip
     import os
 
     from mica.eval.preview_meter import CpuSampler, PreviewMeasurement
@@ -292,7 +298,7 @@ def make_preview_meter(settings: Settings, webui: WebUi, controller: AppControll
               "preview_fps_config": settings.ui.preview_fps,
               "fps_idle_config": settings.vision.fps_idle,
               "fps_busy_config": settings.vision.fps_busy,
-              "guided_test": guided is not None},
+              "guided_test": guided is not None, "test_exposure": test_exposure},
     )  # fmt: skip
 
 
@@ -347,6 +353,12 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="uji terpandu +-5 menit dengan kotak petunjuk; menutup sendiri (dev saja)",
     )
+    parser.add_argument(
+        "--test-exposure",
+        type=float,
+        default=None,
+        help="UJI KEMAMPUAN CV-3c: exposure kamera manual (mis. -5); dev + --measure-preview saja",
+    )
     parser.add_argument("--port", type=int, default=0, help="0 = port acak bebas")
     from mica.eval.resources import add_arguments
 
@@ -375,4 +387,5 @@ def main(argv: list[str] | None = None) -> int:
                resource_interval=args.resource_interval, e09=args.e09,
                trial=args.trial_values, prompt_label=args.prompt_variant,
                measure_preview=args.measure_preview,
-               measure_label=args.measure_label, guided_test=args.guided_test)  # fmt: skip
+               measure_label=args.measure_label, guided_test=args.guided_test,
+               test_exposure=args.test_exposure)  # fmt: skip

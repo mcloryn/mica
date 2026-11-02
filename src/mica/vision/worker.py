@@ -147,6 +147,9 @@ class VisionWorkerConfig:
     preview_pixel_block: int | None = None
     # dev saja (--measure-preview): angka laju/waktu ke antrean pengukuran (mica.eval.preview_meter)
     measure: bool = False
+    # CV-3c, uji kemampuan saja (--test-exposure, dev + --measure-preview): exposure manual kamera.
+    # None (bawaan, dev dan prod) = exposure otomatis. Bukan kunci config.
+    test_exposure: float | None = None
 
     @classmethod
     def from_settings(
@@ -225,6 +228,11 @@ class VisionWorkerConfig:
         _check_dev_only(self.mode, bool(self.camera_factory or self.detector_factory), self.preview)
         if self.measure and self.mode != "dev":
             raise WorkerConfigError("pengukuran pratinjau hanya boleh saat app.mode: dev")
+        if self.test_exposure is not None and (self.mode != "dev" or not self.measure):
+            raise WorkerConfigError(
+                "exposure manual (--test-exposure) hanya untuk uji kemampuan dev "
+                "dengan --measure-preview"
+            )
         if self.camera_preview == "debug" and self.mode != "dev":
             raise WorkerConfigError(
                 "pratinjau debug (tanpa samaran) hanya boleh saat app.mode: dev"
@@ -273,7 +281,7 @@ def _make_detector(cfg: VisionWorkerConfig) -> PersonDetector:
 def _make_camera(cfg: VisionWorkerConfig) -> Camera:
     if cfg.camera_factory is not None:
         return load_factory(cfg.camera_factory)(cfg.camera_source, cfg.factory_options)
-    return Camera(cfg.camera_source)
+    return Camera(cfg.camera_source, exposure=cfg.test_exposure)
 
 
 # CV-3: batas tunggu loop utama akan frame baru (inbox tetap diperiksa) dan batas join thread
