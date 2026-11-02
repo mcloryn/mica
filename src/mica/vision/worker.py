@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import importlib
 import queue
+import threading
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
@@ -275,6 +276,12 @@ def _make_camera(cfg: VisionWorkerConfig) -> Camera:
     return Camera(cfg.camera_source)
 
 
+# CV-3: batas tunggu loop utama akan frame baru (inbox tetap diperiksa) dan batas join thread
+# pembaca saat berhenti; nilai implementasi, bukan ambang SDD
+GRAB_WAIT_S = 0.05
+GRAB_JOIN_S = 2.0
+
+
 class VisionLoop:
     """Isi proses vision; dipisah dari run_vision_worker supaya bisa diuji di satu proses."""
 
@@ -290,8 +297,20 @@ class VisionLoop:
         preview_out: Any = None,
         measure_out: Any = None,
         tts_busy: Any = None,
+        threaded: bool = False,
     ) -> None:
         values = cfg.values
+        # CV-3: threaded=True (proses vision asli) -> kamera dibaca dan pratinjau dikirim di
+        # thread pembaca sendiri; loop utama hanya mengambil frame TERBARU untuk YOLO (frame lama
+        # dibuang), jadi pratinjau tidak menunggu inferensi. False = loop tunggal lama (tes
+        # dengan jam palsu dan scripts/camera_rate.py).
+        self.threaded = threaded
+        self.slot = threading.Condition()  # frame terbaru + status kamera dari thread pembaca
+        self.latest_frame: np.ndarray | None = None
+        self.latest_seq = 0
+        self.pending_status: list[Any] = []
+        self.grab_error: BaseException | None = None
+        self.meter_lock = threading.Lock()  # VisionMeter dipanggil dari dua thread
         # Langkah 51: Event bersama proses suara; di-set selama Piper menyusun suara
         self.tts_busy = tts_busy if cfg.pause_during_tts else None
         self.paused_since: float | None = None
@@ -420,7 +439,8 @@ class VisionLoop:
         image = self.renderer.render(frame, tracks, target, region, label)
         sent = put_latest(self.preview_out, encode_jpeg(image))
         if self.meter is not None:
-            self.meter.rendered(self.clock() - start, sent)
+            with self.meter_lock:
+                self.meter.rendered(self.clock() - start, sent)
         if sent:
             self.previews += 1
 
@@ -449,7 +469,56 @@ class VisionLoop:
             cv2.destroyWindow(WINDOW)
             self.preview_on = False
 
+    def _mark_first_frame(self, now: float) -> None:
+        """Frame pertama: kamera siap, hitung mundur (jendela dev) dimulai."""
+        from mica.core import startup
+
+        startup.mark("camera_first_frame")
+        countdown = self.cfg.countdown_s if self.cfg.preview else 0.0
+        self.scenario_start = now + countdown
+
+    def _maybe_preview(self, frame: np.ndarray, now: float) -> None:
+        """JPEG pratinjau bila jatahnya tiba (1/ui.preview_fps), dengan deteksi terakhir."""
+        assert self.scenario_start is not None
+        due = self.next_preview is None or now >= self.next_preview - 1e-6
+        if self.renderer is not None and now >= self.scenario_start and due:
+            self._publish_preview(frame)
+            assert self.cfg.preview_fps is not None
+            step = 1.0 / self.cfg.preview_fps
+            self.next_preview = max((self.next_preview or now) + step, now)
+
+    def _report_status(self, status: Any, now: float, window_start: float) -> float:
+        """CameraStatus saat berubah atau berkala; mengembalikan awal jendela hitung fps."""
+        if status is not None:
+            fps = self.detections / (now - window_start) if now > window_start else None
+            self._status(status.ok, status.message, fps)
+            self.detections = 0
+            return now
+        if now - window_start >= self.cfg.status_interval_s:
+            fps = self.detections / (now - window_start)
+            self._status(bool(self.camera_ok), self.camera_message, fps)
+            self.detections = 0
+            return now
+        return window_start
+
+    def _detect_if_due(self, frame: np.ndarray, now: float, next_detect: float) -> float:
+        """Deteksi pada laju vision (fps_idle/fps_busy), dilewati saat jeda TTS."""
+        if self._tts_pause(now):
+            if now >= next_detect - 1e-6:
+                self.skipped += 1
+                next_detect = max(next_detect + 1.0 / self.fps, now)
+        elif now >= next_detect - 1e-6:
+            self._detect(frame, now)
+            if self.meter is not None:
+                with self.meter_lock:
+                    self.meter.detected(self.clock() - now)
+            next_detect = max(next_detect + 1.0 / self.fps, now)
+        return next_detect
+
     def run(self) -> None:
+        if self.threaded:
+            self._run_threaded()
+            return
         start = self.clock()
         next_detect = start
         window_start = start
@@ -466,43 +535,99 @@ class VisionLoop:
                     if frame is not None:
                         self.meter.camera(getattr(self.camera, "capture", None))
                         self.meter.frame(frame.shape, now - read_start)
-                if status is not None:
-                    fps = self.detections / (now - window_start) if now > window_start else None
-                    self._status(status.ok, status.message, fps)
-                    self.detections, window_start = 0, now
-                elif now - window_start >= self.cfg.status_interval_s:
-                    fps = self.detections / (now - window_start)
-                    self._status(bool(self.camera_ok), self.camera_message, fps)
-                    self.detections, window_start = 0, now
+                window_start = self._report_status(status, now, window_start)
                 if frame is None:
                     self.sleep(1.0 / self.fps)
                     continue
                 if self.scenario_start is None:  # frame pertama: kamera siap
-                    from mica.core import startup
-
-                    startup.mark("camera_first_frame")
-                    countdown = self.cfg.countdown_s if self.cfg.preview else 0.0
-                    self.scenario_start = now + countdown
+                    self._mark_first_frame(now)
+                    assert self.scenario_start is not None
                     next_detect = self.scenario_start
-                if self._tts_pause(now):
-                    if now >= next_detect - 1e-6:
-                        self.skipped += 1
-                        next_detect = max(next_detect + 1.0 / self.fps, now)
-                elif now >= next_detect - 1e-6:
-                    self._detect(frame, now)
-                    if self.meter is not None:
-                        self.meter.detected(self.clock() - now)
-                    next_detect = max(next_detect + 1.0 / self.fps, now)
-                due = self.next_preview is None or now >= self.next_preview - 1e-6
-                if self.renderer is not None and now >= self.scenario_start and due:
-                    self._publish_preview(frame)
-                    assert self.cfg.preview_fps is not None
-                    step = 1.0 / self.cfg.preview_fps
-                    self.next_preview = max((self.next_preview or now) + step, now)
+                next_detect = self._detect_if_due(frame, now, next_detect)
+                self._maybe_preview(frame, now)
                 if self.preview_on:
                     self._show(frame, now)
                 del frame  # N-08: frame hanya di memori
         finally:
+            self.camera.release()
+
+    def _grab_loop(self, stop: threading.Event) -> None:
+        """Thread pembaca (CV-3): baca kamera secepat driver memberi frame, simpan HANYA frame
+        terbaru di slot (yang lama dibuang), dan kirim pratinjau pada ui.preview_fps memakai
+        deteksi terakhir. Tidak pernah menunggu YOLO."""
+        try:
+            while not stop.is_set():
+                read_start = self.clock()
+                frame, status = self.camera.read()
+                now = self.clock()
+                if self.meter is not None:
+                    with self.meter_lock:
+                        self.meter.tick()
+                        if frame is not None:
+                            self.meter.camera(getattr(self.camera, "capture", None))
+                            self.meter.frame(frame.shape, now - read_start)
+                if frame is not None and self.scenario_start is None:
+                    self._mark_first_frame(now)
+                with self.slot:
+                    if status is not None:
+                        self.pending_status.append(status)
+                    if frame is not None:
+                        self.latest_frame = frame
+                        self.latest_seq += 1
+                    self.slot.notify_all()
+                if frame is None:
+                    stop.wait(1.0 / self.fps)
+                    continue
+                self._maybe_preview(frame, now)
+                del frame  # N-08: frame hanya di memori
+        except BaseException as exc:  # noqa: BLE001 - dinaikkan ulang oleh loop utama
+            with self.slot:
+                self.grab_error = exc
+                self.slot.notify_all()
+
+    def _run_threaded(self) -> None:
+        stop = threading.Event()
+        grabber = threading.Thread(target=self._grab_loop, args=(stop,),
+                                   name="mica-vision-grab", daemon=True)  # fmt: skip
+        start = self.clock()
+        next_detect = start
+        window_start = start
+        last_seq = 0
+        started = False  # next_detect sudah disejajarkan ke scenario_start
+        grabber.start()
+        try:
+            while self.running:
+                self.handle_inbox()
+                if not self.running:
+                    break
+                with self.slot:
+                    self.slot.wait_for(
+                        lambda last=last_seq: bool(self.pending_status)
+                        or self.grab_error is not None
+                        or self.latest_seq != last,
+                        timeout=GRAB_WAIT_S,
+                    )  # fmt: skip
+                    statuses, self.pending_status = self.pending_status, []
+                    frame, seq, error = self.latest_frame, self.latest_seq, self.grab_error
+                if error is not None:
+                    raise error
+                now = self.clock()
+                for status in statuses or [None]:
+                    window_start = self._report_status(status, now, window_start)
+                if frame is None or seq == last_seq:
+                    continue  # belum ada frame baru; frame yang terlewat memang dibuang
+                last_seq = seq
+                if not started and self.scenario_start is not None:
+                    next_detect, started = self.scenario_start, True
+                next_detect = self._detect_if_due(frame, now, next_detect)
+                if self.preview_on:
+                    self._show(frame.copy(), now)  # salinan: thread pembaca memakai frame sama
+                del frame  # N-08: frame hanya di memori
+        finally:
+            stop.set()
+            grabber.join(GRAB_JOIN_S)
+            with self.slot:
+                self.latest_frame = None
             self.camera.release()
 
 
@@ -550,7 +675,7 @@ def run_vision_worker(
         startup.mark("warmup_inference_done")
         loop = VisionLoop(cfg, inbox, outbox, _make_camera(cfg), detector,
                           preview_out=preview_out, measure_out=measure_out,
-                          tts_busy=tts_busy)  # fmt: skip
+                          tts_busy=tts_busy, threaded=True)  # fmt: skip
         if loop.meter is not None:
             loop.meter.torch_threads = torch_threads
         loop.run()
