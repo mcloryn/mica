@@ -197,8 +197,40 @@ def test_current_prod_yaml_rejected():
         load_settings(PROD_YAML)
     assert exc.value.code == CFG_INVALID
     message = str(exc.value)
-    for field in ("kb.chunk_tokens", "rag.gate.threshold", "llm.timeout_s", "llm.chain[0]"):
+    # PROD-2: kunci RAG/LLM terisi dari Tahap 1; kunci suara/vision/E-09 masih TBD
+    for field in ("audio.vad.threshold", "vision.conf", "vision.fps_busy", "session.idle_reset_s"):
         assert field in message
+    for field in PROD2_RAG_LLM_KEYS:
+        assert field not in message
+
+
+PROD2_RAG_LLM_KEYS = (
+    "kb.chunk_tokens",
+    "kb.overlap_tokens",
+    "kb.embedder.revision",
+    "rag.rrf_k",
+    "rag.candidates_per_retriever",
+    "rag.gate.threshold",
+    "llm.chain[0]",
+    "llm.chain[1]",
+    "llm.timeout_s",
+    "llm.temperature",
+    "llm.reasoning_effort",
+)
+
+
+def test_prod_yaml_rag_llm_from_tahap1():
+    # PROD-2: kb/rag/llm prod = config uji Tahap 1 (tag tahap1-beku), identik dengan dev.yaml
+    dev = yaml.safe_load(DEV_YAML.read_text(encoding="utf-8"))
+    prod = yaml.safe_load(PROD_YAML.read_text(encoding="utf-8"))
+    for section in ("kb", "rag", "llm"):
+        assert prod[section] == dev[section], section
+    assert prod["llm"]["chain"] == ["groq:openai/gpt-oss-120b", "groq:openai/gpt-oss-20b"]
+    assert prod["rag"]["gate"]["threshold"] == 0.5 and prod["rag"]["rrf_k"] == 60
+    lines = PROD_YAML.read_text(encoding="utf-8").splitlines()
+    tagged = [ln for ln in lines if "# Tahap 1 (tahap1-beku)" in ln]
+    assert len(tagged) == len(PROD2_RAG_LLM_KEYS)
+    assert any("gpt-oss-20b" in ln and "tidak teruji di Tahap 1" in ln for ln in tagged)
 
 
 def _reorder(node):
@@ -275,7 +307,7 @@ def test_current_prod_yaml_has_official_active_id():
     with pytest.raises(ConfigError) as exc:
         load_settings(PROD_YAML)
     assert "kb.active_id" not in str(exc.value)
-    assert "kb.chunk_tokens" in str(exc.value)
+    assert "vision.conf" in str(exc.value)
     raw = yaml.safe_load(PROD_YAML.read_text(encoding="utf-8"))
     assert raw["kb"]["active_id"].startswith("official-")
 
@@ -328,12 +360,13 @@ def test_rrf_params_dual_not_required_in_dev(tmp_path):
     assert load_settings(_write(tmp_path, raw)).rag.rrf_k is None  # dev: null tetap boleh
 
 
-def test_current_prod_yaml_still_valid_and_lists_rrf_params():
-    # prod.yaml (hybrid + dual) tidak diubah: skema tetap valid, rrf_k dan pool tetap TBD E-01
+def test_current_prod_yaml_still_valid_and_rrf_params_filled():
+    # prod.yaml (hybrid + dual): skema tetap valid; rrf_k dan pool diisi dari Tahap 1 (PROD-2)
     settings = load_settings(PROD_YAML, require_complete=False)
     assert settings.rag.followup_mode == "dual"
     missing = missing_prod_fields(settings)
-    assert "rag.rrf_k" in missing and "rag.candidates_per_retriever" in missing
+    assert "rag.rrf_k" not in missing and "rag.candidates_per_retriever" not in missing
+    assert settings.rag.rrf_k == 60 and settings.rag.candidates_per_retriever == 20
 
 
 def test_stt_threads_required_for_faster_whisper_in_prod(tmp_path):
