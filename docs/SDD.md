@@ -139,6 +139,7 @@ Bagian ini mencatat keputusan desain yang diambil selama implementasi MS0 dan MS
 | M-10, 3.4 (Langkah 40, start) | UI tampil lebih dulu: setelah mica check lolos, proses kamera dan suara dimulai, pipeline RAG dirakit di thread latar (BackgroundPipeline), lalu server web berjalan dan browser default dibuka. Selama komponen belum siap UI menampilkan status "Menyiapkan ..."; pertanyaan ketik sebelum pipeline siap ditahan lalu dijawab. Tahap start dicatat ke logs/startup-\<tanggal>.jsonl tanpa data pengunjung. Waktu sampai UI tampil dengan kamera dan suara asli 14,27 detik sebelum perbaikan (laptop dev); angka sesudah perbaikan dan sesudah refactor RF-2 belum diukur resmi dan akan diukur ulang di E-09. | Memuat BGE-M3 dan model lain membuat layar kosong terlalu lama. Angka mulai 0,80 sampai 2,46 detik di baris Langkah 29 sampai 32 berasal dari bench dengan pekerja dan pipeline palsu serta Edge, sehingga tidak mewakili start dengan perangkat asli. |
 | M-09, 7.1 (Langkah 51, akhir sesi) | PersonLeft ditahan selama pengunjung masih aktif (GREETING, LISTENING, THINKING, SPEAKING, atau ada event Typing dalam vision.leave\_s terakhir). Sesi baru berakhir pada Tick setelah tidak aktif selama leave\_s; PersonArrived saat penahanan membatalkannya. Event UI baru Typing. Rincian di 7.1. | Temuan uji black-box 21 Oktober 2026: sesi sempat direset saat pengunjung masih aktif tetapi sesaat tidak terdeteksi kamera, misalnya saat menunduk mengetik. |
 | M-10 (Langkah 57, tampilan versi F) | Tampilan versi F dipilih pemilik proyek 21 Oktober 2026: dua kolom (kamera kiri, chat kanan). Hanya HTML dan CSS yang berubah; app.js, kode Python, dan pesan WebSocket tetap. Penyimpangan dari gaya Langkah 37b/37c (subjudul, tanda perisai SVG yang bukan logo resmi, ilustrasi gedung dan slogan, avatar pesan, footer di kolom kiri, bayangan tipis, radius sampai 16 px, jarak 20 px) dipertahankan dan dicatat di docs/UI-WEB.md. | Keputusan pemilik proyek setelah membandingkan beberapa versi tampilan. Penyimpangan dari aturan gaya sebelumnya diungkap di Bab 3. |
+| M-07, M-10, 12 (CV-2 sampai CV-6: imgsz dan pratinjau 24 fps) | vision.imgsz = 640 ditetapkan dari sweep imgsz yang dipra-registrasi (docs/IMGSZ.md, commit c9a7213; hasil docs/IMGSZ-HASIL.md): tidak ada kandidat yang memenuhi aturan keputusan (CI 95% selisih AP box orang besar terhadap 640 mencakup 0), sehingga 640 dipertahankan. Pembacaan kamera dipindah ke thread yang selalu menyimpan frame terbaru, sehingga pratinjau tidak menunggu YOLO (docs/PREVIEW-24FPS.md); ui.preview\_fps = 24 di dev dan prod. pyvips dibandingkan dengan OpenCV untuk pengolahan pratinjau dan tidak dipakai (docs/PYVIPS-HASIL.md). Digabung ke main di 6d76333; prod.yaml diisi di CV-6. | Target pembimbing pratinjau sekitar 24 fps. CV-3c membuktikan program sanggup 23,9 fps (exposure manual, uji kemampuan saja); di perangkat uji tampilan dibatasi kamera Logi C270 sekitar 15 fps dengan exposure otomatis. imgsz 480 dan 416 sedikit lebih baik pada AP box tetapi AP keypoint orang besar turun signifikan; temuan ini diungkap sebagai analisis pasca-data. OpenCV lebih cepat dari pyvips di kedua kasus uji. |
 
 ## 3. Arsitektur
 
@@ -269,7 +270,7 @@ Semua path relatif terhadap `src/mica/`. Tipe data yang disebut di sini didefini
 
 ### M-07: Vision worker (`vision/`)
 
-- **Tanggung jawab:** di proses tersendiri, membaca kamera, mendeteksi dan melacak orang, menentukan apakah seseorang berhenti di depan laptop, menamai warna pakaiannya, lalu mengirim event. Frame tidak pernah ditulis ke disk dan tidak lewat bus event (N-08). Bila `ui.camera_preview` bukan `off`, proses kamera membuat gambar pratinjau kecil (JPEG 320 px) di memori dan mengirimnya lewat antrean pratinjau terpisah ke browser lokal (127.0.0.1); mode `public` menyamarkan seluruh gambar kecuali kotak target, mode `debug` (tanpa samaran) hanya boleh di dev. Gambar pratinjau tidak disimpan.
+- **Tanggung jawab:** di proses tersendiri, membaca kamera, mendeteksi dan melacak orang, menentukan apakah seseorang berhenti di depan laptop, menamai warna pakaiannya, lalu mengirim event. Frame tidak pernah ditulis ke disk dan tidak lewat bus event (N-08). Bila `ui.camera_preview` bukan `off`, proses kamera membuat gambar pratinjau kecil (JPEG 320 px) di memori dan mengirimnya lewat antrean pratinjau terpisah ke browser lokal (127.0.0.1); mode `public` menyamarkan seluruh gambar kecuali kotak target, mode `debug` (tanpa samaran) hanya boleh di dev. Gambar pratinjau tidak disimpan. Kamera dibaca oleh thread tersendiri yang selalu menyimpan frame terbaru, sehingga pratinjau tidak menunggu inferensi YOLO (CV-3, docs/PREVIEW-24FPS.md).
 - **Kebutuhan:** F-01 sampai F-04, N-06, N-07, N-08, US-06, US-07. **ADR:** ADR-12, ADR-14, ADR-15 (Provisional), ADR-13 (Terbuka).
 - **Antarmuka:**
   - `class PersonDetector(Protocol): def detect_and_track(self, frame: np.ndarray) -> list[PersonTrack]` dengan `UltralyticsDetector(model, tracker)`; `PersonTrack` memuat `track_id`, kotak, skor, dan keypoint bila model pose.
@@ -891,7 +892,7 @@ F-18 tidak punya ADR karena tidak melibatkan pilihan metode; desainnya keputusan
 | `audio.stt.groq_model` | E-05 | Dev: ID model dari dokumentasi Groq; prod null. E-05 memilih whisper-large-v3 atau whisper-large-v3-turbo (opsional; wajib hanya bila E-05 memilih audio.stt.backend = groq\_whisper, sehingga tidak termasuk 36 kunci mica check) | TBD |
 | `audio.max_utterance_s` | E-05 | Nilai coba 15 (tanpa sumber, perlu ditetapkan di E-05) | TBD |
 | `audio.tts.voice` | E-06 | id\_ID-news\_tts-medium | Provisional |
-| `vision.model`, `vision.conf`, `vision.imgsz` | E-07 | yolo26n-pose; 0,1 dan 640 (bawaan Ultralytics) | Provisional dev |
+| `vision.model`, `vision.conf`, `vision.imgsz` | E-07 | yolo26n-pose; conf 0,1 (bawaan Ultralytics); imgsz 640 dari sweep imgsz terpra-registrasi (docs/IMGSZ.md, hasil docs/IMGSZ-HASIL.md) | conf: Provisional dev; imgsz: Terisi (CV-2, 2 November 2026) |
 | `vision.presence_signal`, `vision.min_shoulder_ratio`, `vision.min_box_height_ratio` | E-07 | shoulder\_width; nilai coba rasio bahu 0,22 (kalibrasi dev) | TBD |
 | `vision.dwell_s`, `vision.leave_s` | E-07 | Nilai coba 2 dan 3 detik | TBD |
 | `session.regreet_cooldown_s` | E-07 | null = tanpa jeda | TBD |
@@ -901,9 +902,9 @@ F-18 tidak punya ADR karena tidak melibatkan pilihan metode; desainnya keputusan
 | `session.idle_reset_s` | E-09 dan uji pengguna | null = tidak pernah timeout | TBD |
 | Batas kata jawaban | E-09 | Belum ada nilai | TBD |
 
-Tabel ini mencakup ke-36 kunci yang dilaporkan `python -m mica check` sebagai belum terisi di mode prod per 2 November 2026; jumlahnya sama dengan 17 Oktober, tetapi daftarnya berubah (masuk: `llm.chain[0]`, `llm.chain[1]`, `llm.reasoning_effort`, `audio.tts.threads`, `vision.presence_signal`, `vision.conf`, `vision.imgsz`; keluar: `kb.active_id` dan `audio.stt.groq_model`). Nilai coba hanya untuk dev dan demo: dipasang di memori lewat `python -m mica --trial-values` (config prod ditolak), dan UI menampilkan label NILAI COBA (dev). Config prod baru diisi dari hasil eksperimen.
+Tabel ini mencakup ke-36 kunci yang dilaporkan `python -m mica check` sebagai belum terisi di mode prod per 2 November 2026; jumlahnya sama dengan 17 Oktober, tetapi daftarnya berubah (masuk: `llm.chain[0]`, `llm.chain[1]`, `llm.reasoning_effort`, `audio.tts.threads`, `vision.presence_signal`, `vision.conf`, `vision.imgsz`; keluar: `kb.active_id` dan `audio.stt.groq_model`). Sejak CV-6 (2 November 2026) vision.imgsz diisi 640 di prod, sehingga yang tersisa 35 kunci. Nilai coba hanya untuk dev dan demo: dipasang di memori lewat `python -m mica --trial-values` (config prod ditolak), dan UI menampilkan label NILAI COBA (dev). Config prod baru diisi dari hasil eksperimen.
 
-**Nilai keputusan desain (bukan hasil eksperimen).** `audio.input_mode` = push\_to\_talk (18 Oktober 2026), `vision.pause_during_tts` = true (21 Oktober 2026), `ui.camera_preview` = public, `ui.preview_fps` = 10 di prod (15 di dev), dan `ui.preview_pixel_block` = 16 (nilai coba desain tanpa sumber, diungkap di Bab 3).
+**Nilai keputusan desain (bukan hasil eksperimen).** `audio.input_mode` = push\_to\_talk (18 Oktober 2026), `vision.pause_during_tts` = true (21 Oktober 2026), `ui.camera_preview` = public, `ui.preview_fps` = 24 di prod dan dev (nilai coba bersumber target pembimbing; CV-3c menunjukkan program sanggup 23,9 fps, tetapi di perangkat uji tampilan dibatasi kamera Logi C270 sekitar 15 fps dengan exposure otomatis), dan `ui.preview_pixel_block` = 16 (nilai coba desain tanpa sumber, diungkap di Bab 3).
 
 **Risiko desain**
 
@@ -968,6 +969,7 @@ audio:
     voice: id_ID-news_tts-medium    # ADR-11
 vision:
   model: yolo26n-pose               # ADR-12; keypoint_torso butuh model -pose (E-07)
+  imgsz: 640                        # sweep imgsz terpra-registrasi (docs/IMGSZ.md, CV-2)
   tracker: bytetrack.yaml           # ADR-15
   region: keypoint_torso            # ADR-13; keypoint_torso | box_upper (E-08)
   color:
@@ -988,7 +990,7 @@ ui:
     - label: Biaya
       question: <pertanyaan lengkap>
   camera_preview: public            # off | public | debug (debug hanya dev)
-  preview_fps: 10
+  preview_fps: 24                   # nilai keputusan desain (CV-3)
   preview_pixel_block: 16           # nilai coba desain
 logging:
   dir: logs/
@@ -1063,3 +1065,4 @@ mica/
 | 1 November 2026 | Kiosk menjadi web app (bimbingan 22 Oktober 2026; browser jendela biasa, keputusan pemilik proyek 1 November). Judul, cakupan, asumsi 2.3, konteks 3.1, deployment 3.4, M-07, M-10 (error kamera), 8.1, 9.3, MS4, matriks 11, isu 12, dan retensi 6.4: kata kiosk sebagai konsep diganti laptop PMB atau aplikasi; sentuhan diganti ketik dan klik. Catatan tinjau ulang di bawah anggaran latensi 3.3. Nama di kode diubah di baris berikutnya. Baris 2.4 dan riwayat lama dibiarkan sebagai catatan sejarah. |
 | 1 November 2026 (refactor RF-2) | Nama di kode mengikuti refactor RF-2 (branch refactor/webapp, dibuat setelah tag tahap1-beku di 1a9b537): mode kiosk menjadi prod, config/kiosk.yaml menjadi config/prod.yaml, KioskController menjadi AppController, CFG\_GEMINI\_IN\_KIOSK menjadi CFG\_GEMINI\_IN\_PROD. ADR-19 final: UI web dibuka di browser default dalam jendela biasa; peluncur Edge layar penuh, ui.backend, ui.fullscreen, dan PySide6 dihapus. Aplikasi dihentikan dengan Ctrl+C. docs/KIOSK.md menjadi docs/INSTALASI.md. Berlaku setelah RF-2 digabung ke main; perilaku RAG tidak berubah (dibuktikan dengan perbandingan retrieval terhadap tag tahap1-beku). Baris 2.4 dan riwayat yang lebih lama tetap memakai nama lama sebagai catatan sejarah, kecuali nama yang masih berlaku di kode. |
 | 2 November 2026 (audit RF-4) | Revisi dari audit SDD terhadap kode (docs/SDD-AUDIT.md, commit 86a0645, 49 temuan): push-to-talk sebagai bawaan (ADR-10, M-08, 5.2, 7.1, 7.2, 3.3); rag.followup\_mode dual di M-06, 7.3, bagian 12, dan 13.1; penamaan warna lut\_vote dan lut\_mean, HsvRuleNamer dihapus; M-10 versi F dan isi folder ui/ yang bebas Qt; pratinjau kamera (M-07, 3.2, 8.2); urutan start dan log start (3.4); bagian 12 diperbarui dengan kunci yang sudah terisi dan paragraf nilai keputusan desain; 8.1 dan 8.3 disesuaikan; contoh 13.1 diperbaiki agar lolos validasi; 13.2 dilengkapi. Bagian 2.4 ditambah baris Langkah 40, 51, dan 57. Perbaikan kode kecil yang menyertainya (mode offline Hugging Face di prod, rag.rrf\_k wajib untuk dual, teks pemberitahuan) dikerjakan di RF-5. |
+| 2 November 2026 (hasil CV) | vision.imgsz menjadi 640 tetap (sweep terpra-registrasi, docs/IMGSZ.md) di bagian 12 dan 13.1; jumlah kunci prod yang belum terisi menjadi 35. ui.preview\_fps menjadi 24 di prod dan dev (nilai keputusan desain, 13.1). M-07: kamera dibaca thread frame terbaru sehingga pratinjau tidak menunggu YOLO. 2.4 ditambah baris CV-2 sampai CV-6. |
