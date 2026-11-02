@@ -13,6 +13,27 @@ from mica.vision.types import CameraStatus
 
 # non-ADR: jeda antar percobaan membuka ulang kamera (SDD 8.1, "coba lagi berkala")
 REOPEN_INTERVAL_S = 2.0
+# CV-3c: nilai CAP_PROP_AUTO_EXPOSURE DSHOW untuk mode manual dan otomatis
+DSHOW_AUTO_EXPOSURE_MANUAL = 0.25
+DSHOW_AUTO_EXPOSURE_AUTO = 0.75
+
+
+def apply_manual_exposure(capture: Any, exposure: float) -> None:
+    """CV-3c, UJI KEMAMPUAN saja (--test-exposure, dev): kunci exposure manual (log2 detik,
+    mis. -5 = 2^-5 s, sekitar 31 ms). Aplikasi normal tidak memanggil ini (exposure otomatis)."""
+    import cv2
+
+    capture.set(cv2.CAP_PROP_AUTO_EXPOSURE, DSHOW_AUTO_EXPOSURE_MANUAL)
+    capture.set(cv2.CAP_PROP_EXPOSURE, float(exposure))
+
+
+def restore_auto_exposure(capture: Any) -> None:
+    """Kembalikan exposure otomatis. Driver Logi C270 (DSHOW) MENYIMPAN exposure manual setelah
+    kamera dilepas (diamati CV-3c), jadi uji --test-exposure wajib memulihkannya. Bila proses
+    dibunuh sebelum release, pulihkan manual (docs/PREVIEW-24FPS.md bagian 8)."""
+    import cv2
+
+    capture.set(cv2.CAP_PROP_AUTO_EXPOSURE, DSHOW_AUTO_EXPOSURE_AUTO)
 
 
 def _open_cv2(source: int | str) -> Any:
@@ -34,8 +55,10 @@ class Camera:
         open_capture: Callable[[int | str], Any] = _open_cv2,
         clock: Callable[[], float] = time.monotonic,
         reopen_interval_s: float = REOPEN_INTERVAL_S,
+        exposure: float | None = None,
     ) -> None:
         self.source = source
+        self.exposure = exposure  # None = exposure otomatis (aplikasi); angka = uji CV-3c
         self.open_capture = open_capture
         self.clock = clock
         self.reopen_interval_s = reopen_interval_s
@@ -61,6 +84,8 @@ class Camera:
         startup.mark("camera_open_start")
         capture = self.open_capture(self.source)
         if capture is not None and capture.isOpened():
+            if self.exposure is not None:
+                apply_manual_exposure(capture, self.exposure)
             self.capture = capture
             startup.mark("camera_open_done")
             return True
@@ -80,5 +105,7 @@ class Camera:
 
     def release(self) -> None:
         if self.capture is not None:
+            if self.exposure is not None:
+                restore_auto_exposure(self.capture)
             self.capture.release()
             self.capture = None

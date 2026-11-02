@@ -649,10 +649,10 @@ def test_prod_yaml_preview_public_with_trial_values():
     assert "NILAI COBA DESAIN" in line
 
 
-@pytest.mark.parametrize(("path", "fps"), [(DEV_YAML, 15), (PROD_YAML, 10)])
+@pytest.mark.parametrize(("path", "fps"), [(DEV_YAML, 24), (PROD_YAML, 10)])
 def test_preview_fps_user_design_decision(path, fps):
     # Langkah 38: keputusan desain pengguna, bukan hasil eksperimen; laju deteksi tidak berubah.
-    # dev 15 sejak 21 Okt 2026 (keputusan pengguna); prod tetap 10
+    # dev 15 sejak 21 Okt 2026 (keputusan pengguna), 24 sejak CV-3 (nilai coba, target dospem); prod 10
     raw = yaml.safe_load(path.read_text(encoding="utf-8"))
     assert raw["ui"]["preview_fps"] == fps
     assert raw["vision"]["fps_idle"] == 5 and raw["vision"]["fps_busy"] is None

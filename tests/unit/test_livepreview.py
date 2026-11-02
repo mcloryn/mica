@@ -93,7 +93,7 @@ def test_preview_fps_from_config_reaches_worker():
         camera_factory="mica.vision.fakesource:make_camera",
         detector_factory="mica.vision.fakesource:make_detector",
     )  # fmt: skip
-    assert cfg.preview_fps == 15 and cfg.fps_idle == 5
+    assert cfg.preview_fps == 24 and cfg.fps_idle == 5  # CV-3: nilai coba dev 24
 
 
 def test_pixelate_blocks_are_uniform():
@@ -222,8 +222,8 @@ def test_public_preview_jpeg_rate_and_no_extra_inference(tmp_path):
     ref, ref_detector = _loop(tmp_path, "off", None)
     ref.run()
     assert detector.calls == ref_detector.calls  # pratinjau tidak menambah inferensi
-    # 100 frame x 0,04 s = 4 s pada preview_fps config dev (15) -> +-60 JPEG
-    assert loop.cfg.preview_fps == 15
+    # 100 frame x 0,04 s = 4 s pada preview_fps config dev (24, CV-3) -> +-96 JPEG
+    assert loop.cfg.preview_fps == 24
     assert 0.75 * 4 * loop.cfg.preview_fps <= loop.previews <= 4 * loop.cfg.preview_fps + 1
     assert out.qsize() == 1 and out.get_nowait()[:2] == b"\xff\xd8"
 
