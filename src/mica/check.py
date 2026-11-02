@@ -91,6 +91,50 @@ def _check_kb(settings: Settings, kb_root: Path) -> CheckRow:
                     f"embedder {want.model}@{str(want.revision)[:8]})")  # fmt: skip
 
 
+# RF-5: file minimum snapshot reranker (cross-encoder) yang dimuat CrossEncoder secara offline
+RERANKER_FILES = ("config.json", "model.safetensors", "tokenizer_config.json")
+
+
+def _hf_snapshot(models_dir: Path, model: str, revision: str) -> Path:
+    return Path(models_dir) / f"models--{model.replace('/', '--')}" / "snapshots" / revision
+
+
+def _check_hf_cache(settings: Settings, models_dir: Path, kb_root: Path) -> CheckRow | None:
+    """Mode prod (RF-5): model Hugging Face dimuat dengan local_files_only, jadi embedder kueri
+    (model dan revisi dari manifest KB aktif, seperti saat runtime) dan reranker bila menyala
+    harus sudah ada di cache lokal models/. None di mode dev."""
+    from mica.kb.embedder import hf_offline
+    from mica.kb.index import KbLoadError, read_manifest
+    from mica.setup import EMBEDDER_FILES
+
+    if not hf_offline(settings.app.mode):
+        return None
+    item = "cache model offline"
+    try:
+        emb = read_manifest(Path(kb_root) / settings.kb.active_id).get("embedder", {})
+        model, revision = emb.get("model"), emb.get("revision")
+    except (KbLoadError, OSError):
+        model, revision = settings.kb.embedder.model, settings.kb.embedder.revision
+    wanted: list[tuple[str, str | None, tuple[str, ...]]] = [(str(model), revision, EMBEDDER_FILES)]
+    reranker = settings.rag.reranker
+    if reranker.enabled:
+        wanted.append((reranker.model, reranker.revision, RERANKER_FILES))
+    problems = []
+    for name, rev, files in wanted:
+        if not rev:
+            problems.append(f"{name}: revisi terkunci belum ada")
+            continue
+        snapshot = _hf_snapshot(models_dir, name, rev)
+        lost = [f for f in files if not (snapshot / f).is_file()]
+        if lost:
+            problems.append(f"{name}@{rev[:8]}: file hilang {lost}")
+    if problems:
+        return CheckRow(item, "GAGAL", "; ".join(problems) + f" (mode prod tidak mengunduh); "
+                        f"{SETUP_HINT}")  # fmt: skip
+    names = ", ".join(f"{n}@{str(r)[:8]}" for n, r, _ in wanted)
+    return CheckRow(item, "OK", f"{names} ada di {Path(models_dir).as_posix()} (dimuat offline)")
+
+
 def _check_groq(settings: Settings) -> CheckRow:
     uses_groq = any(e.startswith("groq:") for e in settings.llm.chain)
     if not uses_groq:
@@ -208,6 +252,9 @@ def run_check(
     else:
         rows += _check_models(settings, Path(models_dir))
         rows.append(_check_kb(settings, Path(kb_root)))
+        cache = _check_hf_cache(settings, Path(models_dir), Path(kb_root))
+        if cache is not None:
+            rows.append(cache)
         rows.append(_check_groq(settings))
     rows.append(_check_audio(query_devices))
     rows.append(CheckRow("kamera", "INFO", "diperiksa saat start (tidak dibuka oleh check)"))
