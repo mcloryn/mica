@@ -195,3 +195,13 @@ mengubah aturan pilih, config, atau `docs/IMGSZ.md`.
   box tidak menangkap ini.
 - Perubahan aturan atau imgsz, bila diinginkan, harus lewat keputusan baru yang dicatat terpisah
   (amandemen pra-registrasi untuk run berikutnya), bukan dengan menafsirkan ulang hasil ini.
+
+## 9. CV-6: nilai prod (2 Nov 2026)
+
+- `config/prod.yaml` `vision.imgsz` diubah dari `null` menjadi **640**. Ini **nilai keputusan**,
+  bukan nilai coba.
+- Sumbernya adalah aturan pilih yang dikunci di pra-registrasi `docs/IMGSZ.md` bagian 6 (commit
+  c9a7213). Aturan itu diterapkan apa adanya pada hasil di bagian 4 dokumen ini, dan hasilnya 640.
+- Temuan pasca-data di bagian 5 dan 8 tidak dipakai untuk mengubah pilihan ini.
+- `vision.conf` prod tetap `null` (TBD, E-07). Kunci lain tidak diubah.
+- Tes: `test_prod_yaml_imgsz_decision` di `tests/unit/test_config.py`.

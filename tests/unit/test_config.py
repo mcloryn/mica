@@ -486,6 +486,17 @@ def test_reranker_revision_must_be_full_hash(tmp_path):
     assert "rag.reranker.revision" in str(exc.value)
 
 
+def test_prod_yaml_imgsz_decision():
+    # CV-6: imgsz prod 640 = hasil aturan pilih pra-registrasi (docs/IMGSZ.md bagian 6,
+    # docs/IMGSZ-HASIL.md bagian 4); conf prod tetap TBD (E-07)
+    raw = yaml.safe_load(PROD_YAML.read_text(encoding="utf-8"))
+    assert raw["vision"]["imgsz"] == 640
+    assert raw["vision"]["conf"] is None
+    line = next(ln for ln in PROD_YAML.read_text(encoding="utf-8").splitlines()
+                if ln.strip().startswith("imgsz:"))  # fmt: skip
+    assert "docs/IMGSZ-HASIL.md" in line and "NILAI COBA" not in line
+
+
 def test_vision_conf_imgsz_required_in_prod(tmp_path):
     raw = _complete_prod_raw()
     raw["vision"]["conf"] = None
@@ -649,10 +660,11 @@ def test_prod_yaml_preview_public_with_trial_values():
     assert "NILAI COBA DESAIN" in line
 
 
-@pytest.mark.parametrize(("path", "fps"), [(DEV_YAML, 24), (PROD_YAML, 10)])
+@pytest.mark.parametrize(("path", "fps"), [(DEV_YAML, 24), (PROD_YAML, 24)])
 def test_preview_fps_user_design_decision(path, fps):
     # Langkah 38: keputusan desain pengguna, bukan hasil eksperimen; laju deteksi tidak berubah.
-    # dev 15 sejak 21 Okt 2026 (keputusan pengguna), 24 sejak CV-3 (nilai coba, target dospem); prod 10
+    # dev 15 sejak 21 Okt 2026 (keputusan pengguna), 24 sejak CV-3 (nilai coba, target dospem);
+    # prod 10, lalu 24 sejak CV-6 (nilai coba, target dospem; docs/PREVIEW-24FPS.md bagian 9)
     raw = yaml.safe_load(path.read_text(encoding="utf-8"))
     assert raw["ui"]["preview_fps"] == fps
     assert raw["vision"]["fps_idle"] == 5 and raw["vision"]["fps_busy"] is None

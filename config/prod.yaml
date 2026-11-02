@@ -80,7 +80,7 @@ vision:
   min_box_height_ratio: null        # E-07; dipakai bila presence_signal box_height
   min_shoulder_ratio: null          # E-07; dipakai bila presence_signal shoulder_width
   conf: null                        # E-07
-  imgsz: null                       # E-07
+  imgsz: 640                        # CV-6: nilai keputusan, aturan pilih docs/IMGSZ.md bagian 6 -> docs/IMGSZ-HASIL.md bagian 4
   fps_idle: 5                       # ADR-20
   fps_busy: null                    # E-09
   pause_during_tts: true            # Langkah 51 (keputusan pengguna 21 Okt 2026): YOLO dijeda saat Piper menyusun suara
@@ -102,7 +102,7 @@ ui:
   logo_path: null                   # file logo lokal; null = placeholder teks "MICA" sampai logo resmi tersedia
   camera_preview: public            # off | public | debug (debug ditolak di prod); Langkah 37
   preview_pixel_block: 16           # NILAI COBA DESAIN (bukan hasil eksperimen): blok pixelate px pada gambar lebar 320
-  preview_fps: 10                   # keputusan desain pengguna 18 Okt 2026: pratinjau minimal 10 fps; tidak menambah inferensi YOLO
+  preview_fps: 24                   # keputusan desain pengguna 18 Okt 2026: pratinjau minimal 10 fps; prod 24 = NILAI COBA CV-6 (target dospem; CV-3c sanggup 23,9 fps, kamera uji membatasi ~15 fps; docs/PREVIEW-24FPS.md; sebelumnya 10); tidak menambah inferensi YOLO
   suggestions: {}                   # F-14; topik -> daftar saran pertanyaan, diisi pengembang
 logging:
   dir: logs/

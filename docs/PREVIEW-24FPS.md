@@ -243,3 +243,17 @@ turun ke 11,2. Tanpa 6 detik itu: 19,9 [14,7; 20,7] (n = 54). C2 tidak memuat de
   baru tentang exposure manual beserta uji pengenalan warnanya. Belum ada yang diputuskan.
 - Keterbatasan sama dengan bagian 6: satu laptop, satu webcam, satu sesi per uji, 60 detik, dan
   mode Best power efficiency.
+
+## 9. CV-6: nilai prod (2 Nov 2026)
+
+- `config/prod.yaml` `ui.preview_fps` diubah dari 10 menjadi **24**. Ini **nilai coba**, bukan
+  hasil eksperimen, dan komentarnya di prod.yaml diberi label "NILAI COBA CV-6".
+- Sumber angka 24 adalah target dari dosen pembimbing.
+- CV-3c (bagian 8) membuktikan program sanggup menampilkan 23,9 fps [23,1; 24,7] di browser bila
+  kamera memberi frame yang cukup.
+- Di perangkat uji (Logi C270, exposure otomatis), tampilan tetap dibatasi kamera sekitar 15 fps
+  (bagian 4 dan 7). Nilai 24 tidak menaikkan laju ini dan tidak menambah inferensi YOLO.
+- Aplikasi tetap memakai exposure otomatis. `--test-exposure` tetap mati secara default.
+- `docs/SDD.md` (baris "Nilai keputusan desain": prod 10) belum diperbarui. Atas keputusan
+  pengguna, SDD akan diperbarui di Claude Doc lalu diekspor ulang.
+- Tes: `test_preview_fps_user_design_decision` di `tests/unit/test_config.py` (prod 24).
