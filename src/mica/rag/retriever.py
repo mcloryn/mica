@@ -16,7 +16,7 @@ import numpy as np
 
 from mica.config import Settings
 from mica.core.types import Chunk, ScoredChunk
-from mica.kb.embedder import DEFAULT_CACHE_DIR, BgeM3Embedder, Embedder
+from mica.kb.embedder import DEFAULT_CACHE_DIR, BgeM3Embedder, Embedder, hf_offline
 from mica.kb.index import KnowledgeBase, tokenize
 
 logger = logging.getLogger(__name__)
@@ -188,8 +188,11 @@ class _LoggedRetriever:
         return hits
 
 
-def embedder_for_kb(kb: KnowledgeBase, factory: EmbedderFactory | None = None) -> Embedder:
-    """Embedder kueri harus sama dengan saat build: model dan revisi dari manifest, bukan config."""
+def embedder_for_kb(
+    kb: KnowledgeBase, factory: EmbedderFactory | None = None, *, offline: bool = False
+) -> Embedder:
+    """Embedder kueri harus sama dengan saat build: model dan revisi dari manifest, bukan config.
+    offline (prod, RF-5): hanya dari cache lokal models/, tanpa menghubungi Hugging Face."""
     info = kb.manifest["embedder"]
     if factory is not None:
         return factory(info["model"], info["revision"])
@@ -198,7 +201,9 @@ def embedder_for_kb(kb: KnowledgeBase, factory: EmbedderFactory | None = None) -
             f"KB {kb.kb_id} dibangun dengan bobot {info.get('weights_file')!r}; "
             "bangun ulang dengan kb.embedder.revision yang berisi model.safetensors"
         )
-    return BgeM3Embedder(info["model"], revision=info["revision"], cache_dir=DEFAULT_CACHE_DIR)
+    return BgeM3Embedder(
+        info["model"], revision=info["revision"], cache_dir=DEFAULT_CACHE_DIR, offline=offline
+    )
 
 
 def make_retriever(
@@ -210,11 +215,12 @@ def make_retriever(
     """Pilih retriever lewat rag.retriever; dibungkus reranker bila rag.reranker.enabled."""
     rag = settings.rag
     kind = rag.retriever
+    offline = hf_offline(settings.app.mode)  # RF-5: prod tidak menghubungi Hugging Face
     if kind == "hybrid" and (rag.rrf_k is None or rag.candidates_per_retriever is None):
         raise ValueError("rag.rrf_k dan rag.candidates_per_retriever wajib diisi untuk hybrid")
 
     def dense() -> DenseRetriever:
-        return DenseRetriever(kb, embedder_for_kb(kb, embedder_factory))
+        return DenseRetriever(kb, embedder_for_kb(kb, embedder_factory, offline=offline))
 
     retriever: Retriever
     if kind == "bm25":
@@ -239,6 +245,7 @@ def make_retriever(
             revision=rag.reranker.revision,
             pool=rag.candidates_per_retriever or rag.top_k,
             loader=cross_encoder_loader,
+            offline=offline,
         )
         name = f"{kind}+rerank"
     return _LoggedRetriever(retriever, name)

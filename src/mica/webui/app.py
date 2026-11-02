@@ -33,6 +33,7 @@ from mica.core import startup
 from mica.core.controller import AppController
 from mica.core.logging import InteractionLog
 from mica.core.session import Session
+from mica.kb.embedder import force_hf_offline, hf_offline
 from mica.webui.server import HOST, WebUi, start_server, stop_server
 
 DEFAULT_CONFIG = Path("config/dev.yaml")
@@ -204,6 +205,8 @@ def run(settings: Settings, *, fake_workers: bool = False, fake_pipeline: bool =
     startup.begin()
     startup.mark("run_start")
     startup.init(Path(settings.logging.dir))
+    if hf_offline(settings.app.mode):  # RF-5: sebelum pekerja di-spawn dan pipeline dirakit
+        force_hf_offline()
     if settings.app.mode == "dev":  # Langkah 42: log diagnosis terlihat di konsol
         from mica.core.logsetup import configure_dev_logging
 

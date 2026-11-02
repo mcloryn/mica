@@ -298,8 +298,12 @@ def test_ui_texts_are_plain_sentences():
         "thinking": "Mencari di dokumen PMB...", "speaking": "Menjawab...",
     }  # fmt: skip
     assert texts.NOTICE_SHORT == (
-        "Kamera aktif, gambar tidak disimpan. Jawaban disusun AI dari dokumen resmi PMB dan bisa "
-        "keliru; pastikan ke staf PMB untuk hal penting.")  # fmt: skip
+        "Kamera aktif, gambar tidak disimpan. Pertanyaanmu diproses layanan AI pihak ketiga; jangan "
+        "sebut data pribadi. Jawaban disusun dari dokumen resmi PMB dan bisa keliru; pastikan ke "
+        "staf PMB untuk hal penting.")  # fmt: skip
+    assert "pihak ketiga" in texts.NOTICE_SHORT_NO_CAMERA  # RF-5, temuan 23
+    for t in (texts.APPROACH, texts.CAMERA_DOWN, texts.TOPICS_HINT):  # RF-5: bukan kiosk
+        assert "Berdirilah" not in t and "sentuhan" not in t and "lengkapi" not in t, t
 
 
 def test_all_session_colors_have_tokens_and_rules():

@@ -14,7 +14,7 @@ Oct 15, 2026 · @hasa
 | --- | --- | --- |
 | [PRD MICA](https://claude.ai/code/artifact/f55398b2-f131-4c6b-84c9-67f4b554021d) | 15 Oktober 2026 | Sumber kebenaran untuk apa yang dibangun: F-01 sampai F-20, N-01 sampai N-14, US-01 sampai US-10, metrik |
 | [Laporan Keputusan Metode dan Arsitektur](https://claude.ai/code/artifact/6881ffd6-a778-48dc-82e3-bc87453a0d0b) | 15 Oktober 2026 | Sumber kebenaran untuk dengan apa dan mengapa: ADR-01 sampai ADR-20, eksperimen E-01 sampai E-09 |
-| Tabel bukti `skripsi/metode/bukti.md` | 51 sumber, dicek 15 Oktober 2026 (nomor 48 sampai 51 ditambahkan 17 Oktober 2026) | Rujukan \[n\] di dokumen ini |
+| Tabel bukti `skripsi/metode/bukti.md` | 53 sumber, dicek 15 Oktober 2026 (nomor 48 sampai 53 ditambahkan setelahnya; tanggal 52 dan 53 dicek di bukti.md) | Rujukan \[n\] di dokumen ini |
 
 Aturan bila keduanya berbeda: untuk kebutuhan, PRD yang berlaku; untuk pilihan metode dan teknologi, laporan keputusan yang berlaku. Setiap perbedaan dicatat di bagian 2.
 
@@ -47,7 +47,7 @@ Komponen berstatus Provisional atau Terbuka selalu ditaruh di balik antarmuka da
 | 07 | Instruksi parafrase + ukur tingkat salin | Provisional | Varian prompt di file, metrik salin di evaluasi | M-06, M-12 | `rag.prompt_variant` |
 | 08 | Groq gpt-oss-120b, cadangan 20b; Gemini hanya dev | Provisional | `LLMProvider` Protocol, rantai cadangan, penjaga mode | M-05 | `llm.chain`, `app.mode` |
 | 09 | faster-whisper lokal vs Groq Whisper | Terbuka | `SpeechToText` Protocol, dua implementasi | M-08 | `audio.stt.backend` |
-| 10 | Silero VAD + tombol bicara | Diadopsi | VAD di proses suara, tombol di UI | M-08, M-10 | `audio.vad.*` |
+| 10 | Silero VAD + push-to-talk (tombol Bicara ditahan) | Diadopsi | VAD di proses suara, tombol di UI | M-08, M-10 | `audio.vad.*` |
 | 11 | Piper id\_ID | Provisional | `TextToSpeech` Protocol + normalisasi angka | M-08 | `audio.tts.voice` |
 | 12 | YOLO26n (atau YOLO26n-pose) | Provisional | `PersonDetector` membungkus Ultralytics | M-07 | `vision.model` |
 | 13 | Keypoint torso, cadangan potongan kotak | Terbuka | `ClothingRegion` Protocol, dua implementasi | M-07 | `vision.region` |
@@ -56,7 +56,7 @@ Komponen berstatus Provisional atau Terbuka selalu ditaruh di balik antarmuka da
 | 16 | Recall@5, MRR, nDCG@10 | Diadopsi | Skrip evaluasi retrieval | M-12 | - |
 | 17 | Hallucination rate + 4 metrik pendukung | Diadopsi | Skrip evaluasi generation dan lembar anotasi | M-12 | - |
 | 18 | Penilaian manusia per klaim; LLM pelengkap | Provisional | Ekspor lembar anotasi, penilai LLM opsional | M-12 | `eval.judge.enabled` |
-| 19 | UI web lokal: Flask 3.1.3 + flask-sock 0.7.0 (server Werkzeug threaded, hanya 127.0.0.1, debugger dan reloader mati), dibuka di browser default dalam jendela biasa (sejak 1 November 2026; sebelumnya Microsoft Edge layar penuh \[52\] \[53\]). ADR-19 final; PySide6 dihapus di refactor RF-2 | Diadopsi (keputusan pemilik proyek 17 Oktober 2026 setelah tahap 1 LOLOS; anggaran diverifikasi di E-09) | Seluruh UI di M-10 (src/mica/webui), logika di luar tampilan | M-10 | - |
+| 19 | UI web lokal: Flask 3.1.3 + flask-sock 0.7.0 (server Werkzeug threaded, hanya 127.0.0.1, debugger dan reloader mati), dibuka di browser default dalam jendela biasa (sejak 1 November 2026; sebelumnya Microsoft Edge layar penuh \[53\]; ambang responsif UI 1 detik dari Nielsen \[52\]). ADR-19 final; PySide6 dihapus di refactor RF-2 | Diadopsi (keputusan pemilik proyek 17 Oktober 2026 setelah tahap 1 LOLOS; anggaran diverifikasi di E-09) | Seluruh UI di M-10 (src/mica/webui), logika di luar tampilan | M-10 | - |
 | 20 | Tiga proses lokal, pipeline modular | Diadopsi | Bus pesan antarproses, pengaturan laju vision | M-13 | `vision.fps_idle`, `vision.fps_busy` |
 
 ### 2.2 Konflik antara PRD dan laporan keputusan
@@ -74,7 +74,7 @@ Komponen berstatus Provisional atau Terbuka selalu ditaruh di balik antarmuka da
 
 - Laptop PMB: Windows 10/11 64-bit, CPU x86-64 tanpa GPU, minimal 8 GB RAM, webcam, mikrofon, speaker, dan internet. Spesifikasi sebenarnya belum diketahui (pertanyaan terbuka PRD), sehingga asumsi ini konservatif dan dicek di E-09. Browser modern (Microsoft Edge bawaan Windows 10/11 sudah cukup) wajib ada karena UI berbasis web.
 - Python 3.11 atau lebih baru.
-- Model BGE-M3, YOLO, Whisper, Silero VAD, dan suara Piper diunduh sekali saat instalasi lalu dipakai offline.
+- Model BGE-M3, YOLO, Whisper, Silero VAD, dan suara Piper diunduh sekali saat instalasi lalu dipakai offline; untuk model Hugging Face (BGE-M3, reranker) mode offline dipaksa di prod (RF-5), karena sebelumnya library masih menghubungi Hugging Face Hub untuk memeriksa revisi (tanpa data pengunjung).
 - Satu laptop PMB, satu pengunjung dalam satu waktu, sesuai Bab 1. Sejak bimbingan 22 Oktober 2026 MICA bukan lagi kiosk, melainkan web app yang dibuka di browser laptop PMB dalam jendela biasa; pengunjung duduk atau berdiri di depan laptop.
 - Dokumen resmi PMB datang dalam format TXT, MD, PDF berteks (bukan hasil pindai), atau DOCX. PDF hasil pindai butuh OCR dan di luar cakupan.
 
@@ -84,7 +84,7 @@ Bagian ini mencatat keputusan desain yang diambil selama implementasi MS0 dan MS
 
 | Bagian | Penyesuaian | Alasan |
 | --- | --- | --- |
-| M-01 | Nilai `null` di mode prod wajib diisi, kecuali `rag.rrf_k` dan `rag.candidates_per_retriever` (wajib hanya bila `rag.retriever = hybrid`) serta `audio.stt.threads` (wajib hanya bila `audio.stt.backend = faster_whisper`) | Mendefinisikan "null yang wajib" di 13.1, supaya parameter yang tidak dipakai tidak perlu dikarang |
+| M-01 | Nilai `null` di mode prod wajib diisi, kecuali `rag.rrf_k` dan `rag.candidates_per_retriever` (wajib bila `rag.retriever = hybrid` atau `rag.followup_mode = dual`; aturan dual menyusul di kode RF-5) serta `audio.stt.threads` (wajib hanya bila `audio.stt.backend = faster_whisper`) | Mendefinisikan "null yang wajib" di 13.1, supaya parameter yang tidak dipakai tidak perlu dikarang |
 | M-01 | Nilai teks yang mengandung `<` dianggap placeholder dan ditolak di mode prod; `kb.active_id` di 13.1 ditulis `official-<YYYY-MM-DD>` | Satu aturan untuk semua placeholder |
 | M-01 | API key dibaca dari environment variable lebih dulu, lalu dari `.env`, dan tidak ikut `config_hash` | Kebiasaan umum; key bukan bagian konfigurasi yang diuji |
 | 5.1 | Field `list[...]` ditulis `tuple[..., ...]`; `Turn.question` dan `TurnRecord.question` bertipe `ScrubbedText` | Dataclass frozen benar-benar tidak bisa diubah; M-11 menolak teks yang belum melewati `scrub_pii` (N-09) |
@@ -126,7 +126,7 @@ Bagian ini mencatat keputusan desain yang diambil selama implementasi MS0 dan MS
 | M-08 dan M-13 (proses suara), 5.2 | Proses suara terpisah lewat bus (5c89abe): antrean to\_audio, restart sekali (WORKER\_RESTART), mati lagi menjadi WORKER\_DEAD dan AudioStatus(mic\_ok=False, speaker\_ok=False, ready=False). Field di luar 5.2: SpeechStarted.t, Transcript.cut\_by\_max dan filtered\_by, SpeechDone.interrupted, AudioStatus.ready dan message. SpeechDone.tts\_first\_audio\_s boleh kosong bila Speak tidak diputar. Setiap Speak mendapat tepat satu SpeechDone, termasuk yang dibuang karena StopSpeaking, kecuali Speak yang hilang saat proses suara mati. Setelah restart mode mendengar kembali off, sehingga M-09 wajib mengirim ulang ListenControl (7.1). bus-demo audio meniru M-09 tanpa UI dan ditolak di mode prod. | Uji 17 Oktober 2026 dengan Whisper dan Piper asli tetapi mikrofon dan speaker palsu: proses suara siap dalam 8,9 detik; RAM proses utama 49 MB dan proses suara 485 MB; audio pertama sapaan 0,22 detik. Proses utama tidak memuat torch, ctranslate2, maupun onnxruntime. Waktu pulih restart dan kecepatan StopSpeaking pada perangkat nyata belum diukur (tertunda). |
 | M-09 (Langkah 22) | Session dibuat sebagai fungsi murni di core/session.py (commit 1f89b2b, ekspor tabel bac4184). Konfigurasi memakai nama SDD session.idle\_reset\_s dan session.regreet\_cooldown\_s, keduanya null di dev dan prod (prod wajib diisi). vision.fps\_busy null berarti SetVisionRate untuk busy tidak dikirim. Field tambahan: RunPipeline.input\_mode, ShowView.send\_enabled, camera\_ok, mic\_ok. Bus.poll() melaporkan CameraStatus(ok=False) atau AudioStatus(ready=False) bersama WORKER\_RESTART sebelum proses baru dimulai. | Logika bisa diuji tanpa perangkat (854 tes). Tanpa laporan status mati, restart kamera tidak terlihat karena CameraStatus(ok=True) dikirim berkala. |
 | M-10 (Langkah 23) | AppController ada di core/controller.py, bukan ui/. Pipeline jalan di ThreadPoolExecutor(max\_workers=1) sebagai pengganti QThreadPool 1 thread; hasil masuk antrean internal sebagai AnswerReady. Konstruktor menerima wall\_clock untuk waktu log. log\_event M-11 untuk greeted, person\_left, idle\_reset, camera\_down, mic\_down (latency\_s masih null). Pertanyaan melewati scrub\_pii sebelum pipeline dan log; exception pipeline menjadi status unavailable dengan teks baku. | Seluruh alur kunjungan bisa diuji ujung ke ujung tanpa Qt (873 tes, 8 skenario integrasi). |
-| M-10 (Langkah 24) | Widget PySide6 hanya merender ViewModel murni (commit f47f4ec). Config baru ui.suggestions (topik ke saran), kosong di dev dan prod; tanpa saran, tombol topik mengirim nama topik sebagai pertanyaan. Panel debug hanya di dev, memakai TurnRecord dari AnswerPipeline.run(). ui/devfakes.py hanya untuk dev. Teks pemberitahuan N-08 di core/texts.py. Rencana Langkah 25: ganti PySide6 penuh dengan PySide6-Essentials. Uji jendela nyata tertunda: tiga syarat ADR-19, keterbacaan font dan tata letak, gulir otomatis, keyboard layar sentuh. | Saran harus berasal dari pertanyaan nyata staf PMB, bukan dari set evaluasi, supaya data uji tidak bocor ke aplikasi. |
+| M-10 (Langkah 24) | Widget PySide6 hanya merender ViewModel murni (commit f47f4ec). Config baru ui.suggestions (topik ke saran), kosong di dev dan prod; tanpa saran, tombol topik mengirim nama topik sebagai pertanyaan (sejak Langkah 53 kartu dan chip topik langsung mengirim pertanyaan lengkap dari ui.topics\[\].question, diproses mandiri tanpa digabung riwayat; mica check menolak pertanyaan topik yang mirip set evaluasi, Jaccard ≥ 0,5). Panel debug hanya di dev, memakai TurnRecord dari AnswerPipeline.run(). ui/devfakes.py hanya untuk dev. Teks pemberitahuan N-08 di core/texts.py. Rencana Langkah 25: ganti PySide6 penuh dengan PySide6-Essentials. Uji jendela nyata tertunda: tiga syarat ADR-19, keterbacaan font dan tata letak, gulir otomatis, keyboard layar sentuh. | Saran harus berasal dari pertanyaan nyata staf PMB, bukan dari set evaluasi, supaya data uji tidak bocor ke aplikasi. |
 | M-10, 3.4 (Langkah 25) | PySide6-Essentials 6.12.0 menggantikan paket PySide6 penuh (commit 197dd98; .venv turun dari 2.309 menjadi 1.871 MB). Perintah python -m mica setup, python -m mica check, dan entry point python -m mica; panduan pemasangan di docs/INSTALASI.md (2da9bb2, dulu docs/KIOSK.md). mica check: mic atau speaker tidak ada = PERINGATAN, bukan gagal; kunci null di mode prod dilaporkan (36 kunci, dipetakan ke eksperimen di bagian 12). | Paket penuh ikut menarik WebEngine dan Pdf yang tidak dipakai. Aplikasi tetap bisa dipakai lewat teks bila perangkat suara hilang (N-10). |
 | M-07 (Langkah 26, bobot YOLO) | Bobot YOLO diunduh dari tag rilis ultralytics/assets v8.4.0, bukan rilis terbaru, dengan SHA-256 dikunci; digest cocok dengan digest rilis di GitHub (597ac13). | Unduhan rilis terbaru bisa berubah tanpa pemberitahuan, sehingga hasil tidak bisa diulang. |
 | M-08, M-12 (Langkah 26 dan 27, eval stt untuk E-05), 6.3 | python -m mica.eval stt membaca manifest.jsonl (6.3) dan menghitung WER, CER, waktu sampai transkripsi, laju transkripsi palsu, serta Recall@5 retrieval atas transkripsi dibanding referensi (5c5c629). Pengukuran dua fase: seluruh STT dulu, retriever sesudahnya. collect\_environment() memuat torch, jadi dipanggil setelah fase 1; waktu STT uji asap sintetis turun dari 2,4-2,9 menjadi 1,48-1,64 detik (Langkah 27). --hotwords diteruskan ke parameter hotwords faster-whisper. GroqWhisperStt memakai endpoint dari dokumentasi Groq (URL dan tanggal cek di komentar kode), ID model dari audio.stt.groq\_model, dan belum dipanggil. Uji asap memakai suara sintetis Piper (c12dcd3) dan bukan hasil E-05; protokol relawan di docs/E-05.md. | E-05 mengukur STT sendiri; perebutan CPU dengan BGE-M3 dan torch diukur di E-09. |
@@ -136,6 +136,9 @@ Bagian ini mencatat keputusan desain yang diambil selama implementasi MS0 dan MS
 | M-10, ADR-19 (Langkah 31) | Pemilik proyek memilih UI web sebelum tahap 2; ui.backend = web di dev dan prod, PySide6 dibekukan sebagai cadangan (dihapus di refactor RF-2, ADR-19 final). Diagnosis di daya AC: CPU diam terbesar di proses browser Edge (sekitar 3,7% dari total sekitar 5,3%); frontend tanpa animasi atau timer berulang. Dari switch yang diuji, hanya --disable-component-update lolos aturan optimasi. Web akhir: RAM diam 194 MB, CPU diam 4,45%, mulai 2,44 detik, p95 2,9 ms. Uji 200 pertanyaan: kemiringan RAM +14,8 MB per 100 pertanyaan tanpa GC paksa dan +1,1 MB dengan GC paksa, jadi kenaikan berasal dari sampah yang belum dikumpulkan, bukan kebocoran. Perilaku berjam-jam dicek di E-09. | Penyimpangan protokol: UI dipilih sebelum tahap 2 dan wajib diungkap di Bab 3. E-09 berubah menjadi verifikasi anggaran 3.3 dan K-3 dengan UI web; bila gagal, optimasi dulu, PySide6 sebagai jalan keluar terakhir. |
 | M-10, ADR-19 (Langkah 32) | Optimasi putaran 2 dengan aturan baru yang ditetapkan sebelum data: 10 ulangan per kondisi secara selang-seling, sebuah metrik dihitung naik bila median kandidat melebihi nilai maksimum baseline. --disable-component-extensions-with-background-pages dan --renderer-process-limit=1 lolos sendiri-sendiri dan sebagai gabungan (results/ADR-19/ui-opt2-combo-20261018-042512): RAM diam 194,5 menjadi 175,1 MB, CPU diam 5,04 menjadi 4,10%, waktu mulai 2,46 detik, p95 jeda 3,04 ms. Uji 200 pertanyaan: RAM 158 menjadi 276 MB; renderer halaman naik sekitar 15 MB per 100 pertanyaan (sampah GC menurut Langkah 31). Perilaku berjam-jam dicek di E-09. | Aturan putaran 1 (3 ulangan) terlalu peka terhadap variasi CPU diam antar-ulangan; keputusan putaran 1 tetap berlaku. Hasil kedua putaran dilaporkan terpisah di Bab 3. |
 | M-11, M-12, E-09 (Langkah 33) | Protokol docs/E-09.md dipra-registrasi 18 Oktober 2026: lulus bila p95 setiap tahap tidak melebihi anggaran 3.3, total paling lama 10 detik, first\_response paling lama 3 detik, dan sapaan paling lama 3 detik; tahap yang lewat anggaran tetapi total dan K-3 aman dicatat sebagai "lewat anggaran tahap". Grid kalibrasi vision.fps\_busy {1, 2, 5}, vision.threads {1, 2}, audio.stt.threads {2, 4}; dipilih p95 total terendah, seri dimenangkan CPU lebih rendah. retrieval\_gate = retrieval + gate; check\_tts = check + tts\_first\_audio. Baris giliran kini ditulis controller setelah audio jawaban mulai: timings.total = akhir ucapan (atau kirim teks) sampai audio jawaban mulai; total pipeline lama menjadi timings.pipeline (angka latensi E-02 dan E-04 sebelumnya adalah pipeline). timings.first\_response baru = akhir ucapan sampai UI mengirim ack transkripsi dan status berpikir. latency\_s pada greeted diisi saat audio sapaan mulai. Field baru Utterance.trailing\_silence\_s; semua field \*\_t memakai jam monotonic yang sama antarproses. Perekam sumber daya --record-resources (dev, atau --e09 yang tercatat di run.json) dan python -m mica.eval latency (persentil interpolasi linear numpy). Uji asap smoke-20261018-052038 adalah uji alat, bukan hasil E-09. | Aturan lulus dan kalibrasi ditetapkan sebelum data. Sebelumnya vad, stt, dan tts\_first\_audio tidak pernah tercatat dan total hanya mengukur pipeline, sehingga E-09 tidak bisa membaca anggaran 3.3 dari log. |
+| M-10, 3.4 (Langkah 40, start) | UI tampil lebih dulu: setelah mica check lolos, proses kamera dan suara dimulai, pipeline RAG dirakit di thread latar (BackgroundPipeline), lalu server web berjalan dan browser default dibuka. Selama komponen belum siap UI menampilkan status "Menyiapkan ..."; pertanyaan ketik sebelum pipeline siap ditahan lalu dijawab. Tahap start dicatat ke logs/startup-\<tanggal>.jsonl tanpa data pengunjung. Waktu sampai UI tampil dengan kamera dan suara asli 14,27 detik sebelum perbaikan (laptop dev); angka sesudah perbaikan dan sesudah refactor RF-2 belum diukur resmi dan akan diukur ulang di E-09. | Memuat BGE-M3 dan model lain membuat layar kosong terlalu lama. Angka mulai 0,80 sampai 2,46 detik di baris Langkah 29 sampai 32 berasal dari bench dengan pekerja dan pipeline palsu serta Edge, sehingga tidak mewakili start dengan perangkat asli. |
+| M-09, 7.1 (Langkah 51, akhir sesi) | PersonLeft ditahan selama pengunjung masih aktif (GREETING, LISTENING, THINKING, SPEAKING, atau ada event Typing dalam vision.leave\_s terakhir). Sesi baru berakhir pada Tick setelah tidak aktif selama leave\_s; PersonArrived saat penahanan membatalkannya. Event UI baru Typing. Rincian di 7.1. | Temuan uji black-box 21 Oktober 2026: sesi sempat direset saat pengunjung masih aktif tetapi sesaat tidak terdeteksi kamera, misalnya saat menunduk mengetik. |
+| M-10 (Langkah 57, tampilan versi F) | Tampilan versi F dipilih pemilik proyek 21 Oktober 2026: dua kolom (kamera kiri, chat kanan). Hanya HTML dan CSS yang berubah; app.js, kode Python, dan pesan WebSocket tetap. Penyimpangan dari gaya Langkah 37b/37c (subjudul, tanda perisai SVG yang bukan logo resmi, ilustrasi gedung dan slogan, avatar pesan, footer di kolom kiri, bayangan tipis, radius sampai 16 px, jarak 20 px) dipertahankan dan dicatat di docs/UI-WEB.md. | Keputusan pemilik proyek setelah membandingkan beberapa versi tampilan. Penyimpangan dari aturan gaya sebelumnya diungkap di Bab 3. |
 
 ## 3. Arsitektur
 
@@ -151,7 +154,7 @@ Bagian ini mencatat keputusan desain yang diambil selama implementasi MS0 dan MS
 
 ### 3.2 Proses dan komponen
 
-MICA berjalan sebagai tiga proses di satu laptop (ADR-20). Proses vision dan proses suara memegang perangkat keras dan beban CPU berat; proses utama memegang layar, state kunjungan, dan RAG. Ketiganya hanya bertukar pesan kecil lewat bus M-13, tidak pernah gambar atau audio mentah.
+MICA berjalan sebagai tiga proses di satu laptop (ADR-20). Proses vision dan proses suara memegang perangkat keras dan beban CPU berat; proses utama memegang layar, state kunjungan, dan RAG. Ketiganya bertukar pesan kecil lewat bus M-13; audio mentah tidak pernah dikirim, dan gambar kamera hanya lewat antrean pratinjau terpisah (JPEG kecil, tersamar di prod) bila ui.camera\_preview menyala.
 
 &#91;embedded content: komponen MICA · 3 proses, 13 modul\]
 
@@ -169,16 +172,18 @@ Arah dependensi: M-10 hanya bergantung pada M-09; M-09 memanggil M-06; M-06 mema
 | Proses vision | Loop kamera, deteksi, tracking, warna | State tracker | `bus.to_main` dan `bus.to_vision` |
 | Proses suara, thread rekam | Mikrofon dan Silero VAD | Buffer audio | Antrean di dalam proses |
 | Proses suara, thread kerja | STT lalu TTS, berurutan | - | `bus.to_main` dan `bus.to_audio` |
+| Proses utama, thread perakit pipeline (BackgroundPipeline) | Merakit M-03 sampai M-06 saat start, setelah UI tampil (Langkah 40) | Pipeline siap atau gagal | Status "Menyiapkan jawaban" di UI; pertanyaan sebelum siap ditahan lalu dijawab |
+| Proses utama, thread pompa pratinjau | Mengambil JPEG dari Bus.preview dan mengirimnya ke WebSocket /preview | - | Antrean pratinjau (maxsize 1, frame lama dibuang) |
 
 **Pembatalan.** Setiap kunjungan mendapat `session_id` acak baru. Saat pengunjung pergi atau sesi direset, M-09 mengganti `session_id`; hasil M-06, transkripsi, atau sinyal selesai bicara yang membawa `session_id` lama dibuang. Pemutaran TTS dihentikan lewat pesan `StopSpeaking`.
 
-**Pembagian CPU.** Saat aplikasi menunggu, vision berjalan sekitar 5 frame per detik, cukup untuk sapaan ≤ 3 detik (N-06, ADR-20). Saat percakapan berlangsung, M-09 mengirim `SetVisionRate(fps_busy)` agar CPU diberikan ke STT dan TTS; nilai `fps_busy` TBD, dikalibrasi di E-09. Jumlah thread untuk inferensi vision dan STT juga diatur lewat konfigurasi dan dikalibrasi di E-09.
+**Pembagian CPU.** Saat aplikasi menunggu, vision berjalan sekitar 5 frame per detik, cukup untuk sapaan ≤ 3 detik (N-06, ADR-20). Saat percakapan berlangsung, M-09 mengirim `SetVisionRate(fps_busy)` agar CPU diberikan ke STT dan TTS; `fps_busy` null berarti laju tetap `fps_idle`, nilainya dikalibrasi di E-09. Selain itu proses suara memberi tanda `tts_busy` (Event bersama) selama Piper menyusun suara; bila `vision.pause_during_tts` true, vision melewati inferensi YOLO selama itu, pratinjau tetap memakai deteksi terakhir, dan timer pergi dibekukan (Langkah 51). Jumlah thread untuk inferensi vision dan STT juga diatur lewat konfigurasi dan dikalibrasi di E-09.
 
 **Anggaran latensi satu pertanyaan suara** (dari ADR-20; target p95, diukur di E-09)
 
 | Tahap | Anggaran | Modul |
 | --- | --- | --- |
-| Deteksi akhir ucapan | 0,5 detik | M-08 |
+| Deteksi akhir ucapan (mode vad; pada push-to-talk diganti cek VAD setelah tombol dilepas, anggaran ini tidak berlaku tetapi nilainya tetap dilaporkan) | 0,5 detik | M-08 |
 | STT ucapan 5 detik | 1,5 detik | M-08 |
 | Retrieval dan gerbang | 0,5 detik | M-03, M-04 |
 | LLM sampai jawaban lengkap | 4 detik | M-05 |
@@ -196,7 +201,7 @@ Arah dependensi: M-10 hanya bergantung pada M-09; M-09 memanggil M-06; M-06 mema
 | Model lokal | BGE-M3 \[1\], YOLO26n atau YOLO26n-pose \[27\], faster-whisper small int8 \[26\], Silero VAD \[39\], suara Piper id\_ID \[25\]; diunduh sekali oleh `mica setup` ke folder `models/` |
 | Data | `data/kb/<kb_id>/` (KB aktif dipilih `kb.active_id`), `logs/` |
 | Rahasia | `GROQ_API_KEY` di file `.env` yang tidak masuk repositori; `GEMINI_API_KEY` hanya ada di laptop dev |
-| Menjalankan | `python -m mica --config config/prod.yaml`; berhenti dengan Ctrl+C di terminal (menutup tab browser tidak mematikan server); mode dev memakai `config/dev.yaml` |
+| Menjalankan | `python -m mica --config config/prod.yaml`; berhenti dengan Ctrl+C di terminal (menutup tab browser tidak mematikan server; sesi percakapan disimpan di server, jadi tab yang dibuka ulang menampilkan sesi yang sama); mode dev memakai `config/dev.yaml`. Saat start, MICA menjalankan `check`; bila ada GAGAL, aplikasi berhenti. Bila lolos, proses kamera dan suara dimulai, pipeline RAG dirakit di thread latar, lalu server web berjalan dan browser default dibuka; UI tampil lebih dulu dengan status "Menyiapkan ..." (Langkah 40). Tahap start dicatat ke `logs/startup-<tanggal>.jsonl` tanpa data pengunjung. Opsi dev (`--fake-workers`, `--fake-camera`, `--fake-voice`, `--fake-pipeline`, `--trial-values`, `--measure-preview`, `--guided-test`, `--prompt-variant`) ditolak di mode prod; daftar lengkap di docs/PERINTAH.md |
 | Internet | Dibutuhkan untuk LLM (N-04). Tanpa internet, aplikasi tetap menyapa dan menampilkan pesan rujukan ke staf |
 
 ## 4. Desain modul
@@ -258,18 +263,18 @@ Semua path relatif terhadap `src/mica/`. Tipe data yang disebut di sini didefini
 - **Tanggung jawab:** menjalankan satu pertanyaan dari teks sampai jawaban final beserta sumber, sesuai alur tetap ADR-05 (algoritma di 7.3).
 - **Kebutuhan:** F-08 sampai F-13, N-09, N-11, N-12. **ADR:** ADR-05, ADR-06, ADR-07.
 - **Antarmuka:** `class AnswerPipeline: def answer(self, question: str, history: list[Turn], session_id: str) -> FinalAnswer`; CLI uji cepat `python -m mica.ask "<pertanyaan>"` memakai pipeline yang sama tanpa UI.
-- **Konfigurasi:** `rag.followup_mode` (`concat` default, `llm_rewrite` diuji di E-02), `rag.prompt_variant` (`paraphrase` default, `plain` untuk E-03), `rag.history_turns` = 1.
+- **Konfigurasi:** `rag.followup_mode` (`concat`, `dual`, `llm_rewrite`; dev dan prod `dual`, dipilih FOLLOWUP.md Langkah 55, provisional sampai E-02 dengan set uji; pertanyaan dari chip topik selalu diproses mandiri), `rag.prompt_variant` (`paraphrase` default, `plain` untuk E-03), `rag.history_turns` = 1.
 - **Privasi:** `scrub_pii(text)` menyamarkan nomor telepon, email, dan deretan 16 digit (format NIK) sebelum teks dikirim ke API atau ditulis ke log (**non-ADR**: aturan regex sederhana untuk memenuhi N-09 dan F-18).
 - **Selesai bila:** dengan retriever dan LLM tiruan, setiap cabang (jawab, tolak oleh gerbang, tolak oleh LLM, premis salah, gagal cek fakta, LLM tidak tersedia) menghasilkan `FinalAnswer` yang benar dan satu baris log.
 
 ### M-07: Vision worker (`vision/`)
 
-- **Tanggung jawab:** di proses tersendiri, membaca kamera, mendeteksi dan melacak orang, menentukan apakah seseorang berhenti di depan laptop, menamai warna pakaiannya, lalu mengirim event. Frame hanya ada di memori dan langsung dibuang (N-08).
+- **Tanggung jawab:** di proses tersendiri, membaca kamera, mendeteksi dan melacak orang, menentukan apakah seseorang berhenti di depan laptop, menamai warna pakaiannya, lalu mengirim event. Frame tidak pernah ditulis ke disk dan tidak lewat bus event (N-08). Bila `ui.camera_preview` bukan `off`, proses kamera membuat gambar pratinjau kecil (JPEG 320 px) di memori dan mengirimnya lewat antrean pratinjau terpisah ke browser lokal (127.0.0.1); mode `public` menyamarkan seluruh gambar kecuali kotak target, mode `debug` (tanpa samaran) hanya boleh di dev. Gambar pratinjau tidak disimpan.
 - **Kebutuhan:** F-01 sampai F-04, N-06, N-07, N-08, US-06, US-07. **ADR:** ADR-12, ADR-14, ADR-15 (Provisional), ADR-13 (Terbuka).
 - **Antarmuka:**
   - `class PersonDetector(Protocol): def detect_and_track(self, frame: np.ndarray) -> list[PersonTrack]` dengan `UltralyticsDetector(model, tracker)`; `PersonTrack` memuat `track_id`, kotak, skor, dan keypoint bila model pose.
   - `class ClothingRegion(Protocol): def extract(self, frame, track: PersonTrack) -> np.ndarray | None` dengan `KeypointTorsoRegion` dan `BoxUpperRegion`.
-  - `class ColorNamer(Protocol): def name(self, pixels: np.ndarray) -> ColorResult` dengan `ColorNamesLut` (tabel van de Weijer \[30\]) dan `HsvRuleNamer` (baseline E-08). `ColorResult` memuat label Indonesia dan proporsi suara mayoritas.
+  - `class ColorNamer(Protocol): def name(self, pixels: np.ndarray) -> ColorResult` dengan `ColorNamesLut` (`lut_vote`: setiap piksel dinamai lewat tabel van de Weijer \[30\], lalu voting mayoritas) dan `ColorNamesLutMean` (`lut_mean`: rata-rata RGB area, lalu satu kali lookup di tabel yang sama). `HsvRuleNamer` dihapus sebelum data E-08 karena tidak ada sumber untuk batas hue, saturasi, dan kecerahan (amandemen 1 E-08). `ColorResult` memuat label Indonesia dan proporsi suara mayoritas.
   - `PresenceTracker.update(tracks, now) -> list[VisionEvent]` memilih satu target (orang terbesar di zona tengah) dan menerapkan aturan berhenti.
 - **Konfigurasi:** `vision.model` (`yolo26n` atau `yolo26n-pose`), `vision.tracker` (`bytetrack.yaml` \[44\]), `vision.region`, `vision.color.method`, `vision.color.min_majority` (TBD, E-08), `vision.dwell_s` (lama berdiri sebelum dianggap berhenti; TBD, dikalibrasi di E-07 dengan syarat sapaan ≤ 3 detik), `vision.min_box_height_ratio` (TBD, E-07), `vision.fps_idle` = 5, `vision.fps_busy` (TBD, E-09).
 - **Dependensi:** ultralytics \[27\], \[44\] (lisensi AGPL-3.0 \[47\]); OpenCV untuk membaca kamera (**non-ADR**: cara standar membaca webcam di Python).
@@ -285,7 +290,7 @@ Semua path relatif terhadap `src/mica/`. Tipe data yang disebut di sini didefini
   - `class SpeechToText(Protocol): def transcribe(self, pcm16k: np.ndarray) -> Transcript` dengan `FasterWhisperStt(model="small", compute_type="int8")` dan `GroqWhisperStt`.
   - `class TextToSpeech(Protocol): def synthesize(self, text: str) -> AudioClip` dengan `PiperTts(voice="id_ID-news_tts")`.
   - `normalize_for_speech(text) -> str` mengubah angka, rupiah, tanggal, dan singkatan menjadi kata (misalnya "Rp7.500.000" menjadi "tujuh juta lima ratus ribu rupiah") sebelum TTS (**non-ADR**, diuji di E-06).
-- **Perilaku:** mikrofon diabaikan selama MICA berbicara (K-6). Mode tombol tekan untuk bicara bisa dinyalakan dari UI dan mematikan VAD otomatis.
+- **Perilaku:** mikrofon diabaikan selama MICA berbicara (K-6). Bawaan dev dan prod `audio.input_mode: push_to_talk` (keputusan desain 18 Oktober 2026, Langkah 42): pengunjung menahan tombol Bicara selama berbicara; rekaman dikirim saat tombol dilepas atau saat `audio.max_utterance_s` tercapai. VAD hanya memastikan ada ucapan dan memangkas hening; rekaman tanpa ucapan tidak dikirim ke STT (`filtered_by = no_voice`). Mode `vad` (VAD menentukan akhir ucapan) dipertahankan untuk perbandingan.
 - **Konfigurasi:** `audio.stt.backend` (`faster_whisper` default sampai E-05 memutuskan), `audio.stt.threads`, `audio.vad.threshold` dan `audio.vad.min_silence_ms` (TBD, E-05), `audio.max_utterance_s` (TBD, E-05), `audio.tts.voice`.
 - **Dependensi:** faster-whisper \[26\], silero-vad \[39\], piper-tts \[25\]; sounddevice untuk mikrofon dan speaker (**non-ADR**: pembungkus PortAudio yang berjalan di Windows tanpa kompilasi).
 - **Error:** mikrofon tidak ada → `AudioStatus(mic_ok=False)` dan UI hanya menawarkan input teks; STT gagal atau kosong → `Transcript(text="", ok=False)` dan UI meminta pengunjung mengulang atau mengetik.
@@ -299,13 +304,13 @@ Semua path relatif terhadap `src/mica/`. Tipe data yang disebut di sini didefini
 - **Konfigurasi:** `session.idle_reset_s` (TBD, dikalibrasi saat uji pengguna E-09), `session.regreet_cooldown_s` (TBD, E-07).
 - **Selesai bila:** setiap baris tabel transisi 7.1 punya tes, termasuk event yang tidak valid untuk state saat itu.
 
-### M-10: UI (`ui/`)
+### M-10: UI (`webui/, ditambah ui/viewmodel.py dan ui/devfakes.py yang bebas Qt`)
 
-- **Tanggung jawab:** UI web (jendela biasa), disajikan server Flask lokal: layar awal dengan tombol topik dan saran pertanyaan, area percakapan, teks transkripsi yang bisa diulang atau diedit, sumber di bawah tiap jawaban, indikator status, pemberitahuan kamera, dan tombol bicara. Kode di src/mica/webui (server.py, app.py, browser.py, state.py) dengan HTML, CSS, dan JavaScript polos tanpa CDN. PySide6 (src/mica/ui) dihapus di refactor RF-2 (ADR-19 final).
+- **Tanggung jawab:** UI web (jendela biasa), disajikan server Flask lokal: tata letak dua kolom (versi F, Langkah 57). Kolom kiri (sekitar sepertiga lebar) berisi pratinjau kamera, info warna pakaian, dan pemberitahuan permanen; kolom kanan berisi layar sambut dengan kartu topik, percakapan beserta sumber di bawah tiap jawaban, baris status, teks transkripsi yang bisa diulang atau diedit, dan bilah input (tombol Bicara, kotak ketik, Kirim, Berhenti). Pada layar di bawah 1100 px kolom kiri menjadi strip di atas. Tombol Bicara ditahan untuk merekam dan dilepas untuk mengirim; menggeser pointer keluar dari tombol membatalkan rekaman; tombol Spasi berfungsi sama bila fokus tidak di kotak ketik. Gaya dikunci tes otomatis (tests/unit/test\_webui.py): target sentuh minimal 44 px, satu bayangan tipis, radius maksimal 16 px, skala jarak 4 sampai 24 px, huruf dasar 16 px dikali ui.font\_scale, tanpa efek dekoratif; kontras teks memenuhi WCAG 2.1 AA (4,5:1), dicek scripts/ui\_contrast.py. Kode di src/mica/webui (server.py, app.py, browser.py, state.py, answer\_format.py, guided.py, \_\_main\_\_.py) ditambah ui/viewmodel.py dan ui/devfakes.py (bebas Qt) dengan HTML, CSS, dan JavaScript polos tanpa CDN. PySide6 (src/mica/ui) dihapus di refactor RF-2 (ADR-19 final).
 - **Kebutuhan:** F-05 sampai F-07, F-09, F-14, F-15, F-20, N-08 (pemberitahuan), US-02, US-03. **ADR:** ADR-19 (Diadopsi: UI web, 17 Oktober 2026).
 - **Struktur:** `AppController` menjalankan proses vision dan suara, memompa bus, meneruskan event ke M-09, dan mengeksekusi `Action`. Server mengirim `ViewModel` sebagai JSON lewat WebSocket hanya saat berubah; browser membalas ack setelah `requestAnimationFrame`. WebSocket menolak Origin selain alamat server sendiri. Halaman hanya menampilkan `ViewModel` dan mengirim event input; tidak ada logika bisnis di halaman.
-- **Konfigurasi:** `ui.topics` (daftar topik dan saran pertanyaan), `ui.font_scale`. Saat start, server membuka alamatnya di browser default dalam jendela biasa. `ui.backend`, `ui.fullscreen`, dan peluncur Edge beserta switch-nya (Langkah 29 sampai 32) dihapus di refactor RF-2.
-- **Selesai bila:** prototipe pertama membuktikan tiga syarat ADR-19 (layar penuh, tampilan tetap responsif saat vision dan STT berjalan, audio TTS terdengar), dan skenario black-box F-05 sampai F-20 lolos.
+- **Konfigurasi:** `ui.font_scale`; `ui.topics` (setiap topik berisi `label` dan satu `question` lengkap yang dikirim saat kartu atau chip diklik); `ui.suggestions`; `ui.logo_path` (file lokal, null = tulisan MICA); `ui.camera_preview` (`off`, `public`, `debug`; `debug` hanya dev), `ui.preview_pixel_block`, `ui.preview_fps`. Saat start, server membuka alamatnya di browser default dalam jendela biasa. `ui.backend`, `ui.fullscreen`, dan peluncur Edge beserta switch-nya (Langkah 29 sampai 32) dihapus di refactor RF-2.
+- **Selesai bila:** tampilan tetap responsif saat vision dan STT berjalan, audio TTS terdengar, dan skenario black-box F-05 sampai F-20 lolos.
 
 ### M-11: InteractionLog (`core/logging.py`)
 
@@ -317,13 +322,13 @@ Semua path relatif terhadap `src/mica/`. Tipe data yang disebut di sini didefini
 
 - **Tanggung jawab:** menjalankan dataset uji pada beberapa konfigurasi dan menghitung metrik keempat lapisan.
 - **Kebutuhan:** F-19, N-14, US-10, seluruh metrik PRD. **ADR:** ADR-16, ADR-17, ADR-18; eksperimen E-01 sampai E-09.
-- **Antarmuka (CLI):** `python -m mica.eval retrieval|generation|copy|annotate|judge|vision|color|stt|tts|latency --config <yaml> --dataset <file> --out <folder>`. Setiap run menyimpan `run.json` berisi `config_hash`, `kb_id`, versi dataset, dan ID model.
+- **Antarmuka (CLI):** `python -m mica.eval <subperintah> --config <yaml>`, dengan subperintah `dataset split|lock|status`, `annotate export|import`, `followup`, `retrieval`, `gate`, `generation`, `copy`, `stt`, `latency`, `vision`, `vision-scenarios`, `color`, `annotation`, `labels`, dan `tahap1`; ditambah `python -m mica.rag search` untuk mencoba retrieval. `judge` (ADR-18) dan `tts` (E-06) belum dibuat dan diputuskan saat MS5. Setiap run menyimpan `run.json` berisi `config_hash`, `kb_id`, versi dataset, dan ID model.
 - **Dependensi:** jiwer untuk WER (**non-ADR**: implementasi WER standar); ultralytics `val` untuk mAP; pandas untuk tabel hasil (**non-ADR**).
 - **Selesai bila:** satu perintah menghasilkan skor per pertanyaan dan ringkasan per konfigurasi (kriteria F-19).
 
 ### M-13: Bus (`core/bus.py`)
 
-- **Tanggung jawab:** mendefinisikan pesan antarproses dan antreannya (daftar di 5.2), memulai dan menghentikan proses pekerja, serta mendeteksi pekerja yang mati.
+- **Tanggung jawab:** mendefinisikan pesan antarproses dan antreannya (daftar di 5.2), memulai dan menghentikan proses pekerja, serta mendeteksi pekerja yang mati. Selain antrean pesan to\_main, to\_vision, dan to\_audio, Bus memegang antrean pratinjau (maxsize 1, frame lama dibuang), antrean ukur (dev saja, --measure-preview), dan Event tts\_busy; tidak satu pun dipakai untuk event M-09.
 - **Kebutuhan:** N-13. **ADR:** ADR-20.
 - **Antarmuka:** `start_workers(settings) -> Bus`; `Bus.send(target, msg)`; `Bus.poll(max_items) -> list[Message]`; pesan berupa dataclass yang bisa di-pickle, dengan `session_id` di setiap pesan yang terkait kunjungan.
 - **Error:** pekerja mati → dimulai ulang sekali, lalu status di UI berubah menjadi "kamera atau suara tidak tersedia" (bagian 8.1).
@@ -387,12 +392,13 @@ class FinalAnswer:
 | `PersonLeft` | vision → utama | `track_id`, `t` | Target hilang dari zona depan melebihi batas waktu |
 | `CameraStatus` | vision → utama | `ok`, `fps` | Saat berubah dan setiap 10 detik |
 | `SetVisionRate` | utama → vision | `fps` | Perubahan state di M-09 |
-| `SpeechStarted` | suara → utama | `session_id` | VAD mendeteksi awal ucapan |
+| `SpeechStarted` | suara → utama | `session_id` | VAD mendeteksi awal ucapan (push-to-talk: potongan pertama setelah tombol ditekan) |
 | `Transcript` | suara → utama | `session_id`, `text`, `ok`, `stt_s`, `audio_s`, `vad_s`, `ended_t` | STT selesai |
 | `Speak` | utama → suara | `session_id`, `text`, `utterance_id` | Sapaan atau jawaban siap |
 | `StopSpeaking` | utama → suara | `session_id` | Reset atau pengunjung pergi |
 | `SpeechDone` | suara → utama | `session_id`, `utterance_id`, `tts_first_audio_s`, `first_audio_t` | Pemutaran selesai |
-| `ListenControl` | utama → suara | `mode: auto \| push_to_talk \| off`, `session_id` | State M-09 dan tombol UI |
+| `ListenControl` | utama → suara | `mode: auto \| push_to_talk \| hold \| off`, `session_id` | State M-09 dan tombol UI |
+| ReleaseTalk | utama → suara | session\_id | Tombol Bicara dilepas (push-to-talk) |
 | `AudioStatus` | suara → utama | `mic_ok`, `speaker_ok` | Saat berubah |
 
 Pesan dengan `session_id` yang bukan milik kunjungan aktif dibuang oleh M-09.
@@ -455,7 +461,7 @@ File `logs/turns-YYYY-MM-DD.jsonl` dan `logs/events-YYYY-MM-DD.jsonl`.
 | `llm_provider`, `llm_status` | Penyedia yang menjawab dan status keluarannya |
 | `final_status`, `answer`, `sources` | Sesuai `FinalAnswer` |
 | `fact_check` | Angka yang dicek dan yang gagal |
-| `timings` | Detik per tahap; kunci yang tidak berlaku bernilai null (misalnya kunci suara pada input ketik). Kunci: `gate`, `first_response` (akhir ucapan sampai UI menampilkan transkripsi dan status berpikir), `pipeline` (waktu pipeline saja), `vad`, `stt`, `retrieval`, `llm`, `check`, `tts_first_audio`, `total` |
+| `timings` | Detik per tahap; kunci yang tidak berlaku bernilai null (misalnya kunci suara pada input ketik). Kunci: `gate`, `first_response` (akhir ucapan sampai UI menampilkan transkripsi dan status berpikir; akhir ucapan = saat tombol Bicara dilepas pada push-to-talk, atau saat VAD menyatakan selesai pada mode vad, amandemen 2 E-09), `pipeline` (waktu pipeline saja), `vad`, `stt`, `retrieval`, `llm`, `check`, `tts_first_audio`, `total` |
 | `kb_id`, `config_hash`, `app_version` | Untuk reprodusibilitas (N-14) |
 
 | Field `EventRecord` | Keterangan |
@@ -481,7 +487,7 @@ Set `test` dikunci dengan SHA-256 yang dicatat di `data/eval/LOCK` sebelum ekspe
 
 | Data | Dibuat oleh | Disimpan di | Dihapus |
 | --- | --- | --- | --- |
-| Frame kamera | M-07 | Memori saja | Segera setelah diproses |
+| Frame kamera | M-07 | Memori saja | Segera setelah diproses; pratinjau JPEG kecil hanya di memori dan browser lokal, tidak disimpan |
 | Audio mikrofon | M-08 | Memori saja | Setelah ditranskripsi |
 | Riwayat percakapan | M-09 | Memori saja | Saat sesi direset (F-15) |
 | Log interaksi | M-11 | `logs/` di laptop PMB | Kebijakan retensi TBD, disepakati dengan kampus |
@@ -525,6 +531,8 @@ Set `test` dikunci dengan SHA-256 yang dicatat di `data/eval/LOCK` sebelum ekspe
 - T18: GREETING + `TextSubmitted`/`TopicTapped` tidak kosong ke `StopSpeaking`, `ListenControl(off)`, jalankan M-06, lalu THINKING; `SpeechDone` sapaan yang datang belakangan diabaikan (keputusan 17 Oktober 2026, teks sebagai jalur cadangan N-10).
 - T19: LISTENING + `TextSubmitted`/`TopicTapped` tidak kosong ke `ListenControl(off)`, jalankan M-06, lalu THINKING; `Transcript` yang datang belakangan diabaikan.
 - T20: READY + `TalkTapped` (tombol bicara) ke `ListenControl(push_to_talk)` dan status "Silakan bicara", tetap READY; di state lain diabaikan.
+- T20 hanya berlaku di mode `vad`. **Push-to-talk (Langkah 42, bawaan):** `TalkPressed` di IDLE, READY, GREETING, atau SPEAKING → `ListenControl(hold)` dan ke LISTENING (di IDLE dibuat `session_id` baru; di GREETING/SPEAKING juga `StopSpeaking`, barge-in); `TalkReleased` → `ReleaseTalk`; `TalkCancelled` (pointer keluar dari tombol atau jendela kehilangan fokus) → `ListenControl(off)`, ke READY. Dalam mode ini setiap `ListenControl(auto)` di tabel dibaca `off`. Tabel lengkap P01 sampai P08 di results/M-09/transitions.md.
+- **Akhir sesi yang toleran (Langkah 51):** `PersonLeft` saat pengunjung masih aktif (GREETING, LISTENING, THINKING, SPEAKING, atau ada event `Typing` dalam `vision.leave_s` terakhir) ditahan; sesi berakhir pada `Tick` setelah tidak ada aktivitas selama `vision.leave_s`. `PersonArrived` saat ditahan membatalkan penahanan. `Typing` adalah event UI tanpa isi teks. Bila `vision.leave_s` null, perilakunya seperti baris reset di tabel.
 
 ### 7.2 Diagram urutan
 
@@ -533,7 +541,7 @@ Set `test` dikunci dengan SHA-256 yang dicatat di `data/eval/LOCK` sebelum ekspe
 | No | Dari | Ke | Pesan atau aksi |
 | --- | --- | --- | --- |
 | 1 | Proses suara | M-09 | `SpeechStarted` |
-| 2 | Proses suara | M-09 | `Transcript(text, ok=True)` setelah VAD mendeteksi akhir ucapan |
+| 2 | Proses suara | M-09 | Push-to-talk (bawaan): UI → M-09 `TalkPressed`, M-09 → suara `ListenControl(hold)`; lalu UI → M-09 `TalkReleased`, M-09 → suara `ReleaseTalk`, dan suara → M-09 `Transcript(text, ok=True)`. Mode vad: `Transcript` setelah VAD mendeteksi akhir ucapan |
 | 3 | M-09 | M-10 | Tampilkan transkripsi dan status berpikir; `Speak("Sebentar, saya carikan.")` |
 | 4 | M-09 | M-06 | `answer(question, history, session_id)` di thread pool |
 | 5 | M-06 | M-03 | `search(query, k=5)` |
@@ -558,10 +566,11 @@ Set `test` dikunci dengan SHA-256 yang dicatat di `data/eval/LOCK` sebelum ekspe
 ```text
 function answer(question, history, session_id):
     q = scrub_pii(question)
-    query = q
-    if history and followup_mode == "concat":
-        query = history[-1].question + " " + q          # F-12
-    hits = retriever.search(query, k=top_k)               # ADR-01, k=5
+    hits = followup.search(q, history, k=top_k)            # ADR-01/05, k=5, F-12
+    # concat: kueri = pertanyaan sebelumnya + q
+    # dual (dev & prod): RRF atas hasil q apa adanya DAN kueri concat
+    # llm_rewrite: kueri ditulis ulang LLM; gagal -> q apa adanya
+    # pertanyaan dari chip topik: selalu q apa adanya
     if gate.decide(hits) == REJECT:                        # ambang TBD E-02
         return refusal("refused_gate")
     req = build_prompt(q, history[-history_turns:], hits, prompt_variant)
@@ -613,9 +622,12 @@ for each frame at fps:
 
 ```text
 pixels = region.extract(frame, target)       # torso dari keypoint, cadangan potongan kotak
-drop pixels that are very dark or very bright in luminance   # ambang TBD E-08
-labels = lut[quantize(pixels)]               # 11 warna dasar
-top, share = majority(labels)
+if method == "lut_vote":
+    labels = lut[quantize(pixels)]           # 11 warna dasar, per piksel
+    top, share = majority(labels)
+else:                                        # lut_mean
+    top, share = lut[quantize(mean_rgb(pixels))], 1.0
+# selama CANDIDATE, label per frame divoting lagi (min_majority)
 return ColorResult(label=to_indonesian(top), majority=share)
 ```
 
@@ -632,14 +644,14 @@ return ColorResult(label=to_indonesian(top), majority=share)
 | Angka atau sitasi tidak ditemukan di sumber | `FactChecker` | Penolakan sopan | `REFUSED_CHECK` |
 | Kamera tidak terbuka atau putus | `CameraStatus(ok=False)` | Tidak ada sapaan otomatis; aplikasi tetap bisa dipakai lewat ketik dan klik; status kamera di UI | `CAMERA_DOWN` |
 | Mikrofon tidak ada | `AudioStatus(mic_ok=False)` | Hanya input teks yang ditawarkan | `MIC_DOWN` |
-| STT kosong atau gagal | `Transcript(ok=False)` | Minta ulangi atau ketik (N-10) | `STT_EMPTY` |
-| Warna tidak yakin | `majority < min_majority` | Sapaan tanpa warna (F-03) | `COLOR_UNSURE` |
+| STT kosong atau gagal | `Transcript(ok=False)` | Minta ulangi atau ketik (N-10) | tidak dicatat sebagai kode error |
+| Warna tidak yakin | `majority < min_majority` | Sapaan tanpa warna (F-03) | tidak dicatat sebagai kode error; terlihat dari `greeted_with_color = false` di EventRecord |
 | Proses pekerja mati | `Process.is_alive()` di M-13 | Dimulai ulang sekali; bila mati lagi, perlakukan seperti kamera atau mikrofon mati | `WORKER_RESTART`, `WORKER_DEAD` |
-| KB aktif tidak ditemukan atau rusak | Validasi `manifest.json` saat start | Aplikasi tidak mulai; pesan untuk pengelola | `KB_INVALID` |
+| KB aktif tidak ditemukan atau rusak | Validasi `manifest.json` saat start | Aplikasi tidak mulai; pesan untuk pengelola. Bila pipeline gagal dirakit setelah UI tampil, setiap pertanyaan mendapat penolakan baku "layanan tidak tersedia" dan galat dicatat LLM\_UNAVAILABLE | `KB_INVALID` |
 
 ### 8.2 Keamanan dan privasi
 
-- **Gambar dan suara.** Frame dan audio hanya ada di memori proses pekerja dan tidak pernah dikirim lewat bus. Tes otomatis memastikan tidak ada file gambar atau audio yang ditulis di mode prod (N-08). Pemberitahuan kamera dan pemrosesan AI pihak ketiga tampil permanen di layar.
+- **Gambar dan suara.** Frame dan audio tidak pernah ditulis ke disk dan tidak lewat bus event. Satu-satunya jalur gambar adalah pratinjau kamera: JPEG kecil lewat antrean pratinjau ke browser di laptop yang sama (127.0.0.1); di prod gambar tersamar kecuali kotak target, sehingga pengunjung melihat dirinya sendiri di layar di depannya. Kelayakan tampilan ini terhadap N-08 dikonfirmasi ke pembimbing. Tes otomatis memastikan tidak ada file gambar atau audio yang ditulis di mode prod (N-08). Pemberitahuan kamera dan pemrosesan AI pihak ketiga tampil permanen di layar.
 - **Data ke API.** Hanya pertanyaan yang sudah disamarkan dan potongan dokumen resmi yang dikirim ke Groq (N-09). Gemini ditolak di mode prod oleh M-01 dan M-05.
 - **Rahasia.** API key hanya di `.env`, tidak masuk log, tidak masuk repositori; `.env.example` berisi nama variabel saja.
 - **Prompt injection (N-12).** Potongan dokumen dan pertanyaan dipisah dengan penanda yang jelas di prompt; aturan nomor 5 di prompt sistem; sitasi harus subset `allowed_chunk_ids`; cek fakta mencegah angka karangan meski model terpengaruh. Set uji serangan sederhana ada di 9.2.
@@ -649,7 +661,7 @@ return ColorResult(label=to_indonesian(top), majority=share)
 
 - Log JSONL di 6.2 adalah sumber data latensi dan penolakan untuk Bab 4.
 - Mode dev menampilkan panel debug di UI: potongan teratas beserta skornya, keputusan gerbang, penyedia LLM, waktu per tahap, FPS kamera, dan state M-09. Panel ini tidak ada di mode prod.
-- `python -m mica.logs summary --date <tanggal>` mencetak jumlah kunjungan, pertanyaan, penolakan per jenis, dan latensi p50 serta p95 per tahap.
+- Ringkasan latensi per tahap (p50 dan p95) dibuat dengan `python -m mica.eval latency` dari log 6.2; `python -m mica.logs export` mengekspor log. Perintah `logs summary` tidak dibuat.
 
 ### 8.4 Kinerja
 
@@ -860,13 +872,13 @@ F-18 tidak punya ADR karena tidak melibatkan pilihan metode; desainnya keputusan
 
 | Parameter | Eksperimen | Nilai dev atau nilai coba saat ini (sumber) | Status |
 | --- | --- | --- | --- |
-| `kb.active_id` | Dokumen resmi (build KB resmi, MS5) | Dev: `dev-2026-10-15-v2`, KB scraping yang tidak dievaluasi | TBD |
+| `kb.active_id` | Dokumen resmi (build KB resmi, MS5) | `official-2026-10-24-v5` di dev dan prod (KB resmi v5, Langkah 66); KB dev diarsipkan. Terisi, bisa berubah bila KB resmi diperbarui | Terisi |
 | `kb.chunk_tokens`, `kb.overlap_tokens` | E-01 | 400 dan 50 (hipotesis awal PRD, 2.4) | Provisional dev |
 | `kb.embedder.revision` | Keputusan rekayasa (N-14), dikonfirmasi saat build KB resmi | Revisi 9a0624b8 BAAI/bge-m3 (2.4) | Provisional dev |
 | `rag.retriever`, `rag.reranker.enabled` | E-01 | hybrid, reranker mati (E-01 dev) | Provisional dev |
 | `rag.rrf_k`, `rag.candidates_per_retriever` | E-01 | 60 (Cormack dkk. 2009) dan 20 (2.4) | Provisional dev |
 | `rag.gate.threshold` | E-02 | 0,50 (E-02/E-04 dev prompt v2; aturan seri ditambah setelah melihat data, 2.4) | Provisional dev |
-| `rag.followup_mode` | E-02 | `llm_rewrite` belum diimplementasikan (2.4) | TBD |
+| `rag.followup_mode` | E-02 | `dual` di dev dan prod (FOLLOWUP.md, Langkah 55: dual 16/16, concat 13/16, llm\_rewrite gugur di anggaran LLM); provisional, diuji ulang di E-02 dengan set uji | Provisional dev |
 | `rag.prompt_variant` | E-03 | Prompt v2 | TBD |
 | `llm.chain[0]`, `llm.chain[1]` | E-04 | gpt-oss-120b, cadangan gpt-oss-20b (final menunggu anotasi halusinasi) | Provisional dev |
 | `llm.timeout_s`, `llm.temperature`, `llm.reasoning_effort` | E-04 | 10 detik, 0,2, low (nilai dev provisional, 2.4) | Provisional dev |
@@ -876,7 +888,7 @@ F-18 tidak punya ADR karena tidak melibatkan pilihan metode; desainnya keputusan
 | `audio.vad.min_silence_ms` | E-05 | Nilai coba 500 (anggaran deteksi akhir ucapan 0,5 detik, 3.3) | TBD |
 | `audio.vad.min_speech_ms` | E-05 | Nilai coba 250 (bawaan min\_speech\_duration\_ms Silero) | TBD |
 | `audio.stt.no_speech_threshold` | E-05 | Nilai coba 0,6 (bawaan no\_speech\_threshold Whisper) | TBD |
-| `audio.stt.groq_model` | E-05 | Dev: ID model dari dokumentasi Groq; prod null. E-05 memilih whisper-large-v3 atau whisper-large-v3-turbo (hanya dipakai bila audio.stt.backend = groq\_whisper) | TBD |
+| `audio.stt.groq_model` | E-05 | Dev: ID model dari dokumentasi Groq; prod null. E-05 memilih whisper-large-v3 atau whisper-large-v3-turbo (opsional; wajib hanya bila E-05 memilih audio.stt.backend = groq\_whisper, sehingga tidak termasuk 36 kunci mica check) | TBD |
 | `audio.max_utterance_s` | E-05 | Nilai coba 15 (tanpa sumber, perlu ditetapkan di E-05) | TBD |
 | `audio.tts.voice` | E-06 | id\_ID-news\_tts-medium | Provisional |
 | `vision.model`, `vision.conf`, `vision.imgsz` | E-07 | yolo26n-pose; 0,1 dan 640 (bawaan Ultralytics) | Provisional dev |
@@ -884,12 +896,14 @@ F-18 tidak punya ADR karena tidak melibatkan pilihan metode; desainnya keputusan
 | `vision.dwell_s`, `vision.leave_s` | E-07 | Nilai coba 2 dan 3 detik | TBD |
 | `session.regreet_cooldown_s` | E-07 | null = tanpa jeda | TBD |
 | `vision.region`, `vision.box_upper.top/bottom/side`, `vision.keypoint_torso.min_kp_conf/shrink/torso_aspect` | E-08 | keypoint\_torso; nilai coba kotak 0,35/0,65/0,25 dan keypoint 0,5/0,15/1,2 | TBD |
-| `vision.color.method`, `vision.color.min_majority` | E-08 | Tabel color names; nilai coba 0,6 | TBD |
-| `vision.fps_busy`, `vision.threads` | E-09 | Nilai coba fps\_busy 2; thread vision perlu ditetapkan | TBD |
+| `vision.color.method`, `vision.color.min_majority` | E-08 | `lut_vote` provisional (kandidat `lut_vote` dan `lut_mean`, E-08 amandemen 1); `min_majority` nilai coba 0,6, hanya disweep bila pemenang E-08 `lut_vote`. Saat runtime kedua metode memakai voting antarframe dengan `min_majority`, sedangkan E-08 menilai per frame; perbedaan ini diungkap di Bab 3 | TBD |
+| `vision.fps_busy`, `vision.threads` | E-09 | `fps_busy` null di dev (laju tetap `fps_idle`); `vision.threads` 7 dan `audio.tts.threads` 1 di dev (CPU-THREADS.md, laptop dev); prod null sampai E-09. Waktu mulai juga diukur ulang di E-09 setelah RF-2 | TBD |
 | `session.idle_reset_s` | E-09 dan uji pengguna | null = tidak pernah timeout | TBD |
 | Batas kata jawaban | E-09 | Belum ada nilai | TBD |
 
-Tabel ini mencakup ke-36 kunci yang dilaporkan `python -m mica check` sebagai belum terisi di mode prod (17 Oktober 2026). Nilai coba hanya untuk dev dan demo; config prod baru diisi dari hasil eksperimen.
+Tabel ini mencakup ke-36 kunci yang dilaporkan `python -m mica check` sebagai belum terisi di mode prod per 2 November 2026; jumlahnya sama dengan 17 Oktober, tetapi daftarnya berubah (masuk: `llm.chain[0]`, `llm.chain[1]`, `llm.reasoning_effort`, `audio.tts.threads`, `vision.presence_signal`, `vision.conf`, `vision.imgsz`; keluar: `kb.active_id` dan `audio.stt.groq_model`). Nilai coba hanya untuk dev dan demo: dipasang di memori lewat `python -m mica --trial-values` (config prod ditolak), dan UI menampilkan label NILAI COBA (dev). Config prod baru diisi dari hasil eksperimen.
+
+**Nilai keputusan desain (bukan hasil eksperimen).** `audio.input_mode` = push\_to\_talk (18 Oktober 2026), `vision.pause_during_tts` = true (21 Oktober 2026), `ui.camera_preview` = public, `ui.preview_fps` = 10 di prod (15 di dev), dan `ui.preview_pixel_block` = 16 (nilai coba desain tanpa sumber, diungkap di Bab 3).
 
 **Risiko desain**
 
@@ -905,7 +919,7 @@ Tabel ini mencakup ke-36 kunci yang dilaporkan `python -m mica check` sebagai be
 
 ### 13.1 Konfigurasi prod beranotasi (`config/prod.yaml`)
 
-`null` berarti TBD dan wajib diisi dari eksperimen yang disebut sebelum konfigurasi dibekukan; M-01 menolak start di mode prod bila masih ada `null` yang wajib. ID model Groq diisi persis seperti di dokumentasi Groq saat implementasi.
+`null` berarti TBD dan wajib diisi dari eksperimen yang disebut sebelum konfigurasi dibekukan; M-01 menolak start di mode prod bila masih ada `null` yang wajib. ID model Groq diisi persis seperti di dokumentasi Groq saat implementasi. Contoh di bawah hanya memuat kunci utama; isi lengkap (termasuk kb.embedder.revision, rag.reranker.revision, llm.reasoning\_effort, audio.input\_mode, audio.tts.threads, vision.box\_upper.\*, vision.keypoint\_torso.\*, vision.presence\_signal, vision.conf, vision.pause\_during\_tts, dan kunci UI pratinjau) ada di config/prod.yaml.
 
 ```yaml
 app:
@@ -930,7 +944,7 @@ rag:
     threshold: null                 # ADR-06, E-02
   fact_check:
     enabled: true                   # ADR-06 lapis 3
-  followup_mode: concat             # ADR-05; concat | llm_rewrite (E-02)
+  followup_mode: dual               # ADR-05; concat | dual | llm_rewrite (Langkah 55, provisional)
   history_turns: 1
   prompt_variant: paraphrase        # ADR-07; paraphrase | plain (E-03)
 llm:
@@ -951,13 +965,13 @@ audio:
     min_silence_ms: null            # E-05
   max_utterance_s: null             # E-05
   tts:
-    voice: id_ID-news_tts           # ADR-11
+    voice: id_ID-news_tts-medium    # ADR-11
 vision:
-  model: yolo26n                    # ADR-12; yolo26n | yolo26n-pose | yolo11n (E-07)
+  model: yolo26n-pose               # ADR-12; keypoint_torso butuh model -pose (E-07)
   tracker: bytetrack.yaml           # ADR-15
   region: keypoint_torso            # ADR-13; keypoint_torso | box_upper (E-08)
   color:
-    method: color_names_lut         # ADR-14; color_names_lut | hsv_rules (E-08)
+    method: lut_vote                # ADR-14; lut_vote | lut_mean (E-08, amandemen 1); provisional
     min_majority: null              # E-08
   dwell_s: null                     # E-07, syarat sapaan <= 3 detik (N-06)
   leave_s: null                     # E-07
@@ -970,7 +984,12 @@ session:
   regreet_cooldown_s: null          # E-07
 ui:
   font_scale: 1.0
-  topics: [Program studi, Jalur masuk, Biaya, Beasiswa, Fasilitas, Prospek karier]   # F-14, dari topik dataset PRD
+  topics:                           # F-14; setiap topik: label + satu pertanyaan lengkap
+    - label: Biaya
+      question: <pertanyaan lengkap>
+  camera_preview: public            # off | public | debug (debug hanya dev)
+  preview_fps: 10
+  preview_pixel_block: 16           # nilai coba desain
 logging:
   dir: logs/
 eval:
@@ -990,24 +1009,35 @@ mica/
     prod.yaml
     frozen-<tanggal>.yaml      # dibuat di MS5
   src/mica/
-    __main__.py                # menjalankan aplikasi
+    __main__.py                # menjalankan aplikasi (check dulu, lalu webui)
     config.py                  # M-01
+    check.py, setup.py         # mica check dan mica setup (3.4)
+    trial.py, ask.py, logs.py  # subperintah CLI lain (M-12)
     core/
       types.py                 # tipe data 5.1
       bus.py                   # M-13
       session.py               # M-09
-      logging.py               # M-11
+      logging.py, logsetup.py  # M-11 dan pengaturan logging Python
       controller.py            # AppController (sejak Langkah 23)
+      startup.py               # catatan tahap start (logs/startup-<tanggal>.jsonl)
+      texts.py, spoken.py      # teks UI dan teks ucapan
     kb/                        # M-02: parsers.py, chunker.py, embedder.py, index.py, __main__.py
     rag/                       # M-03 sampai M-06: retriever.py, rerank.py, gate.py, checker.py,
-                               #   llm.py, prompts.py, pii.py, pipeline.py
-    audio/                     # M-08: worker.py, vad.py, stt.py, tts.py, normalize.py
-    vision/                    # M-07: worker.py, detector.py, region.py, color.py, presence.py
-    webui/                     # M-10 utama: server.py, app.py, browser.py, state.py, static/
+                               #   llm.py, prompts.py, pii.py, pipeline.py, followup.py,
+                               #   background.py (BackgroundPipeline), __main__.py
+    audio/                     # M-08: worker.py, vad.py, stt.py, tts.py, normalize.py,
+                               #   listen.py, mic.py, player.py, messages.py
+    vision/                    # M-07: worker.py, detector.py, region.py, color.py, presence.py,
+                               #   camera.py, preview.py, livepreview.py, fakesource.py, types.py
+    ui/                        # bebas Qt: viewmodel.py, devfakes.py (dipakai webui dan eval)
+    webui/                     # M-10 utama: server.py, app.py, browser.py, state.py,
+                               #   guided.py, answer_format.py, __main__.py, static/
     eval/                      # M-12: satu file per subperintah
   data/
     kb/<kb_id>/                # 6.1
     eval/                      # 6.3
+  docs/                        # SDD.md, INSTALASI.md, UI-WEB.md, protokol E-xx
+  results/                     # hasil eksperimen per folder E-xx (di-commit)
   models/                      # diunduh oleh `mica setup`
   logs/
   tests/
@@ -1032,3 +1062,4 @@ mica/
 | 18 Oktober 2026 (Langkah 32 dan 33) | 2.4: baris optimasi UI web putaran 2 dan alat ukur serta protokol E-09. M-10: dua switch Edge baru. 6.2: kunci timings baru (gate, first\_response, pipeline) dan nilai null. 5.2: field Transcript.vad\_s, Transcript.ended\_t, SpeechDone.first\_audio\_t. |
 | 1 November 2026 | Kiosk menjadi web app (bimbingan 22 Oktober 2026; browser jendela biasa, keputusan pemilik proyek 1 November). Judul, cakupan, asumsi 2.3, konteks 3.1, deployment 3.4, M-07, M-10 (error kamera), 8.1, 9.3, MS4, matriks 11, isu 12, dan retensi 6.4: kata kiosk sebagai konsep diganti laptop PMB atau aplikasi; sentuhan diganti ketik dan klik. Catatan tinjau ulang di bawah anggaran latensi 3.3. Nama di kode diubah di baris berikutnya. Baris 2.4 dan riwayat lama dibiarkan sebagai catatan sejarah. |
 | 1 November 2026 (refactor RF-2) | Nama di kode mengikuti refactor RF-2 (branch refactor/webapp, dibuat setelah tag tahap1-beku di 1a9b537): mode kiosk menjadi prod, config/kiosk.yaml menjadi config/prod.yaml, KioskController menjadi AppController, CFG\_GEMINI\_IN\_KIOSK menjadi CFG\_GEMINI\_IN\_PROD. ADR-19 final: UI web dibuka di browser default dalam jendela biasa; peluncur Edge layar penuh, ui.backend, ui.fullscreen, dan PySide6 dihapus. Aplikasi dihentikan dengan Ctrl+C. docs/KIOSK.md menjadi docs/INSTALASI.md. Berlaku setelah RF-2 digabung ke main; perilaku RAG tidak berubah (dibuktikan dengan perbandingan retrieval terhadap tag tahap1-beku). Baris 2.4 dan riwayat yang lebih lama tetap memakai nama lama sebagai catatan sejarah, kecuali nama yang masih berlaku di kode. |
+| 2 November 2026 (audit RF-4) | Revisi dari audit SDD terhadap kode (docs/SDD-AUDIT.md, commit 86a0645, 49 temuan): push-to-talk sebagai bawaan (ADR-10, M-08, 5.2, 7.1, 7.2, 3.3); rag.followup\_mode dual di M-06, 7.3, bagian 12, dan 13.1; penamaan warna lut\_vote dan lut\_mean, HsvRuleNamer dihapus; M-10 versi F dan isi folder ui/ yang bebas Qt; pratinjau kamera (M-07, 3.2, 8.2); urutan start dan log start (3.4); bagian 12 diperbarui dengan kunci yang sudah terisi dan paragraf nilai keputusan desain; 8.1 dan 8.3 disesuaikan; contoh 13.1 diperbaiki agar lolos validasi; 13.2 dilengkapi. Bagian 2.4 ditambah baris Langkah 40, 51, dan 57. Perbaikan kode kecil yang menyertainya (mode offline Hugging Face di prod, rag.rrf\_k wajib untuk dual, teks pemberitahuan) dikerjakan di RF-5. |

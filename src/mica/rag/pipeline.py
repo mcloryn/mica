@@ -272,6 +272,7 @@ def make_pipeline(
 ) -> AnswerPipeline:
     """Rakit pipeline dari konfigurasi: KB aktif, retriever, gerbang, rantai LLM, checker."""
     from mica.core import startup
+    from mica.kb.embedder import hf_offline
     from mica.kb.index import DEFAULT_KB_ROOT, load_kb
     from mica.rag.checker import make_checker
     from mica.rag.gate import make_gate
@@ -284,7 +285,7 @@ def make_pipeline(
     embedder = None
     if settings.rag.retriever != "bm25":
         # model dimuat di depan supaya timings.retrieval tidak memuat waktu muat model
-        embedder = embedder_for_kb(kb)
+        embedder = embedder_for_kb(kb, offline=hf_offline(settings.app.mode))  # RF-5
         load = getattr(embedder, "load", None)
         if load is not None:
             if startup.active():  # Langkah 40: modul yang memang dimuat BgeM3Embedder.load

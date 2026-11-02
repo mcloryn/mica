@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from mica.core.types import ScoredChunk
-from mica.kb.embedder import DEFAULT_CACHE_DIR
+from mica.kb.embedder import DEFAULT_CACHE_DIR, ModelNotCached
 
 
 class CrossEncoderLike(Protocol):
@@ -26,6 +26,8 @@ class RerankedRetriever:
         pool: int = 20,
         cache_dir: Path = DEFAULT_CACHE_DIR,
         loader: Callable[[], CrossEncoderLike] | None = None,
+        offline: bool = False,
+        cross_encoder: Callable[..., CrossEncoderLike] | None = None,
     ) -> None:
         if pool < 1:
             raise ValueError("pool harus >= 1")
@@ -35,6 +37,8 @@ class RerankedRetriever:
         self.pool = pool  # jumlah kandidat dari retriever dasar yang dinilai ulang
         self.cache_dir = Path(cache_dir)
         self._loader = loader
+        self.offline = offline  # prod: local_files_only, tidak pernah mengunduh (RF-5)
+        self._cross_encoder = cross_encoder  # tes: pengganti kelas CrossEncoder
         self._model: CrossEncoderLike | None = None
 
     def _load(self) -> CrossEncoderLike:
@@ -43,16 +47,26 @@ class RerankedRetriever:
             if self._loader is not None:
                 self._model = self._loader()
             else:
-                from sentence_transformers import CrossEncoder
+                cross_encoder = self._cross_encoder
+                if cross_encoder is None:
+                    from sentence_transformers import CrossEncoder
 
+                    cross_encoder = CrossEncoder
                 self.cache_dir.mkdir(parents=True, exist_ok=True)
-                self._model = CrossEncoder(
-                    self.model_id,
-                    revision=self.revision,
-                    cache_folder=str(self.cache_dir),
-                    device="cpu",
-                    model_kwargs={"use_safetensors": True} if self.revision else {},
-                )
+                offline: dict[str, Any] = {"local_files_only": True} if self.offline else {}
+                try:
+                    self._model = cross_encoder(
+                        self.model_id,
+                        revision=self.revision,
+                        cache_folder=str(self.cache_dir),
+                        device="cpu",
+                        model_kwargs={"use_safetensors": True} if self.revision else {},
+                        **offline,
+                    )
+                except OSError as exc:  # huggingface_hub LocalEntryNotFoundError adalah OSError
+                    if not self.offline:
+                        raise
+                    raise ModelNotCached(self.model_id, self.revision, self.cache_dir) from exc
         return self._model
 
     def search(self, query: str, k: int) -> list[ScoredChunk]:

@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 REWRITE_SYSTEM = (
     "Kamu menyiapkan kueri pencarian dokumen PMB Universitas Mikroskil. Kamu menerima pertanyaan "
-    "sebelumnya dan pertanyaan baru dari pengunjung kiosk. Bila pertanyaan baru adalah lanjutan "
+    "sebelumnya dan pertanyaan baru dari pengunjung. Bila pertanyaan baru adalah lanjutan "
     "yang tidak bisa dipahami tanpa pertanyaan sebelumnya (misalnya tidak menyebut hal yang "
     "ditanyakan, atau merujuk ke pertanyaan sebelumnya), tulis ulang menjadi satu kalimat "
     "pertanyaan utuh dalam bahasa Indonesia yang bisa dipahami sendiri, memakai hanya kata dari "
