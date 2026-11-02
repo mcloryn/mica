@@ -85,7 +85,9 @@ def _sdd_8_1_codes() -> set[str]:
 
 def test_error_code_covers_sdd_8_1():
     codes = _sdd_8_1_codes()
-    assert len(codes) >= 12
+    # SDD revisi RF-4: STT kosong dan warna tidak yakin tidak lagi dicatat sebagai kode error
+    # (STT_EMPTY dan COLOR_UNSURE tetap di enum, tidak dipakai)
+    assert len(codes) >= 10
     assert codes <= {c.value for c in ErrorCode}
 
 
