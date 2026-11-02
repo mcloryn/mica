@@ -218,7 +218,9 @@ kotak ketik, Kirim). Layar < 1100 px (nilai desain): kolom kiri menjadi strip ke
   dilayani di `/logo`.
 - Kartu dan chip topik (`ui.topics`: Program Studi, Biaya, Beasiswa, Pendaftaran, Fasilitas,
   Lokasi) hanya mengisi kotak pertanyaan dengan nama topik; tidak mengirim pertanyaan. `mica check`
-  ikut memeriksa `ui.topics` terhadap set uji resmi.
+  ikut memeriksa `ui.topics` terhadap set uji resmi. (Diganti Langkah 53: kartu dan chip langsung
+  mengirim `ui.topics[].question`; petunjuknya sejak RF-5 "Pilih topik untuk langsung bertanya,
+  atau ketik pertanyaanmu sendiri".)
 - Gerak: animasi CSS hanya saat status Mendengarkan, Berpikir, dan Berbicara; tidak ada animasi
   atau timer JS saat Siap; `prefers-reduced-motion` mematikan semua animasi.
 - Penolakan (jawaban MICA tanpa sumber) tampil sebagai kartu krem yang sopan, bukan galat.

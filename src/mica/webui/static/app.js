@@ -301,7 +301,7 @@ $("input").addEventListener("keydown", (e) => {
 $("send_button").addEventListener("click", () => submitText($("input"), "text"));
 $("resend_button").addEventListener("click", () => submitText($("transcript_edit"), "resend"));
 // Bicara. audio.input_mode push_to_talk (Langkah 42): tahan untuk merekam, lepas untuk mengirim;
-// pointer keluar dari tombol atau pointercancel = dibatalkan. Spasi (dev) saat fokus bukan di
+// pointer keluar dari tombol atau pointercancel = dibatalkan. Spasi saat fokus bukan di
 // kotak ketik. Mode vad (lama): klik sekali.
 let talkHeld = false;
 
