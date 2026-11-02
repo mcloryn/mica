@@ -1,4 +1,4 @@
-"""CLI uji cepat M-06 (mode dev): satu pertanyaan lewat AnswerPipeline yang sama dengan kiosk.
+"""CLI uji cepat M-06 (mode dev): satu pertanyaan lewat AnswerPipeline yang sama dengan aplikasi.
 
 python -m mica.ask "<pertanyaan>" [--prev "<pertanyaan sebelumnya>"] [--config config/dev.yaml]
 

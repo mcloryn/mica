@@ -1,6 +1,6 @@
 # MICA: aturan kerja untuk Claude Code
 
-MICA adalah kiosk informasi PMB Universitas Mikroskil untuk skripsi S-1. Rancangannya ada di `docs/SDD.md` (ekspor dari SDD MICA). Ikuti SDD itu. Bila instruksi bertentangan dengan SDD, berhenti dan tanyakan.
+MICA adalah web app informasi PMB Universitas Mikroskil untuk skripsi S-1, berjalan di satu laptop PMB dan dibuka di browser. Rancangannya ada di `docs/SDD.md` (ekspor dari SDD MICA). Ikuti SDD itu. Bila instruksi bertentangan dengan SDD, berhenti dan tanyakan.
 
 ## Cara kerja
 - Instruksi dan penjelasan datang dari pengguna, yang menyalinnya dari diskusi di luar terminal. Tugasmu menulis kode, bukan menjelaskan.
@@ -25,7 +25,7 @@ RINGKASAN
 - Jalankan pytest, `ruff check .`, dan `ruff format --check .` sebelum setiap commit. Jangan commit bila ada tes yang gagal.
 
 ## Privasi dan rahasia
-- Jangan pernah menyimpan frame kamera atau audio mikrofon ke disk di mode kiosk.
+- Jangan pernah menyimpan frame kamera atau audio mikrofon ke disk di mode prod.
 - API key hanya di `.env`; jangan tulis ke kode, log, atau commit. `.env` ada di `.gitignore`.
-- Gemini hanya boleh dipakai saat `app.mode: dev`. Konfigurasi kiosk tidak boleh memuat penyedia `gemini`.
+- Gemini hanya boleh dipakai saat `app.mode: dev`. Konfigurasi prod (`config/prod.yaml`) tidak boleh memuat penyedia `gemini`.
 - Teks pertanyaan harus melewati `scrub_pii` sebelum dikirim ke API atau ditulis ke log.

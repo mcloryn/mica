@@ -31,7 +31,7 @@ BOOTSTRAP_N = 1000
 DEFAULT_CONF = 0.1  # bawaan model.track Ultralytics 8.4 (nilai dev vision.conf)
 IOU_THRESHOLDS = tuple(round(0.5 + 0.05 * i, 2) for i in range(10))  # 0,50 ... 0,95
 RECALL_POINTS = np.linspace(0.0, 1.0, 101)
-USED_MODEL = "yolo26n-pose"  # amandemen 1 E-07: kiosk wajib model dengan keypoint
+USED_MODEL = "yolo26n-pose"  # amandemen 1 E-07: prod wajib model dengan keypoint
 E07_DETECTION_RULE = (
     "Aturan E-07 deteksi (docs/E-07.md, 18 Okt 2026, amandemen 1): yolo26n-pose dipakai; "
     "yolo26n hanya pembanding biaya model pose. Bila CI 95% bootstrap selisih mAP@50:95 "

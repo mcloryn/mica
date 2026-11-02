@@ -1,4 +1,4 @@
-"""Ukur ulang UI kiosk baru (Langkah 37): kondisi 1 vs baseline putaran 2, kondisi 2 vs kondisi 1.
+"""Ukur ulang UI web baru (Langkah 37): kondisi 1 vs baseline putaran 2, kondisi 2 vs kondisi 1.
 
 python scripts/ui_preview_bench.py [--reps 10] [--out results/ADR-19]
 
@@ -132,7 +132,7 @@ def main(argv: list[str] | None = None) -> int:
     kinds = {c: {"cpu": kinds_median(rs, "_cpu_by_kind"), "uss": kinds_median(rs, "_uss_by_kind")}
              for c, rs in runs.items()}  # fmt: skip
     raised = [m for m, text in c1_vs_base if m in TARGETS and text.endswith("naik")]
-    lines = ["# Langkah 37: ukur ulang UI kiosk", "",
+    lines = ["# Langkah 37: ukur ulang UI web", "",
              (f"Baseline: {BASELINE.relative_to(ROOT).as_posix()} baris {BASELINE_ROW}; "
              f"{args.reps} ulangan per kondisi, selang-seling, daya AC."), "",
              "## Kondisi 1 (desain baru, pratinjau off) vs baseline", ""]  # fmt: skip

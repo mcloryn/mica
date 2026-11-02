@@ -4,13 +4,15 @@ Setiap `interval_s` detik (bawaan 5, nilai coba) thread latar membaca, dengan ps
 proses di kelompok:
 - utama: proses MICA (server, controller, pipeline);
 - vision, suara: proses pekerja dari bus beserta turunannya;
-- edge: proses browser Edge beserta semua turunannya (renderer, gpu, utility, ...);
 - lain: turunan proses utama yang tidak masuk kelompok di atas.
 Satu baris CSV per kelompok per sampel: ts, elapsed_s, group, n_processes, cpu_pct (persen satu
 inti, dari selisih cpu_times sejak sampel sebelumnya), uss_mb. Tidak ada isi lain yang direkam:
 tanpa command line, nama jendela, gambar, atau audio (N-08).
 
 Hanya boleh di app.mode dev, kecuali E-09 dengan flag eksplisit --e09 (dicatat di run.json).
+
+Amandemen 1 Nov 2026 (RF-2, docs/E-09.md): kelompok "edge" dihapus. UI dibuka di browser default
+yang bukan bagian aplikasi dan bukan proses anak MICA, jadi hanya proses Python yang diukur.
 """
 
 from __future__ import annotations
@@ -26,7 +28,7 @@ from pathlib import Path
 from typing import Any
 
 DEFAULT_INTERVAL_S = 5.0  # nilai coba (docs/E-09.md)
-GROUPS = ("utama", "vision", "suara", "edge", "lain")
+GROUPS = ("utama", "vision", "suara", "lain")
 FIELDS = ("ts", "elapsed_s", "group", "n_processes", "cpu_pct", "uss_mb")
 CSV_NAME = "resources.csv"
 
@@ -38,7 +40,7 @@ class RecorderRefused(Exception):
 def check_allowed(mode: str, e09: bool) -> None:
     if mode != "dev" and not e09:
         raise RecorderRefused(
-            "--record-resources hanya untuk app.mode: dev; di kiosk hanya untuk E-09 dengan --e09"
+            "--record-resources hanya untuk app.mode: dev; di prod hanya untuk E-09 dengan --e09"
         )
 
 
@@ -57,12 +59,12 @@ def _tree(pid: int) -> list[Any]:
 
 
 def pid_groups(main_pid: int, roots: dict[str, int | None]) -> dict[str, list[int]]:
-    """{kelompok: pid}. roots: {"vision": pid, "suara": pid, "edge": pid}; None = tidak ada.
+    """{kelompok: pid}. roots: {"vision": pid, "suara": pid}; None = tidak ada.
     Kelompok selain utama memuat root beserta semua turunannya; sisa turunan utama -> lain."""
     out: dict[str, list[int]] = {g: [] for g in GROUPS}
     out["utama"] = [main_pid]
     taken = {main_pid}
-    for group in ("vision", "suara", "edge"):
+    for group in ("vision", "suara"):
         pid = roots.get(group)
         if pid is None:
             continue
@@ -170,7 +172,7 @@ class ResourceRecorder:
         while not self.stop_event.is_set():
             try:
                 self.sample()
-            except Exception:  # noqa: BLE001, S110 - perekam tidak boleh mematikan kiosk
+            except Exception:  # noqa: BLE001, S110 - perekam tidak boleh mematikan aplikasi
                 pass
             self.stop_event.wait(self.interval_s)
 
@@ -219,16 +221,15 @@ def add_arguments(parser: Any) -> None:
         help=f"interval perekam dalam detik (bawaan {DEFAULT_INTERVAL_S:g}, nilai coba)",
     )
     parser.add_argument("--e09", action="store_true",
-                        help="izinkan perekam di app.mode kiosk untuk E-09 (dicatat di run.json)")  # fmt: skip
+                        help="izinkan perekam di app.mode prod untuk E-09 (dicatat di run.json)")  # fmt: skip
 
 
-def bus_roots(bus: Any, browser: Any = None) -> dict[str, int | None]:
-    """roots dari Bus.processes ("vision", "audio") dan EdgeBrowser.pid."""
+def bus_roots(bus: Any) -> dict[str, int | None]:
+    """roots dari Bus.processes ("vision", "audio")."""
     procs = getattr(bus, "processes", {}) or {}
 
     def pid(name: str) -> int | None:
         proc = procs.get(name)
         return getattr(proc, "pid", None) if proc is not None else None
 
-    return {"vision": pid("vision"), "suara": pid("audio"),
-            "edge": getattr(browser, "pid", None) if browser is not None else None}  # fmt: skip
+    return {"vision": pid("vision"), "suara": pid("audio")}

@@ -218,7 +218,7 @@ def test_eval_stt_push_to_talk_silence_skips_stt():
 
 
 def test_config_input_mode_push_to_talk_default():
-    for name in ("dev", "kiosk"):
+    for name in ("dev", "prod"):
         text = (ROOT / "config" / f"{name}.yaml").read_text(encoding="utf-8")
         assert "  input_mode: push_to_talk" in text
     assert load_settings(ROOT / "config" / "dev.yaml").audio.input_mode == "push_to_talk"
@@ -272,7 +272,7 @@ def test_js_uses_pointer_events_and_space():
 
 
 def test_controller_routes_release_to_audio():
-    from mica.core.controller import KioskController
+    from mica.core.controller import AppController
     from mica.core.session import Session
 
     class Bus:
@@ -289,7 +289,7 @@ def test_controller_routes_release_to_audio():
 
     bus = Bus()
     s = Session(5.0, None, None, None, None, input_mode="push_to_talk")
-    c = KioskController(bus, s, object(), lambda item: None)
+    c = AppController(bus, s, object(), lambda item: None)
     c.submit(TalkPressed())
     c.submit(TalkReleased())
     assert [type(m).__name__ for t, m in bus.sent if t == "audio"] == ["ListenControl",

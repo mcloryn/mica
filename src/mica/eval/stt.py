@@ -47,12 +47,12 @@ from mica.rag.pii import scrub_pii
 
 EXPERIMENT = "E-05"
 KINDS = ("pertanyaan", "diam", "bising")
-# SDD 2.4 (aturan E-05): p95 waktu sampai transkripsi tampil paling lama 3 detik di laptop kiosk
+# SDD 2.4 (aturan E-05): p95 waktu sampai transkripsi tampil paling lama 3 detik di laptop PMB
 P95_LIMIT_S = 3.0
 TOP_K = 5  # Recall@5 (SDD 2.4, metrik tambahan E-05)
 E05_RULE = (
     "Aturan E-05 ditetapkan sebelum data: syarat p95 waktu sampai transkripsi tampil paling lama "
-    "3 detik di laptop kiosk; pemenang WER terkecil; seri dimenangkan STT lokal."
+    "3 detik di laptop PMB; pemenang WER terkecil; seri dimenangkan STT lokal."
 )
 CER_NORMALIZATION = "sama dengan WER (normalize_for_wer); lalu jiwer.cer"
 ITEM_FIELDS = (
@@ -359,7 +359,7 @@ def format_table(summaries: list[Summary]) -> str:
             f"{f(s.recall5_hyp)} | {f(s.recall5_ref)}"
         )
     lines.append("Pemenang tidak dipilih otomatis. p95 <= 3 s hanya sah bila diukur di laptop "
-                 "kiosk (SDD 2.4).")  # fmt: skip
+                 "PMB (SDD 2.4).")  # fmt: skip
     return "\n".join(lines)
 
 

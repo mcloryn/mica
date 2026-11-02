@@ -169,11 +169,11 @@ def test_worker_config_filters_null_means_off_and_pickles():
     assert pickle.loads(pickle.dumps(cfg)) == cfg
 
 
-def test_worker_config_rejects_fakes_and_diagnose_in_kiosk():
-    with pytest.raises(AudioWorkerConfigError, match="kiosk"):
-        AudioWorkerConfig.from_settings(_settings("kiosk"), VALUES, **FAKES)
+def test_worker_config_rejects_fakes_and_diagnose_in_prod():
+    with pytest.raises(AudioWorkerConfigError, match="prod"):
+        AudioWorkerConfig.from_settings(_settings("prod"), VALUES, **FAKES)
     with pytest.raises(AudioWorkerConfigError, match="diagnosis"):
-        AudioWorkerConfig.from_settings(_settings("kiosk"), VALUES, diagnose=True)
+        AudioWorkerConfig.from_settings(_settings("prod"), VALUES, diagnose=True)
 
 
 # --- AudioLoop ----------------------------------------------------------------------------
@@ -416,10 +416,10 @@ def test_bus_demo_stop_after_measures_interrupt():
     assert demo.stats.stop_s == pytest.approx(0.1)
 
 
-def test_bus_demo_refused_in_kiosk():
+def test_bus_demo_refused_in_prod():
     args = cli.build_parser().parse_args(["bus-demo"])
     with pytest.raises(cli.AudioCliError, match="app.mode: dev"):
-        cli.cmd_bus_demo(args, _settings("kiosk"))
+        cli.cmd_bus_demo(args, _settings("prod"))
 
 
 def test_transcript_and_speech_done_carry_e09_times():

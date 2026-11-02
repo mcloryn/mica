@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 import pytest
 
 from mica.audio.messages import AudioStatus, Speak, SpeechDone, SpeechStarted, Transcript
-from mica.core.controller import TURN_TIMING_KEYS, KioskController
+from mica.core.controller import TURN_TIMING_KEYS, AppController
 from mica.core.logging import InteractionLog, TurnRecord
 from mica.core.session import Session, TextSubmitted, VisitState
 from mica.core.texts import FILLER
@@ -69,7 +69,7 @@ class Rig:
         self.bus = Bus()
         self.t = 0.0
         self.log_dir = tmp_path / "logs"
-        self.ctrl = KioskController(self.bus, self.session, pipeline or RunPipeline(),
+        self.ctrl = AppController(self.bus, self.session, pipeline or RunPipeline(),
                                     lambda item: None, lambda: self.t, InteractionLog(self.log_dir),
                                     wall_clock=lambda: datetime(2026, 10, 18, tzinfo=UTC))  # fmt: skip
 

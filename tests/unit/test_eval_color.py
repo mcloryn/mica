@@ -247,12 +247,12 @@ def test_cli_color_with_fakes(tmp_path, monkeypatch, capsys):
     assert run["decision"]["method"] == "lut_vote"
 
 
-def test_cli_color_refused_in_kiosk(tmp_path, monkeypatch, capsys):
+def test_cli_color_refused_in_prod(tmp_path, monkeypatch, capsys):
     from mica.config import load_settings
 
     settings = load_settings(DEV_YAML)
-    kiosk = settings.model_copy(update={"app": settings.app.model_copy(update={"mode": "kiosk"})})
-    monkeypatch.setattr(cli, "load_settings", lambda *a, **k: kiosk)
+    prod = settings.model_copy(update={"app": settings.app.model_copy(update={"mode": "prod"})})
+    monkeypatch.setattr(cli, "load_settings", lambda *a, **k: prod)
     code = cli.main(["color", "--config", "x", "--dataset", str(tmp_path)])
     assert code == 2
-    assert "mode kiosk" in capsys.readouterr().err
+    assert "mode prod" in capsys.readouterr().err

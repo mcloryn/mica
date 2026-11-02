@@ -311,10 +311,10 @@ def test_ask_cli_output(tmp_path, capsys):
     assert retriever.queries == ["Biaya SI, HP [TELEPON]? Kalau kelas pagi?"]
 
 
-def test_ask_cli_rejects_kiosk_config(tmp_path, capsys):
+def test_ask_cli_rejects_prod_config(tmp_path, capsys):
     from mica.ask import main
 
-    assert main(["x", "--config", str(ROOT / "config" / "kiosk.yaml")]) == 2
+    assert main(["x", "--config", str(ROOT / "config" / "prod.yaml")]) == 2
     assert "error:" in capsys.readouterr().err
 
 
@@ -377,7 +377,7 @@ def test_only_asked_rule_v2(variant):
 
 
 def test_dev_followup_mode_is_dual_and_searches_plain_and_concat(tmp_path):
-    # Langkah 55: rag.followup_mode dual dipilih FOLLOWUP.md (dev dan kiosk)
+    # Langkah 55: rag.followup_mode dual dipilih FOLLOWUP.md (dev dan prod)
     assert load_settings(DEV_YAML).rag.followup_mode == "dual"
     pipeline, _, retriever = _pipeline(tmp_path, ANSWER_SI)
     pipeline.answer("Kalau kelas sore?", [Turn(ScrubbedText("Biaya SI berapa?"), "Rp.")], "s-1")

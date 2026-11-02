@@ -1,5 +1,5 @@
 """--trial-values (Langkah 41): nilai coba SDD bagian 12 hanya mengisi kunci null, di memori,
-dev saja (kiosk ditolak), peringatan berisi kunci + nilai, label UI, pemilihan pekerja asli/palsu,
+dev saja (prod ditolak), peringatan berisi kunci + nilai, label UI, pemilihan pekerja asli/palsu,
 dan tanpa gambar/audio ke disk."""
 
 import logging
@@ -19,7 +19,7 @@ from mica.webui.server import STATIC_DIR, WebUi
 
 ROOT = Path(__file__).resolve().parents[2]
 DEV_YAML = ROOT / "config" / "dev.yaml"
-KIOSK_YAML = ROOT / "config" / "kiosk.yaml"
+PROD_YAML = ROOT / "config" / "prod.yaml"
 
 
 def test_fill_nulls_only_fills_null_or_missing():
@@ -53,10 +53,10 @@ def _get(raw, dotted):
     return node
 
 
-def test_trial_values_rejected_in_kiosk(capsys):
+def test_trial_values_rejected_in_prod(capsys):
     with pytest.raises(ConfigError, match="hanya boleh saat app.mode: dev"):
-        trial.load_trial_settings(KIOSK_YAML)
-    assert webui_app.main(["--config", str(KIOSK_YAML), "--trial-values"]) == 2
+        trial.load_trial_settings(PROD_YAML)
+    assert webui_app.main(["--config", str(PROD_YAML), "--trial-values"]) == 2
     assert "hanya boleh saat app.mode: dev" in capsys.readouterr().err
 
 
@@ -75,8 +75,8 @@ def test_python_m_mica_trial_values(monkeypatch):
     assert mica_main(["--config", str(DEV_YAML), "--trial-values"], check, launch) == 0
     settings, args = launched[0]
     assert settings.vision.dwell_s == 2.0 and args.trial_values
-    assert mica_main(["--config", str(KIOSK_YAML), "--trial-values"], check, launch) == 2
-    assert len(launched) == 1  # kiosk tidak diluncurkan
+    assert mica_main(["--config", str(PROD_YAML), "--trial-values"], check, launch) == 2
+    assert len(launched) == 1  # prod tidak diluncurkan
 
 
 def test_trial_badge_in_config_and_header():

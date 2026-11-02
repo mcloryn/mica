@@ -1,8 +1,8 @@
 """Nilai coba SDD bagian 12 untuk mencoba kamera dan mikrofon asli di dev (Langkah 41).
 
 --trial-values (python -m mica, python -m mica.webui): kunci config yang null diisi TRIAL_VALUES
-di memori; file config tidak diubah. Hanya boleh saat app.mode: dev; config kiosk ditolak
-(config kiosk baru diisi dari hasil eksperimen, SDD bagian 12). Saat aktif, daftar kunci dan
+di memori; file config tidak diubah. Hanya boleh saat app.mode: dev; config prod ditolak
+(config prod baru diisi dari hasil eksperimen, SDD bagian 12). Saat aktif, daftar kunci dan
 nilainya dicatat sebagai peringatan dan UI web menampilkan label "NILAI COBA (dev)".
 Dipakai juga oleh scripts/startup_profile.py dan sumber gambar palsu (mica.ui.devfakes).
 """
@@ -62,7 +62,7 @@ def load_trial_settings(
         raise ConfigError(
             CFG_INVALID,
             f"--trial-values hanya boleh saat app.mode: dev ({path} memakai mode {mode}); "
-            "config kiosk diisi dari hasil eksperimen, bukan nilai coba",
+            "config prod diisi dari hasil eksperimen, bukan nilai coba",
         )
     filled = fill_nulls(raw)
     settings = settings_from_raw(raw, env_file)

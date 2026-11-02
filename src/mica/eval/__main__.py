@@ -24,6 +24,9 @@ python -m mica.eval annotation --run <folder run generation> [--compare-saran]
     (ringkasan anotasi halusinasi; --compare-saran: jumlah identik dengan saran Claude)
 python -m mica.eval labels --run <folder run generation>
     (metrik label per jawaban dari labels_claude.csv, docs/EVAL-DEV-OFFICIAL.md)
+python -m mica.eval tahap1 --questions data/eval/official/uji-tahap1-129.csv
+    --out data/eval/official/runs/tahap1 [--limit N] [--config config/dev.yaml]
+    (Uji RAG Tahap 1, docs/PRA-REGISTRASI-TAHAP1.md; resume otomatis)
 """
 
 from __future__ import annotations
@@ -188,7 +191,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     lat = sub.add_parser("latency", help="E-09: latensi per tahap dari log 6.2 dan verdict")
     lat.add_argument("--logs", type=Path, default=Path("logs"))
-    lat.add_argument("--label", required=True, help="nama run, mis. kiosk-fps2-t1")
+    lat.add_argument("--label", required=True, help="nama run, mis. prod-fps2-t1")
     lat.add_argument("--resources", type=Path, help="resources.csv dari --record-resources")
     lat.add_argument("--from", dest="start", type=date.fromisoformat, help="YYYY-MM-DD")
     lat.add_argument("--to", dest="end", type=date.fromisoformat, help="YYYY-MM-DD")
@@ -243,7 +246,39 @@ def build_parser() -> argparse.ArgumentParser:
 
     lab = sub.add_parser("labels", help="E-02: metrik label per jawaban (labels_claude.csv)")
     lab.add_argument("--run", type=Path, required=True, help="folder run generation")
+
+    t1 = sub.add_parser("tahap1", help="Uji RAG Tahap 1: satu jawaban per soal, lanjut otomatis")
+    t1.add_argument("--questions", type=Path, required=True, help="uji-tahap1-129.csv")
+    t1.add_argument("--out", type=Path, required=True, help="folder run (answers.jsonl, manifest)")
+    t1.add_argument("--limit", type=int, help="paling banyak N soal baru di run ini")
+    t1.add_argument("--config", type=Path, default=Path("config/dev.yaml"))
+    t1.add_argument("--env-file", type=Path, default=Path(".env"))
     return parser
+
+
+def cmd_tahap1(args: argparse.Namespace, embedder_factory: EmbedderFactory | None) -> int:
+    from mica.eval.tahap1 import run_tahap1
+
+    settings = load_settings(args.config, env_file=args.env_file)
+    kb = load_kb(settings.kb.active_id, args.kb_root)
+    embedder = None
+    if embedder_factory is not None:
+        info = kb.manifest["embedder"]
+        embedder = embedder_factory(info["model"], info["revision"])
+    environment = collect_environment()
+    warning = dirty_warning(environment)
+    if warning:
+        print(warning, file=sys.stderr)
+    result = run_tahap1(settings, kb, args.questions, args.out, limit=args.limit,
+                        embedder=embedder, environment=environment)  # fmt: skip
+    print(f"KB {kb.kb_id} | {result.n_done}/{result.n_total} soal selesai -> "
+          f"{result.out_dir.as_posix()}")  # fmt: skip
+    if result.skipped:
+        print(f"belum terjawab (API error/timeout): {', '.join(result.skipped)}; "
+              "ulangi perintah yang sama", file=sys.stderr)  # fmt: skip
+    for path in result.sheets:
+        print(f"lembar penilaian: {path.as_posix()}")
+    return 0
 
 
 def cmd_dataset(args: argparse.Namespace) -> int:
@@ -368,7 +403,7 @@ def _vision_settings(args: argparse.Namespace, command: str) -> Any:
     settings = load_settings(args.config)
     if settings.app.mode != "dev":
         raise VisionEvalError(
-            f"eval {command} hanya boleh saat app.mode: dev (frame relawan ditolak di mode kiosk)"
+            f"eval {command} hanya boleh saat app.mode: dev (frame relawan ditolak di mode prod)"
         )
     return settings
 
@@ -452,7 +487,7 @@ def cmd_vision_scenarios(args: argparse.Namespace) -> int:
     settings = _vision_settings(args, "vision-scenarios")
     if not args.model.endswith("-pose"):
         raise VisionEvalError(
-            f"model {args.model} tanpa keypoint: kiosk wajib model -pose (amandemen 1 E-07); "
+            f"model {args.model} tanpa keypoint: prod wajib model -pose (amandemen 1 E-07); "
             "sinyal shoulder_width butuh keypoint bahu"
         )
     path = model_path(args.model, args.models_dir)
@@ -835,7 +870,7 @@ def cmd_stt(
 
     settings = load_settings(args.config, env_file=args.env_file)
     if settings.app.mode != "dev":
-        raise SttEvalError("eval stt hanya boleh saat app.mode: dev (ditolak di kiosk)")
+        raise SttEvalError("eval stt hanya boleh saat app.mode: dev (ditolak di prod)")
     items = load_manifest(args.dataset)
     audio = {i.id: read_wav(i.file) for i in items}
     values, sources = resolve_vad_values(settings.audio, args)
@@ -1107,6 +1142,17 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
             return cmd_retrieval(args, embedder_factory)
         if args.command == "gate":
             return cmd_gate(args, embedder_factory)
+        if args.command == "tahap1":
+            from mica.eval.tahap1 import QUOTA_MESSAGE, Tahap1Error
+
+            try:
+                return cmd_tahap1(args, embedder_factory)
+            except QuotaExhausted as exc:
+                print(f"BERHENTI: {exc}\n{QUOTA_MESSAGE}", file=sys.stderr)
+                return 3
+            except Tahap1Error as exc:
+                print(f"BERHENTI: {exc}", file=sys.stderr)
+                return 2
         if args.command == "generation":
             try:
                 return cmd_generation(args, embedder_factory)

@@ -1,11 +1,10 @@
-"""python -m mica check: pemeriksaan sebelum kiosk dinyalakan, untuk staf.
+"""python -m mica check: pemeriksaan sebelum aplikasi dinyalakan, untuk staf.
 
 Tidak membuka kamera, mikrofon, atau speaker dan tidak memanggil Groq. Memeriksa:
-config (M-01; di kiosk semua null wajib terisi), file model dan sha256, KB aktif dan
+config (M-01; di mode prod semua null wajib terisi), file model dan sha256, KB aktif dan
 embedder-nya, keberadaan GROQ_API_KEY (nilainya tidak pernah dicetak), daftar perangkat
 audio dari sounddevice.query_devices() (tanpa membuka stream), kamera (hanya "diperiksa saat
-start"), folder log bisa ditulis, bila ui.backend: web, msedge.exe ditemukan (Edge tidak
-dijalankan), dan tidak ada pertanyaan set uji (data/eval/official/test.jsonl) maupun set dev
+start"), folder log bisa ditulis, dan tidak ada pertanyaan set uji (data/eval/official/test.jsonl) maupun set dev
 (data/eval/questions.jsonl, official/dev.jsonl) yang identik atau mirip dengan teks
 ui.suggestions/ui.topics (docs/DATASET.md, larangan bocor). Kode keluar 0 bila semua OK, 1 bila ada GAGAL.
 """
@@ -19,9 +18,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
-from mica.config import ConfigError, Settings, load_settings, missing_kiosk_fields
+from mica.config import ConfigError, Settings, load_settings, missing_prod_fields
 
-DEFAULT_CONFIG = Path("config/kiosk.yaml")
+DEFAULT_CONFIG = Path("config/prod.yaml")
 DEFAULT_ENV = Path(".env")
 Status = Literal["OK", "GAGAL", "PERINGATAN", "INFO"]  # PERINGATAN tidak menggagalkan check
 SETUP_HINT = "jalankan: python -m mica setup"
@@ -50,8 +49,8 @@ def _check_config(path: Path, env_file: Path | None) -> tuple[CheckRow, Settings
             settings = load_settings(path, env_file, require_complete=False)
         except ConfigError:
             return CheckRow("config", "GAGAL", f"{path.as_posix()}: {first}"), None
-    missing = missing_kiosk_fields(settings)
-    return CheckRow("config", "GAGAL", f"mode kiosk: {len(missing)} kunci belum diisi: "
+    missing = missing_prod_fields(settings)
+    return CheckRow("config", "GAGAL", f"mode prod: {len(missing)} kunci belum diisi: "
                     + ", ".join(missing)), settings  # fmt: skip
 
 
@@ -92,6 +91,50 @@ def _check_kb(settings: Settings, kb_root: Path) -> CheckRow:
                     f"embedder {want.model}@{str(want.revision)[:8]})")  # fmt: skip
 
 
+# RF-5: file minimum snapshot reranker (cross-encoder) yang dimuat CrossEncoder secara offline
+RERANKER_FILES = ("config.json", "model.safetensors", "tokenizer_config.json")
+
+
+def _hf_snapshot(models_dir: Path, model: str, revision: str) -> Path:
+    return Path(models_dir) / f"models--{model.replace('/', '--')}" / "snapshots" / revision
+
+
+def _check_hf_cache(settings: Settings, models_dir: Path, kb_root: Path) -> CheckRow | None:
+    """Mode prod (RF-5): model Hugging Face dimuat dengan local_files_only, jadi embedder kueri
+    (model dan revisi dari manifest KB aktif, seperti saat runtime) dan reranker bila menyala
+    harus sudah ada di cache lokal models/. None di mode dev."""
+    from mica.kb.embedder import hf_offline
+    from mica.kb.index import KbLoadError, read_manifest
+    from mica.setup import EMBEDDER_FILES
+
+    if not hf_offline(settings.app.mode):
+        return None
+    item = "cache model offline"
+    try:
+        emb = read_manifest(Path(kb_root) / settings.kb.active_id).get("embedder", {})
+        model, revision = emb.get("model"), emb.get("revision")
+    except (KbLoadError, OSError):
+        model, revision = settings.kb.embedder.model, settings.kb.embedder.revision
+    wanted: list[tuple[str, str | None, tuple[str, ...]]] = [(str(model), revision, EMBEDDER_FILES)]
+    reranker = settings.rag.reranker
+    if reranker.enabled:
+        wanted.append((reranker.model, reranker.revision, RERANKER_FILES))
+    problems = []
+    for name, rev, files in wanted:
+        if not rev:
+            problems.append(f"{name}: revisi terkunci belum ada")
+            continue
+        snapshot = _hf_snapshot(models_dir, name, rev)
+        lost = [f for f in files if not (snapshot / f).is_file()]
+        if lost:
+            problems.append(f"{name}@{rev[:8]}: file hilang {lost}")
+    if problems:
+        return CheckRow(item, "GAGAL", "; ".join(problems) + f" (mode prod tidak mengunduh); "
+                        f"{SETUP_HINT}")  # fmt: skip
+    names = ", ".join(f"{n}@{str(r)[:8]}" for n, r, _ in wanted)
+    return CheckRow(item, "OK", f"{names} ada di {Path(models_dir).as_posix()} (dimuat offline)")
+
+
 def _check_groq(settings: Settings) -> CheckRow:
     uses_groq = any(e.startswith("groq:") for e in settings.llm.chain)
     if not uses_groq:
@@ -112,7 +155,7 @@ def _check_audio(query: Callable[[], Any]) -> CheckRow:
     if not inputs or not outputs:
         lack = " dan ".join(n for n, xs in (("mikrofon", inputs), ("speaker", outputs)) if not xs)
         return CheckRow("perangkat audio", "PERINGATAN",
-                        f"{message}; {lack} tidak ditemukan, kiosk tetap bisa dipakai lewat teks")  # fmt: skip
+                        f"{message}; {lack} tidak ditemukan, aplikasi tetap bisa dipakai lewat teks")  # fmt: skip
     return CheckRow("perangkat audio", "OK", message)
 
 
@@ -125,16 +168,6 @@ def _check_logs(settings: Settings) -> CheckRow:
     except OSError as exc:
         return CheckRow("folder log", "GAGAL", f"{folder.as_posix()} tidak bisa ditulis ({exc})")
     return CheckRow("folder log", "OK", f"{folder.as_posix()} bisa ditulis")
-
-
-def _check_browser(edge_paths: tuple[Path, ...]) -> CheckRow:
-    """Hanya untuk ui.backend: web; Edge tidak dijalankan, hanya dicari file-nya."""
-    from mica.webui.browser import EdgeMissing, find_edge
-
-    try:
-        return CheckRow("Microsoft Edge", "OK", f"{find_edge(edge_paths)} (ui.backend: web)")
-    except EdgeMissing as exc:
-        return CheckRow("Microsoft Edge", "GAGAL", f"{exc}; ui.backend: web butuh Edge")
 
 
 # Langkah 53: teks UI dianggap mirip bila Jaccard token (setelah normalize_question) >= nilai
@@ -203,7 +236,6 @@ def run_check(
     models_dir: Path = Path("models"),
     kb_root: Path = Path("data/kb"),
     query_devices: Callable[[], Any] = _query_devices,
-    edge_paths: tuple[Path, ...] | None = None,
     test_set: Path = Path("data/eval/official/test.jsonl"),
     dev_sets: tuple[Path, ...] = (
         Path("data/eval/questions.jsonl"),
@@ -220,15 +252,14 @@ def run_check(
     else:
         rows += _check_models(settings, Path(models_dir))
         rows.append(_check_kb(settings, Path(kb_root)))
+        cache = _check_hf_cache(settings, Path(models_dir), Path(kb_root))
+        if cache is not None:
+            rows.append(cache)
         rows.append(_check_groq(settings))
     rows.append(_check_audio(query_devices))
     rows.append(CheckRow("kamera", "INFO", "diperiksa saat start (tidak dibuka oleh check)"))
     if settings is not None:
         rows.append(_check_logs(settings))
-        if settings.ui.backend == "web":
-            from mica.webui.browser import EDGE_PATHS
-
-            rows.append(_check_browser(EDGE_PATHS if edge_paths is None else edge_paths))
         for leak in (_check_test_leak(settings, Path(test_set)),
                      _check_leak(settings, "kebocoran set dev", tuple(map(Path, dev_sets)))):  # fmt: skip
             if leak is not None:
@@ -245,11 +276,13 @@ def format_table(rows: list[CheckRow]) -> str:
     lines = [f"{'pemeriksaan'.ljust(width)}  {'status'.ljust(10)}  keterangan"]
     lines += [f"{r.item.ljust(width)}  {r.status.ljust(10)}  {r.message}" for r in rows]
     if failed(rows):
-        verdict = "ADA GAGAL: perbaiki baris GAGAL sebelum menjalankan kiosk"
+        verdict = "ADA GAGAL: perbaiki baris GAGAL sebelum menjalankan aplikasi"
     elif any(r.status == "PERINGATAN" for r in rows):
-        verdict = "SIAP DENGAN PERINGATAN: kiosk bisa dijalankan (python -m mica); baca PERINGATAN"
+        verdict = (
+            "SIAP DENGAN PERINGATAN: aplikasi bisa dijalankan (python -m mica); baca PERINGATAN"
+        )
     else:
-        verdict = "SEMUA OK: kiosk siap dijalankan (python -m mica)"
+        verdict = "SEMUA OK: aplikasi siap dijalankan (python -m mica)"
     return "\n".join([*lines, "", verdict])
 
 

@@ -7,11 +7,13 @@ python scripts/startup_profile.py --label <nama> [--reps 5] [--warmup 1] [--time
 Per ulangan:
 1. Salinan config di folder hasil: logging.dir ke folder ulangan, dan kunci TBD (null) yang
    dibutuhkan pekerja asli diisi NILAI COBA SDD bagian 12 (dev saja; tercatat di run.json).
-2. `python -m mica --config <salinan>` (check, pekerja kamera dan suara asli, pipeline asli, Edge
-   kiosk) dengan MICA_STARTUP_LOG ke folder ulangan. --fake-camera: `python -m mica.webui
+2. `python -m mica --config <salinan>` (check, pekerja kamera dan suara asli, pipeline asli, browser
+   default) dengan MICA_STARTUP_LOG ke folder ulangan. --fake-camera: `python -m mica.webui
    --fake-workers --fake-camera` (kamera palsu, suara palsu) bila tidak ada kamera.
-3. Menunggu tahap "all_ready" proses utama atau --timeout, lalu menutup jendela Edge sehingga
-   aplikasi berhenti rapi (pohon proses dibunuh bila tidak berhenti dalam 30 s).
+3. Menunggu tahap "all_ready" proses utama atau --timeout, lalu menutup aplikasi. Sejak RF-2
+   (1 Nov 2026) tidak ada jendela Edge yang bisa ditutup: close_app menunggu 30 s lalu membunuh
+   pohon proses (cara berhenti rapi untuk skrip ini belum dibuat; hasil Langkah 40 dari tag
+   tahap1-beku).
 Waktu tiap tahap = monotonic tahap - monotonic saat perintah diluncurkan (jam yang sama untuk
 semua proses). --warmup ulangan pertama dibuang (pemanasan cache berkas), lalu --reps ulangan.
 Wajib daya AC. Memori tersedia < --min-free-gb -> ulangan dihentikan, aborted.json, kode 4.
@@ -50,7 +52,7 @@ TRIAL_VALUES = trial.TRIAL_VALUES
 MILESTONES = (
     ("main", "check_done", "check selesai"),
     ("main", "server_started", "server Flask jalan"),
-    ("main", "edge_launched", "Edge diluncurkan"),
+    ("main", "browser_opened", "browser default dibuka"),
     ("main", "ui_first_render", "UI tampil (render pertama)"),
     ("main", "pipeline_ready", "pipeline siap (jawab ketikan)"),
     ("main", "camera_ready", "kamera siap (CameraStatus ok)"),

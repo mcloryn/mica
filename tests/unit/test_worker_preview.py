@@ -77,10 +77,10 @@ def test_preview_countdown_before_detection(tmp_path, monkeypatch):
     assert loop.detections == 0  # masih hitung mundur: tanpa deteksi
 
 
-def test_preview_rejected_in_kiosk():
-    with pytest.raises(WorkerConfigError, match="kiosk"):
-        VisionWorkerConfig.from_settings(_settings("kiosk"), TEST_VALUES, preview=True)
+def test_preview_rejected_in_prod():
+    with pytest.raises(WorkerConfigError, match="app.mode: dev"):
+        VisionWorkerConfig.from_settings(_settings("prod"), TEST_VALUES, preview=True)
     cfg = VisionWorkerConfig.from_settings(_settings(), TEST_VALUES, preview=True)
-    forged = VisionWorkerConfig(**{**cfg.__dict__, "mode": "kiosk"})
-    with pytest.raises(WorkerConfigError, match="kiosk"):
+    forged = VisionWorkerConfig(**{**cfg.__dict__, "mode": "prod"})
+    with pytest.raises(WorkerConfigError, match="app.mode: dev"):
         forged.validate()

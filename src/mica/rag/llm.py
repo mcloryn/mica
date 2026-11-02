@@ -26,7 +26,7 @@ from typing import Any, Literal, Protocol
 import httpx
 from pydantic import SecretStr
 
-from mica.config import API_KEY_VARS, CFG_GEMINI_IN_KIOSK, CFG_INVALID, ConfigError, Settings
+from mica.config import API_KEY_VARS, CFG_GEMINI_IN_PROD, CFG_INVALID, ConfigError, Settings
 from mica.core.types import ErrorCode, LlmAnswer, LlmBadOutput, LlmRequest, LlmUnavailable
 
 logger = logging.getLogger(__name__)
@@ -382,7 +382,7 @@ class GroqProvider(_HttpProvider):
 
 
 class GeminiProvider(_HttpProvider):
-    """Khusus mode dev; ditolak di mode kiosk (N-09, SDD 8.2).
+    """Khusus mode dev; ditolak di mode prod (N-09, SDD 8.2).
 
     reasoning_effort (llm.reasoning_effort) dikirim sebagai thinkingConfig.thinkingLevel
     (keputusan pengguna 19 Okt 2026, E-04: padanan reasoning_effort gpt-oss di Groq).
@@ -394,14 +394,14 @@ class GeminiProvider(_HttpProvider):
         self,
         model: str,
         *,
-        mode: Literal["kiosk", "dev"],
+        mode: Literal["prod", "dev"],
         api_key: SecretStr,
         temperature: float | None = None,
         reasoning_effort: ReasoningEffort | None = None,
         client: httpx.Client | None = None,
     ) -> None:
         if mode != "dev":
-            raise ConfigError(CFG_GEMINI_IN_KIOSK, "GeminiProvider hanya boleh saat app.mode: dev")
+            raise ConfigError(CFG_GEMINI_IN_PROD, "GeminiProvider hanya boleh saat app.mode: dev")
         super().__init__(model, api_key=api_key, temperature=temperature, client=client)
         self.reasoning_effort = reasoning_effort
 

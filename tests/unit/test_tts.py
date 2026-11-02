@@ -17,7 +17,7 @@ from mica.core.types import ErrorCode
 
 ROOT = Path(__file__).resolve().parents[2]
 DEV_YAML = ROOT / "config" / "dev.yaml"
-KIOSK_YAML = ROOT / "config" / "kiosk.yaml"
+PROD_YAML = ROOT / "config" / "prod.yaml"
 
 
 @dataclass
@@ -47,9 +47,9 @@ def _dev_settings():
     return load_settings(DEV_YAML)
 
 
-def _kiosk_settings():
+def _prod_settings():
     s = _dev_settings()
-    return s.model_copy(update={"app": s.app.model_copy(update={"mode": "kiosk"})})
+    return s.model_copy(update={"app": s.app.model_copy(update={"mode": "prod"})})
 
 
 def test_audio_clip_duration():
@@ -94,25 +94,25 @@ def test_piper_length_scale_passed(tmp_path):
 def test_config_tts_voice_and_length_scale(tmp_path):
     import yaml
 
-    for path in (DEV_YAML, KIOSK_YAML):
+    for path in (DEV_YAML, PROD_YAML):
         tts = yaml.safe_load(path.read_text(encoding="utf-8"))["audio"]["tts"]
         assert {k: tts[k] for k in ("voice", "length_scale")} == {
             "voice": "id_ID-news_tts-medium", "length_scale": None}  # fmt: skip
-        assert "threads" in tts  # docs/CPU-THREADS.md; nilai dev boleh hasil pilih, kiosk null
-    assert yaml.safe_load(KIOSK_YAML.read_text(encoding="utf-8"))["audio"]["tts"]["threads"] is None
+        assert "threads" in tts  # docs/CPU-THREADS.md; nilai dev boleh hasil pilih, prod null
+    assert yaml.safe_load(PROD_YAML.read_text(encoding="utf-8"))["audio"]["tts"]["threads"] is None
     assert load_settings(DEV_YAML).audio.tts.length_scale is None
     assert (
         voice_path("id_ID-news_tts-medium").as_posix() == "models/piper/id_ID-news_tts-medium.onnx"
     )
 
 
-def test_length_scale_null_allowed_in_kiosk(tmp_path):
-    from test_config import _complete_kiosk_raw, _write
+def test_length_scale_null_allowed_in_prod(tmp_path):
+    from test_config import _complete_prod_raw, _write
 
-    raw = _complete_kiosk_raw()
+    raw = _complete_prod_raw()
     raw["audio"]["tts"]["length_scale"] = None
     settings = load_settings(_write(tmp_path, raw))
-    assert settings.app.mode == "kiosk" and settings.audio.tts.length_scale is None
+    assert settings.app.mode == "prod" and settings.audio.tts.length_scale is None
     raw["audio"]["tts"]["length_scale"] = 0
     with pytest.raises(ConfigError):
         load_settings(_write(tmp_path, raw))
@@ -149,9 +149,9 @@ def test_fetch_voice_rejects_bad_sha256(tmp_path):
     assert list(tmp_path.iterdir()) == []
 
 
-def test_fetch_voice_refused_in_kiosk(tmp_path):
+def test_fetch_voice_refused_in_prod(tmp_path):
     with pytest.raises(cli.AudioCliError, match="app.mode: dev"):
-        cli.cmd_fetch_voice(_kiosk_settings(), tmp_path, lambda u, d: None)
+        cli.cmd_fetch_voice(_prod_settings(), tmp_path, lambda u, d: None)
 
 
 # --- say ------------------------------------------------------------------------------
@@ -210,10 +210,10 @@ def test_say_rate_needs_out_and_playback(tmp_path):
         _say(["Halo", "--rate", "--no-play", "--out", str(tmp_path / "o")], tmp_path)
 
 
-def test_say_refused_in_kiosk(tmp_path):
+def test_say_refused_in_prod(tmp_path):
     args = cli.build_parser().parse_args(["say", "Halo", "--no-play"])
     with pytest.raises(cli.AudioCliError, match="app.mode: dev"):
-        cli.cmd_say(args, _kiosk_settings(), tts_factory=FakeTts)
+        cli.cmd_say(args, _prod_settings(), tts_factory=FakeTts)
 
 
 def test_dev_sentences_file():

@@ -222,13 +222,13 @@ def test_cli_vision_scenarios_rejects_model_without_pose(tmp_path, capsys):
     assert "-pose" in capsys.readouterr().err
 
 
-def test_cli_vision_scenarios_refused_in_kiosk(tmp_path, monkeypatch, capsys):
+def test_cli_vision_scenarios_refused_in_prod(tmp_path, monkeypatch, capsys):
     from mica.config import load_settings
 
     settings = load_settings(DEV_YAML)
-    kiosk = settings.model_copy(update={"app": settings.app.model_copy(update={"mode": "kiosk"})})
-    monkeypatch.setattr(cli, "load_settings", lambda *a, **k: kiosk)
+    prod = settings.model_copy(update={"app": settings.app.model_copy(update={"mode": "prod"})})
+    monkeypatch.setattr(cli, "load_settings", lambda *a, **k: prod)
     code = cli.main(["vision-scenarios", "--config", "x", "--dataset", str(tmp_path),
                      "--model", "yolo26n-pose"])  # fmt: skip
     assert code == 2
-    assert "mode kiosk" in capsys.readouterr().err
+    assert "mode prod" in capsys.readouterr().err

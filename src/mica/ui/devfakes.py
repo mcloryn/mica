@@ -5,7 +5,7 @@ AudioStatus mic_ok=False) sehingga UI dipakai lewat teks; Speak langsung dijawab
 pada poll berikutnya (tanpa suara). Dengan vision (start_fake_camera), proses kamera asli
 berjalan dengan sumber gambar palsu (mica.vision.fakesource): event kamera dan antrean
 pratinjau datang dari proses itu. FakePipeline menjawab dengan teks berlabel palsu tanpa
-memanggil Groq. Keduanya ditolak di mode kiosk oleh mica.ui.app.
+memanggil Groq. Keduanya ditolak di mode prod oleh mica.webui.app.
 """
 
 from __future__ import annotations

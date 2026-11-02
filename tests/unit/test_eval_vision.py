@@ -1,5 +1,5 @@
 """M-12 eval vision (E-07 deteksi): IoU, mAP gaya COCO kasus mainan (dihitung tangan), bootstrap
-ber-seed, aturan pemilihan, dataset, CLI dengan predictor palsu, dan penolakan mode kiosk."""
+ber-seed, aturan pemilihan, dataset, CLI dengan predictor palsu, dan penolakan mode prod."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from mica.vision.types import PersonTrack
 
 ROOT = Path(__file__).resolve().parents[2]
 DEV_YAML = ROOT / "config" / "dev.yaml"
-KIOSK_YAML = ROOT / "config" / "kiosk.yaml"
+PROD_YAML = ROOT / "config" / "prod.yaml"
 GT = np.array([[0.0, 0.0, 10.0, 10.0]])
 
 
@@ -306,15 +306,15 @@ def test_cli_vision_with_fake_predictors(tmp_path, monkeypatch, capsys):
     assert run["environment"]["power"] is None or "source" in run["environment"]["power"]
 
 
-def test_cli_vision_refused_in_kiosk(tmp_path, monkeypatch, capsys):
+def test_cli_vision_refused_in_prod(tmp_path, monkeypatch, capsys):
     from mica.config import load_settings
 
     settings = load_settings(DEV_YAML)
-    kiosk = settings.model_copy(update={"app": settings.app.model_copy(update={"mode": "kiosk"})})
-    monkeypatch.setattr(cli, "load_settings", lambda *a, **k: kiosk)
-    code = cli.main(["vision", "--config", str(KIOSK_YAML), "--dataset", str(tmp_path)])
+    prod = settings.model_copy(update={"app": settings.app.model_copy(update={"mode": "prod"})})
+    monkeypatch.setattr(cli, "load_settings", lambda *a, **k: prod)
+    code = cli.main(["vision", "--config", str(PROD_YAML), "--dataset", str(tmp_path)])
     assert code == 2
-    assert "mode kiosk" in capsys.readouterr().err
+    assert "mode prod" in capsys.readouterr().err
 
 
 def test_cli_vision_missing_model(tmp_path, capsys):

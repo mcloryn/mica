@@ -218,7 +218,9 @@ kotak ketik, Kirim). Layar < 1100 px (nilai desain): kolom kiri menjadi strip ke
   dilayani di `/logo`.
 - Kartu dan chip topik (`ui.topics`: Program Studi, Biaya, Beasiswa, Pendaftaran, Fasilitas,
   Lokasi) hanya mengisi kotak pertanyaan dengan nama topik; tidak mengirim pertanyaan. `mica check`
-  ikut memeriksa `ui.topics` terhadap set uji resmi.
+  ikut memeriksa `ui.topics` terhadap set uji resmi. (Diganti Langkah 53: kartu dan chip langsung
+  mengirim `ui.topics[].question`; petunjuknya sejak RF-5 "Pilih topik untuk langsung bertanya,
+  atau ketik pertanyaanmu sendiri".)
 - Gerak: animasi CSS hanya saat status Mendengarkan, Berpikir, dan Berbicara; tidak ada animasi
   atau timer JS saat Siap; `prefers-reduced-motion` mematikan semua animasi.
 - Penolakan (jawaban MICA tanpa sumber) tampil sebagai kartu krem yang sopan, bukan galat.
@@ -534,3 +536,14 @@ Pemeriksaan otomatis memakai Edge 155 headless dengan `app.js` asli:
 - Tombol Bicara merah saat ditahan dengan pointer maupun Spasi.
 - Chip mengirim `TopicTapped` dengan question.
 - Tidak ada pelanggaran CSP, dan tidak ada aset dari luar 127.0.0.1.
+
+## ADR-19 final = web (1 Nov 2026, refactor RF-2)
+
+Keputusan pemilik proyek 1 Nov 2026: ADR-19 ditetapkan final ke UI web. UI PySide6 (cadangan beku
+sejak Langkah 31: `src/mica/ui/app.py`, `main_window.py`, `python -m mica.ui`), kunci `ui.backend`,
+dependensi `PySide6-Essentials`/`pytest-qt`, dan tes kesetaraan web vs PySide6 dihapus. Peluncur
+Edge layar penuh dan switch-nya (Langkah 29 sampai 38) juga dihapus: UI dibuka di browser default
+dalam jendela biasa, dan aplikasi dihentikan dengan Ctrl+C. Modul tanpa Qt `mica.ui.viewmodel` dan
+`mica.ui.devfakes` tetap ada karena dipakai UI web dan eval. Catatan pengukuran di atas (tahap 1,
+optimasi switch Edge, pratinjau) tetap berlaku sebagai catatan sejarah; versi kode yang diukur ada
+di tag `tahap1-beku`.

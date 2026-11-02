@@ -72,7 +72,7 @@ def test_bench_refused_outside_dev(monkeypatch, capsys):
 
     class S:
         class app:
-            mode = "kiosk"
+            mode = "prod"
 
     monkeypatch.setattr(mica.trial, "load_trial_settings", lambda *a: (S, {}))
     assert bench.main(["--stage", "1"]) == 2

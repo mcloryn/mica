@@ -10,7 +10,7 @@ GREETING_COLOR = (
 PLEASE_ASK = "Silakan bertanya"
 FILLER = "Sebentar, saya carikan."
 NOT_HEARD = "Maaf, belum terdengar jelas. Silakan ulangi atau ketik."
-CAMERA_DOWN = "Kamera tidak tersedia; silakan bertanya lewat sentuhan atau ketik."
+CAMERA_DOWN = "Kamera tidak tersedia; silakan ketik pertanyaan atau tahan tombol Bicara."
 MIC_DOWN = "Mikrofon tidak tersedia; silakan ketik pertanyaan."
 
 
@@ -52,14 +52,16 @@ PILLS = {  # status M-09 -> (kunci tampilan, label pil)
 APP_TITLE = "Asisten PMB Universitas Mikroskil"
 # Langkah 37c: pemberitahuan sebagai kalimat biasa di footer (N-08)
 NOTICE_SHORT = (
-    "Kamera aktif, gambar tidak disimpan. Jawaban disusun AI dari dokumen resmi PMB dan bisa "
-    "keliru; pastikan ke staf PMB untuk hal penting."
+    "Kamera aktif, gambar tidak disimpan. Pertanyaanmu diproses layanan AI pihak ketiga; jangan "
+    "sebut data pribadi. Jawaban disusun dari dokumen resmi PMB dan bisa keliru; pastikan ke staf "
+    "PMB untuk hal penting."
 )
 NOTICE_SHORT_NO_CAMERA = (
-    "Kamera tidak aktif, gambar tidak disimpan. Jawaban disusun AI dari dokumen resmi PMB dan "
-    "bisa keliru; pastikan ke staf PMB untuk hal penting."
+    "Kamera tidak aktif, gambar tidak disimpan. Pertanyaanmu diproses layanan AI pihak ketiga; "
+    "jangan sebut data pribadi. Jawaban disusun dari dokumen resmi PMB dan bisa keliru; pastikan "
+    "ke staf PMB untuk hal penting."
 )
-APPROACH = "Belum ada yang terdeteksi. Berdirilah di depan layar."
+APPROACH = "Belum ada yang terdeteksi. Silakan duduk atau berdiri di depan laptop."
 CAMERA_UNAVAILABLE = (
     "Kamera sedang tidak aktif, kamu tetap bisa bertanya dengan mengetik atau bicara"
 )
@@ -67,7 +69,7 @@ WEARING = "Kamu memakai baju {warna}"  # warna sesi, huruf kecil biasa
 DETECTED_NO_COLOR = "Kamu sudah terdeteksi di depan layar."
 CAMERA_INFO = "MICA menyapa berdasarkan warna baju. Gambar kamera tidak disimpan."
 WELCOME_TITLE = "Tanya apa saja seputar PMB"
-TOPICS_HINT = "Pilih topik, lalu lengkapi pertanyaanmu"
+TOPICS_HINT = "Pilih topik untuk langsung bertanya, atau ketik pertanyaanmu sendiri"
 CAMERA_TITLE = "Kamera"
 MIC_UNAVAILABLE_BUTTON = "Mikrofon tidak tersedia, silakan ketik"
 STATUS_LINES = {  # kunci pil -> kalimat status di atas bilah input

@@ -1,7 +1,7 @@
-# Memasang MICA di laptop kiosk
+# Memasang MICA di laptop PMB
 
-Urutan di bawah dijalankan sekali di laptop kiosk (Windows, Python 3.11 atau lebih baru), dari
-PowerShell. Perintah yang mengunduh hanya `pip install` dan `python -m mica setup`; saat kiosk
+Urutan di bawah dijalankan sekali di laptop PMB (Windows, Python 3.11 atau lebih baru), dari
+PowerShell. Perintah yang mengunduh hanya `pip install` dan `python -m mica setup`; saat aplikasi
 berjalan MICA tidak mengunduh apa pun.
 
 1. Ambil kode:
@@ -48,7 +48,7 @@ berjalan MICA tidak mengunduh apa pun.
    Semua baris harus `OK` (atau `INFO`). Baris `GAGAL` menjelaskan apa yang harus diperbaiki,
    misalnya kunci config yang belum diisi atau file model yang hilang.
 
-6. Jalankan kiosk:
+6. Jalankan aplikasi:
 
    ```
    python -m mica
@@ -56,25 +56,22 @@ berjalan MICA tidak mengunduh apa pun.
 
    MICA menjalankan `check` lagi; bila ada `GAGAL`, UI tidak dibuka dan tabelnya dicetak.
 
-   UI kiosk adalah UI web (`ui.backend: web`): MICA menjalankan server lokal di 127.0.0.1
-   lalu membuka Microsoft Edge dalam mode kiosk layar penuh. Edge tidak perlu dibuka sendiri.
-   Untuk menutup kiosk, tekan Alt+F4 di jendela Edge (server dan proses kamera/suara ikut
-   berhenti) atau Ctrl+C di PowerShell (Edge ikut tertutup).
+   MICA menjalankan server lokal di 127.0.0.1 lalu membuka alamatnya di browser default
+   laptop dalam jendela biasa. Alamatnya juga dicetak di PowerShell; bila browser tidak
+   terbuka sendiri, salin alamat itu ke browser.
+
+   Untuk menutup MICA, tekan Ctrl+C di PowerShell. Server serta proses kamera dan suara
+   berhenti dengan rapi. Menutup tab atau jendela browser TIDAK mematikan MICA; buka lagi
+   alamatnya untuk kembali ke UI.
 
 Catatan:
 
-- Microsoft Edge wajib terpasang (bawaan Windows 10/11) di
-  `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe` atau
-  `C:\Program Files\Microsoft\Edge\Application\msedge.exe`. Bila tidak ditemukan, `check`
-  menulis baris `Microsoft Edge  GAGAL` dan kiosk tidak dijalankan. Edge memakai profil
-  sementara sendiri, terpisah dari Edge milik pengguna laptop, dan profil itu dihapus saat
-  kiosk ditutup.
-- UI PySide6 lama masih ada sebagai cadangan (`ui.backend: pyside6`), tetapi tidak
-  dikembangkan lagi; lihat `docs/UI-WEB.md`.
+- Browser apa pun yang modern cukup (Microsoft Edge bawaan Windows 10/11 sudah memadai).
+  `check` tidak lagi memeriksa browser.
 
-- Tanpa argumen, ketiga perintah memakai `config/kiosk.yaml`. Untuk mode pengembangan pakai
+- Tanpa argumen, ketiga perintah memakai `config/prod.yaml`. Untuk mode pengembangan pakai
   `--config config/dev.yaml`.
-- `config/kiosk.yaml` baru lolos `check` setelah semua nilai TBD diisi dari hasil eksperimen
+- `config/prod.yaml` baru lolos `check` setelah semua nilai TBD diisi dari hasil eksperimen
   (E-01 sampai E-09). `check` mencetak daftar kunci yang masih kosong.
 
 ## Waktu mulai (Langkah 40, 18 Okt 2026)
@@ -87,7 +84,7 @@ menyusul di latar.
 - Kotak ketik langsung aktif. Pertanyaan yang dikirim sebelum pipeline siap langsung tampil,
   status menjadi "Menyiapkan jawaban...", lalu dijawab begitu pipeline siap.
 - Sapaan kamera tidak menunggu pipeline.
-- Bila pipeline gagal dimuat (mis. KB rusak), kiosk tetap berjalan. Setiap pertanyaan dijawab
+- Bila pipeline gagal dimuat (mis. KB rusak), aplikasi tetap berjalan. Setiap pertanyaan dijawab
   dengan teks penolakan baku ("Maaf, layanan sedang tidak tersedia..."), dan galatnya dicatat
   sebagai `LLM_UNAVAILABLE`.
 - Pipeline dirakit di thread latar proses utama, bukan di proses terpisah. Pipeline tetap satu

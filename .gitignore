@@ -28,3 +28,6 @@ data/eval/vision_scenarios/*
 
 # Langkah 57: folder sumber desain UI versi F dari hasa (sudah disalin ke webui/static)
 ui-baru-versi-f/
+
+# Langkah 67: run Uji Tahap 1 memuat teks KB dan jawaban; tidak di-commit
+data/eval/official/runs/
