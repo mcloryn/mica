@@ -713,3 +713,31 @@ paket luar. Hasil pytest dan `ruff format --check` tidak terpengaruh. Di RF-3, j
 (`child_pyside6`, `--ui both|pyside6`) dibuang dari skrip itu, dan sejak itu ruff selalu
 dijalankan dengan `--no-cache`. Skrip lain di `scripts/` tidak ada yang mengimpor modul `mica.ui`
 yang sudah dihapus (`camera_rate.py` memakai `mica.ui.devfakes`, yang masih ada).
+
+## Bukti RF-5 (2 Nov 2026)
+
+Pertanyaan: apakah perbaikan RF-5 (audit SDD RF-4) mengubah perilaku retrieval RAG? Jawabannya
+tidak. Hasil retrieval 10 soal pertama Uji RAG Tahap 1 sama persis dengan tag `tahap1-beku`.
+
+**Hasil: LULUS.** chunk_id top-5 dan urutannya identik untuk 10/10 soal, keputusan gerbang 1
+identik (9 lolos, 1 ditolak: t1-009), dan selisih skor maksimum (RRF, dense, bm25, dense@1) adalah
+**0,000e+00** (batas 1e-6).
+
+| | Sebelum | Sesudah |
+|---|---|---|
+| Kode | tag `tahap1-beku` (1a9b537) | branch `fix/rf5` (4a7e2d3) |
+| `mica.__file__` yang dimuat | `D:\SKRIPSI\mica-tahap1\src\mica\__init__.py` | `D:\SKRIPSI\mica\src\mica\__init__.py` |
+| Config | `config/dev.yaml` di tag | `config/dev.yaml` di branch (config_hash 37e423888a3b…, sama dengan RF-2) |
+| KB, retriever, rrf_k, top_k, followup_mode | official-2026-10-24-v5, hybrid, 60, 5, dual | sama |
+
+- Perintah (dari `D:\SKRIPSI\mica`): `python -I D:\SKRIPSI\alat\banding_retrieval.py --repo
+  D:\SKRIPSI\mica --kb-dir D:\SKRIPSI\mica\data\kb\official-2026-10-24-v5 --config
+  D:\SKRIPSI\mica\config\dev.yaml --questions data\eval\official\uji-tahap1-129.csv --n 10 --out
+  D:\SKRIPSI\alat\hasil-rf5.json`, lalu `python -I D:\SKRIPSI\alat\banding.py
+  hasil-tahap1-beku.json hasil-rf5.json`.
+- Alat memakai config dev, jadi jalur offline prod (`local_files_only`) tidak dilewati di sini.
+  Pemuatan offline diuji terpisah: BGE-M3 revisi 9a0624b8 dimuat dari `models/` dengan
+  `HF_HUB_OFFLINE=1` dan `offline=True` (bobot `model.safetensors`, vektor 1024 dimensi), dan
+  `mica check` (config prod) memberi baris "cache model offline OK".
+- `src/mica/rag/retriever.py` dan `rag/pipeline.py` hanya diberi parameter `offline` yang diteruskan ke
+  pemuat model; urutan dan skor retrieval tidak berubah (dibuktikan di atas).
