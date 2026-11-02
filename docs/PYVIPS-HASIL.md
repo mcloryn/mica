@@ -63,5 +63,11 @@ Kasus B hanya dilaporkan: OpenCV juga lebih cepat.
 - Keterbatasan dari pra-registrasi tetap berlaku: satu laptop, satu run, mode Best power
   efficiency, frame sintetis dari COCO (Kasus B berasal dari pembesaran), dan pengukuran tanpa
   beban YOLO atau thread pembaca.
-- pyvips 3.2.0 dan pyvips-binary 8.18.7 masih terpasang di `D:\SKRIPSI\mica\.venv`. Keduanya tidak
-  dipakai aplikasi dan tidak ada di `requirements.lock`. Mencopotnya adalah keputusan pengguna.
+- **pyvips hanya dipasang sementara untuk benchmark ini**: pyvips 3.2.0 dengan libvips 8.18.7
+  (`pyvips-binary` 8.18.7). Keduanya **sudah dicopot** dari `D:\SKRIPSI\mica\.venv` pada 2 Nov 2026
+  (`pip uninstall -y pyvips pyvips-binary`). Setelah dicopot, `pip freeze` sama persis dengan
+  sebelum pemasangan, dan `import pyvips` gagal (ModuleNotFoundError). pyvips tidak pernah dipakai
+  aplikasi dan tidak ada di `requirements.lock`.
+- Akibatnya `scripts/cv_resize_bench.py` hanya bisa dijalankan ulang setelah pyvips dipasang lagi.
+  Tes `test_vips_matches_cv2_box_average` kini dilewati (`importorskip`); tes lain tidak butuh
+  pyvips.
