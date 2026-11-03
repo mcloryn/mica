@@ -743,7 +743,7 @@ Untuk menjawab kriteria F-13 dan metrik PRD "turun signifikan dibanding LLM tanp
 
 Keputusan `paraphrase` vs `plain` dibuat pada set uji secara berpasangan, hanya atas pertanyaan yang dijawab (bukan ditolak) oleh kedua varian: (1) varian dengan halusinasi lebih sedikit menang; (2) bila seri, varian dengan density kutip rata-rata (Grusky asli) lebih rendah menang; (3) bila masih seri, `paraphrase`. Coverage dan density tanpa entitas dilaporkan, tetapi tidak menentukan keputusan.
 
-**Membekukan konfigurasi.** Sebelum set `test` dipakai, konfigurasi C2 disimpan sebagai `config/frozen-<tanggal>.yaml` beserta `config_hash`, `kb_id`, dan hash dataset. Hasil uji akhir hanya sah bila ketiga nilai itu cocok dengan `run.json`.
+**Membekukan konfigurasi.** Sebelum set `test` dipakai, konfigurasi C2 disimpan sebagai `config/frozen-<tanggal>.yaml` beserta `config_hash`, `kb_id`, dan hash dataset. Untuk uji RAG Tahap 1, konfigurasi beku ini adalah config di tag tahap1-beku (commit 97b055c) beserta manifest.json run-nya; nilai RAG dan LLM prod disalin dari sana. Hasil uji akhir hanya sah bila ketiga nilai itu cocok dengan `run.json`.
 
 ## 10. Rencana implementasi
 
@@ -874,16 +874,16 @@ F-18 tidak punya ADR karena tidak melibatkan pilihan metode; desainnya keputusan
 | Parameter | Eksperimen | Nilai dev atau nilai coba saat ini (sumber) | Status |
 | --- | --- | --- | --- |
 | `kb.active_id` | Dokumen resmi (build KB resmi, MS5) | `official-2026-10-24-v5` di dev dan prod (KB resmi v5, Langkah 66); KB dev diarsipkan. Terisi, bisa berubah bila KB resmi diperbarui | Terisi |
-| `kb.chunk_tokens`, `kb.overlap_tokens` | E-01 | 400 dan 50 (hipotesis awal PRD, 2.4) | Provisional dev |
-| `kb.embedder.revision` | Keputusan rekayasa (N-14), dikonfirmasi saat build KB resmi | Revisi 9a0624b8 BAAI/bge-m3 (2.4) | Provisional dev |
-| `rag.retriever`, `rag.reranker.enabled` | E-01 | hybrid, reranker mati (E-01 dev) | Provisional dev |
-| `rag.rrf_k`, `rag.candidates_per_retriever` | E-01 | 60 (Cormack dkk. 2009) dan 20 (2.4) | Provisional dev |
-| `rag.gate.threshold` | E-02 | 0,50 (E-02/E-04 dev prompt v2; aturan seri ditambah setelah melihat data, 2.4) | Provisional dev |
-| `rag.followup_mode` | E-02 | `dual` di dev dan prod (FOLLOWUP.md, Langkah 55: dual 16/16, concat 13/16, llm\_rewrite gugur di anggaran LLM); provisional, diuji ulang di E-02 dengan set uji | Provisional dev |
-| `rag.prompt_variant` | E-03 | Prompt v2 | TBD |
-| `llm.chain[0]`, `llm.chain[1]` | E-04 | gpt-oss-120b, cadangan gpt-oss-20b (final menunggu anotasi halusinasi) | Provisional dev |
-| `llm.timeout_s`, `llm.temperature`, `llm.reasoning_effort` | E-04 | 10 detik, 0,2, low (nilai dev provisional, 2.4) | Provisional dev |
-| `audio.stt.backend` | E-05 | faster\_whisper (ADR-09 masih Terbuka) | TBD |
+| `kb.chunk_tokens`, `kb.overlap_tokens` | E-01 | 400 dan 50 (hipotesis awal PRD, 2.4) | Dibekukan dari Tahap 1 (PROD-2) |
+| `kb.embedder.revision` | Keputusan rekayasa (N-14), dikonfirmasi saat build KB resmi | Revisi 9a0624b8 BAAI/bge-m3 (2.4) | Dibekukan dari Tahap 1 (PROD-2) |
+| `rag.retriever`, `rag.reranker.enabled` | E-01 | hybrid, reranker mati (E-01 dev) | Terisi di prod (sama dengan Tahap 1) |
+| `rag.rrf_k`, `rag.candidates_per_retriever` | E-01 | 60 (Cormack dkk. 2009) dan 20 (2.4) | Dibekukan dari Tahap 1 (PROD-2) |
+| `rag.gate.threshold` | E-02 | 0,50 (E-02/E-04 dev prompt v2; aturan seri ditambah setelah melihat data, 2.4). Tidak dikalibrasi ulang dengan KB resmi sebelum uji Tahap 1; diungkap sebagai keterbatasan di Bab 3 | Dibekukan dari Tahap 1 (PROD-2) |
+| `rag.followup_mode` | E-02 | `dual` di dev dan prod (FOLLOWUP.md, Langkah 55: dual 16/16, concat 13/16, llm\_rewrite gugur di anggaran LLM); dipakai apa adanya pada uji Tahap 1 | Terisi di prod (sama dengan Tahap 1) |
+| `rag.prompt_variant` | E-03 | Nilai yang dipakai pada uji Tahap 1 (prompt v5); E-03 tidak dijalankan sebelum uji, diungkap di Bab 3 | Terisi di prod (sama dengan Tahap 1) |
+| `llm.chain[0]`, `llm.chain[1]` | E-04 | gpt-oss-120b, cadangan gpt-oss-20b (nilai Tahap 1; cadangan dimatikan saat uji sehingga jawaban 20b tidak dinilai, dan model yang menjawab dicatat di log) | Dibekukan dari Tahap 1 (PROD-2) |
+| `llm.timeout_s`, `llm.temperature`, `llm.reasoning_effort` | E-04 | 10 detik, 0,2, low (nilai dev provisional, 2.4) | Dibekukan dari Tahap 1 (PROD-2) |
+| `audio.stt.backend` | E-05 | faster\_whisper (ADR-09 masih Terbuka) | Terisi di prod (provisional sampai E-05) |
 | `audio.stt.threads` | E-05 dan E-09 | null = bawaan library (4 thread di laptop dev) | TBD |
 | `audio.vad.threshold` | E-05 | Nilai coba 0,5 (bawaan Silero) | TBD |
 | `audio.vad.min_silence_ms` | E-05 | Nilai coba 500 (anggaran deteksi akhir ucapan 0,5 detik, 3.3) | TBD |
@@ -893,16 +893,16 @@ F-18 tidak punya ADR karena tidak melibatkan pilihan metode; desainnya keputusan
 | `audio.max_utterance_s` | E-05 | Nilai coba 15 (tanpa sumber, perlu ditetapkan di E-05) | TBD |
 | `audio.tts.voice` | E-06 | id\_ID-news\_tts-medium | Provisional |
 | `vision.model`, `vision.conf`, `vision.imgsz` | E-07 | yolo26n-pose; conf 0,1 (bawaan Ultralytics); imgsz 640 dari sweep imgsz terpra-registrasi (docs/IMGSZ.md, hasil docs/IMGSZ-HASIL.md) | conf: Provisional dev; imgsz: Terisi (CV-2, 2 November 2026) |
-| `vision.presence_signal`, `vision.min_shoulder_ratio`, `vision.min_box_height_ratio` | E-07 | shoulder\_width; nilai coba rasio bahu 0,22 (kalibrasi dev) | TBD |
+| `vision.presence_signal`, `vision.min_shoulder_ratio`, `vision.min_box_height_ratio` | E-07 | shoulder\_width; nilai coba rasio bahu 0,22 (kalibrasi dev) | TBD; presence\_signal disweep di amandemen E-07 |
 | `vision.dwell_s`, `vision.leave_s` | E-07 | Nilai coba 2 dan 3 detik | TBD |
 | `session.regreet_cooldown_s` | E-07 | null = tanpa jeda | TBD |
-| `vision.region`, `vision.box_upper.top/bottom/side`, `vision.keypoint_torso.min_kp_conf/shrink/torso_aspect` | E-08 | keypoint\_torso; nilai coba kotak 0,35/0,65/0,25 dan keypoint 0,5/0,15/1,2 | TBD |
-| `vision.color.method`, `vision.color.min_majority` | E-08 | `lut_vote` provisional (kandidat `lut_vote` dan `lut_mean`, E-08 amandemen 1); `min_majority` nilai coba 0,6, hanya disweep bila pemenang E-08 `lut_vote`. Saat runtime kedua metode memakai voting antarframe dengan `min_majority`, sedangkan E-08 menilai per frame; perbedaan ini diungkap di Bab 3 | TBD |
+| `vision.region`, `vision.box_upper.top/bottom/side`, `vision.keypoint_torso.min_kp_conf/shrink/torso_aspect` | E-08 | keypoint\_torso; nilai coba kotak 0,35/0,65/0,25 dan keypoint 0,5/0,15/1,2 | region terisi di prod (provisional); box\_upper dan keypoint\_torso disweep di amandemen E-08 |
+| `vision.color.method`, `vision.color.min_majority` | E-08 | `lut_vote` provisional (kandidat `lut_vote` dan `lut_mean`, E-08 amandemen 1); `min_majority` nilai coba 0,6, hanya disweep bila pemenang E-08 `lut_vote`. Saat runtime kedua metode memakai voting antarframe dengan `min_majority`, sedangkan E-08 menilai per frame; perbedaan ini diungkap di Bab 3 | method terisi di prod (provisional sampai E-08); min\_majority TBD |
 | `vision.fps_busy`, `vision.threads` | E-09 | `fps_busy` null di dev (laju tetap `fps_idle`); `vision.threads` 7 dan `audio.tts.threads` 1 di dev (CPU-THREADS.md, laptop dev); prod null sampai E-09. Waktu mulai juga diukur ulang di E-09 setelah RF-2 | TBD |
 | `session.idle_reset_s` | E-09 dan uji pengguna | null = tidak pernah timeout | TBD |
 | Batas kata jawaban | E-09 | Belum ada nilai | TBD |
 
-Tabel ini mencakup ke-36 kunci yang dilaporkan `python -m mica check` sebagai belum terisi di mode prod per 2 November 2026; jumlahnya sama dengan 17 Oktober, tetapi daftarnya berubah (masuk: `llm.chain[0]`, `llm.chain[1]`, `llm.reasoning_effort`, `audio.tts.threads`, `vision.presence_signal`, `vision.conf`, `vision.imgsz`; keluar: `kb.active_id` dan `audio.stt.groq_model`). Sejak CV-6 (2 November 2026) vision.imgsz diisi 640 di prod, sehingga yang tersisa 35 kunci. Nilai coba hanya untuk dev dan demo: dipasang di memori lewat `python -m mica --trial-values` (config prod ditolak), dan UI menampilkan label NILAI COBA (dev). Config prod baru diisi dari hasil eksperimen.
+Tabel ini mencakup ke-36 kunci yang dilaporkan `python -m mica check` sebagai belum terisi di mode prod per 2 November 2026; jumlahnya sama dengan 17 Oktober, tetapi daftarnya berubah (masuk: `llm.chain[0]`, `llm.chain[1]`, `llm.reasoning_effort`, `audio.tts.threads`, `vision.presence_signal`, `vision.conf`, `vision.imgsz`; keluar: `kb.active_id` dan `audio.stt.groq_model`). Sejak CV-6 (2 November 2026) vision.imgsz diisi 640 di prod, sehingga yang tersisa 35 kunci. Nilai coba hanya untuk dev dan demo: dipasang di memori lewat `python -m mica --trial-values` (config prod ditolak), dan UI menampilkan label NILAI COBA (dev). Config prod diisi dari hasil eksperimen, kecuali kunci RAG dan LLM: karena set uji sudah dipakai pada uji Tahap 1, nilai itu dibekukan dari config yang diuji (tag tahap1-beku, commit 97b055c, hash di manifest.json run Tahap 1) dan tidak disetel ulang, supaya sistem di ruang PMB sama dengan sistem yang dievaluasi (PROD-2, 2 November 2026). Peta lengkap kunci prod ada di docs/PROD-TBD.md.
 
 **Nilai keputusan desain (bukan hasil eksperimen).** `audio.input_mode` = push\_to\_talk (18 Oktober 2026), `vision.pause_during_tts` = true (21 Oktober 2026), `ui.camera_preview` = public, `ui.preview_fps` = 24 di prod dan dev (nilai coba bersumber target pembimbing; CV-3c menunjukkan program sanggup 23,9 fps, tetapi di perangkat uji tampilan dibatasi kamera Logi C270 sekitar 15 fps dengan exposure otomatis), dan `ui.preview_pixel_block` = 16 (nilai coba desain tanpa sumber, diungkap di Bab 3).
 
@@ -1066,3 +1066,4 @@ mica/
 | 1 November 2026 (refactor RF-2) | Nama di kode mengikuti refactor RF-2 (branch refactor/webapp, dibuat setelah tag tahap1-beku di 1a9b537): mode kiosk menjadi prod, config/kiosk.yaml menjadi config/prod.yaml, KioskController menjadi AppController, CFG\_GEMINI\_IN\_KIOSK menjadi CFG\_GEMINI\_IN\_PROD. ADR-19 final: UI web dibuka di browser default dalam jendela biasa; peluncur Edge layar penuh, ui.backend, ui.fullscreen, dan PySide6 dihapus. Aplikasi dihentikan dengan Ctrl+C. docs/KIOSK.md menjadi docs/INSTALASI.md. Berlaku setelah RF-2 digabung ke main; perilaku RAG tidak berubah (dibuktikan dengan perbandingan retrieval terhadap tag tahap1-beku). Baris 2.4 dan riwayat yang lebih lama tetap memakai nama lama sebagai catatan sejarah, kecuali nama yang masih berlaku di kode. |
 | 2 November 2026 (audit RF-4) | Revisi dari audit SDD terhadap kode (docs/SDD-AUDIT.md, commit 86a0645, 49 temuan): push-to-talk sebagai bawaan (ADR-10, M-08, 5.2, 7.1, 7.2, 3.3); rag.followup\_mode dual di M-06, 7.3, bagian 12, dan 13.1; penamaan warna lut\_vote dan lut\_mean, HsvRuleNamer dihapus; M-10 versi F dan isi folder ui/ yang bebas Qt; pratinjau kamera (M-07, 3.2, 8.2); urutan start dan log start (3.4); bagian 12 diperbarui dengan kunci yang sudah terisi dan paragraf nilai keputusan desain; 8.1 dan 8.3 disesuaikan; contoh 13.1 diperbaiki agar lolos validasi; 13.2 dilengkapi. Bagian 2.4 ditambah baris Langkah 40, 51, dan 57. Perbaikan kode kecil yang menyertainya (mode offline Hugging Face di prod, rag.rrf\_k wajib untuk dual, teks pemberitahuan) dikerjakan di RF-5. |
 | 2 November 2026 (hasil CV) | vision.imgsz menjadi 640 tetap (sweep terpra-registrasi, docs/IMGSZ.md) di bagian 12 dan 13.1; jumlah kunci prod yang belum terisi menjadi 35. ui.preview\_fps menjadi 24 di prod dan dev (nilai keputusan desain, 13.1). M-07: kamera dibaca thread frame terbaru sehingga pratinjau tidak menunggu YOLO. 2.4 ditambah baris CV-2 sampai CV-6. |
+| 2 November 2026 (PROD-1 dan PROD-2) | Bagian 12 dan 9.5: kunci RAG dan LLM dibekukan dari config uji Tahap 1 (tag tahap1-beku, 97b055c) dan tidak disetel ulang setelah set uji dipakai; ambang gerbang 0,50 yang tidak dikalibrasi ulang dengan KB resmi dicatat sebagai keterbatasan; cadangan 20b tidak dinilai pada Tahap 1. Status kunci yang sudah terisi di prod.yaml (retriever, reranker, prompt\_variant, followup\_mode, stt.backend, region, color.method) disesuaikan. presence\_signal, box\_upper, dan keypoint\_torso masuk amandemen E-07/E-08 (keputusan pemilik proyek). Peta kunci prod: docs/PROD-TBD.md. |
