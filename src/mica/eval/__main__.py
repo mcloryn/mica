@@ -14,6 +14,8 @@ python -m mica.eval dataset lock --dataset data/eval/official/test.jsonl --reaso
 python -m mica.eval dataset status          (set resmi, docs/DATASET.md)
 python -m mica.eval stt-sweep --config <yaml> --dataset <manifest.jsonl> [--backend groq]
     [--threads N] [--observations <observations.jsonl>]   (E-05, docs/AMANDEMEN-2026-11-03.md A)
+python -m mica.eval prep-commonvoice --archive <tar.gz> --out <folder di luar repo> [--n 300]
+    [--seed 20261103]   (E-05 data publik, docs/AMANDEMEN-2026-11-03b.md B)
 python -m mica.eval latency --logs logs/ --label <label> [--resources <csv>] [--from --to]
     [--out results/E-09] [--tool-test]   (E-09, lihat mica/eval/latency.py)
 python -m mica.eval vision --config <yaml> --dataset data/eval/vision/<nama>
@@ -36,6 +38,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+import tarfile
 from collections.abc import Callable
 from datetime import date
 from pathlib import Path
@@ -208,6 +211,15 @@ def build_parser() -> argparse.ArgumentParser:
     sw.add_argument("--observations", type=Path,
                     help="observations.jsonl run sebelumnya: hitung ulang offline tanpa STT")  # fmt: skip
     sw.add_argument("--note", help="catatan di run.json, mis. 'sintetis, bukan hasil E-05'")
+
+    pcv = sub.add_parser("prep-commonvoice",
+                         help="E-05: klip Common Voice -> WAV 16 kHz + manifest (amandemen kedua)")  # fmt: skip
+    pcv.add_argument("--archive", type=Path, required=True, help="arsip tar/tar.gz Common Voice")
+    pcv.add_argument("--out", type=Path, required=True, help="folder di luar repo")
+    pcv.add_argument("--n", type=int, default=300)
+    pcv.add_argument("--seed", type=int, default=20261103)
+    pcv.add_argument("--ids-out", type=Path, default=Path("data/eval/speech/publik-2026-11/clip_ids.txt"),
+                     help="daftar ID klip terpilih (di-commit, tanpa audio)")  # fmt: skip
 
     lat = sub.add_parser("latency", help="E-09: latensi per tahap dari log 6.2 dan verdict")
     lat.add_argument("--logs", type=Path, default=Path("logs"))
@@ -1046,6 +1058,16 @@ def cmd_stt_sweep(
     return 0
 
 
+def cmd_prep_commonvoice(args: argparse.Namespace) -> int:
+    from mica.eval.public_speech import prep_commonvoice
+
+    info = prep_commonvoice(args.archive, args.out, args.n, args.seed, args.ids_out)
+    print(f"{info['n_selected']} klip dari {info['n_speakers']} penutur tervalidasi "
+          f"(diminta {info['n_requested']}); manifest {args.out / 'commonvoice.jsonl'}; "
+          f"ID klip {args.ids_out}")  # fmt: skip
+    return 0
+
+
 def _copy_split(args: argparse.Namespace, kb: Any) -> dict[str, Any]:
     """Run generation sumber harus ber-split sama dengan --split; test diperiksa ke LOCK."""
     import json
@@ -1199,6 +1221,7 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
     from mica.audio.listen import ListenError
     from mica.audio.stt import SttModelMissing
     from mica.eval.copy_rate import RunMismatch
+    from mica.eval.public_speech import PublicDataError
     from mica.eval.stt import ManifestError
     from mica.eval.stt_sweep import SweepError
     from mica.eval.vision import VisionEvalError
@@ -1214,6 +1237,8 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
             return cmd_stt(args)
         if args.command == "stt-sweep":
             return cmd_stt_sweep(args)
+        if args.command == "prep-commonvoice":
+            return cmd_prep_commonvoice(args)
         if args.command == "vision":
             return cmd_vision(args)
         if args.command == "vision-scenarios":
@@ -1257,7 +1282,8 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
     except (ConfigError, KbLoadError, DatasetError, FileExistsError, ValueError, CacheMiss,
             SttEvalError, ManifestError, ListenError, SttModelMissing, RunMismatch,
             KeyError, OfficialDatasetError, SplitRefused, VisionEvalError,
-            ModelMissing, ColorsMissing, SweepError) as exc:  # fmt: skip
+            ModelMissing, ColorsMissing, SweepError, PublicDataError,
+            tarfile.TarError) as exc:  # fmt: skip
         print(f"error: {exc}", file=sys.stderr)
         return 2
 

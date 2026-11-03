@@ -14,6 +14,12 @@ data/eval/speech/*
 !data/eval/speech/contoh/
 data/eval/speech/contoh/*
 !data/eval/speech/contoh/manifest.jsonl
+# E-05 data publik (amandemen kedua): hanya daftar ID klip yang di-commit, audio tidak pernah
+!data/eval/speech/publik-2026-11/
+data/eval/speech/publik-2026-11/*
+!data/eval/speech/publik-2026-11/clip_ids.txt
+*.mp3
+*.wav
 
 # ringkasan tugas untuk pemilik proyek, tidak di-commit
 RINGKASAN.md
