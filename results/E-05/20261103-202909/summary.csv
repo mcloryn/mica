@@ -1,0 +1,3 @@
+﻿konfigurasi,lokal,n_pertanyaan,n_diam_bising,wer_total,cer_total,waktu_sampai_teks_p50_s,waktu_sampai_teks_p95_s,n_waktu,laju_transkripsi_palsu,n_palsu,recall5_transkripsi,recall5_referensi,n_retrieval
+faster_whisper-small-t2,1,300,120,0.1887,0.0744,6.5076,9.6984,297,0.0000,0,,,0
+faster_whisper-small-t4,1,300,120,0.1899,0.0749,3.9017,5.6631,297,0.0000,0,,,0
