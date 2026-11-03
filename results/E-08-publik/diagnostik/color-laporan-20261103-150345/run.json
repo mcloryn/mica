@@ -1,0 +1,186 @@
+{
+ "note": "HITUNG ULANG DIAGNOSTIK (catatan kelima), bukan angka resmi; angka resmi = color-laporan-20261103-145225",
+ "split": "laporan",
+ "model": "yolo26n-pose",
+ "conf": 0.1,
+ "imgsz": 640,
+ "model_file": {
+  "file": "models/yolo26n-pose.pt",
+  "sha256": "eb3bb8268828aeaf515cec23a4bfafd793944a86fe9af94ba7823609c14522a9",
+  "sha256_expected": "eb3bb8268828aeaf515cec23a4bfafd793944a86fe9af94ba7823609c14522a9",
+  "release_tag": "v8.4.0"
+ },
+ "colors_file": {
+  "file": "models/color_names_w2c.npy",
+  "sha256": "ad16540fe280bb07abec27db5d66df2b97e03cd9f02297d8633a0d0e54120011",
+  "sha256_expected": "ad16540fe280bb07abec27db5d66df2b97e03cd9f02297d8633a0d0e54120011"
+ },
+ "dataset": {
+  "path": "D:/SKRIPSI/data-publik/e08",
+  "manifest_sha256": "91b7d67ed7e29993bc00894627fc734e1b280256a3b8746099c554663a5796b5",
+  "labels_sha256": [
+   "68964f5d17e561ddd5bf01677777dea571ff1248442bdb6d4b92d0959d34592a",
+   "68964f5d17e561ddd5bf01677777dea571ff1248442bdb6d4b92d0959d34592a"
+  ],
+  "n_frame": 328
+ },
+ "packages": {
+  "ultralytics": "8.4.178",
+  "opencv-python": "5.0.0.93",
+  "numpy": "2.5.4"
+ },
+ "environment": {
+  "python": "3.13.7",
+  "torch": "2.14.1+cpu",
+  "torch_num_threads": 14,
+  "sentence_transformers": "6.1.0",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+  "cpu_count_logical": 20,
+  "power": {
+   "source": "ac",
+   "battery_percent": 100,
+   "battery_saver": false
+  },
+  "power_plan": {
+   "guid": "bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b",
+   "name": "ASUS Recommended",
+   "raw": "Power Scheme GUID: bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b  (ASUS Recommended)"
+  },
+  "git_commit": "10b16de37f61e48577fda2adb5001fb96f793c6f",
+  "git_dirty": true
+ },
+ "started_at": "20261103-150345",
+ "experiment": "E-08",
+ "amendment": "docs/AMANDEMEN-2026-11-03b.md bagian C dan catatannya",
+ "winner": {
+  "region": "keypoint_torso",
+  "method": "lut_vote",
+  "values": {
+   "box_upper.top": 0.35,
+   "box_upper.bottom": 0.65,
+   "box_upper.side": 0.2,
+   "keypoint_torso.min_kp_conf": 0.3,
+   "keypoint_torso.shrink": 0.2,
+   "keypoint_torso.torso_aspect": 1.2
+  },
+  "min_majority": 0.7,
+  "from_run": "results/E-08-publik/color-tuning-20261103-145151"
+ },
+ "agreement": {
+  "kappa": 1.0,
+  "n_dinilai_keduanya": 328,
+  "n_sepakat": 328,
+  "n_tidak_sepakat": 0,
+  "n_hanya_penilai1": 0,
+  "n_hanya_penilai2": 0
+ },
+ "per_color": [
+  {
+   "warna": "hitam",
+   "n": 30,
+   "benar": 21,
+   "akurasi": 0.7,
+   "wilson_bawah": 0.5212421254128504,
+   "wilson_atas": 0.8333525173175619,
+   "catatan": ""
+  },
+  {
+   "warna": "biru",
+   "n": 31,
+   "benar": 15,
+   "akurasi": 0.4838709677419355,
+   "wilson_bawah": 0.31970251562417307,
+   "wilson_atas": 0.651596045519712,
+   "catatan": ""
+  },
+  {
+   "warna": "cokelat",
+   "n": 31,
+   "benar": 9,
+   "akurasi": 0.2903225806451613,
+   "wilson_bawah": 0.1609580015630062,
+   "wilson_atas": 0.46592329330749926,
+   "catatan": ""
+  },
+  {
+   "warna": "abu-abu",
+   "n": 33,
+   "benar": 10,
+   "akurasi": 0.30303030303030304,
+   "wilson_bawah": 0.17375531424053606,
+   "wilson_atas": 0.47338135145800575,
+   "catatan": ""
+  },
+  {
+   "warna": "hijau",
+   "n": 30,
+   "benar": 9,
+   "akurasi": 0.3,
+   "wilson_bawah": 0.16664748268243793,
+   "wilson_atas": 0.47875787458714947,
+   "catatan": ""
+  },
+  {
+   "warna": "oranye",
+   "n": 30,
+   "benar": 12,
+   "akurasi": 0.4,
+   "wilson_bawah": 0.24590628116801852,
+   "wilson_atas": 0.5767963974667752,
+   "catatan": ""
+  },
+  {
+   "warna": "merah muda",
+   "n": 29,
+   "benar": 6,
+   "akurasi": 0.20689655172413793,
+   "wilson_bawah": 0.09846070197841039,
+   "wilson_atas": 0.38390090403867905,
+   "catatan": ""
+  },
+  {
+   "warna": "ungu",
+   "n": 23,
+   "benar": 9,
+   "akurasi": 0.391304347826087,
+   "wilson_bawah": 0.22157622792477952,
+   "wilson_atas": 0.592144776086183,
+   "catatan": ""
+  },
+  {
+   "warna": "merah",
+   "n": 31,
+   "benar": 11,
+   "akurasi": 0.3548387096774194,
+   "wilson_bawah": 0.21116659093865403,
+   "wilson_atas": 0.5305204593563113,
+   "catatan": ""
+  },
+  {
+   "warna": "putih",
+   "n": 30,
+   "benar": 1,
+   "akurasi": 0.03333333333333333,
+   "wilson_bawah": 0.005908590381612455,
+   "wilson_atas": 0.16670390991409173,
+   "catatan": ""
+  },
+  {
+   "warna": "kuning",
+   "n": 30,
+   "benar": 6,
+   "akurasi": 0.2,
+   "wilson_bawah": 0.0950510717728987,
+   "wilson_atas": 0.3730569641314825,
+   "catatan": ""
+  }
+ ],
+ "n_all": 328,
+ "n_detected": 240,
+ "n_undetected": 88,
+ "correct": 109,
+ "min_majority": 0.7,
+ "named": 153,
+ "named_correct": 83
+}
