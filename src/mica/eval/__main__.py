@@ -14,6 +14,13 @@ python -m mica.eval dataset lock --dataset data/eval/official/test.jsonl --reaso
 python -m mica.eval dataset status          (set resmi, docs/DATASET.md)
 python -m mica.eval stt-sweep --config <yaml> --dataset <manifest.jsonl> [--backend groq]
     [--threads N] [--observations <observations.jsonl>]   (E-05, docs/AMANDEMEN-2026-11-03.md A)
+python -m mica.eval prep-commonvoice --archive <tar.gz> --out <folder di luar repo> [--n 300]
+    [--seed 20261103]   (E-05 data publik, docs/AMANDEMEN-2026-11-03b.md B)
+python -m mica.eval prep-musan --out <folder> [--n 100 --seed 20261103 --clip-s 10]
+python -m mica.eval prep-silence --config config/dev.yaml --out <folder> [--n 20 --seconds 10]
+python -m mica.eval prep-manifest --out <folder>   (gabung -> manifest.jsonl)
+python -m mica.eval prep-peta --archive <zip> --out <folder> [--seed 20261103 --max-per-color 60]
+    (E-08 data publik, docs/AMANDEMEN-2026-11-03b.md C)
 python -m mica.eval latency --logs logs/ --label <label> [--resources <csv>] [--from --to]
     [--out results/E-09] [--tool-test]   (E-09, lihat mica/eval/latency.py)
 python -m mica.eval vision --config <yaml> --dataset data/eval/vision/<nama>
@@ -22,7 +29,8 @@ python -m mica.eval vision-scenarios --config <yaml> --dataset data/eval/vision_
     --model <pemenang> [--conf <terpilih>] [--grid default] [--out results/E-07]
 python -m mica.eval color --config <yaml> --dataset data/eval/vision/<nama> [--labels colors.csv]
     [--labels2 colors_rater2.csv] [--out results/E-08] [--area-grid]   (docs/E-08.md;
-    --area-grid: docs/AMANDEMEN-2026-11-03.md bagian C)
+    --area-grid: docs/AMANDEMEN-2026-11-03.md bagian C; --split tuning|laporan dan
+    --from-run <run tuning> untuk laporan: docs/AMANDEMEN-2026-11-03b.md C)
 python -m mica.eval annotation --run <folder run generation> [--compare-saran]
     (ringkasan anotasi halusinasi; --compare-saran: jumlah identik dengan saran Claude)
 python -m mica.eval labels --run <folder run generation>
@@ -36,6 +44,8 @@ from __future__ import annotations
 
 import argparse
 import sys
+import tarfile
+import zipfile
 from collections.abc import Callable
 from datetime import date
 from pathlib import Path
@@ -209,6 +219,42 @@ def build_parser() -> argparse.ArgumentParser:
                     help="observations.jsonl run sebelumnya: hitung ulang offline tanpa STT")  # fmt: skip
     sw.add_argument("--note", help="catatan di run.json, mis. 'sintetis, bukan hasil E-05'")
 
+    pcv = sub.add_parser("prep-commonvoice",
+                         help="E-05: klip Common Voice -> WAV 16 kHz + manifest (amandemen kedua)")  # fmt: skip
+    pcv.add_argument("--archive", type=Path, required=True, help="arsip tar/tar.gz Common Voice")
+    pcv.add_argument("--out", type=Path, required=True, help="folder di luar repo")
+    pcv.add_argument("--n", type=int, default=300)
+    pcv.add_argument("--seed", type=int, default=20261103)
+    pcv.add_argument("--ids-out", type=Path, default=Path("data/eval/speech/publik-2026-11/clip_ids.txt"),
+                     help="daftar ID klip terpilih (di-commit, tanpa audio)")  # fmt: skip
+
+    pm = sub.add_parser("prep-musan", help="E-05: klip MUSAN noise dari Hugging Face")
+    pm.add_argument("--out", type=Path, required=True, help="folder di luar repo")
+    pm.add_argument("--repo", default="FluidInference/musan")
+    pm.add_argument("--revision", default="3edcfdf89b56dbe6a395ff29f9c29489e03d1321",
+                    help="hash commit dikunci (amandemen kedua, catatan kedua)")  # fmt: skip
+    pm.add_argument("--n", type=int, default=100)
+    pm.add_argument("--seed", type=int, default=20261103)
+    pm.add_argument("--clip-s", type=float, default=10.0)
+    psil = sub.add_parser("prep-silence", help="E-05: rekaman diam dari mikrofon laptop (dev)")
+    psil.add_argument("--config", type=Path, required=True)
+    psil.add_argument("--out", type=Path, required=True, help="folder di luar repo")
+    psil.add_argument("--n", type=int, default=20)
+    psil.add_argument("--seconds", type=float, default=10.0)
+    psil.add_argument(
+        "--device", help="indeks atau nama mikrofon (default: mikrofon bawaan sistem)"
+    )
+    pman = sub.add_parser("prep-manifest", help="E-05: gabung manifest sumber -> manifest.jsonl")
+    pman.add_argument("--out", type=Path, required=True)
+
+    pp = sub.add_parser("prep-peta", help="E-08: sampel PETA per warna + split tuning/laporan")
+    pp.add_argument("--archive", type=Path, required=True, help="zip PETA")
+    pp.add_argument("--out", type=Path, required=True, help="folder di luar repo")
+    pp.add_argument("--seed", type=int, default=20261103)
+    pp.add_argument("--max-per-color", type=int, default=60)
+    pp.add_argument("--sample-csv", type=Path, default=Path("data/eval/vision/peta-2026-11/sample.csv"),
+                    help="daftar ID + label + split (di-commit, tanpa gambar)")  # fmt: skip
+
     lat = sub.add_parser("latency", help="E-09: latensi per tahap dari log 6.2 dan verdict")
     lat.add_argument("--logs", type=Path, default=Path("logs"))
     lat.add_argument("--label", required=True, help="nama run, mis. prod-fps2-t1")
@@ -258,6 +304,10 @@ def build_parser() -> argparse.ArgumentParser:
     col.add_argument("--out", type=Path, default=Path("results/E-08"))
     col.add_argument("--models-dir", type=Path, default=Path("models"))
     col.add_argument("--note", help="catatan di run.json, mis. 'sintetis, bukan hasil E-08'")
+    col.add_argument("--split", choices=("tuning", "laporan"),
+                     help="hanya frame split ini (data PETA, amandemen kedua C)")  # fmt: skip
+    col.add_argument("--from-run", type=Path,
+                     help="run color split tuning (wajib untuk --split laporan)")  # fmt: skip
     col.add_argument("--area-grid", action="store_true",
                      help="grid area baju tahap 2a/2b/3 (docs/AMANDEMEN-2026-11-03.md C)")  # fmt: skip
 
@@ -573,9 +623,23 @@ def cmd_color(args: argparse.Namespace) -> int:
     path = model_path(args.model, args.models_dir)
     if not path.is_file():
         raise ModelMissing(path)
+    if args.area_grid and args.split == "laporan":
+        raise ev.VisionEvalError("--area-grid hanya boleh pada --split tuning (bukan laporan)")
+    if args.split == "laporan" and args.from_run is None:
+        raise ev.VisionEvalError("--split laporan butuh --from-run <run color split tuning>")
+    if args.from_run is not None and args.split != "laporan":
+        raise ev.VisionEvalError("--from-run hanya untuk --split laporan")
+    winner = ec.winner_from_run(args.from_run) if args.split == "laporan" else None
     frames = ev.load_frames(args.dataset)
     labels = [p if p.is_absolute() else args.dataset / p for p in (args.labels, args.labels2)]
     first, second = (ec.load_color_labels(p) for p in labels)
+    if args.split is not None:
+        keep = ec.split_ids(args.dataset, args.split)
+        frames = [f for f in frames if f.id in keep]
+        first = {k: v for k, v in first.items() if k[0] in keep}
+        second = {k: v for k, v in second.items() if k[0] in keep}
+        if not frames:
+            raise ev.VisionEvalError(f"tidak ada frame split {args.split}")
     colors_file = Path(args.models_dir) / DEFAULT_COLORS_FILE.name
     namers = {"lut_vote": ColorNamesLut.load(colors_file, 0.0),
               "lut_mean": ColorNamesLutMean.load(colors_file, 0.0)}  # fmt: skip
@@ -586,9 +650,10 @@ def cmd_color(args: argparse.Namespace) -> int:
     if warning:
         print(warning, file=sys.stderr)
     stamp = _run_stamp()
-    run_dir = Path(args.out) / f"color-{stamp}"
+    run_dir = Path(args.out) / f"color-{args.split + '-' if args.split else ''}{stamp}"
     info = {
         "note": args.note,
+        "split": args.split,
         "model": args.model,
         "conf": conf,
         "imgsz": settings.vision.imgsz,
@@ -609,6 +674,11 @@ def cmd_color(args: argparse.Namespace) -> int:
         "started_at": stamp,
     }
     predictor = ev.ultralytics_predictor(path, conf, settings.vision.imgsz)
+    if winner is not None:
+        ec.run_report(frames, first, second, predictor, winner, namers, run_dir, info)
+        print((run_dir / "report.md").read_text(encoding="utf-8"))
+        print(f"tersimpan: {run_dir.as_posix()}")
+        return 0
     ec.run_color(frames, first, second, predictor, regions, namers, run_dir, info,
                  area_region=make_region if args.area_grid else None)  # fmt: skip
     print((run_dir / "verdict.md").read_text(encoding="utf-8"))
@@ -1046,6 +1116,64 @@ def cmd_stt_sweep(
     return 0
 
 
+def cmd_prep_commonvoice(args: argparse.Namespace) -> int:
+    from mica.eval.public_speech import prep_commonvoice
+
+    info = prep_commonvoice(args.archive, args.out, args.n, args.seed, args.ids_out)
+    print(f"{info['n_selected']} klip dari {info['n_speakers']} penutur tervalidasi "
+          f"(diminta {info['n_requested']}); manifest {args.out / 'commonvoice.jsonl'}; "
+          f"ID klip {args.ids_out}")  # fmt: skip
+    return 0
+
+
+def cmd_prep_musan(args: argparse.Namespace) -> int:
+    from mica.eval.public_speech import prep_musan
+
+    info = prep_musan(args.out, args.n, args.seed, args.clip_s, args.repo, args.revision)
+    print(f"{info['n_selected']} klip MUSAN dari {info['n_noise_wav']} file noise; "
+          f"lebih pendek dari {args.clip_s:g} s: {len(info['shorter_than_clip_s'])}; "
+          f"lisensi: {', '.join(info['licenses'])}")  # fmt: skip
+    return 0
+
+
+def cmd_prep_silence(args: argparse.Namespace) -> int:
+    from mica.eval.public_speech import prep_silence
+
+    settings = load_settings(args.config)
+    if settings.app.mode != "dev":
+        raise SttEvalError(
+            "prep-silence hanya boleh saat app.mode: dev (audio tidak disimpan di prod)"
+        )
+    device: int | str | None = args.device
+    if device is not None and device.isdigit():
+        device = int(device)
+    info = prep_silence(args.out, args.n, args.seconds, device)
+    print(f"{info['n']} rekaman diam {info['seconds']:g} s ditulis ke {args.out / 'diam'}")
+    return 0
+
+
+def cmd_prep_manifest(args: argparse.Namespace) -> int:
+    from mica.eval.public_speech import prep_manifest
+    from mica.eval.stt import load_manifest
+
+    counts = prep_manifest(args.out)
+    load_manifest(args.out / "manifest.jsonl")  # cek format SDD 6.3
+    print(f"manifest.jsonl: {counts}")
+    return 0
+
+
+def cmd_prep_peta(args: argparse.Namespace) -> int:
+    from mica.eval.public_peta import prep_peta
+
+    info = prep_peta(args.archive, args.out, args.seed, args.max_per_color, args.sample_csv)
+    for color, n in info["sample_per_color"].items():
+        print(f"  {color}: tuning {n['tuning']}, laporan {n['laporan']} "
+              f"(memenuhi syarat {info['eligible_per_color'][color]})")  # fmt: skip
+    print(f"subset dikeluarkan: {', '.join(info['excluded_subsets']) or '-'}; "
+          f"sampel {args.sample_csv}")  # fmt: skip
+    return 0
+
+
 def _copy_split(args: argparse.Namespace, kb: Any) -> dict[str, Any]:
     """Run generation sumber harus ber-split sama dengan --split; test diperiksa ke LOCK."""
     import json
@@ -1199,6 +1327,7 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
     from mica.audio.listen import ListenError
     from mica.audio.stt import SttModelMissing
     from mica.eval.copy_rate import RunMismatch
+    from mica.eval.public_speech import PublicDataError
     from mica.eval.stt import ManifestError
     from mica.eval.stt_sweep import SweepError
     from mica.eval.vision import VisionEvalError
@@ -1214,6 +1343,16 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
             return cmd_stt(args)
         if args.command == "stt-sweep":
             return cmd_stt_sweep(args)
+        if args.command == "prep-commonvoice":
+            return cmd_prep_commonvoice(args)
+        if args.command == "prep-musan":
+            return cmd_prep_musan(args)
+        if args.command == "prep-silence":
+            return cmd_prep_silence(args)
+        if args.command == "prep-manifest":
+            return cmd_prep_manifest(args)
+        if args.command == "prep-peta":
+            return cmd_prep_peta(args)
         if args.command == "vision":
             return cmd_vision(args)
         if args.command == "vision-scenarios":
@@ -1257,7 +1396,8 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
     except (ConfigError, KbLoadError, DatasetError, FileExistsError, ValueError, CacheMiss,
             SttEvalError, ManifestError, ListenError, SttModelMissing, RunMismatch,
             KeyError, OfficialDatasetError, SplitRefused, VisionEvalError,
-            ModelMissing, ColorsMissing, SweepError) as exc:  # fmt: skip
+            ModelMissing, ColorsMissing, SweepError, PublicDataError,
+            tarfile.TarError, zipfile.BadZipFile) as exc:  # fmt: skip
         print(f"error: {exc}", file=sys.stderr)
         return 2
 

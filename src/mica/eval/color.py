@@ -12,6 +12,12 @@ memori (N-08); hasil berisi angka, ID, dan label saja.
 (min_kp_conf x shrink x torso_aspect, hanya keypoint_torso), tahap 2b (box_upper top x bottom x
 side), lalu tahap 3 (min_majority pada parameter akhir, hanya lut_vote). Deteksi dijalankan sekali
 per frame dan dipakai semua kombinasi; hasil di area_grid.csv dan area_verdict.md.
+
+--split tuning|laporan (docs/AMANDEMEN-2026-11-03b.md C): hanya frame dengan field split itu.
+--area-grid hanya boleh pada tuning. Pada laporan (--from-run <run tuning>): nilai pemenang
+tuning dipakai apa adanya; akurasi per warna dengan n dan interval Wilson 95% (n < 10 ditandai
+"data tidak cukup untuk disimpulkan"), akurasi semua gambar (tidak terdeteksi = gagal), akurasi
+gambar terdeteksi, dan jumlah tidak terdeteksi. Hasil di report_per_color.csv dan report.md.
 """
 
 from __future__ import annotations
@@ -843,3 +849,183 @@ def write_area_grid(run_dir: Path, result: AreaResult) -> dict[str, Any]:
         "min_majority": result.min_majority,
         "min_kp_conf_for_e07": result.values["keypoint_torso.min_kp_conf"],
     }
+
+
+# --- split tuning/laporan dan laporan akhir (amandemen kedua bagian C) ---------------------
+
+REPORT_AMENDMENT = "docs/AMANDEMEN-2026-11-03b.md bagian C dan catatannya"
+MIN_N_CONCLUDE = 10  # catatan 3 Nov: n < 10 di LAPORAN -> "data tidak cukup untuk disimpulkan"
+NOT_ENOUGH = "data tidak cukup untuk disimpulkan"
+REPORT_FIELDS = ("warna", "n", "benar", "akurasi", "wilson_bawah", "wilson_atas", "catatan")
+
+
+def split_ids(dataset: Path, split: str) -> set[str]:
+    """ID frame dengan field split = split di manifest (prep-peta)."""
+    from mica.eval.vision import read_manifest
+
+    rows = read_manifest(Path(dataset) / "manifest.jsonl")
+    if any("split" not in r for r in rows):
+        raise VisionEvalError("--split butuh field split di setiap baris manifest (prep-peta)")
+    return {str(r["id"]) for r in rows if r["split"] == split}
+
+
+def winner_from_run(run_dir: Path) -> dict[str, Any]:
+    """Nilai pemenang dari run.json split tuning: region, metode, nilai area, min_majority."""
+    path = Path(run_dir) / "run.json"
+    if not path.is_file():
+        raise VisionEvalError(f"{path.as_posix()} tidak ada")
+    run = json.loads(path.read_text(encoding="utf-8"))
+    if run.get("split") != "tuning":
+        raise VisionEvalError(f"{path.as_posix()}: bukan run split tuning")
+    decision = run.get("decision") or {}
+    if not decision.get("region"):
+        raise VisionEvalError(f"{path.as_posix()}: run tuning tanpa pemenang")
+    area = run.get("area_grid")
+    if area is None:
+        raise VisionEvalError(f"{path.as_posix()}: run tuning tanpa --area-grid")
+    return {
+        "region": decision["region"],
+        "method": decision["method"],
+        "values": area["values"],
+        "min_majority": area["min_majority"],
+        "from_run": path.parent.as_posix(),
+    }
+
+
+def _wilson(k: int, n: int) -> tuple[float | None, float | None]:
+    from mica.eval.annotation import wilson_interval
+
+    return wilson_interval(k, n) if n > 0 else (None, None)
+
+
+@dataclass
+class ReportResult:
+    per_color: list[dict[str, Any]]
+    n_all: int
+    n_detected: int
+    correct: int
+    min_majority: float | None
+    named: int
+    named_correct: int
+
+    @property
+    def n_undetected(self) -> int:
+        return self.n_all - self.n_detected
+
+
+def evaluate_report(
+    frames: Sequence[VisionFrame],
+    true: Mapping[Key, str],
+    predictor: Predictor,
+    winner: Mapping[str, Any],
+    namers: Mapping[str, ColorNamer],
+    images: Callable[[VisionFrame], np.ndarray],
+    make_region: Callable[[str, Mapping[str, float]], ClothingRegion],
+) -> ReportResult:
+    """Nilai pemenang tuning pada split laporan. Orang tidak terdeteksi = gagal (tidak dibuang)."""
+    keys = sorted(true)
+    people = match_items(frames, keys, predictor, images)
+    (row,) = evaluate_area("laporan", [dict(winner["values"])], winner["region"],
+                           namers[winner["method"]], frames, people, true, images, make_region)  # fmt: skip
+    pred = dict(zip(sorted(people), row.preds, strict=True))
+    tops = {k: (pred[k].top if k in pred else None) for k in keys}
+    per_color = []
+    for color in COLOR_NAMES:
+        mine = [k for k in keys if true[k] == color]
+        if not mine:
+            continue
+        k_ok = sum(tops[k] == color for k in mine)
+        low, high = _wilson(k_ok, len(mine))
+        per_color.append({"warna": color, "n": len(mine), "benar": k_ok,
+                          "akurasi": k_ok / len(mine), "wilson_bawah": low, "wilson_atas": high,
+                          "catatan": NOT_ENOUGH if len(mine) < MIN_N_CONCLUDE else ""})  # fmt: skip
+    mm = winner.get("min_majority")
+    named = [k for k in keys if k in pred and pred[k].top is not None
+             and (mm is None or pred[k].majority >= mm)]  # fmt: skip
+    return ReportResult(per_color, len(keys), len(people), sum(tops[k] == true[k] for k in keys),
+                        mm, len(named), sum(pred[k].top == true[k] for k in named))  # fmt: skip
+
+
+def report_markdown(result: ReportResult, winner: Mapping[str, Any], note: str | None) -> str:
+    def pct(x: float | None) -> str:
+        return "-" if x is None else f"{x:.4f}"
+
+    lo, hi = _wilson(result.correct, result.n_all)
+    det_lo, det_hi = _wilson(result.correct, result.n_detected)
+    acc_det = result.correct / result.n_detected if result.n_detected else None
+    lines = ["# E-08 laporan akhir (split laporan)", ""]
+    if note:
+        lines += [f"Catatan: {note}", ""]
+    lines += [
+        (
+            f"Aturan: {REPORT_AMENDMENT}. Nilai pemenang dari run tuning {winner['from_run']}: "
+            f"region {winner['region']}, metode {winner['method']}."
+        ),
+        (
+            "Akurasi PETA (potongan CCTV beresolusi rendah) ditafsirkan sebagai batas bawah untuk "
+            "kamera MICA."
+        ),
+        "",
+        "| warna | n | benar | akurasi | Wilson 95% | catatan |",
+        "| --- | --- | --- | --- | --- | --- |",
+    ]
+    for r in result.per_color:
+        lines.append(f"| {r['warna']} | {r['n']} | {r['benar']} | {pct(r['akurasi'])} | "
+                     f"{pct(r['wilson_bawah'])}-{pct(r['wilson_atas'])} | {r['catatan']} |")  # fmt: skip
+    lines += [
+        "",
+        (
+            f"- Akurasi semua gambar (tidak terdeteksi = gagal): {result.correct}/{result.n_all} = "
+            f"{pct(result.correct / result.n_all if result.n_all else None)} "
+            f"(Wilson 95% {pct(lo)}-{pct(hi)})"
+        ),
+        (
+            f"- Akurasi gambar terdeteksi: {result.correct}/{result.n_detected} = {pct(acc_det)} "
+            f"(Wilson 95% {pct(det_lo)}-{pct(det_hi)})"
+        ),
+        f"- Tidak terdeteksi YOLO: {result.n_undetected} dari {result.n_all}",
+    ]
+    if result.min_majority is not None:
+        prec = result.named_correct / result.named if result.named else None
+        cov = result.named / result.n_all if result.n_all else None
+        lines.append(f"- min_majority {result.min_majority}: warna disebut {result.named}, benar "
+                     f"{result.named_correct} (presisi {pct(prec)}), cakupan {pct(cov)}")  # fmt: skip
+    return "\n".join(lines) + "\n"
+
+
+def run_report(
+    frames: Sequence[VisionFrame],
+    first: Mapping[Key, str],
+    second: Mapping[Key, str],
+    predictor: Predictor,
+    winner: Mapping[str, Any],
+    namers: Mapping[str, ColorNamer],
+    run_dir: Path,
+    info: dict[str, Any],
+    images: Callable[[VisionFrame], np.ndarray] | None = None,
+    make_region: Callable[[str, Mapping[str, float]], ClothingRegion] | None = None,
+) -> ReportResult:
+    from mica.eval import vision
+    from mica.vision.worker import make_region as default_region
+
+    images = images or (lambda f: vision.read_image(f.file))
+    run_dir = Path(run_dir)
+    run_dir.mkdir(parents=True, exist_ok=False)
+    agree = agreement(first, second)
+    result = evaluate_report(frames, agree.agreed, predictor, winner, namers, images,
+                             make_region or default_region)  # fmt: skip
+    _write_csv(run_dir / "report_per_color.csv",
+               [{**r, "akurasi": _f(r["akurasi"]), "wilson_bawah": _f(r["wilson_bawah"]),
+                 "wilson_atas": _f(r["wilson_atas"])} for r in result.per_color],
+               list(REPORT_FIELDS))  # fmt: skip
+    (run_dir / "report.md").write_text(report_markdown(result, winner, info.get("note")),
+                                       encoding="utf-8")  # fmt: skip
+    payload = {**info, "experiment": EXPERIMENT, "amendment": REPORT_AMENDMENT,
+               "winner": dict(winner), "agreement": agree.summary(),
+               "per_color": result.per_color, "n_all": result.n_all,
+               "n_detected": result.n_detected, "n_undetected": result.n_undetected,
+               "correct": result.correct, "min_majority": result.min_majority,
+               "named": result.named, "named_correct": result.named_correct}  # fmt: skip
+    (run_dir / "run.json").write_text(json.dumps(payload, ensure_ascii=False, indent=1) + "\n",
+                                      encoding="utf-8")  # fmt: skip
+    return result
