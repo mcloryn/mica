@@ -1,4 +1,4 @@
-"""CLI evaluasi (M-12): annotate, retrieval, gate, generation, copy, stt, latency, dataset,
+"""CLI evaluasi (M-12): annotate, retrieval, gate, generation, copy, stt, stt-sweep, latency, dataset,
 vision, vision-scenarios, color, annotation, dan labels.
 
 python -m mica.eval annotate export --config <yaml> --dataset <jsonl> --out <pool.csv> [--force]
@@ -12,6 +12,8 @@ python -m mica.eval generation --config <yaml> --dataset <jsonl> --out <folder> 
 python -m mica.eval dataset split --input <file resmi> --out-dir data/eval/official/
 python -m mica.eval dataset lock --dataset data/eval/official/test.jsonl --reason "<teks>"
 python -m mica.eval dataset status          (set resmi, docs/DATASET.md)
+python -m mica.eval stt-sweep --config <yaml> --dataset <manifest.jsonl> [--backend groq]
+    [--threads N] [--observations <observations.jsonl>]   (E-05, docs/AMANDEMEN-2026-11-03.md A)
 python -m mica.eval latency --logs logs/ --label <label> [--resources <csv>] [--from --to]
     [--out results/E-09] [--tool-test]   (E-09, lihat mica/eval/latency.py)
 python -m mica.eval vision --config <yaml> --dataset data/eval/vision/<nama>
@@ -188,6 +190,23 @@ def build_parser() -> argparse.ArgumentParser:
     stt.add_argument("--split", choices=SPLITS, default="dev",
                      help="dev (bawaan) atau test (butuh LOCK cocok dan KB official)")  # fmt: skip
     add_trial_args(stt)
+
+    sw = sub.add_parser("stt-sweep", help="E-05: sweep penyaring push-to-talk (amandemen 3 Nov)")
+    sw.add_argument("--config", type=Path, required=True)
+    sw.add_argument("--dataset", type=Path, required=True, help="manifest.jsonl rekaman")
+    sw.add_argument("--out", type=Path, default=Path("results/E-05"))
+    sw.add_argument("--run-name", help="nama folder run (default: sweep-<cap waktu>)")
+    sw.add_argument("--backend", choices=("faster_whisper", "groq"), default="faster_whisper",
+                    help="backend pemenang E-05")  # fmt: skip
+    sw.add_argument("--threads", type=_threads_list,
+                    help="satu nilai thread (default audio.stt.threads)")  # fmt: skip
+    sw.add_argument("--hotwords", type=Path, help="file kosakata bila pemenang memakai hotwords")
+    sw.add_argument("--groq-model", help="menimpa audio.stt.groq_model (untuk --backend groq)")
+    sw.add_argument("--whisper-dir", type=Path, default=Path("models/whisper"))
+    sw.add_argument("--env-file", type=Path, default=Path(".env"))
+    sw.add_argument("--observations", type=Path,
+                    help="observations.jsonl run sebelumnya: hitung ulang offline tanpa STT")  # fmt: skip
+    sw.add_argument("--note", help="catatan di run.json, mis. 'sintetis, bukan hasil E-05'")
 
     lat = sub.add_parser("latency", help="E-09: latensi per tahap dari log 6.2 dan verdict")
     lat.add_argument("--logs", type=Path, default=Path("logs"))
@@ -959,6 +978,68 @@ def cmd_stt(
     return 0
 
 
+def cmd_stt_sweep(
+    args: argparse.Namespace,
+    candidates: Callable[..., list[Any]] = stt_candidates,
+    prob_factory: Callable[[], Callable[..., float]] | None = None,
+) -> int:
+    """E-05 amandemen 3 Nov 2026 bagian A: STT 3x per rekaman lalu 27 kombinasi offline."""
+    from mica.audio.listen import silero_model_name
+    from mica.audio.vad import silero_prob
+    from mica.eval import stt_sweep as sw
+    from mica.eval.stt import load_manifest, read_wav
+    from mica.eval.wer import WER_NORMALIZATION
+    from mica.kb.index import package_version
+
+    settings = load_settings(args.config, env_file=args.env_file)
+    if settings.app.mode != "dev":
+        raise SttEvalError("eval stt-sweep hanya boleh saat app.mode: dev (ditolak di prod)")
+    if args.threads is not None and len(args.threads) != 1:
+        raise SttEvalError("stt-sweep memakai satu backend pemenang: --threads satu nilai saja")
+    items = load_manifest(args.dataset)
+    warning = dirty_warning({"git_dirty": git_dirty(), "git_commit": git_commit()})
+    if warning:
+        print(warning, file=sys.stderr)
+    stamp = _run_stamp()
+    run_dir = Path(args.out) / (args.run_name or f"sweep-{stamp}")
+    info: dict[str, Any] = {
+        "experiment": "E-05 sweep penyaring",
+        "note": args.note,
+        "dataset": {
+            "manifest": args.dataset.as_posix(),
+            "sha256": sha256_file(args.dataset),
+            "audio_sha256": {i.id: sha256_file(i.file) for i in items},
+            "counts": {
+                k: sum(i.kind == k for i in items) for k in ("pertanyaan", "diam", "bising")
+            },
+        },
+        "wer_normalization": WER_NORMALIZATION,
+        "started_at": stamp,
+    }
+    if args.observations is not None:
+        run_dir.mkdir(parents=True, exist_ok=False)
+        info["observations_from"] = {"file": args.observations.as_posix(),
+                                     "sha256": sha256_file(args.observations)}  # fmt: skip
+        sw.analyze(sw.read_observations(args.observations), items, run_dir,
+                                        {**info, "environment": collect_environment()})  # fmt: skip
+    else:
+        audio = {i.id: read_wav(i.file) for i in items}
+        (cand,) = candidates(args, settings, None)  # tanpa penyaring no_speech: diterapkan offline
+        info.update({
+            "stt": cand.info, "stt_label": cand.label, "no_speech_in_stt": None,
+            "vad": {"silero_model": silero_model_name()},
+            "packages": {name: package_version(name) for name in
+                         ("faster-whisper", "ctranslate2", "pysilero-vad", "jiwer", "httpx")},
+        })  # fmt: skip
+        sw.run_sweep(
+            items, audio, cand.stt, (prob_factory or silero_prob)(), run_dir,
+            lambda: {**info, "environment": collect_environment()},
+        )  # fmt: skip
+    print((run_dir / "verdict.md").read_text(encoding="utf-8"))
+    print(f"tersimpan: {run_dir.as_posix()}")
+    return 0
+
+
 def _copy_split(args: argparse.Namespace, kb: Any) -> dict[str, Any]:
     """Run generation sumber harus ber-split sama dengan --split; test diperiksa ke LOCK."""
     import json
@@ -1113,6 +1194,7 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
     from mica.audio.stt import SttModelMissing
     from mica.eval.copy_rate import RunMismatch
     from mica.eval.stt import ManifestError
+    from mica.eval.stt_sweep import SweepError
     from mica.eval.vision import VisionEvalError
     from mica.vision.color import ColorsMissing
     from mica.vision.detector import ModelMissing
@@ -1124,6 +1206,8 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
             return cmd_labels(args)
         if args.command == "stt":
             return cmd_stt(args)
+        if args.command == "stt-sweep":
+            return cmd_stt_sweep(args)
         if args.command == "vision":
             return cmd_vision(args)
         if args.command == "vision-scenarios":
@@ -1167,7 +1251,7 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
     except (ConfigError, KbLoadError, DatasetError, FileExistsError, ValueError, CacheMiss,
             SttEvalError, ManifestError, ListenError, SttModelMissing, RunMismatch,
             KeyError, OfficialDatasetError, SplitRefused, VisionEvalError,
-            ModelMissing, ColorsMissing) as exc:  # fmt: skip
+            ModelMissing, ColorsMissing, SweepError) as exc:  # fmt: skip
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
