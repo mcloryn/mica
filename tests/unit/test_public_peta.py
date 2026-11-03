@@ -83,6 +83,21 @@ def test_images_without_label_are_counted(tmp_path):
     assert len(images) == 1 and stats["subsets"]["GRID"]["images_without_label"] == 1
 
 
+def test_label_id_as_full_file_name_cuhk_style(tmp_path):
+    # CUHK: Label.txt memakai nama file lengkap sebagai ID, satu gambar per orang
+    path = tmp_path / "peta.zip"
+    with zipfile.ZipFile(path, "w") as z:
+        z.writestr(f"{ROOT}/CUHK/archive/0606.png", _png())
+        z.writestr(f"{ROOT}/CUHK/archive/1020.png", _png())
+        z.writestr(f"{ROOT}/CUHK/archive/0002.png", _png())  # tanpa baris label
+        z.writestr(f"{ROOT}/CUHK/archive/Label.txt",
+                   "0606.png upperBodyRed lowerBodyBlack\n1020.png upperBodyBlue upperBodyWhite\n")  # fmt: skip
+    images, stats = pp.read_peta(*_names_reader(path))
+    assert [(i.id, i.color, i.person) for i in images] == [("CUHK-0606", "merah", "CUHK/0606.png")]
+    s = stats["subsets"]["CUHK"]
+    assert (s["images_without_label"], s["images_not_one_color"], s["eligible"]) == (1, 1, 1)
+
+
 def test_sample_caps_per_color_by_image_and_splits_by_person():
     # merah: 70 gambar dari 14 orang (5 gambar/orang); biru: 5 gambar dari 5 orang
     images = [pp.PetaImage(f"s-{c}-{k}", "s", f"m{k}", c, f"s/{c}{k // (5 if c == 'merah' else 1)}")

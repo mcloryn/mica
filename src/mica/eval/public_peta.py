@@ -4,7 +4,9 @@ PETA (Deng dkk., ACM MM 2014), lisensi akademik. Struktur menurut README PETA: s
 subset (3DPeS, CAVIAR4REID, CUHK, GRID, i-LID, MIT, PRID, SARC3D, TownCentre, VIPeR), masing-
 masing dengan archive/ berisi gambar potongan pejalan kaki dan Label.txt. Setiap baris Label.txt:
 "<id orang> <atribut> <atribut> ...". Gambar milik orang itu bernama "<id orang>_<...>.<ext>"
-(atau tepat "<id orang>.<ext>"); gambar dan baris yang tidak cocok dihitung dan dilaporkan.
+(atau tepat "<id orang>.<ext>"); di CUHK ID-nya nama file lengkap ("0606.png"), satu gambar per
+orang (catatan keempat amandemen kedua). Gambar dan baris yang tidak cocok dihitung dan
+dilaporkan.
 
 Aturan sampel:
 - subset i-LIDS (nama folder mengandung "i-lid", huruf besar/kecil diabaikan) dibuang;
@@ -101,7 +103,10 @@ def read_peta(names: list[str], read: Callable[[str], bytes]) -> tuple[list[Peta
              "images_not_one_color": 0, "eligible": 0}  # fmt: skip
         for img in imgs:
             stem = PurePosixPath(img).stem
-            pid = stem if stem in attrs else stem.split("_", 1)[0]
+            name = PurePosixPath(img).name
+            # ID Label.txt bisa berupa nama file lengkap (CUHK: "0606.png", satu gambar = satu
+            # orang), nama tanpa ekstensi, atau ID orang sebelum "_" (subset lain)
+            pid = name if name in attrs else stem if stem in attrs else stem.split("_", 1)[0]
             if pid not in attrs:
                 s["images_without_label"] += 1
                 continue

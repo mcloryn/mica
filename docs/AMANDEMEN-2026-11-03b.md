@@ -146,3 +146,22 @@ bukan kamera C270 di meja PMB.
 
 Pembagian TUNING/LAPORAN PETA dilakukan per orang (ID orang per subset), bukan per gambar, supaya
 orang yang sama tidak muncul di kedua bagian. Batas 60 per warna tetap dihitung per gambar.
+
+## Catatan keempat 3 November 2026 (sebelum hasil)
+
+Ditulis sebelum eval E-05 maupun E-08 dijalankan. Belum ada akurasi, WER, atau hasil sweep yang
+dilihat.
+
+1. **PETA, subset CUHK.** Di `Label.txt` CUHK, ID ditulis sebagai nama file lengkap (misalnya
+   `0606.png`, satu gambar per orang). Subset lain memakai ID orang tanpa ekstensi. Pembaca
+   `prep-peta` versi awal tidak mencocokkan pola ini, sehingga 4563 gambar CUHK terbuang sebagai
+   "tanpa label". Akibatnya populasi sampel tidak sesuai bagian C, yang hanya mengeluarkan
+   i-LIDS.
+   - Pembaca diperbaiki: ID berupa nama file lengkap kini ikut cocok.
+   - Aturan sampel (seed, batas 60 per warna, split per orang) tidak berubah.
+2. **Sampel pertama sempat dibuat dengan bug ini.** Sampel itu (folder keluaran dan
+   `sample.csv`) dihapus sebelum eval apa pun dijalankan, lalu `prep-peta` dijalankan ulang
+   dengan seed yang sama.
+3. **MUSAN.** 57 dari 100 klip MUSAN terpilih aslinya lebih pendek dari 10 detik. Klip itu
+   dipakai dengan panjang aslinya, tanpa ditambah diam. Daftarnya tercatat di `musan.json`
+   (`shorter_than_clip_s`).
