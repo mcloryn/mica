@@ -28,6 +28,11 @@ RINGKASAN.md
 data/eval/vision/*
 !data/eval/vision/README.md
 !data/eval/vision/.gitkeep
+# E-08 data publik PETA (amandemen kedua): hanya sample.csv (ID, label, split), gambar tidak pernah
+!data/eval/vision/peta-2026-11/
+data/eval/vision/peta-2026-11/*
+!data/eval/vision/peta-2026-11/sample.csv
+*.bmp
 data/eval/vision_scenarios/*
 !data/eval/vision_scenarios/README.md
 !data/eval/vision_scenarios/.gitkeep

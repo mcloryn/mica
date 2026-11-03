@@ -19,6 +19,8 @@ python -m mica.eval prep-commonvoice --archive <tar.gz> --out <folder di luar re
 python -m mica.eval prep-musan --out <folder> [--n 100 --seed 20261103 --clip-s 10]
 python -m mica.eval prep-silence --config config/dev.yaml --out <folder> [--n 20 --seconds 10]
 python -m mica.eval prep-manifest --out <folder>   (gabung -> manifest.jsonl)
+python -m mica.eval prep-peta --archive <zip> --out <folder> [--seed 20261103 --max-per-color 60]
+    (E-08 data publik, docs/AMANDEMEN-2026-11-03b.md C)
 python -m mica.eval latency --logs logs/ --label <label> [--resources <csv>] [--from --to]
     [--out results/E-09] [--tool-test]   (E-09, lihat mica/eval/latency.py)
 python -m mica.eval vision --config <yaml> --dataset data/eval/vision/<nama>
@@ -42,6 +44,7 @@ from __future__ import annotations
 import argparse
 import sys
 import tarfile
+import zipfile
 from collections.abc import Callable
 from datetime import date
 from pathlib import Path
@@ -242,6 +245,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     pman = sub.add_parser("prep-manifest", help="E-05: gabung manifest sumber -> manifest.jsonl")
     pman.add_argument("--out", type=Path, required=True)
+
+    pp = sub.add_parser("prep-peta", help="E-08: sampel PETA per warna + split tuning/laporan")
+    pp.add_argument("--archive", type=Path, required=True, help="zip PETA")
+    pp.add_argument("--out", type=Path, required=True, help="folder di luar repo")
+    pp.add_argument("--seed", type=int, default=20261103)
+    pp.add_argument("--max-per-color", type=int, default=60)
+    pp.add_argument("--sample-csv", type=Path, default=Path("data/eval/vision/peta-2026-11/sample.csv"),
+                    help="daftar ID + label + split (di-commit, tanpa gambar)")  # fmt: skip
 
     lat = sub.add_parser("latency", help="E-09: latensi per tahap dari log 6.2 dan verdict")
     lat.add_argument("--logs", type=Path, default=Path("logs"))
@@ -1126,6 +1137,18 @@ def cmd_prep_manifest(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_prep_peta(args: argparse.Namespace) -> int:
+    from mica.eval.public_peta import prep_peta
+
+    info = prep_peta(args.archive, args.out, args.seed, args.max_per_color, args.sample_csv)
+    for color, n in info["sample_per_color"].items():
+        print(f"  {color}: tuning {n['tuning']}, laporan {n['laporan']} "
+              f"(memenuhi syarat {info['eligible_per_color'][color]})")  # fmt: skip
+    print(f"subset dikeluarkan: {', '.join(info['excluded_subsets']) or '-'}; "
+          f"sampel {args.sample_csv}")  # fmt: skip
+    return 0
+
+
 def _copy_split(args: argparse.Namespace, kb: Any) -> dict[str, Any]:
     """Run generation sumber harus ber-split sama dengan --split; test diperiksa ke LOCK."""
     import json
@@ -1303,6 +1326,8 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
             return cmd_prep_silence(args)
         if args.command == "prep-manifest":
             return cmd_prep_manifest(args)
+        if args.command == "prep-peta":
+            return cmd_prep_peta(args)
         if args.command == "vision":
             return cmd_vision(args)
         if args.command == "vision-scenarios":
@@ -1347,7 +1372,7 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
             SttEvalError, ManifestError, ListenError, SttModelMissing, RunMismatch,
             KeyError, OfficialDatasetError, SplitRefused, VisionEvalError,
             ModelMissing, ColorsMissing, SweepError, PublicDataError,
-            tarfile.TarError) as exc:  # fmt: skip
+            tarfile.TarError, zipfile.BadZipFile) as exc:  # fmt: skip
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
