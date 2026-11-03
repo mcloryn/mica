@@ -4,6 +4,10 @@
   hanya validated.tsv dan klip terpilih yang dibaca (tanpa extractall). Maksimal 1 klip per
   penutur, n klip diacak dengan seed. MP3 -> WAV 16 kHz mono int16 (PyAV, sudah ada sebagai
   dependensi faster-whisper). client_id tidak pernah ditulis: penutur diganti kode urut (CV001...).
+- prep-musan: salinan Hugging Face MUSAN (revisi dikunci), n file noise diacak, hanya file itu
+  yang diunduh, dipotong clip_s detik; LICENSE per subfolder disimpan.
+- prep-silence: rekaman diam dari mikrofon laptop pengembang (hanya mode dev).
+- prep-manifest: gabungan ketiga manifest sumber -> manifest.jsonl untuk eval stt / stt-sweep.
 
 Format manifest = SDD 6.3 (id, file, jenis, referensi, penutur, persetujuan) ditambah status
 ("ucapan" | "bukan ucapan", amandemen kedua) dan sumber. Klip Common Voice berperan sebagai jenis
@@ -189,3 +193,165 @@ def prep_commonvoice(
         ids_out.parent.mkdir(parents=True, exist_ok=True)
         ids_out.write_text("".join(f"{c.clip_id}\n" for c in selected), encoding="utf-8")
     return info
+
+
+# --- 2. MUSAN (salinan Hugging Face, revisi dikunci) ---------------------------------------
+
+MUSAN_REPO = "FluidInference/musan"
+# revisi commit dikunci (docs/AMANDEMEN-2026-11-03b.md, catatan kedua); dibaca lewat API metadata
+MUSAN_REVISION = "3edcfdf89b56dbe6a395ff29f9c29489e03d1321"
+MUSAN_SOURCE = (
+    "MUSAN noise (Snyder dkk. 2015, OpenSLR 17), salinan Hugging Face; lisensi per subfolder"
+)
+
+
+def _hf_list(repo: str, revision: str) -> list[str]:
+    from huggingface_hub import list_repo_files
+
+    return list(list_repo_files(repo, repo_type="dataset", revision=revision))
+
+
+def _hf_download(repo: str, revision: str, filename: str, local_dir: Path) -> Path:
+    from huggingface_hub import hf_hub_download
+
+    return Path(hf_hub_download(repo, filename, repo_type="dataset", revision=revision,
+                                local_dir=str(local_dir)))  # fmt: skip
+
+
+def select_musan(files: Sequence[str], n: int, seed: int) -> list[str]:
+    """File .wav di noise/ diurutkan, lalu n dipilih tanpa pengembalian dengan default_rng(seed)."""
+    wavs = sorted(f for f in files if f.startswith("noise/") and f.endswith(".wav"))
+    if not wavs:
+        raise PublicDataError("tidak ada file noise/*.wav di daftar repo")
+    rng = np.random.default_rng(seed)
+    return [wavs[int(i)] for i in rng.choice(len(wavs), size=min(n, len(wavs)), replace=False)]
+
+
+def prep_musan(
+    out: Path,
+    n: int,
+    seed: int,
+    clip_s: float,
+    repo: str = MUSAN_REPO,
+    revision: str = MUSAN_REVISION,
+    list_files: Callable[[str, str], list[str]] = _hf_list,
+    download: Callable[[str, str, str, Path], Path] = _hf_download,
+    progress: Callable[[str], None] = print,
+) -> dict[str, Any]:
+    """Daftar file (metadata) -> n file diacak -> hanya file itu diunduh -> WAV 16 kHz mono
+    clip_s detik pertama. File unduhan mentah dihapus setelah dikonversi; sha256-nya dicatat."""
+    import re
+    import shutil
+
+    if not re.fullmatch(r"[0-9a-f]{40}", revision):
+        raise PublicDataError("--revision harus hash commit 40 karakter (revisi dikunci)")
+    out = check_out_dir(out)
+    clip_dir = out / "musan"
+    if clip_dir.exists() and any(clip_dir.iterdir()):
+        raise PublicDataError(f"{clip_dir} sudah berisi file; pakai folder --out baru")
+    files = list_files(repo, revision)
+    chosen = select_musan(files, n, seed)
+    licenses = sorted(f for f in files if f.startswith("noise/") and f.endswith("/LICENSE"))
+    raw = out / "musan-raw"
+    rows: list[dict[str, Any]] = []
+    raw_sha: dict[str, str] = {}
+    short: list[str] = []
+    limit = int(clip_s * SAMPLE_RATE)
+    for no, name in enumerate(chosen, start=1):
+        path = download(repo, revision, name, raw)
+        raw_sha[name] = sha256_file(path)
+        pcm = decode_to_16k(path)[:limit]
+        if len(pcm) < limit:
+            short.append(name)
+        sub = PurePosixPath(name).parent.name
+        clip_id = f"musan-{sub}-{PurePosixPath(name).stem}"
+        rel = f"musan/{clip_id}.wav"
+        write_wav(out / rel, pcm)
+        rows.append({"id": clip_id, "file": rel, "jenis": "bising", "penutur": "MUSAN",
+                     "persetujuan": True, "status": "bukan ucapan", "sumber": MUSAN_SOURCE,
+                     "asal": name, "audio_s": round(len(pcm) / SAMPLE_RATE, 3)})  # fmt: skip
+        progress(f"  [{no}/{len(chosen)}] {name}")
+    clip_dir.mkdir(parents=True, exist_ok=True)
+    for name in licenses:
+        path = download(repo, revision, name, raw)
+        shutil.copyfile(path, clip_dir / f"LICENSE-{PurePosixPath(name).parent.name}")
+    shutil.rmtree(raw, ignore_errors=True)
+    write_jsonl(out / "musan.jsonl", rows)
+    n_noise = sum(f.startswith("noise/") and f.endswith(".wav") for f in files)
+    info = {
+        "source": MUSAN_SOURCE, "repo": repo, "revision": revision, "seed": seed,
+        "n_requested": n, "n_noise_wav": n_noise, "n_selected": len(chosen), "clip_s": clip_s,
+        "shorter_than_clip_s": short,
+        "licenses": [f"LICENSE-{PurePosixPath(x).parent.name}" for x in licenses],
+        "raw_sha256": raw_sha,
+        "selection": "noise/*.wav sorted, numpy default_rng(seed).choice(replace=False)",
+    }  # fmt: skip
+    (out / "musan.json").write_text(json.dumps(info, indent=1) + "\n", encoding="utf-8")
+    return info
+
+
+# --- 3. Rekaman diam dari mikrofon laptop --------------------------------------------------
+
+
+def _record(seconds: float, device: int | str | None) -> np.ndarray:
+    import sounddevice as sd
+
+    pcm = sd.rec(int(seconds * SAMPLE_RATE), samplerate=SAMPLE_RATE, channels=1, dtype="int16",
+                 device=device)  # fmt: skip
+    sd.wait()
+    return np.asarray(pcm, dtype=np.int16).reshape(-1)
+
+
+def prep_silence(
+    out: Path,
+    n: int,
+    seconds: float,
+    device: int | str | None = None,
+    record: Callable[[float, int | str | None], np.ndarray] = _record,
+    progress: Callable[[str], None] = print,
+) -> dict[str, Any]:
+    """n rekaman diam berturut-turut. Hanya untuk eval di mode dev (dicek pemanggil)."""
+    out = check_out_dir(out)
+    clip_dir = out / "diam"
+    if clip_dir.exists() and any(clip_dir.iterdir()):
+        raise PublicDataError(f"{clip_dir} sudah berisi file; pakai folder --out baru")
+    rows = []
+    for no in range(1, n + 1):
+        progress(f"  rekaman diam {no}/{n} ({seconds:g} s): jangan bicara")
+        pcm = record(seconds, device)
+        clip_id = f"diam-{no:02d}"
+        rel = f"diam/{clip_id}.wav"
+        write_wav(out / rel, pcm)
+        rows.append({"id": clip_id, "file": rel, "jenis": "diam", "penutur": "DEV",
+                     "persetujuan": True, "status": "bukan ucapan",
+                     "sumber": "mikrofon laptop pengembang",
+                     "audio_s": round(len(pcm) / SAMPLE_RATE, 3)})  # fmt: skip
+    write_jsonl(out / "silence.jsonl", rows)
+    info = {"n": n, "seconds": seconds, "device": device}
+    (out / "silence.json").write_text(json.dumps(info, indent=1) + "\n", encoding="utf-8")
+    return info
+
+
+# --- 4. Manifest gabungan -----------------------------------------------------------------
+
+SOURCE_MANIFESTS = ("commonvoice.jsonl", "musan.jsonl", "silence.jsonl")
+
+
+def prep_manifest(out: Path) -> dict[str, int]:
+    """Gabungkan manifest sumber di out/ menjadi out/manifest.jsonl (ketiganya wajib ada)."""
+    out = check_out_dir(out)
+    missing = [m for m in SOURCE_MANIFESTS if not (out / m).is_file()]
+    if missing:
+        raise PublicDataError(f"manifest sumber belum ada di {out}: {missing}")
+    rows: list[dict[str, Any]] = []
+    for name in SOURCE_MANIFESTS:
+        rows += [json.loads(line) for line in (out / name).read_text("utf-8").splitlines()
+                 if line.strip()]  # fmt: skip
+    ids = [r["id"] for r in rows]
+    if len(set(ids)) != len(ids):
+        raise PublicDataError("ID ganda di antara manifest sumber")
+    write_jsonl(out / "manifest.jsonl", rows)
+    counts: dict[str, int] = {}
+    for r in rows:
+        counts[r["jenis"]] = counts.get(r["jenis"], 0) + 1
+    return counts

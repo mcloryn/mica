@@ -16,6 +16,9 @@ python -m mica.eval stt-sweep --config <yaml> --dataset <manifest.jsonl> [--back
     [--threads N] [--observations <observations.jsonl>]   (E-05, docs/AMANDEMEN-2026-11-03.md A)
 python -m mica.eval prep-commonvoice --archive <tar.gz> --out <folder di luar repo> [--n 300]
     [--seed 20261103]   (E-05 data publik, docs/AMANDEMEN-2026-11-03b.md B)
+python -m mica.eval prep-musan --out <folder> [--n 100 --seed 20261103 --clip-s 10]
+python -m mica.eval prep-silence --config config/dev.yaml --out <folder> [--n 20 --seconds 10]
+python -m mica.eval prep-manifest --out <folder>   (gabung -> manifest.jsonl)
 python -m mica.eval latency --logs logs/ --label <label> [--resources <csv>] [--from --to]
     [--out results/E-09] [--tool-test]   (E-09, lihat mica/eval/latency.py)
 python -m mica.eval vision --config <yaml> --dataset data/eval/vision/<nama>
@@ -220,6 +223,25 @@ def build_parser() -> argparse.ArgumentParser:
     pcv.add_argument("--seed", type=int, default=20261103)
     pcv.add_argument("--ids-out", type=Path, default=Path("data/eval/speech/publik-2026-11/clip_ids.txt"),
                      help="daftar ID klip terpilih (di-commit, tanpa audio)")  # fmt: skip
+
+    pm = sub.add_parser("prep-musan", help="E-05: klip MUSAN noise dari Hugging Face")
+    pm.add_argument("--out", type=Path, required=True, help="folder di luar repo")
+    pm.add_argument("--repo", default="FluidInference/musan")
+    pm.add_argument("--revision", default="3edcfdf89b56dbe6a395ff29f9c29489e03d1321",
+                    help="hash commit dikunci (amandemen kedua, catatan kedua)")  # fmt: skip
+    pm.add_argument("--n", type=int, default=100)
+    pm.add_argument("--seed", type=int, default=20261103)
+    pm.add_argument("--clip-s", type=float, default=10.0)
+    psil = sub.add_parser("prep-silence", help="E-05: rekaman diam dari mikrofon laptop (dev)")
+    psil.add_argument("--config", type=Path, required=True)
+    psil.add_argument("--out", type=Path, required=True, help="folder di luar repo")
+    psil.add_argument("--n", type=int, default=20)
+    psil.add_argument("--seconds", type=float, default=10.0)
+    psil.add_argument(
+        "--device", help="indeks atau nama mikrofon (default: mikrofon bawaan sistem)"
+    )
+    pman = sub.add_parser("prep-manifest", help="E-05: gabung manifest sumber -> manifest.jsonl")
+    pman.add_argument("--out", type=Path, required=True)
 
     lat = sub.add_parser("latency", help="E-09: latensi per tahap dari log 6.2 dan verdict")
     lat.add_argument("--logs", type=Path, default=Path("logs"))
@@ -1068,6 +1090,42 @@ def cmd_prep_commonvoice(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_prep_musan(args: argparse.Namespace) -> int:
+    from mica.eval.public_speech import prep_musan
+
+    info = prep_musan(args.out, args.n, args.seed, args.clip_s, args.repo, args.revision)
+    print(f"{info['n_selected']} klip MUSAN dari {info['n_noise_wav']} file noise; "
+          f"lebih pendek dari {args.clip_s:g} s: {len(info['shorter_than_clip_s'])}; "
+          f"lisensi: {', '.join(info['licenses'])}")  # fmt: skip
+    return 0
+
+
+def cmd_prep_silence(args: argparse.Namespace) -> int:
+    from mica.eval.public_speech import prep_silence
+
+    settings = load_settings(args.config)
+    if settings.app.mode != "dev":
+        raise SttEvalError(
+            "prep-silence hanya boleh saat app.mode: dev (audio tidak disimpan di prod)"
+        )
+    device: int | str | None = args.device
+    if device is not None and device.isdigit():
+        device = int(device)
+    info = prep_silence(args.out, args.n, args.seconds, device)
+    print(f"{info['n']} rekaman diam {info['seconds']:g} s ditulis ke {args.out / 'diam'}")
+    return 0
+
+
+def cmd_prep_manifest(args: argparse.Namespace) -> int:
+    from mica.eval.public_speech import prep_manifest
+    from mica.eval.stt import load_manifest
+
+    counts = prep_manifest(args.out)
+    load_manifest(args.out / "manifest.jsonl")  # cek format SDD 6.3
+    print(f"manifest.jsonl: {counts}")
+    return 0
+
+
 def _copy_split(args: argparse.Namespace, kb: Any) -> dict[str, Any]:
     """Run generation sumber harus ber-split sama dengan --split; test diperiksa ke LOCK."""
     import json
@@ -1239,6 +1297,12 @@ def main(argv: list[str] | None = None, embedder_factory: EmbedderFactory | None
             return cmd_stt_sweep(args)
         if args.command == "prep-commonvoice":
             return cmd_prep_commonvoice(args)
+        if args.command == "prep-musan":
+            return cmd_prep_musan(args)
+        if args.command == "prep-silence":
+            return cmd_prep_silence(args)
+        if args.command == "prep-manifest":
+            return cmd_prep_manifest(args)
         if args.command == "vision":
             return cmd_vision(args)
         if args.command == "vision-scenarios":

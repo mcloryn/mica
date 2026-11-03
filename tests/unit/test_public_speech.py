@@ -149,3 +149,139 @@ def test_cli_prep_commonvoice(tmp_path, monkeypatch, capsys):
     assert code == 0
     assert "5 klip dari 5 penutur" in capsys.readouterr().out
     assert len(Path(tmp_path / "ids.txt").read_text("utf-8").split()) == 5
+
+
+# --- MUSAN (hf_hub di-mock, tanpa internet) -----------------------------------------------
+
+HF_FILES = (
+    [f"noise/free-sound/noise-free-sound-{i:04d}.wav" for i in range(12)]
+    + [f"noise/sound-bible/noise-sound-bible-{i:04d}.wav" for i in range(3)]
+    + ["noise/free-sound/LICENSE", "noise/sound-bible/LICENSE", "noise/free-sound/ANNOTATIONS",
+       "noise/README", "music/fma/music-fma-0000.wav", "speech/librivox/speech-0000.wav",
+       "README.md"]
+)  # fmt: skip
+
+
+def _wav_bytes(seconds, rate=16000):
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(rate)
+        t = np.arange(int(seconds * rate)) / rate
+        w.writeframes((3000 * np.sin(2 * np.pi * 300 * t)).astype(np.int16).tobytes())
+    return buf.getvalue()
+
+
+class FakeHub:
+    def __init__(self):
+        self.downloaded = []
+
+    def list_files(self, repo, revision):
+        assert (repo, revision) == (ps.MUSAN_REPO, ps.MUSAN_REVISION)
+        return list(HF_FILES)
+
+    def download(self, repo, revision, filename, local_dir):
+        self.downloaded.append(filename)
+        path = Path(local_dir) / filename
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if filename.endswith("LICENSE"):
+            path.write_text(f"lisensi {filename}", encoding="utf-8")
+        else:  # sound-bible pendek (4 s, 44,1 kHz); free-sound 12 s 16 kHz
+            short = "sound-bible" in filename
+            path.write_bytes(_wav_bytes(4 if short else 12, 44100 if short else 16000))
+        return path
+
+
+def test_select_musan_only_noise_wav_and_deterministic():
+    a = ps.select_musan(HF_FILES, 5, 20261103)
+    assert a == ps.select_musan(HF_FILES, 5, 20261103)
+    assert len(set(a)) == 5 and all(f.startswith("noise/") and f.endswith(".wav") for f in a)
+    assert len(ps.select_musan(HF_FILES, 100, 20261103)) == 15  # kurang dari n: semua
+
+
+def test_prep_musan_downloads_only_selected_and_cuts(tmp_path, monkeypatch):
+    monkeypatch.setattr(ps, "REPO_ROOT", tmp_path / "repo")
+    hub = FakeHub()
+    out = tmp_path / "publik"
+    info = ps.prep_musan(out, 5, 20261103, 10.0, list_files=hub.list_files,
+                         download=hub.download, progress=lambda s: None)  # fmt: skip
+    wavs = [f for f in hub.downloaded if f.endswith(".wav")]
+    assert wavs == ps.select_musan(HF_FILES, 5, 20261103)  # hanya file terpilih yang diunduh
+    assert sorted(f for f in hub.downloaded if f.endswith("LICENSE")) == [
+        "noise/free-sound/LICENSE", "noise/sound-bible/LICENSE"]  # fmt: skip
+    assert (out / "musan" / "LICENSE-free-sound").read_text("utf-8").startswith("lisensi")
+    assert not (out / "musan-raw").exists()  # unduhan mentah dihapus
+    rows = [json.loads(x) for x in (out / "musan.jsonl").read_text("utf-8").splitlines()]
+    assert all(r["jenis"] == "bising" and r["status"] == "bukan ucapan" for r in rows)
+    for r in rows:
+        with wave.open(str(out / r["file"]), "rb") as w:
+            assert w.getframerate() == 16000 and w.getnchannels() == 1
+            expected = 4.0 if "sound-bible" in r["asal"] else 10.0
+            assert abs(w.getnframes() / 16000 - expected) < 0.05
+    assert info["n_noise_wav"] == 15 and info["revision"] == ps.MUSAN_REVISION
+    assert set(info["shorter_than_clip_s"]) == {
+        r["asal"] for r in rows if "sound-bible" in r["asal"]
+    }
+
+
+def test_prep_musan_requires_locked_revision(tmp_path, monkeypatch):
+    monkeypatch.setattr(ps, "REPO_ROOT", tmp_path / "repo")
+    with pytest.raises(ps.PublicDataError, match="hash commit"):
+        ps.prep_musan(tmp_path / "out", 5, 1, 10.0, revision="main")
+
+
+# --- diam dan manifest gabungan -----------------------------------------------------------
+
+
+def test_prep_silence_with_fake_recorder(tmp_path, monkeypatch):
+    monkeypatch.setattr(ps, "REPO_ROOT", tmp_path / "repo")
+    calls = []
+
+    def record(seconds, device):
+        calls.append((seconds, device))
+        return np.zeros(int(seconds * 16000), dtype=np.int16)
+
+    out = tmp_path / "publik"
+    ps.prep_silence(out, 3, 2.0, device=1, record=record, progress=lambda s: None)
+    assert calls == [(2.0, 1)] * 3
+    rows = [json.loads(x) for x in (out / "silence.jsonl").read_text("utf-8").splitlines()]
+    assert [r["id"] for r in rows] == ["diam-01", "diam-02", "diam-03"]
+    assert all(r["jenis"] == "diam" and r["status"] == "bukan ucapan" for r in rows)
+
+
+def test_prep_manifest_merges_sources_for_eval_stt(tmp_path, monkeypatch):
+    monkeypatch.setattr(ps, "REPO_ROOT", tmp_path / "repo")
+    out = tmp_path / "publik"
+    ps.prep_commonvoice(make_archive(tmp_path / "cv.tar.gz"), out, 2, 1, None,
+                        progress=lambda s: None)  # fmt: skip
+    with pytest.raises(ps.PublicDataError, match="belum ada"):
+        ps.prep_manifest(out)
+    hub = FakeHub()
+    ps.prep_musan(out, 2, 1, 10.0, list_files=hub.list_files, download=hub.download,
+                  progress=lambda s: None)  # fmt: skip
+    ps.prep_silence(out, 2, 1.0, record=lambda s, d: np.zeros(16000, np.int16),
+                    progress=lambda s: None)  # fmt: skip
+    counts = ps.prep_manifest(out)
+    assert counts == {"pertanyaan": 2, "bising": 2, "diam": 2}
+    items = load_manifest(out / "manifest.jsonl")
+    assert {i.kind for i in items} == {"pertanyaan", "bising", "diam"}
+
+
+def test_cli_prep_silence_refused_in_prod(tmp_path, capsys):
+    prod = Path(__file__).resolve().parents[2] / "config" / "prod.yaml"
+    code = cli.main(["prep-silence", "--config", str(prod), "--out", str(tmp_path / "o")])
+    assert code == 2 and "mode prod" in capsys.readouterr().err
+
+
+def test_cli_prep_silence_refused_in_prod_even_when_complete(tmp_path, monkeypatch):
+    from mica.config import load_settings
+
+    dev = Path(__file__).resolve().parents[2] / "config" / "dev.yaml"
+    s = load_settings(dev)
+    prod = s.model_copy(update={"app": s.app.model_copy(update={"mode": "prod"})})
+    monkeypatch.setattr(cli, "load_settings", lambda *a, **k: prod)
+    args = cli.build_parser().parse_args(["prep-silence", "--config", "x", "--out",
+                                          str(tmp_path / "o")])  # fmt: skip
+    with pytest.raises(cli.SttEvalError, match="app.mode: dev"):
+        cli.cmd_prep_silence(args)
