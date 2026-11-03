@@ -1,0 +1,333 @@
+﻿frame,track,label_penilai1,label_penilai2,status,pred_keypoint_torso_lut_vote,mayoritas_keypoint_torso_lut_vote,pred_keypoint_torso_lut_mean,mayoritas_keypoint_torso_lut_mean,pred_box_upper_lut_vote,mayoritas_box_upper_lut_vote,pred_box_upper_lut_mean,mayoritas_box_upper_lut_mean
+3DPeS-111_153_FRAME_56_RGB,0,merah,merah,sepakat,oranye,0.748,oranye,1.000,abu-abu,0.314,cokelat,1.000
+3DPeS-111_160_FRAME_49_RGB,0,merah,merah,sepakat,merah,0.524,oranye,1.000,merah,0.354,cokelat,1.000
+3DPeS-129_643_FRAME_321_RGB,0,putih,putih,tidak terdeteksi,,,,,,,,
+3DPeS-134_757_FRAME_158_RGB,0,ungu,ungu,sepakat,merah,0.484,merah,1.000,merah,0.294,ungu,1.000
+3DPeS-134_757_FRAME_94_RGB,0,ungu,ungu,sepakat,merah,0.564,merah,1.000,ungu,0.337,ungu,1.000
+3DPeS-148_286_FRAME_225_RGB,0,hitam,hitam,tidak terdeteksi,,,,,,,,
+3DPeS-149_348_FRAME_194_RGB,0,hijau,hijau,sepakat,abu-abu,0.522,abu-abu,1.000,cokelat,0.615,cokelat,1.000
+3DPeS-185_176_FRAME_106_RGB,0,oranye,oranye,tidak terdeteksi,,,,,,,,
+3DPeS-18_415_FRAME_396_RGB,0,oranye,oranye,sepakat,merah muda,0.579,merah muda,1.000,abu-abu,0.521,cokelat,1.000
+3DPeS-18_415_FRAME_429_RGB,0,oranye,oranye,tidak terdeteksi,,,,,,,,
+3DPeS-18_415_FRAME_449_RGB,0,oranye,oranye,sepakat,cokelat,0.358,cokelat,1.000,cokelat,0.322,cokelat,1.000
+3DPeS-18_438_FRAME_714_RGB,0,oranye,oranye,sepakat,merah muda,0.482,merah muda,1.000,abu-abu,0.435,cokelat,1.000
+3DPeS-18_547_FRAME_206_RGB,0,oranye,oranye,tidak terdeteksi,,,,,,,,
+3DPeS-18_594_FRAME_117_RGB,0,oranye,oranye,tidak terdeteksi,,,,,,,,
+3DPeS-18_594_FRAME_31_RGB,0,oranye,oranye,tidak terdeteksi,,,,,,,,
+3DPeS-18_594_FRAME_336_RGB,0,oranye,oranye,tidak terdeteksi,,,,,,,,
+3DPeS-1_1_FRAME_12_RGB,0,biru,biru,sepakat,abu-abu,0.924,abu-abu,1.000,abu-abu,0.477,abu-abu,1.000
+3DPeS-202_84_FRAME_69_RGB,0,biru,biru,sepakat,hitam,0.705,hitam,1.000,hitam,0.495,hitam,1.000
+3DPeS-39_1171_FRAME_72_RGB,0,ungu,ungu,tidak terdeteksi,,,,,,,,
+3DPeS-48_1391_FRAME_145_RGB,0,hijau,hijau,sepakat,cokelat,0.716,cokelat,1.000,cokelat,0.441,cokelat,1.000
+3DPeS-51_1501_FRAME_162_RGB,0,hijau,hijau,sepakat,hijau,0.845,hijau,1.000,abu-abu,0.403,abu-abu,1.000
+3DPeS-52_1526_FRAME_123_RGB,0,merah,merah,sepakat,merah,0.866,merah,1.000,merah,0.689,merah,1.000
+3DPeS-56_21_FRAME_80_RGB,0,merah,merah,tidak terdeteksi,,,,,,,,
+3DPeS-62_181_FRAME_70_RGB,0,oranye,oranye,tidak terdeteksi,,,,,,,,
+3DPeS-62_185_FRAME_179_RGB,0,oranye,oranye,sepakat,oranye,1.000,oranye,1.000,cokelat,0.425,oranye,1.000
+3DPeS-62_185_FRAME_57_RGB,0,oranye,oranye,tidak terdeteksi,,,,,,,,
+3DPeS-64_239_FRAME_111_RGB,0,biru,biru,sepakat,hitam,0.837,hitam,1.000,hitam,0.433,cokelat,1.000
+3DPeS-76_533_FRAME_140_RGB,0,abu-abu,abu-abu,sepakat,abu-abu,0.776,abu-abu,1.000,cokelat,0.526,cokelat,1.000
+3DPeS-85_680_FRAME_32_RGB,0,hitam,hitam,tidak terdeteksi,,,,,,,,
+3DPeS-89_720_FRAME_46_RGB,0,cokelat,cokelat,tidak terdeteksi,,,,,,,,
+CAVIAR4REID-0009_002,0,abu-abu,abu-abu,sepakat,hitam,0.991,hitam,1.000,hitam,0.985,hitam,1.000
+CAVIAR4REID-0010_009,0,cokelat,cokelat,sepakat,ungu,0.476,cokelat,1.000,cokelat,0.620,cokelat,1.000
+CAVIAR4REID-0038_005,0,merah muda,merah muda,sepakat,abu-abu,0.636,abu-abu,1.000,abu-abu,0.502,abu-abu,1.000
+CAVIAR4REID-0038_010,0,merah muda,merah muda,tidak terdeteksi,,,,,,,,
+CAVIAR4REID-0038_018,0,merah muda,merah muda,tidak terdeteksi,,,,,,,,
+CAVIAR4REID-0038_019,0,merah muda,merah muda,tidak terdeteksi,,,,,,,,
+CAVIAR4REID-0055_006,0,ungu,ungu,sepakat,hitam,0.744,hitam,1.000,hitam,0.725,hitam,1.000
+CAVIAR4REID-0055_014,0,ungu,ungu,tidak terdeteksi,,,,,,,,
+CUHK-0030,0,merah muda,merah muda,sepakat,hitam,0.377,cokelat,1.000,hitam,0.599,cokelat,1.000
+CUHK-0061,0,hitam,hitam,sepakat,hitam,1.000,hitam,1.000,hitam,0.989,hitam,1.000
+CUHK-0204,0,oranye,oranye,sepakat,merah,0.857,merah,1.000,merah,0.554,merah,1.000
+CUHK-0231,0,merah,merah,tidak terdeteksi,,,,,,,,
+CUHK-0285,0,merah,merah,sepakat,merah,0.963,merah,1.000,merah,0.387,cokelat,1.000
+CUHK-0368,0,ungu,ungu,sepakat,biru,0.787,biru,1.000,hitam,0.494,hitam,1.000
+CUHK-0461,0,merah muda,merah muda,sepakat,merah,0.922,merah,1.000,merah,0.710,cokelat,1.000
+CUHK-0470,0,kuning,kuning,sepakat,cokelat,1.000,cokelat,1.000,cokelat,0.919,cokelat,1.000
+CUHK-0517,0,abu-abu,abu-abu,tidak terdeteksi,,,,,,,,
+CUHK-0704,0,hitam,hitam,sepakat,hitam,1.000,hitam,1.000,hitam,0.980,hitam,1.000
+CUHK-0717,0,hijau,hijau,sepakat,hitam,1.000,hitam,1.000,hitam,0.978,hitam,1.000
+CUHK-0816,0,ungu,ungu,sepakat,biru,0.737,biru,1.000,hitam,0.645,hitam,1.000
+CUHK-0872,0,abu-abu,abu-abu,tidak terdeteksi,,,,,,,,
+CUHK-1119,0,biru,biru,sepakat,biru,0.759,biru,1.000,biru,0.783,biru,1.000
+CUHK-1159,0,oranye,oranye,sepakat,cokelat,0.728,cokelat,1.000,hitam,0.426,abu-abu,1.000
+CUHK-1296,0,ungu,ungu,sepakat,hitam,1.000,hitam,1.000,hitam,0.779,hitam,1.000
+CUHK-1385,0,biru,biru,tidak terdeteksi,,,,,,,,
+CUHK-1460,0,hitam,hitam,sepakat,hitam,1.000,hitam,1.000,hitam,1.000,hitam,1.000
+CUHK-1462,0,cokelat,cokelat,sepakat,hitam,0.980,hitam,1.000,hitam,0.911,hitam,1.000
+CUHK-1467,0,cokelat,cokelat,sepakat,hitam,0.511,hitam,1.000,hitam,0.885,hitam,1.000
+CUHK-1519,0,biru,biru,sepakat,hitam,0.849,hitam,1.000,hitam,0.970,hitam,1.000
+CUHK-1624,0,hitam,hitam,sepakat,hitam,0.996,hitam,1.000,hitam,0.800,hitam,1.000
+CUHK-1694,0,hijau,hijau,sepakat,hijau,0.885,hijau,1.000,hitam,0.343,hitam,1.000
+CUHK-1925,0,hitam,hitam,sepakat,hitam,0.820,hitam,1.000,hitam,0.577,hitam,1.000
+CUHK-1944,0,oranye,oranye,sepakat,cokelat,0.866,cokelat,1.000,cokelat,0.501,cokelat,1.000
+CUHK-1993,0,abu-abu,abu-abu,sepakat,abu-abu,0.847,abu-abu,1.000,hitam,0.515,hitam,1.000
+CUHK-2002,0,biru,biru,sepakat,biru,0.513,biru,1.000,hitam,0.515,hitam,1.000
+CUHK-2015,0,abu-abu,abu-abu,tidak terdeteksi,,,,,,,,
+CUHK-2038,0,hitam,hitam,tidak terdeteksi,,,,,,,,
+CUHK-2087,0,biru,biru,sepakat,biru,0.572,biru,1.000,abu-abu,0.471,abu-abu,1.000
+CUHK-2135,0,ungu,ungu,sepakat,hitam,0.995,hitam,1.000,hitam,0.990,hitam,1.000
+CUHK-2213,0,oranye,oranye,sepakat,oranye,0.961,oranye,1.000,oranye,0.439,merah,1.000
+CUHK-2214,0,merah,merah,sepakat,merah,0.966,merah,1.000,merah,0.591,merah,1.000
+CUHK-2245,0,cokelat,cokelat,tidak terdeteksi,,,,,,,,
+CUHK-2268,0,ungu,ungu,tidak terdeteksi,,,,,,,,
+CUHK-2519,0,merah,merah,sepakat,merah,0.524,cokelat,1.000,hitam,0.499,hitam,1.000
+CUHK-2536,0,abu-abu,abu-abu,sepakat,hitam,0.998,hitam,1.000,hitam,0.966,hitam,1.000
+CUHK-2543,0,hitam,hitam,sepakat,hitam,0.998,hitam,1.000,hitam,0.929,hitam,1.000
+CUHK-2574,0,hijau,hijau,sepakat,hitam,0.979,hitam,1.000,hitam,0.974,hitam,1.000
+CUHK-2609,0,merah,merah,tidak terdeteksi,,,,,,,,
+CUHK-2617,0,oranye,oranye,tidak terdeteksi,,,,,,,,
+CUHK-2662,0,merah,merah,sepakat,hitam,0.990,hitam,1.000,hitam,0.768,hitam,1.000
+CUHK-2687,0,hitam,hitam,sepakat,hitam,1.000,hitam,1.000,hitam,1.000,hitam,1.000
+CUHK-2711,0,merah,merah,tidak terdeteksi,,,,,,,,
+CUHK-2715,0,merah,merah,tidak terdeteksi,,,,,,,,
+CUHK-2823,0,merah muda,merah muda,sepakat,hitam,0.656,hitam,1.000,hitam,0.651,hitam,1.000
+CUHK-2921,0,putih,putih,sepakat,hitam,0.795,hitam,1.000,hitam,0.917,hitam,1.000
+CUHK-3025,0,putih,putih,tidak terdeteksi,,,,,,,,
+CUHK-3150,0,abu-abu,abu-abu,sepakat,hitam,0.788,hitam,1.000,hitam,0.458,abu-abu,1.000
+CUHK-3198,0,merah muda,merah muda,sepakat,hitam,0.505,hitam,1.000,hitam,0.734,hitam,1.000
+CUHK-3269,0,abu-abu,abu-abu,tidak terdeteksi,,,,,,,,
+CUHK-3271,0,biru,biru,sepakat,biru,0.861,biru,1.000,hitam,0.460,abu-abu,1.000
+CUHK-3313,0,oranye,oranye,sepakat,cokelat,0.975,cokelat,1.000,cokelat,0.606,cokelat,1.000
+CUHK-3328,0,abu-abu,abu-abu,sepakat,hitam,0.779,hitam,1.000,hitam,0.732,hitam,1.000
+CUHK-3377,0,merah muda,merah muda,sepakat,ungu,0.777,ungu,1.000,ungu,0.426,ungu,1.000
+CUHK-3425,0,kuning,kuning,tidak terdeteksi,,,,,,,,
+CUHK-3437,0,abu-abu,abu-abu,sepakat,hitam,1.000,hitam,1.000,hitam,0.810,hitam,1.000
+CUHK-3466,0,oranye,oranye,tidak terdeteksi,,,,,,,,
+CUHK-3470,0,kuning,kuning,sepakat,kuning,0.692,kuning,1.000,hitam,0.445,hijau,1.000
+CUHK-3476,0,merah,merah,tidak terdeteksi,,,,,,,,
+CUHK-3513,0,kuning,kuning,sepakat,kuning,0.456,kuning,1.000,hitam,0.444,cokelat,1.000
+CUHK-3655,0,merah,merah,sepakat,hitam,0.755,hitam,1.000,hitam,0.735,hitam,1.000
+CUHK-3694,0,abu-abu,abu-abu,sepakat,hitam,0.872,hitam,1.000,hitam,0.898,hitam,1.000
+CUHK-3696,0,oranye,oranye,tidak terdeteksi,,,,,,,,
+CUHK-3781,0,hijau,hijau,sepakat,hitam,1.000,hitam,1.000,hitam,0.675,hitam,1.000
+CUHK-3789,0,abu-abu,abu-abu,sepakat,hitam,0.995,hitam,1.000,hitam,0.690,hitam,1.000
+CUHK-3884,0,merah muda,merah muda,sepakat,abu-abu,0.841,abu-abu,1.000,abu-abu,0.850,abu-abu,1.000
+CUHK-3924,0,oranye,oranye,sepakat,oranye,0.797,oranye,1.000,oranye,0.511,oranye,1.000
+CUHK-3952,0,kuning,kuning,sepakat,hitam,0.314,hitam,1.000,hitam,0.621,hitam,1.000
+CUHK-3973,0,ungu,ungu,tidak terdeteksi,,,,,,,,
+CUHK-4009,0,merah,merah,tidak terdeteksi,,,,,,,,
+CUHK-4019,0,oranye,oranye,sepakat,merah,0.519,cokelat,1.000,hitam,0.364,cokelat,1.000
+CUHK-4060,0,kuning,kuning,tidak terdeteksi,,,,,,,,
+CUHK-4094,0,putih,putih,tidak terdeteksi,,,,,,,,
+CUHK-4275,0,putih,putih,sepakat,hitam,0.918,hitam,1.000,hitam,0.844,hitam,1.000
+CUHK-4281,0,hijau,hijau,sepakat,hijau,0.794,hijau,1.000,hijau,0.683,hijau,1.000
+CUHK-4391,0,ungu,ungu,sepakat,hitam,0.893,hitam,1.000,hitam,0.976,hitam,1.000
+CUHK-4518,0,oranye,oranye,tidak terdeteksi,,,,,,,,
+CUHK-4525,0,merah muda,merah muda,sepakat,cokelat,0.758,cokelat,1.000,cokelat,0.424,cokelat,1.000
+CUHK-4536,0,putih,putih,tidak terdeteksi,,,,,,,,
+GRID-0024_4_25389_377_45_81_262,0,kuning,kuning,sepakat,kuning,0.774,kuning,1.000,kuning,0.372,hijau,1.000
+GRID-0024_5_25408_201_134_118_312,0,kuning,kuning,sepakat,hijau,0.467,hijau,1.000,cokelat,0.415,cokelat,1.000
+GRID-0030_4_25601_509_58_72_225,0,cokelat,cokelat,tidak terdeteksi,,,,,,,,
+GRID-0077_5_26236_258_28_40_160,0,putih,putih,tidak terdeteksi,,,,,,,,
+GRID-0123_5_28058_29_122_91_314,0,merah muda,merah muda,sepakat,hitam,0.568,hitam,1.000,hitam,0.433,hitam,1.000
+GRID-0155_2_29896_123_187_109_279,0,hitam,hitam,sepakat,hitam,0.844,hitam,1.000,hitam,0.827,hitam,1.000
+GRID-0169_5_29969_201_13_74_162,0,kuning,kuning,tidak terdeteksi,,,,,,,,
+GRID-0293_2_25852_264_102_65_232,0,putih,putih,tidak terdeteksi,,,,,,,,
+GRID-0360_2_26443_123_131_81_274,0,kuning,kuning,sepakat,kuning,0.475,kuning,1.000,hitam,0.266,cokelat,1.000
+GRID-0362_2_26494_272_66_72_215,0,oranye,oranye,sepakat,cokelat,0.759,cokelat,1.000,cokelat,0.443,cokelat,1.000
+GRID-0370_2_27198_163_153_103_296,0,kuning,kuning,sepakat,kuning,0.749,kuning,1.000,kuning,0.524,cokelat,1.000
+GRID-0372_2_27204_173_85_80_264,0,kuning,kuning,tidak terdeteksi,,,,,,,,
+GRID-0376_2_27212_4_131_125_324,0,biru,biru,sepakat,biru,0.945,biru,1.000,biru,0.566,biru,1.000
+GRID-0446_2_29953_235_116_84_233,0,putih,putih,sepakat,abu-abu,0.311,abu-abu,1.000,abu-abu,0.272,abu-abu,1.000
+GRID-0461_2_30399_64_85_80_261,0,oranye,oranye,sepakat,merah,0.491,merah,1.000,hitam,0.325,ungu,1.000
+GRID-0536_2_33189_154_128_103_277,0,merah muda,merah muda,sepakat,cokelat,0.309,cokelat,1.000,hitam,0.618,hitam,1.000
+GRID-0556_2_35900_204_141_118_283,0,kuning,kuning,sepakat,kuning,0.920,kuning,1.000,kuning,0.426,hijau,1.000
+GRID-0570_2_38402_188_137_103_265,0,putih,putih,sepakat,hitam,0.502,ungu,1.000,hitam,0.589,hitam,1.000
+GRID-0594_3_25797_373_34_92_256,0,kuning,kuning,sepakat,cokelat,0.446,cokelat,1.000,cokelat,0.332,cokelat,1.000
+GRID-0601_3_25969_428_34_78_215,0,merah muda,merah muda,sepakat,abu-abu,0.416,abu-abu,1.000,abu-abu,0.304,abu-abu,1.000
+GRID-0645_4_25607_452_79_109_275,0,hijau,hijau,sepakat,hijau,0.786,hijau,1.000,hijau,0.637,hijau,1.000
+GRID-0705_5_25515_253_206_60_165,0,merah muda,merah muda,tidak terdeteksi,,,,,,,,
+GRID-0740_5_25787_104_81_90_287,0,putih,putih,sepakat,hijau,0.498,hijau,1.000,hitam,0.543,hitam,1.000
+GRID-0885_5_28723_213_134_87_293,0,kuning,kuning,sepakat,cokelat,0.395,hitam,1.000,cokelat,0.395,hitam,1.000
+GRID-0988_5_32815_73_147_118_283,0,kuning,kuning,tidak terdeteksi,,,,,,,,
+GRID-1018_5_32843_107_125_122_308,0,kuning,kuning,tidak terdeteksi,,,,,,,,
+MIT-00026_female_fore,0,cokelat,cokelat,sepakat,cokelat,0.490,cokelat,1.000,cokelat,0.400,cokelat,1.000
+MIT-00059_female_back,0,merah,merah,tidak terdeteksi,,,,,,,,
+MIT-00071_female_back,0,oranye,oranye,tidak terdeteksi,,,,,,,,
+MIT-00124_male_fore,0,cokelat,cokelat,tidak terdeteksi,,,,,,,,
+MIT-00150_female_back,0,merah,merah,tidak terdeteksi,,,,,,,,
+MIT-00235_male_fore,0,biru,biru,tidak terdeteksi,,,,,,,,
+MIT-00313_male_back,0,biru,biru,tidak terdeteksi,,,,,,,,
+MIT-00332_female_fore,0,merah,merah,tidak terdeteksi,,,,,,,,
+MIT-00352_male_fore,0,kuning,kuning,sepakat,kuning,0.633,kuning,1.000,hitam,0.389,abu-abu,1.000
+MIT-00385_female_back,0,kuning,kuning,tidak terdeteksi,,,,,,,,
+MIT-00387_male_back,0,putih,putih,tidak terdeteksi,,,,,,,,
+MIT-00470_male_back,0,biru,biru,tidak terdeteksi,,,,,,,,
+MIT-00507_female_back,0,cokelat,cokelat,sepakat,abu-abu,0.697,abu-abu,1.000,abu-abu,0.331,abu-abu,1.000
+MIT-00577_female_back,0,hijau,hijau,tidak terdeteksi,,,,,,,,
+MIT-00584_male_fore,0,hitam,hitam,tidak terdeteksi,,,,,,,,
+MIT-00590_female_back,0,merah,merah,tidak terdeteksi,,,,,,,,
+MIT-00591_male_fore,0,cokelat,cokelat,tidak terdeteksi,,,,,,,,
+MIT-00628_male_fore,0,biru,biru,tidak terdeteksi,,,,,,,,
+MIT-00654_female_back,0,hijau,hijau,tidak terdeteksi,,,,,,,,
+MIT-00763_female_back,0,merah,merah,tidak terdeteksi,,,,,,,,
+PRID-0008_b,0,hijau,hijau,sepakat,hijau,0.933,hijau,1.000,hijau,0.933,hijau,1.000
+PRID-0097_a,0,merah muda,merah muda,sepakat,merah,0.808,merah,1.000,abu-abu,0.381,abu-abu,1.000
+PRID-0098_a,0,biru,biru,tidak terdeteksi,,,,,,,,
+PRID-0109_a,0,biru,biru,tidak terdeteksi,,,,,,,,
+PRID-0110_a,0,abu-abu,abu-abu,sepakat,hijau,0.667,hijau,1.000,hijau,0.588,hijau,1.000
+PRID-0162_a,0,oranye,oranye,sepakat,oranye,1.000,oranye,1.000,oranye,0.597,oranye,1.000
+PRID-0168_b,0,abu-abu,abu-abu,sepakat,hijau,1.000,hijau,1.000,hijau,1.000,hijau,1.000
+PRID-0418_b,0,abu-abu,abu-abu,sepakat,hijau,0.956,hijau,1.000,hijau,0.900,hijau,1.000
+PRID-0479_b,0,merah,merah,sepakat,hitam,0.978,hitam,1.000,hijau,0.495,biru,1.000
+PRID-0521_b,0,merah muda,merah muda,tidak terdeteksi,,,,,,,,
+PRID-0566_b,0,cokelat,cokelat,sepakat,cokelat,0.809,cokelat,1.000,hijau,0.608,hijau,1.000
+PRID-0569_b,0,biru,biru,sepakat,hitam,0.580,hijau,1.000,hijau,0.553,hijau,1.000
+PRID-0573_b,0,putih,putih,sepakat,hijau,0.879,hijau,1.000,hijau,0.983,hijau,1.000
+PRID-0596_b,0,hitam,hitam,sepakat,hitam,0.570,hijau,1.000,hijau,0.847,hijau,1.000
+PRID-0614_b,0,merah,merah,tidak terdeteksi,,,,,,,,
+PRID-0689_b,0,merah,merah,sepakat,ungu,0.575,cokelat,1.000,hijau,0.446,hitam,1.000
+PRID-0730_b,0,putih,putih,tidak terdeteksi,,,,,,,,
+PRID-1207_b,0,kuning,kuning,sepakat,hijau,0.956,hijau,1.000,hijau,0.956,hijau,1.000
+PRID-1233_b,0,hitam,hitam,tidak terdeteksi,,,,,,,,
+PRID-1239_b,0,hitam,hitam,sepakat,hijau,0.628,hijau,1.000,hijau,0.815,hijau,1.000
+PRID-1271_b,0,merah,merah,sepakat,hitam,0.681,hitam,1.000,hitam,0.551,hijau,1.000
+PRID-1286_b,0,hitam,hitam,sepakat,hijau,0.482,hijau,1.000,hitam,0.516,hijau,1.000
+PRID-1291_b,0,cokelat,cokelat,sepakat,hijau,0.966,hijau,1.000,hijau,0.985,hijau,1.000
+PRID-1369_b,0,putih,putih,sepakat,hijau,0.669,biru,1.000,hijau,0.718,hijau,1.000
+SARC3D-034_back,0,kuning,kuning,sepakat,kuning,0.984,kuning,1.000,kuning,0.644,kuning,1.000
+SARC3D-034_front,0,kuning,kuning,sepakat,kuning,0.984,kuning,1.000,kuning,0.512,kuning,1.000
+SARC3D-034_right,0,kuning,kuning,sepakat,kuning,0.648,kuning,1.000,kuning,0.444,kuning,1.000
+SARC3D-043_left,0,merah muda,merah muda,sepakat,merah muda,0.997,merah muda,1.000,abu-abu,0.509,abu-abu,1.000
+SARC3D-043_right,0,merah muda,merah muda,sepakat,merah muda,0.936,merah muda,1.000,abu-abu,0.533,abu-abu,1.000
+TownCentre-114_2053,0,hitam,hitam,sepakat,hitam,0.817,hitam,1.000,hitam,0.690,abu-abu,1.000
+TownCentre-116_2006,0,cokelat,cokelat,sepakat,hijau,0.376,hijau,1.000,hijau,0.376,hijau,1.000
+TownCentre-132_2409,0,abu-abu,abu-abu,sepakat,abu-abu,0.699,abu-abu,1.000,abu-abu,0.734,abu-abu,1.000
+TownCentre-133_2649,0,abu-abu,abu-abu,sepakat,hitam,0.533,hitam,1.000,hitam,0.645,hitam,1.000
+TownCentre-135_2504,0,abu-abu,abu-abu,sepakat,abu-abu,0.891,abu-abu,1.000,abu-abu,0.876,abu-abu,1.000
+TownCentre-135_2720,0,abu-abu,abu-abu,sepakat,abu-abu,0.695,cokelat,1.000,abu-abu,0.765,abu-abu,1.000
+TownCentre-136_2440,0,ungu,ungu,sepakat,ungu,0.903,ungu,1.000,ungu,0.733,ungu,1.000
+TownCentre-136_2503,0,ungu,ungu,sepakat,ungu,0.746,ungu,1.000,ungu,0.587,ungu,1.000
+TownCentre-136_2521,0,ungu,ungu,sepakat,ungu,0.810,ungu,1.000,ungu,0.723,ungu,1.000
+TownCentre-136_2674,0,ungu,ungu,sepakat,ungu,0.991,ungu,1.000,ungu,0.884,ungu,1.000
+TownCentre-136_2692,0,ungu,ungu,sepakat,ungu,1.000,ungu,1.000,ungu,0.882,ungu,1.000
+TownCentre-136_2737,0,ungu,ungu,sepakat,ungu,0.989,ungu,1.000,ungu,0.876,ungu,1.000
+TownCentre-137_2731,0,hitam,hitam,sepakat,hitam,0.738,hitam,1.000,hitam,0.660,abu-abu,1.000
+TownCentre-13_17,0,abu-abu,abu-abu,sepakat,abu-abu,0.845,abu-abu,1.000,abu-abu,0.785,abu-abu,1.000
+TownCentre-13_90,0,abu-abu,abu-abu,tidak terdeteksi,,,,,,,,
+TownCentre-141_2827,0,abu-abu,abu-abu,sepakat,hitam,0.857,hitam,1.000,hitam,0.843,hitam,1.000
+TownCentre-144_2814,0,abu-abu,abu-abu,sepakat,abu-abu,0.980,abu-abu,1.000,abu-abu,0.783,abu-abu,1.000
+TownCentre-145_2565,0,merah muda,merah muda,tidak terdeteksi,,,,,,,,
+TownCentre-145_2763,0,merah muda,merah muda,sepakat,merah muda,0.858,merah muda,1.000,merah muda,0.808,merah muda,1.000
+TownCentre-145_2871,0,merah muda,merah muda,sepakat,merah muda,0.956,merah muda,1.000,merah muda,0.754,merah muda,1.000
+TownCentre-145_2925,0,merah muda,merah muda,sepakat,merah muda,0.983,merah muda,1.000,merah muda,0.795,merah muda,1.000
+TownCentre-145_2961,0,merah muda,merah muda,sepakat,merah muda,0.987,merah muda,1.000,merah muda,0.879,merah muda,1.000
+TownCentre-145_2970,0,merah muda,merah muda,sepakat,merah muda,0.984,merah muda,1.000,merah muda,0.787,merah muda,1.000
+TownCentre-145_2979,0,merah muda,merah muda,sepakat,merah muda,0.996,merah muda,1.000,merah muda,0.853,merah muda,1.000
+TownCentre-145_2988,0,merah muda,merah muda,tidak terdeteksi,,,,,,,,
+TownCentre-157_3097,0,hijau,hijau,sepakat,abu-abu,0.998,abu-abu,1.000,abu-abu,0.974,abu-abu,1.000
+TownCentre-157_3151,0,hijau,hijau,sepakat,abu-abu,0.991,abu-abu,1.000,abu-abu,0.923,abu-abu,1.000
+TownCentre-157_3214,0,hijau,hijau,sepakat,abu-abu,0.961,abu-abu,1.000,abu-abu,0.941,abu-abu,1.000
+TownCentre-157_3241,0,hijau,hijau,sepakat,abu-abu,0.982,abu-abu,1.000,abu-abu,0.912,abu-abu,1.000
+TownCentre-157_3250,0,hijau,hijau,sepakat,abu-abu,0.989,abu-abu,1.000,abu-abu,0.863,abu-abu,1.000
+TownCentre-157_3268,0,hijau,hijau,sepakat,abu-abu,0.990,abu-abu,1.000,abu-abu,0.857,abu-abu,1.000
+TownCentre-157_3349,0,hijau,hijau,sepakat,abu-abu,0.985,abu-abu,1.000,abu-abu,0.829,abu-abu,1.000
+TownCentre-164_3205,0,ungu,ungu,sepakat,merah muda,1.000,merah muda,1.000,merah,0.672,merah,1.000
+TownCentre-164_3214,0,ungu,ungu,sepakat,abu-abu,0.712,abu-abu,1.000,abu-abu,0.557,abu-abu,1.000
+TownCentre-164_3286,0,ungu,ungu,sepakat,abu-abu,0.706,abu-abu,1.000,abu-abu,0.805,abu-abu,1.000
+TownCentre-164_3313,0,ungu,ungu,sepakat,abu-abu,0.522,ungu,1.000,abu-abu,0.726,abu-abu,1.000
+TownCentre-164_3385,0,ungu,ungu,sepakat,abu-abu,0.550,abu-abu,1.000,abu-abu,0.452,ungu,1.000
+TownCentre-164_3457,0,ungu,ungu,sepakat,abu-abu,0.636,abu-abu,1.000,abu-abu,0.710,abu-abu,1.000
+TownCentre-164_3475,0,ungu,ungu,sepakat,abu-abu,0.461,ungu,1.000,abu-abu,0.596,abu-abu,1.000
+TownCentre-164_3529,0,ungu,ungu,sepakat,ungu,0.533,ungu,1.000,abu-abu,0.416,abu-abu,1.000
+TownCentre-164_3547,0,ungu,ungu,sepakat,ungu,0.426,abu-abu,1.000,abu-abu,0.558,abu-abu,1.000
+TownCentre-168_3446,0,abu-abu,abu-abu,sepakat,abu-abu,0.895,abu-abu,1.000,hitam,0.380,abu-abu,1.000
+TownCentre-169_3267,0,hijau,hijau,sepakat,abu-abu,0.744,abu-abu,1.000,abu-abu,0.679,abu-abu,1.000
+TownCentre-169_3312,0,hijau,hijau,sepakat,abu-abu,0.597,abu-abu,1.000,abu-abu,0.671,abu-abu,1.000
+TownCentre-169_3330,0,hijau,hijau,sepakat,abu-abu,0.505,cokelat,1.000,abu-abu,0.620,abu-abu,1.000
+TownCentre-169_3384,0,hijau,hijau,sepakat,abu-abu,0.520,cokelat,1.000,abu-abu,0.438,abu-abu,1.000
+TownCentre-169_3393,0,hijau,hijau,sepakat,abu-abu,0.555,abu-abu,1.000,abu-abu,0.500,abu-abu,1.000
+TownCentre-16_257,0,putih,putih,sepakat,putih,0.771,putih,1.000,hitam,0.451,abu-abu,1.000
+TownCentre-16_95,0,putih,putih,sepakat,putih,0.830,putih,1.000,hitam,0.441,abu-abu,1.000
+TownCentre-170_3604,0,putih,putih,sepakat,abu-abu,0.719,abu-abu,1.000,abu-abu,0.433,abu-abu,1.000
+TownCentre-177_3500,0,cokelat,cokelat,sepakat,abu-abu,0.747,abu-abu,1.000,abu-abu,0.758,abu-abu,1.000
+TownCentre-184_3601,0,ungu,ungu,sepakat,ungu,0.843,abu-abu,1.000,ungu,0.625,ungu,1.000
+TownCentre-184_3736,0,ungu,ungu,sepakat,ungu,0.876,ungu,1.000,ungu,0.735,ungu,1.000
+TownCentre-184_3772,0,ungu,ungu,sepakat,ungu,0.929,ungu,1.000,ungu,0.757,ungu,1.000
+TownCentre-190_4422,0,kuning,kuning,sepakat,kuning,1.000,kuning,1.000,kuning,0.892,kuning,1.000
+TownCentre-190_4431,0,kuning,kuning,sepakat,kuning,1.000,kuning,1.000,kuning,0.840,kuning,1.000
+TownCentre-190_4449,0,kuning,kuning,sepakat,kuning,0.909,kuning,1.000,kuning,0.863,kuning,1.000
+TownCentre-190_4458,0,kuning,kuning,sepakat,kuning,0.723,kuning,1.000,kuning,0.723,kuning,1.000
+TownCentre-193_3875,0,abu-abu,abu-abu,sepakat,abu-abu,0.867,abu-abu,1.000,abu-abu,0.652,abu-abu,1.000
+TownCentre-196_3965,0,putih,putih,sepakat,putih,1.000,putih,1.000,putih,0.938,putih,1.000
+TownCentre-196_4181,0,putih,putih,sepakat,putih,1.000,putih,1.000,putih,0.944,putih,1.000
+TownCentre-200_4056,0,putih,putih,sepakat,abu-abu,0.387,abu-abu,1.000,putih,0.482,abu-abu,1.000
+TownCentre-202_4053,0,biru,biru,sepakat,biru,0.914,biru,1.000,biru,0.808,biru,1.000
+TownCentre-206_4198,0,hitam,hitam,sepakat,hitam,1.000,hitam,1.000,hitam,0.911,hitam,1.000
+TownCentre-207_4084,0,hitam,hitam,sepakat,hitam,0.977,hitam,1.000,hitam,0.762,hitam,1.000
+TownCentre-211_4297,0,biru,biru,sepakat,biru,0.779,biru,1.000,cokelat,0.554,ungu,1.000
+TownCentre-211_4423,0,biru,biru,sepakat,biru,0.656,ungu,1.000,cokelat,0.560,abu-abu,1.000
+TownCentre-212_4156,0,cokelat,cokelat,sepakat,hitam,0.647,hitam,1.000,hitam,0.914,hitam,1.000
+TownCentre-222_4298,0,cokelat,cokelat,sepakat,cokelat,1.000,cokelat,1.000,cokelat,0.880,cokelat,1.000
+TownCentre-222_4370,0,cokelat,cokelat,sepakat,cokelat,1.000,cokelat,1.000,cokelat,0.887,cokelat,1.000
+TownCentre-222_4424,0,cokelat,cokelat,sepakat,cokelat,1.000,cokelat,1.000,cokelat,0.761,cokelat,1.000
+TownCentre-24_262,0,ungu,ungu,tidak terdeteksi,,,,,,,,
+TownCentre-24_271,0,ungu,ungu,tidak terdeteksi,,,,,,,,
+TownCentre-24_289,0,ungu,ungu,sepakat,hitam,0.430,ungu,1.000,hitam,0.430,ungu,1.000
+TownCentre-24_352,0,ungu,ungu,tidak terdeteksi,,,,,,,,
+TownCentre-24_460,0,ungu,ungu,tidak terdeteksi,,,,,,,,
+TownCentre-24_514,0,ungu,ungu,sepakat,ungu,0.587,ungu,1.000,hitam,0.357,ungu,1.000
+TownCentre-2_41,0,hitam,hitam,sepakat,hitam,0.537,abu-abu,1.000,hitam,0.700,abu-abu,1.000
+TownCentre-38_685,0,merah,merah,sepakat,merah,0.852,merah,1.000,merah,0.714,merah,1.000
+TownCentre-38_757,0,merah,merah,sepakat,merah muda,0.324,merah,1.000,merah muda,0.324,merah,1.000
+TownCentre-38_874,0,merah,merah,sepakat,merah,0.602,merah muda,1.000,merah,0.576,merah,1.000
+TownCentre-40_754,0,putih,putih,sepakat,putih,0.959,putih,1.000,putih,0.588,putih,1.000
+TownCentre-4_54,0,hitam,hitam,sepakat,hitam,1.000,hitam,1.000,hitam,1.000,hitam,1.000
+TownCentre-53_1011,0,biru,biru,sepakat,hitam,0.716,hitam,1.000,hitam,0.812,hitam,1.000
+TownCentre-53_1029,0,biru,biru,sepakat,hitam,0.657,biru,1.000,hitam,0.718,hitam,1.000
+TownCentre-53_1128,0,biru,biru,sepakat,biru,0.569,biru,1.000,hitam,0.673,hitam,1.000
+TownCentre-55_1106,0,biru,biru,sepakat,hitam,0.514,hitam,1.000,biru,0.553,hitam,1.000
+TownCentre-55_1169,0,biru,biru,sepakat,hitam,0.446,abu-abu,1.000,hitam,0.715,hitam,1.000
+TownCentre-55_1394,0,biru,biru,sepakat,hitam,0.459,abu-abu,1.000,hitam,0.674,hitam,1.000
+TownCentre-55_1520,0,biru,biru,sepakat,abu-abu,0.518,abu-abu,1.000,hitam,0.623,hitam,1.000
+TownCentre-57_1074,0,putih,putih,sepakat,putih,0.601,putih,1.000,putih,0.481,putih,1.000
+TownCentre-57_1425,0,putih,putih,sepakat,putih,0.857,putih,1.000,putih,0.521,putih,1.000
+TownCentre-58_1233,0,hitam,hitam,sepakat,hitam,0.973,hitam,1.000,hitam,0.976,hitam,1.000
+TownCentre-61_1099,0,putih,putih,sepakat,abu-abu,0.942,abu-abu,1.000,abu-abu,0.970,abu-abu,1.000
+TownCentre-68_1522,0,cokelat,cokelat,tidak terdeteksi,,,,,,,,
+TownCentre-68_1549,0,cokelat,cokelat,sepakat,abu-abu,0.709,abu-abu,1.000,abu-abu,0.615,cokelat,1.000
+TownCentre-68_1621,0,cokelat,cokelat,sepakat,abu-abu,0.480,cokelat,1.000,abu-abu,0.417,cokelat,1.000
+TownCentre-6_213,0,hitam,hitam,sepakat,abu-abu,0.573,abu-abu,1.000,hitam,0.763,hitam,1.000
+TownCentre-6_319,0,hitam,hitam,sepakat,hitam,0.757,hitam,1.000,hitam,0.792,hitam,1.000
+TownCentre-74_1274,0,cokelat,cokelat,sepakat,hitam,0.348,abu-abu,1.000,hitam,0.348,abu-abu,1.000
+TownCentre-77_1589,0,cokelat,cokelat,sepakat,abu-abu,0.698,abu-abu,1.000,abu-abu,0.605,abu-abu,1.000
+TownCentre-77_1616,0,cokelat,cokelat,sepakat,abu-abu,0.996,abu-abu,1.000,abu-abu,0.896,abu-abu,1.000
+TownCentre-77_1715,0,cokelat,cokelat,tidak terdeteksi,,,,,,,,
+TownCentre-7_21,0,merah,merah,sepakat,merah,0.764,merah muda,1.000,merah,0.396,merah muda,1.000
+TownCentre-85_1547,0,hitam,hitam,sepakat,hitam,1.000,hitam,1.000,hitam,1.000,hitam,1.000
+TownCentre-85_1700,0,hitam,hitam,sepakat,hitam,0.955,hitam,1.000,hitam,0.891,hitam,1.000
+TownCentre-85_1709,0,hitam,hitam,sepakat,hitam,0.994,hitam,1.000,hitam,0.898,hitam,1.000
+TownCentre-87_1551,0,putih,putih,sepakat,abu-abu,0.643,abu-abu,1.000,abu-abu,0.866,abu-abu,1.000
+TownCentre-90_1537,0,cokelat,cokelat,sepakat,abu-abu,0.475,cokelat,1.000,abu-abu,0.475,cokelat,1.000
+TownCentre-90_1636,0,cokelat,cokelat,sepakat,cokelat,0.931,cokelat,1.000,cokelat,0.757,cokelat,1.000
+TownCentre-91_1864,0,hitam,hitam,sepakat,hitam,0.646,abu-abu,1.000,hitam,0.586,abu-abu,1.000
+VIPeR-011_90_2,0,merah muda,merah muda,sepakat,merah muda,0.847,merah muda,1.000,hitam,0.291,ungu,1.000
+VIPeR-024_45_2,0,hijau,hijau,sepakat,hijau,0.982,hijau,1.000,hijau,0.464,hijau,1.000
+VIPeR-048_90_2,0,merah muda,merah muda,sepakat,putih,0.420,merah muda,1.000,hitam,0.562,abu-abu,1.000
+VIPeR-054_45_1,0,merah muda,merah muda,sepakat,merah muda,0.432,ungu,1.000,hitam,0.635,hitam,1.000
+VIPeR-209_90_2,0,oranye,oranye,sepakat,cokelat,0.459,cokelat,1.000,hitam,0.593,ungu,1.000
+VIPeR-231_90_2,0,abu-abu,abu-abu,sepakat,biru,0.821,biru,1.000,hitam,0.505,hitam,1.000
+VIPeR-357_0_1,0,hijau,hijau,sepakat,hijau,0.938,hijau,1.000,hitam,0.556,hitam,1.000
+VIPeR-362_180_2,0,putih,putih,sepakat,merah,0.363,ungu,1.000,merah,0.288,cokelat,1.000
+VIPeR-374_90_1,0,merah muda,merah muda,sepakat,ungu,0.548,ungu,1.000,ungu,0.299,ungu,1.000
+VIPeR-561_0_1,0,putih,putih,sepakat,putih,0.560,putih,1.000,hitam,0.357,abu-abu,1.000
+VIPeR-591_0_1,0,hijau,hijau,sepakat,hijau,0.795,hijau,1.000,hitam,0.324,abu-abu,1.000
+VIPeR-593_135_2,0,oranye,oranye,sepakat,merah,0.775,oranye,1.000,merah,0.519,merah,1.000
+VIPeR-593_45_1,0,oranye,oranye,sepakat,oranye,0.637,oranye,1.000,biru,0.303,merah muda,1.000
+VIPeR-613_180_2,0,biru,biru,sepakat,biru,0.719,biru,1.000,hitam,0.812,hitam,1.000
+VIPeR-640_45_1,0,cokelat,cokelat,sepakat,hitam,1.000,hitam,1.000,hitam,0.992,hitam,1.000
+VIPeR-673_180_2,0,ungu,ungu,sepakat,ungu,0.909,ungu,1.000,hitam,0.621,ungu,1.000
+VIPeR-696_180_2,0,kuning,kuning,sepakat,abu-abu,0.615,abu-abu,1.000,hitam,0.707,hitam,1.000
+VIPeR-708_180_2,0,hijau,hijau,sepakat,hitam,0.451,hitam,1.000,hitam,0.537,hitam,1.000
+VIPeR-715_135_2,0,cokelat,cokelat,sepakat,hitam,0.897,abu-abu,1.000,abu-abu,0.558,abu-abu,1.000
+VIPeR-737_0_1,0,putih,putih,sepakat,abu-abu,0.977,abu-abu,1.000,hitam,0.559,abu-abu,1.000
+VIPeR-737_180_2,0,putih,putih,sepakat,putih,0.884,putih,1.000,hitam,0.535,abu-abu,1.000
+VIPeR-817_0_1,0,hijau,hijau,sepakat,hijau,0.649,hijau,1.000,hijau,0.694,hijau,1.000
+VIPeR-821_180_2,0,hijau,hijau,sepakat,biru,0.623,biru,1.000,hitam,0.817,hitam,1.000
+VIPeR-831_0_1,0,merah,merah,sepakat,hitam,0.991,hitam,1.000,hitam,0.996,hitam,1.000
+VIPeR-851_0_1,0,hitam,hitam,sepakat,hitam,0.956,hitam,1.000,hitam,0.925,hitam,1.000
+VIPeR-865_180_2,0,biru,biru,sepakat,biru,1.000,biru,1.000,biru,0.866,biru,1.000
+VIPeR-866_0_1,0,kuning,kuning,sepakat,cokelat,0.897,cokelat,1.000,cokelat,0.560,cokelat,1.000
+VIPeR-866_180_2,0,kuning,kuning,sepakat,hitam,0.891,hitam,1.000,hitam,0.573,hitam,1.000

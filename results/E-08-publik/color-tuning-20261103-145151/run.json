@@ -1,0 +1,239 @@
+{
+ "note": "PETA publik, split tuning (amandemen kedua C)",
+ "split": "tuning",
+ "model": "yolo26n-pose",
+ "conf": 0.1,
+ "imgsz": 640,
+ "model_file": {
+  "file": "models/yolo26n-pose.pt",
+  "sha256": "eb3bb8268828aeaf515cec23a4bfafd793944a86fe9af94ba7823609c14522a9",
+  "sha256_expected": "eb3bb8268828aeaf515cec23a4bfafd793944a86fe9af94ba7823609c14522a9",
+  "release_tag": "v8.4.0"
+ },
+ "colors_file": {
+  "file": "models/color_names_w2c.npy",
+  "sha256": "ad16540fe280bb07abec27db5d66df2b97e03cd9f02297d8633a0d0e54120011",
+  "sha256_expected": "ad16540fe280bb07abec27db5d66df2b97e03cd9f02297d8633a0d0e54120011"
+ },
+ "dataset": {
+  "path": "D:/SKRIPSI/data-publik/e08",
+  "manifest_sha256": "91b7d67ed7e29993bc00894627fc734e1b280256a3b8746099c554663a5796b5",
+  "labels_sha256": [
+   "68964f5d17e561ddd5bf01677777dea571ff1248442bdb6d4b92d0959d34592a",
+   "68964f5d17e561ddd5bf01677777dea571ff1248442bdb6d4b92d0959d34592a"
+  ],
+  "n_frame": 332
+ },
+ "packages": {
+  "ultralytics": "8.4.178",
+  "opencv-python": "5.0.0.93",
+  "numpy": "2.5.4"
+ },
+ "environment": {
+  "python": "3.13.7",
+  "torch": "2.14.1+cpu",
+  "torch_num_threads": 14,
+  "sentence_transformers": "6.1.0",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+  "cpu_count_logical": 20,
+  "power": {
+   "source": "ac",
+   "battery_percent": 100,
+   "battery_saver": false
+  },
+  "power_plan": {
+   "guid": "bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b",
+   "name": "ASUS Recommended",
+   "raw": "Power Scheme GUID: bac9a61f-7b61-4dac-8c43-8fc6f1e49e6b  (ASUS Recommended)"
+  },
+  "git_commit": "a58a534bbaf7bd512fcdb4faa7b57a5fdc76a373",
+  "git_dirty": true
+ },
+ "started_at": "20261103-145151",
+ "experiment": "E-08",
+ "rule": "Aturan E-08 (docs/E-08.md, 18 Okt 2026, amandemen 1): kombinasi region x {lut_vote, lut_mean} dengan macro-F1 tertinggi (tanpa min_majority; seri -> akurasi, lalu keypoint_torso + lut_vote); lalu, hanya bila pemenang lut_vote, min_majority {0,5; 0,6; 0,7}: presisi (benar / disebut warna) tertinggi, seri -> nilai lebih kecil. lut_mean: sweep dilewati, cakupan 100 %. Cakupan selalu dilaporkan.",
+ "amendment": "amandemen 1 E-08 (18 Okt 2026): HsvRuleNamer dihapus, lut_vote vs lut_mean",
+ "labels": [
+  "hitam",
+  "biru",
+  "cokelat",
+  "abu-abu",
+  "hijau",
+  "oranye",
+  "merah muda",
+  "ungu",
+  "merah",
+  "putih",
+  "kuning"
+ ],
+ "region_values": {
+  "box_upper.top": 0.35,
+  "box_upper.bottom": 0.65,
+  "box_upper.side": 0.25,
+  "keypoint_torso.min_kp_conf": 0.5,
+  "keypoint_torso.shrink": 0.15,
+  "keypoint_torso.torso_aspect": 1.2
+ },
+ "region_values_source": "nilai coba SDD bagian 12 (docs/E-08.md)",
+ "match_iou": 0.5,
+ "metric": "prediksi = warna teratas tanpa min_majority; macro-F1 atas gabungan label benar dan prediksi; area tanpa piksel = tanpa prediksi (salah)",
+ "agreement": {
+  "kappa": 1.0,
+  "n_dinilai_keduanya": 332,
+  "n_sepakat": 332,
+  "n_tidak_sepakat": 0,
+  "n_hanya_penilai1": 0,
+  "n_hanya_penilai2": 0,
+  "n_sepakat_tidak_terdeteksi": 82
+ },
+ "summary": [
+  {
+   "region": "keypoint_torso",
+   "metode": "lut_vote",
+   "n": 250,
+   "akurasi": "0.4640",
+   "macro_f1": "0.4828",
+   "n_tanpa_prediksi": 0
+  },
+  {
+   "region": "keypoint_torso",
+   "metode": "lut_mean",
+   "n": 250,
+   "akurasi": "0.4560",
+   "macro_f1": "0.4777",
+   "n_tanpa_prediksi": 0
+  },
+  {
+   "region": "box_upper",
+   "metode": "lut_vote",
+   "n": 250,
+   "akurasi": "0.3480",
+   "macro_f1": "0.3694",
+   "n_tanpa_prediksi": 0
+  },
+  {
+   "region": "box_upper",
+   "metode": "lut_mean",
+   "n": 250,
+   "akurasi": "0.3400",
+   "macro_f1": "0.3531",
+   "n_tanpa_prediksi": 0
+  }
+ ],
+ "decision": {
+  "region": "keypoint_torso",
+  "method": "lut_vote",
+  "min_majority": 0.7,
+  "coverage": null,
+  "reasons": [
+   "macro-F1 tertinggi: keypoint_torso_lut_vote (0.4828)"
+  ]
+ },
+ "min_majority_sweep": [
+  {
+   "min_majority": 0.5,
+   "n": 250,
+   "disebut": 216,
+   "benar": 111,
+   "presisi": 0.5138888888888888,
+   "cakupan": 0.864
+  },
+  {
+   "min_majority": 0.6,
+   "n": 250,
+   "disebut": 185,
+   "benar": 101,
+   "presisi": 0.5459459459459459,
+   "cakupan": 0.74
+  },
+  {
+   "min_majority": 0.7,
+   "n": 250,
+   "disebut": 160,
+   "benar": 90,
+   "presisi": 0.5625,
+   "cakupan": 0.64
+  }
+ ],
+ "area_grid": {
+  "amendment": "docs/AMANDEMEN-2026-11-03.md bagian C",
+  "grid": {
+   "keypoint_torso.min_kp_conf": [
+    0.3,
+    0.5,
+    0.7
+   ],
+   "keypoint_torso.shrink": [
+    0.1,
+    0.15,
+    0.2
+   ],
+   "keypoint_torso.torso_aspect": [
+    1.0,
+    1.2,
+    1.4
+   ],
+   "box_upper.top": [
+    0.3,
+    0.35,
+    0.4
+   ],
+   "box_upper.bottom": [
+    0.6,
+    0.65,
+    0.7
+   ],
+   "box_upper.side": [
+    0.2,
+    0.25,
+    0.3
+   ]
+  },
+  "stages": [
+   "2a",
+   "2b"
+  ],
+  "n_combinations": 54,
+  "values": {
+   "box_upper.top": 0.35,
+   "box_upper.bottom": 0.65,
+   "box_upper.side": 0.2,
+   "keypoint_torso.min_kp_conf": 0.3,
+   "keypoint_torso.shrink": 0.2,
+   "keypoint_torso.torso_aspect": 1.2
+  },
+  "unswept": {
+   "2a": [],
+   "2b": []
+  },
+  "min_majority_sweep": [
+   {
+    "min_majority": 0.5,
+    "n": 250,
+    "disebut": 221,
+    "benar": 112,
+    "presisi": 0.5067873303167421,
+    "cakupan": 0.884
+   },
+   {
+    "min_majority": 0.6,
+    "n": 250,
+    "disebut": 193,
+    "benar": 101,
+    "presisi": 0.5233160621761658,
+    "cakupan": 0.772
+   },
+   {
+    "min_majority": 0.7,
+    "n": 250,
+    "disebut": 160,
+    "benar": 93,
+    "presisi": 0.58125,
+    "cakupan": 0.64
+   }
+  ],
+  "min_majority": 0.7,
+  "min_kp_conf_for_e07": 0.3
+ }
+}

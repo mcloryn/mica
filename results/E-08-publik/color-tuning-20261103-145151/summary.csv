@@ -1,0 +1,5 @@
+﻿region,metode,n,akurasi,macro_f1,n_tanpa_prediksi
+keypoint_torso,lut_vote,250,0.4640,0.4828,0
+keypoint_torso,lut_mean,250,0.4560,0.4777,0
+box_upper,lut_vote,250,0.3480,0.3694,0
+box_upper,lut_mean,250,0.3400,0.3531,0

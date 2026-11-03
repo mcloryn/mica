@@ -1,0 +1,12 @@
+﻿label_benar,hitam,biru,cokelat,abu-abu,hijau,oranye,merah muda,ungu,merah,putih,kuning,(tanpa prediksi)
+hitam,23,0,0,0,2,0,0,0,0,0,0,0
+biru,12,5,2,2,1,0,0,0,0,0,0,0
+cokelat,5,0,6,8,3,0,0,0,0,0,0,0
+abu-abu,12,0,1,6,3,0,0,0,0,0,0,0
+hijau,8,0,2,13,5,0,0,0,0,0,0,0
+oranye,4,1,5,2,0,3,0,0,2,0,0,0
+merah muda,8,0,1,6,0,0,6,2,1,0,0,0
+ungu,9,0,0,8,0,0,0,10,2,0,0,0
+merah,5,0,0,1,2,0,1,0,7,0,0,0
+putih,9,0,0,4,2,0,0,0,1,6,0,0
+kuning,7,0,5,0,1,0,0,0,0,0,10,0
