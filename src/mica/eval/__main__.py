@@ -21,7 +21,8 @@ python -m mica.eval vision --config <yaml> --dataset data/eval/vision/<nama>
 python -m mica.eval vision-scenarios --config <yaml> --dataset data/eval/vision_scenarios/<nama>
     --model <pemenang> [--conf <terpilih>] [--grid default] [--out results/E-07]
 python -m mica.eval color --config <yaml> --dataset data/eval/vision/<nama> [--labels colors.csv]
-    [--labels2 colors_rater2.csv] [--out results/E-08]   (docs/E-08.md)
+    [--labels2 colors_rater2.csv] [--out results/E-08] [--area-grid]   (docs/E-08.md;
+    --area-grid: docs/AMANDEMEN-2026-11-03.md bagian C)
 python -m mica.eval annotation --run <folder run generation> [--compare-saran]
     (ringkasan anotasi halusinasi; --compare-saran: jumlah identik dengan saran Claude)
 python -m mica.eval labels --run <folder run generation>
@@ -257,6 +258,8 @@ def build_parser() -> argparse.ArgumentParser:
     col.add_argument("--out", type=Path, default=Path("results/E-08"))
     col.add_argument("--models-dir", type=Path, default=Path("models"))
     col.add_argument("--note", help="catatan di run.json, mis. 'sintetis, bukan hasil E-08'")
+    col.add_argument("--area-grid", action="store_true",
+                     help="grid area baju tahap 2a/2b/3 (docs/AMANDEMEN-2026-11-03.md C)")  # fmt: skip
 
     ann = sub.add_parser("annotation", help="E-02/E-04: tingkat halusinasi + CI 95%% Wilson")
     ann.add_argument("--run", type=Path, required=True, help="folder run generation")
@@ -606,8 +609,11 @@ def cmd_color(args: argparse.Namespace) -> int:
         "started_at": stamp,
     }
     predictor = ev.ultralytics_predictor(path, conf, settings.vision.imgsz)
-    ec.run_color(frames, first, second, predictor, regions, namers, run_dir, info)
+    ec.run_color(frames, first, second, predictor, regions, namers, run_dir, info,
+                 area_region=make_region if args.area_grid else None)  # fmt: skip
     print((run_dir / "verdict.md").read_text(encoding="utf-8"))
+    if (run_dir / "area_verdict.md").is_file():
+        print((run_dir / "area_verdict.md").read_text(encoding="utf-8"))
     print(f"tersimpan: {run_dir.as_posix()}")
     return 0
 
