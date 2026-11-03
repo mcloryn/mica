@@ -270,10 +270,15 @@ pengaman, misalnya saat kamera mati atau baru restart (SDD 7.1, paragraf restart
 **Nilai.** Nilai keputusan desain pemilik proyek, tidak di-sweep, dan diungkap di Bab 3 sebagai
 bukan hasil ukur.
 
-> **Angka belum diisi.** Keputusan 6 merujuk ke "nilai dari draf", tetapi draf PROD-3 (Opsi 2)
-> tidak memuat angka. Pemilik proyek perlu menetapkan angkanya. Karena nilai ini keputusan desain
-> dan tidak dipilih dari data, angkanya boleh diisi kemudian lewat catatan bertanggal di sini,
-> asalkan diisi sebelum log uji pengguna Tahap 2 dibuka.
+idle_reset_s = 120 detik (nilai keputusan desain pemilik proyek, 3 November 2026, ditetapkan
+sebelum log uji Tahap 2 dibuka). Dasar: sesi normal sudah berakhir lewat PersonLeft +
+vision.leave_s, jadi idle_reset_s hanya jaring pengaman ketika kamera tidak melihat pengunjung
+pergi. Nilainya harus cukup panjang untuk membaca jawaban dan mengetik pertanyaan berikutnya
+(kecepatan baca senyap orang dewasa rata-rata sekitar 238 kata per menit, Brysbaert 2019, Journal
+of Memory and Language 109:104047, sehingga jawaban 100 kata dibaca sekitar 25 detik), tetapi
+cukup pendek supaya percakapan pengunjung sebelumnya tidak lama tampil untuk pengunjung berikutnya
+(privasi). Log uji Tahap 2 hanya dipakai untuk validasi: jeda antar-giliran terpanjang
+dilaporkan, dan nilainya tidak diubah.
 
 **Validasi setelah uji pengguna Tahap 2.** Validasi ini tidak mengubah nilai.
 

@@ -175,10 +175,14 @@ def test_check_prod_nulls_listed_by_key(tmp_path, locked, monkeypatch):
     rows, settings = _run(tmp_path, PROD_YAML, monkeypatch)
     config_row = rows[0]
     assert config_row.status == "GAGAL"
-    for key in ("audio.vad.threshold", "session.idle_reset_s", "vision.conf"):
+    assert "20 kunci belum diisi" in config_row.message  # PROD-5
+    for key in ("audio.vad.threshold", "vision.min_shoulder_ratio", "vision.conf"):
         assert key in config_row.message
     for key in ("kb.embedder.revision", "llm.chain[0]", "rag.gate.threshold"):  # PROD-2: terisi
         assert key not in config_row.message
+    for key in ("session.idle_reset_s", "vision.presence_signal", "vision.min_box_height_ratio",
+                "audio.vad.min_silence_ms"):  # fmt: skip
+        assert key not in config_row.message  # PROD-5: nilai desain
     assert settings is not None and check.failed(rows)
 
 
