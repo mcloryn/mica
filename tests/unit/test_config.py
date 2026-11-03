@@ -198,10 +198,19 @@ def test_current_prod_yaml_rejected():
     assert exc.value.code == CFG_INVALID
     message = str(exc.value)
     # PROD-2: kunci RAG/LLM terisi dari Tahap 1; kunci suara/vision/E-09 masih TBD
-    for field in ("audio.vad.threshold", "vision.conf", "vision.fps_busy", "session.idle_reset_s"):
+    for field in ("audio.vad.threshold", "vision.conf", "vision.fps_busy"):
         assert field in message
-    for field in PROD2_RAG_LLM_KEYS:
+    for field in (*PROD2_RAG_LLM_KEYS, *PROD5_DESIGN_KEYS):
         assert field not in message
+
+
+# PROD-5: nilai keputusan desain AMANDEMEN-2026-11-03; min_box_height_ratio tidak wajib lagi
+PROD5_DESIGN_KEYS = (
+    "audio.vad.min_silence_ms",
+    "vision.presence_signal",
+    "vision.min_box_height_ratio",
+    "session.idle_reset_s",
+)
 
 
 PROD2_RAG_LLM_KEYS = (
@@ -663,10 +672,15 @@ def test_unused_signal_threshold_optional_in_prod(tmp_path):
     assert "vision.min_shoulder_ratio" in str(exc.value)
 
 
-def test_prod_yaml_vision_uses_pose_and_signal_is_tbd():
-    raw = yaml.safe_load(PROD_YAML.read_text(encoding="utf-8"))["vision"]
-    assert (raw["model"], raw["region"]) == ("yolo26n-pose", "keypoint_torso")
-    assert raw["presence_signal"] is None and raw["min_shoulder_ratio"] is None
+def test_prod_yaml_design_values_amendment_2026_11_03():
+    raw = yaml.safe_load(PROD_YAML.read_text(encoding="utf-8"))
+    vision = raw["vision"]
+    assert (vision["model"], vision["region"]) == ("yolo26n-pose", "keypoint_torso")
+    # PROD-5: presence_signal nilai desain; ambang bahu tetap TBD (E-07)
+    assert vision["presence_signal"] == "shoulder_width" and vision["min_shoulder_ratio"] is None
+    assert vision["min_box_height_ratio"] is None
+    assert raw["audio"]["vad"]["min_silence_ms"] == 500
+    assert raw["session"]["idle_reset_s"] == 120
 
 
 def test_dev_yaml_presence_signal_shoulder_width():

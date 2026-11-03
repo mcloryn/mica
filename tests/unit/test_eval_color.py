@@ -256,3 +256,139 @@ def test_cli_color_refused_in_prod(tmp_path, monkeypatch, capsys):
     code = cli.main(["color", "--config", "x", "--dataset", str(tmp_path)])
     assert code == 2
     assert "mode prod" in capsys.readouterr().err
+
+
+# --- grid area baju (PROD-5, docs/AMANDEMEN-2026-11-03.md bagian C) -----------------------
+
+
+def kp_person(shoulders, hips, conf=0.9, hip_conf=None, box=(10.0, 10.0, 90.0, 90.0)):
+    kp = np.zeros((17, 3))
+    kp[5], kp[6] = (*shoulders[0], conf), (*shoulders[1], conf)
+    hc = conf if hip_conf is None else hip_conf
+    kp[11], kp[12] = (*hips[0], hc), (*hips[1], hc)
+    return PersonTrack(0, box, 0.9, kp)
+
+
+def area_run(images, people, true, winner=("keypoint_torso", "lut_vote"), namer=None):
+    frames = [ev.VisionFrame(fid, Path(f"{fid}.png"), Path(f"{fid}.txt"), "R01", "terang",
+                             "dekat") for (fid, _track), _p in people]  # fmt: skip
+    namers = {"lut_vote": namer or ChannelNamer(), "lut_mean": namer or ChannelNamer()}
+    return ec.run_area_grid(ec.ComboRow(*winner, len(people)), namers, frames, dict(people),
+                            true, images, make_region)  # fmt: skip
+
+
+def test_area_grid_shrink_chosen_from_data_and_unused_keys_stay_trial():
+    # torso 30..70; merah hanya 41..59: shrink 0,20 (38..62) merah 56 %, 0,15 dan 0,10 biru
+    def images(frame):
+        img = np.zeros((100, 100, 3), np.uint8)
+        img[30:70, 30:70] = BGR["biru"]
+        img[41:59, 41:59] = BGR["merah"]
+        return img
+
+    p = kp_person(((30, 30), (70, 30)), ((30, 70), (70, 70)))
+    keys = [(f"f{i}", 0) for i in range(3)]
+    result = area_run(images, [(k, p) for k in keys], dict.fromkeys(keys, "merah"))
+    assert len(result.rows) == 27 + 27
+    assert result.values["keypoint_torso.shrink"] == 0.20
+    # min_kp_conf seri (conf 0,9) -> nilai coba; torso_aspect dan box_upper tanpa item -> nilai coba
+    assert result.values["keypoint_torso.min_kp_conf"] == 0.5
+    assert result.unswept["2a"] == ["keypoint_torso.torso_aspect"]
+    assert result.unswept["2b"] == list(ec.STAGE_2B)
+    assert all(result.values[k] == ec.TRIAL_VALUES[k] for k in ec.STAGE_2B)
+    assert result.winners["2a"].accuracy == 1.0 and result.min_majority is not None
+    assert "Untuk E-07 bagian 2: --min-kp-conf 0.5" in ec.area_verdict(result)
+
+
+def test_area_grid_min_kp_conf_and_fallback_counts():
+    # keypoint conf 0,6: min_kp_conf 0,7 jatuh ke cadangan box_upper (hijau) -> salah
+    def images(frame):
+        img = np.zeros((100, 100, 3), np.uint8)
+        img[10:90, 10:90] = BGR["hijau"]
+        img[20:45, 20:50] = BGR["merah"]
+        return img
+
+    p = kp_person(((20, 20), (50, 20)), ((20, 45), (50, 45)), conf=0.6)
+    keys = [("f1", 0), ("f2", 0)]
+    result = area_run(images, [(k, p) for k in keys], dict.fromkeys(keys, "merah"))
+    rows_07 = [r for r in result.rows if r.stage == "2a"
+               and r.values["keypoint_torso.min_kp_conf"] == 0.7]  # fmt: skip
+    assert all(r.sources["fallback"] == 2 and r.accuracy == 0.0 for r in rows_07)
+    assert result.values["keypoint_torso.min_kp_conf"] == 0.5
+    assert result.winners["2a"].sources["keypoint"] == 2
+
+
+def test_area_grid_box_upper_region_runs_only_stage_2b():
+    # box 10..90 (tinggi 80); biru di y < 47, merah di bawahnya. Label biru: hanya top 0,30 +
+    # bottom 0,60 (baris 34..58: biru 13, merah 11) yang benar
+    def images(frame):
+        img = np.zeros((100, 100, 3), np.uint8)
+        img[10:47, 10:90] = BGR["biru"]
+        img[47:90, 10:90] = BGR["merah"]
+        return img
+
+    p = kp_person(((30, 30), (70, 30)), ((30, 70), (70, 70)))
+    keys = [("f1", 0)]
+    result = area_run(images, [(keys[0], p)], {keys[0]: "biru"}, winner=("box_upper", "lut_mean"))
+    assert list(result.winners) == ["2b"] and len(result.rows) == 27
+    assert (result.values["box_upper.top"], result.values["box_upper.bottom"]) == (0.30, 0.60)
+    assert result.values["box_upper.side"] == 0.25  # seri -> nilai coba
+    assert result.min_majority_sweep == [] and result.min_majority is None  # lut_mean
+    verdict = ec.area_verdict(result)
+    assert "Tahap 3 dilewati" in verdict and "--min-kp-conf 0.5" in verdict
+
+
+def _area_row(values, f1=0.5, acc=0.5, stage="2b"):
+    return ec.AreaRow(stage, {**ec.TRIAL_VALUES, **values}, 4, acc, f1, 0, {"box": 4}, [])
+
+
+def test_area_rule_order_and_tiebreaks():
+    a = _area_row({"box_upper.top": 0.40}, f1=0.6, acc=0.1)
+    b = _area_row({}, f1=0.5, acc=0.9)
+    assert ec.choose_area([b, a], "2b")[0] is a  # macro-F1 dulu
+    c = _area_row({"box_upper.top": 0.40}, acc=0.6)
+    d = _area_row({}, acc=0.5)
+    assert ec.choose_area([d, c], "2b")[0] is c  # lalu akurasi
+    e = _area_row({"box_upper.top": 0.30, "box_upper.side": 0.30})
+    f = _area_row({"box_upper.top": 0.40})
+    assert ec.choose_area([e, f], "2b")[0] is f  # lalu jarak ke nilai coba
+    g = _area_row({"box_upper.top": 0.40})
+    h = _area_row({"box_upper.top": 0.30})
+    assert ec.choose_area([g, h], "2b")[0] is h  # lalu nilai lebih kecil
+
+
+def test_cli_color_area_grid_with_fakes(tmp_path, monkeypatch, capsys):
+    import mica.vision.color as vc
+
+    root = make_dataset(tmp_path / "ds", COLORS)
+    for name in ("colors.csv", "colors_rater2.csv"):
+        rows = "".join(f"{fid},0,{c}\n" for fid, c in COLORS.items())
+        (root / name).write_text("frame,track,color_label\n" + rows, encoding="utf-8")
+    models = tmp_path / "models"
+    models.mkdir()
+    (models / "yolo26n-pose.pt").write_bytes(b"x")
+    (models / "color_names_w2c.npy").write_bytes(b"x")
+    monkeypatch.setattr(ev, "ultralytics_predictor", lambda *a: lambda img: [person()])
+    monkeypatch.setattr(ev, "read_image", lambda path: image_for(COLORS)(
+        type("F", (), {"id": Path(path).stem})()))  # fmt: skip
+    monkeypatch.setattr(vc.ColorNamesLut, "load", classmethod(lambda cls, p, m: ChannelNamer()))
+    code = cli.main(["color", "--config", str(DEV_YAML), "--dataset", str(root),
+                     "--models-dir", str(models), "--out", str(tmp_path / "res"),
+                     "--area-grid"])  # fmt: skip
+    captured = capsys.readouterr()
+    assert code == 0, captured.err
+    assert "Untuk E-07 bagian 2: --min-kp-conf" in captured.out
+    run_dir = next((tmp_path / "res").iterdir())
+    grid = (run_dir / "area_grid.csv").read_text(encoding="utf-8-sig").splitlines()
+    assert len(grid) == 1 + 27 + 27
+    run = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
+    assert run["area_grid"]["n_combinations"] == 54
+    assert run["area_grid"]["min_kp_conf_for_e07"] in ec.AREA_GRID["keypoint_torso.min_kp_conf"]
+
+
+def test_cli_color_without_area_grid_unchanged(tmp_path):
+    frames = ev.load_frames(make_dataset(tmp_path / "ds", COLORS))
+    ec.run_color(frames, labels(COLORS), labels(COLORS), lambda img: [person()], regions(),
+                 {"lut_vote": ChannelNamer(), "lut_mean": ChannelNamer()}, tmp_path / "out", {},
+                 images=image_for(COLORS))  # fmt: skip
+    assert not (tmp_path / "out" / "area_grid.csv").exists()
+    assert "area_grid" not in json.loads((tmp_path / "out" / "run.json").read_text("utf-8"))

@@ -7,6 +7,11 @@ pasangan yang disepakati masuk akurasi. Orang diambil dari deteksi yolo26n-pose 
 menamai warnanya (warna teratas, tanpa min_majority). Pemenang macro-F1, lalu sweep
 min_majority bila pemenang lut_vote. Frame hanya di
 memori (N-08); hasil berisi angka, ID, dan label saja.
+
+--area-grid (docs/AMANDEMEN-2026-11-03.md bagian C): pada pemenang tahap 1, tahap 2a
+(min_kp_conf x shrink x torso_aspect, hanya keypoint_torso), tahap 2b (box_upper top x bottom x
+side), lalu tahap 3 (min_majority pada parameter akhir, hanya lut_vote). Deteksi dijalankan sekali
+per frame dan dipakai semua kombinasi; hasil di area_grid.csv dan area_verdict.md.
 """
 
 from __future__ import annotations
@@ -426,7 +431,10 @@ def run_color(
     run_dir: Path,
     info: dict[str, Any],
     images: Callable[[VisionFrame], np.ndarray] | None = None,
+    area_region: Callable[[str, Mapping[str, float]], ClothingRegion] | None = None,
 ) -> tuple[list[ComboRow], ComboRow | None, float | None]:
+    """area_region: bila diberi, jalankan juga grid area baju (amandemen 3 Nov 2026 bagian C)
+    pada pemenang tahap 1; region dibuat dengan fungsi ini (mica.vision.worker.make_region)."""
     from mica.eval import vision
 
     images = images or (lambda f: vision.read_image(f.file))
@@ -563,7 +571,275 @@ def run_color(
         },
         "min_majority_sweep": sweep,
     }
+    if area_region is not None and winner is not None:
+        people = match_items(frames, detected, predictor, images)
+        area = run_area_grid(winner, namers, frames, people, agree.agreed, images, area_region)
+        payload["area_grid"] = write_area_grid(run_dir, area)
     (run_dir / "run.json").write_text(
         json.dumps(payload, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
     )
     return rows, winner, chosen
+
+
+# --- grid area baju (amandemen 3 Nov 2026, bagian C: tahap 2a, 2b, 3) ---------------------
+
+AREA_AMENDMENT = "docs/AMANDEMEN-2026-11-03.md bagian C"
+# kandidat dipilih pengembang sebelum data, berpusat pada nilai coba (TRIAL_VALUES)
+AREA_GRID: dict[str, tuple[float, ...]] = {
+    "keypoint_torso.min_kp_conf": (0.3, 0.5, 0.7),
+    "keypoint_torso.shrink": (0.10, 0.15, 0.20),
+    "keypoint_torso.torso_aspect": (1.0, 1.2, 1.4),
+    "box_upper.top": (0.30, 0.35, 0.40),
+    "box_upper.bottom": (0.60, 0.65, 0.70),
+    "box_upper.side": (0.20, 0.25, 0.30),
+}
+STAGE_2A = ("keypoint_torso.min_kp_conf", "keypoint_torso.shrink", "keypoint_torso.torso_aspect")
+STAGE_2B = ("box_upper.top", "box_upper.bottom", "box_upper.side")
+SOURCES = ("keypoint", "keypoint+box", "fallback", "box", "none")
+# sumber area yang dipengaruhi tiap kunci (src/mica/vision/region.py). shrink dipakai
+# KeypointTorsoRegion._torso untuk "keypoint" dan "keypoint+box"; min_kp_conf menentukan sumber
+# sehingga selalu berpengaruh (None)
+AFFECTS: dict[str, frozenset[str] | None] = {
+    "keypoint_torso.min_kp_conf": None,
+    "keypoint_torso.shrink": frozenset({"keypoint", "keypoint+box"}),
+    "keypoint_torso.torso_aspect": frozenset({"keypoint+box"}),
+    "box_upper.top": frozenset({"fallback", "box"}),
+    "box_upper.bottom": frozenset({"fallback", "box"}),
+    "box_upper.side": frozenset({"fallback", "box"}),
+}
+AREA_FIELDS = (
+    "tahap", *AREA_GRID, "n", "akurasi", "macro_f1", "n_tanpa_prediksi",
+    *(f"n_{s}" for s in SOURCES), "jarak_nilai_coba", "pemenang",
+)  # fmt: skip
+STAGE_KEYS = {"2a": STAGE_2A, "2b": STAGE_2B}
+
+
+@dataclass
+class AreaRow:
+    stage: str
+    values: dict[str, float]  # keenam kunci area
+    n: int
+    accuracy: float
+    macro_f1: float
+    n_no_pred: int
+    sources: dict[str, int]
+    preds: list[Prediction]
+
+    def distance(self) -> int:
+        """Jumlah jarak langkah grid ke nilai coba untuk kunci tahap ini."""
+        return sum(
+            abs(AREA_GRID[k].index(self.values[k]) - AREA_GRID[k].index(TRIAL_VALUES[k]))
+            for k in STAGE_KEYS[self.stage]
+        )
+
+    def sort_key(self) -> tuple[Any, ...]:
+        """Aturan tahap 2a/2b: macro-F1 tertinggi -> akurasi -> paling dekat nilai coba ->
+        nilai lebih kecil menurut urutan kunci."""
+        keys = STAGE_KEYS[self.stage]
+        return (-self.macro_f1, -self.accuracy, self.distance(),
+                tuple(self.values[k] for k in keys))  # fmt: skip
+
+    def row(self, winner: bool) -> dict[str, Any]:
+        return {
+            "tahap": self.stage, **self.values, "n": self.n, "akurasi": f"{self.accuracy:.4f}",
+            "macro_f1": f"{self.macro_f1:.4f}", "n_tanpa_prediksi": self.n_no_pred,
+            **{f"n_{s}": self.sources.get(s, 0) for s in SOURCES},
+            "jarak_nilai_coba": self.distance(), "pemenang": int(winner),
+        }  # fmt: skip
+
+
+def stage_combos(stage: str, base: Mapping[str, float]) -> list[dict[str, float]]:
+    """Semua kombinasi kunci tahap ini (3 x 3 x 3), kunci lain dari base."""
+    import itertools
+
+    keys = STAGE_KEYS[stage]
+    return [
+        {**base, **dict(zip(keys, values, strict=True))}
+        for values in itertools.product(*(AREA_GRID[k] for k in keys))
+    ]
+
+
+def match_items(
+    frames: Sequence[VisionFrame],
+    keys: Sequence[Key],
+    predictor: Predictor,
+    images: Callable[[VisionFrame], np.ndarray],
+) -> dict[Key, PersonTrack]:
+    """Deteksi sekali per frame; (frame, track) -> deteksi yang cocok dengan kotak label."""
+    by_frame: dict[str, list[int]] = {}
+    for fid, tr in keys:
+        by_frame.setdefault(fid, []).append(tr)
+    frame_of = {f.id: f for f in frames}
+    out: dict[Key, PersonTrack] = {}
+    for fid, wanted in by_frame.items():
+        image = images(frame_of[fid])
+        h, w = image.shape[:2]
+        matched = match_people(read_yolo_labels(frame_of[fid].label_file, w, h), predictor(image))
+        out.update({(fid, tr): matched[tr] for tr in wanted if tr in matched})
+        del image  # N-08
+    return out
+
+
+def _name(namer: ColorNamer, pixels: np.ndarray | None) -> Prediction:
+    """Sama dengan predict_items: warna teratas tanpa min_majority."""
+    if pixels is None or pixels.size == 0:
+        return Prediction(None, 0.0)
+    result = namer.name(pixels)
+    top = result_from_distribution(np.asarray(result.distribution, dtype=float), 0.0,
+                                   result.pixels)  # fmt: skip
+    return Prediction(top.top, top.majority)
+
+
+def evaluate_area(
+    stage: str,
+    combos: Sequence[dict[str, float]],
+    region_name: str,
+    namer: ColorNamer,
+    frames: Sequence[VisionFrame],
+    people: Mapping[Key, PersonTrack],
+    true: Mapping[Key, str],
+    images: Callable[[VisionFrame], np.ndarray],
+    make_region: Callable[[str, Mapping[str, float]], ClothingRegion],
+) -> list[AreaRow]:
+    """Satu pembacaan gambar per frame; semua kombinasi dihitung untuk frame itu."""
+    keys = sorted(people)
+    regions = [make_region(region_name, c) for c in combos]
+    preds: list[dict[Key, Prediction]] = [{} for _ in combos]
+    sources: list[dict[str, int]] = [dict.fromkeys(SOURCES, 0) for _ in combos]
+    frame_of = {f.id: f for f in frames}
+    for fid in sorted({k[0] for k in keys}):
+        image = images(frame_of[fid])
+        for key in (k for k in keys if k[0] == fid):
+            person = people[key]
+            for i, region in enumerate(regions):
+                located = region.locate(image.shape, person)
+                sources[i][located[1] if located else "none"] += 1
+                preds[i][key] = _name(namer, region.extract(image, person))
+        del image  # N-08
+    labels = [true[k] for k in keys]
+    rows = []
+    for combo, pred, src in zip(combos, preds, sources, strict=True):
+        tops = [pred[k].top for k in keys]
+        rows.append(AreaRow(stage, dict(combo), len(keys), accuracy(labels, tops),
+                            macro_f1(labels, tops), sum(t is None for t in tops), src,
+                            [pred[k] for k in keys]))  # fmt: skip
+    return rows
+
+
+def unswept_keys(rows: Sequence[AreaRow], stage: str) -> list[str]:
+    """Kunci yang sumber areanya 0 item di semua kombinasi tahap ini (bila data kurang)."""
+    out = []
+    for k in STAGE_KEYS[stage]:
+        affected = AFFECTS[k]
+        if affected is None:
+            continue
+        if all(sum(r.sources.get(s, 0) for s in affected) == 0 for r in rows):
+            out.append(k)
+    return out
+
+
+def choose_area(rows: Sequence[AreaRow], stage: str) -> tuple[AreaRow, list[str]]:
+    """Pemenang tahap; kunci tanpa data dikunci pada nilai coba (bukan dipilih dari data)."""
+    fixed = unswept_keys(rows, stage)
+    allowed = [r for r in rows if all(r.values[k] == TRIAL_VALUES[k] for k in fixed)]
+    return min(allowed, key=lambda r: r.sort_key()), fixed
+
+
+@dataclass
+class AreaResult:
+    region: str
+    method: str
+    values: dict[str, float]
+    rows: list[AreaRow]
+    unswept: dict[str, list[str]]
+    min_majority_sweep: list[dict[str, Any]]
+    min_majority: float | None
+    winners: dict[str, AreaRow]
+
+
+def run_area_grid(
+    winner: ComboRow,
+    namers: Mapping[str, ColorNamer],
+    frames: Sequence[VisionFrame],
+    people: Mapping[Key, PersonTrack],
+    true: Mapping[Key, str],
+    images: Callable[[VisionFrame], np.ndarray],
+    make_region: Callable[[str, Mapping[str, float]], ClothingRegion],
+) -> AreaResult:
+    """Tahap 2a (hanya keypoint_torso), 2b, lalu 3 (min_majority, hanya lut_vote)."""
+    namer = namers[winner.method]
+    values = dict(TRIAL_VALUES)
+    rows: list[AreaRow] = []
+    unswept: dict[str, list[str]] = {}
+    winners: dict[str, AreaRow] = {}
+    stages = ["2a", "2b"] if winner.region == "keypoint_torso" else ["2b"]
+    for stage in stages:
+        stage_rows = evaluate_area(stage, stage_combos(stage, values), winner.region, namer,
+                                   frames, people, true, images, make_region)  # fmt: skip
+        best, fixed = choose_area(stage_rows, stage)
+        values = dict(best.values)
+        rows += stage_rows
+        unswept[stage] = fixed
+        winners[stage] = best
+    final = winners[stages[-1]]
+    labels = [true[k] for k in sorted(people)]
+    sweep = sweep_min_majority(labels, final.preds) if winner.method == "lut_vote" else []
+    return AreaResult(winner.region, winner.method, values, rows, unswept, sweep,
+                      select_min_majority(sweep) if sweep else None, winners)  # fmt: skip
+
+
+def area_verdict(result: AreaResult) -> str:
+    lines = [
+        "# E-08 grid area baju (tahap 2a, 2b, 3)",
+        "",
+        f"Aturan: {AREA_AMENDMENT}. Region {result.region}, metode {result.method} (tahap 1).",
+        (
+            "Tahap 2a/2b: macro-F1 tertinggi -> akurasi -> paling dekat nilai coba -> nilai lebih "
+            "kecil. Kandidat dipilih pengembang sebelum data, berpusat pada nilai coba."
+        ),
+        "",
+    ]
+    for stage, best in result.winners.items():
+        fixed = result.unswept.get(stage) or []
+        note = f"; tidak di-sweep (0 item): {', '.join(fixed)}" if fixed else ""
+        lines.append(
+            f"- tahap {stage}: macro-F1 {best.macro_f1:.4f}, akurasi {best.accuracy:.4f}{note}"
+        )
+    lines += ["", "Nilai terpilih:", ""]
+    lines += [f"- vision.{k} = {result.values[k]:g}" for k in AREA_GRID]
+    if result.method == "lut_vote":
+        lines += ["", "Tahap 3 min_majority (parameter akhir):", "",
+                  "| min_majority | disebut | benar | presisi | cakupan |",
+                  "| --- | --- | --- | --- | --- |"]  # fmt: skip
+        for s in result.min_majority_sweep:
+            lines.append(f"| {s['min_majority']} | {s['disebut']} | {s['benar']} | "
+                         f"{_f(s['presisi']) or '-'} | {_f(s['cakupan']) or '-'} |")  # fmt: skip
+        mm = result.min_majority
+        lines += ["", f"- vision.color.min_majority = {'-' if mm is None else mm}"]
+    else:
+        lines += ["", "Tahap 3 dilewati (lut_mean, amandemen 1 E-08)."]
+    if "2a" in result.winners:
+        kp = result.values["keypoint_torso.min_kp_conf"]
+        lines += ["", f"Untuk E-07 bagian 2: --min-kp-conf {kp:g}"]
+    else:
+        lines += ["", ("Tahap 2a tidak dijalankan (region box_upper): E-07 bagian 2 memakai "
+                  "--min-kp-conf 0.5")]  # fmt: skip
+    return "\n".join(lines) + "\n"
+
+
+def write_area_grid(run_dir: Path, result: AreaResult) -> dict[str, Any]:
+    """area_grid.csv (satu baris per kombinasi), area_verdict.md; kembalikan isi run.json."""
+    rows = [r.row(r is result.winners[r.stage]) for r in result.rows]
+    _write_csv(Path(run_dir) / "area_grid.csv", rows, list(AREA_FIELDS))
+    (Path(run_dir) / "area_verdict.md").write_text(area_verdict(result), encoding="utf-8")
+    return {
+        "amendment": AREA_AMENDMENT,
+        "grid": {k: list(v) for k, v in AREA_GRID.items()},
+        "stages": list(result.winners),
+        "n_combinations": len(result.rows),
+        "values": result.values,
+        "unswept": result.unswept,
+        "min_majority_sweep": result.min_majority_sweep,
+        "min_majority": result.min_majority,
+        "min_kp_conf_for_e07": result.values["keypoint_torso.min_kp_conf"],
+    }
