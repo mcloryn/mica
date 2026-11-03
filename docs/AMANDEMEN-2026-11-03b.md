@@ -165,3 +165,19 @@ dilihat.
 3. **MUSAN.** 57 dari 100 klip MUSAN terpilih aslinya lebih pendek dari 10 detik. Klip itu
    dipakai dengan panjang aslinya, tanpa ditambah diam. Daftarnya tercatat di `musan.json`
    (`shorter_than_clip_s`).
+
+## Catatan kelima 3 November 2026 (hitung ulang diagnostik, tanpa perubahan setelan)
+
+Ditulis sebelum hitung ulang dijalankan.
+
+- **Alasan.** Run LAPORAN E-08 pertama (`results/E-08-publik/color-laporan-20261103-145225`) hanya
+  menyimpan jumlah per warna, tanpa tebakan per gambar dan tanpa confusion matrix. Alat diubah
+  supaya laporan juga menyimpan `per_item.csv` dan `confusion.csv`.
+- **Hitung ulang.** LAPORAN dijalankan sekali lagi dengan run tuning yang sama
+  (`color-tuning-20261103-145151`), data yang sama, model yang sama, dan tanpa perubahan setelan
+  apa pun.
+- **Syarat.** Angka per warna, jumlah terdeteksi, jumlah benar, dan hitungan min_majority run
+  kedua harus identik dengan run pertama. Bila ada yang berbeda, proses berhenti dan perbedaannya
+  dilaporkan.
+- **Status.** Run pertama tetap menjadi angka resmi Bab 4. Run kedua hanya dipakai untuk
+  diagnosis: confusion matrix dan tebakan per gambar.
