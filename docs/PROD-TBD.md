@@ -48,40 +48,40 @@ Sebelum PROD-2, llm.chain[0] dan llm.chain[1] di `config/prod.yaml` berisi teks 
 
 | Kunci | Eksperimen (SDD 12) | config/dev.yaml | Config uji Tahap 1 | Protokol pra-registrasi | Data yang dibutuhkan | Sendiri? |
 |---|---|---|---|---|---|---|
-| audio.stt.threads | E-05 dan E-09 | null (bawaan library, 4 di laptop dev) | null (tidak dipakai) | docs/E-05.md (cdaede3, 17 Okt 2026; amandemen 1 di 5697a05): kandidat `--threads 2,4`. docs/E-09.md (bfb2580): grid {2, 4}. | Rekaman suara N orang (N masih TBD) dan sesi E-09 | sebagian: alat dan pilot bisa dijalankan sendiri, tetapi angka resmi butuh relawan dan laptop setara laptop PMB |
-| audio.stt.no_speech_threshold | E-05 | null (nilai coba 0,6 lewat CLI) | null (tidak dipakai) | docs/E-05.md. Tidak ada aturan pilih atau grid; "Nilai VAD dan penyaring masih TBD". | Rekaman `diam` dan `bising` dari N orang | sebagian: rekaman diam dan bising bisa dibuat sendiri, tetapi aturan pilihnya belum ada |
-| audio.vad.threshold | E-05 | null (nilai coba 0,5) | null (tidak dipakai) | docs/E-05.md. Tidak ada aturan pilih atau grid. | Rekaman suara N orang | sebagian: aturan pilih belum ada, data resmi butuh relawan |
-| audio.vad.min_silence_ms | E-05 | null (nilai coba 500) | null (tidak dipakai) | docs/E-05.md amandemen 1: hanya dipakai mode `vad`. Prod memakai `push_to_talk`. | Rekaman suara (hanya untuk mode `vad`) | sebagian: tidak berpengaruh di mode prod sekarang |
-| audio.vad.min_speech_ms | E-05 | null (nilai coba 250) | null (tidak dipakai) | docs/E-05.md. Tidak ada aturan pilih atau grid. | Rekaman suara N orang | sebagian |
-| audio.max_utterance_s | E-05 | null (nilai coba 15, tanpa sumber) | null (tidak dipakai) | docs/E-05.md. Tidak ada aturan pilih atau grid. | Rekaman suara N orang | sebagian |
+| audio.stt.threads **Status PROD-4: Tidak diubah PROD-4 (grid E-09 {2, 4}; dikunci null bila groq_whisper)** | E-05 dan E-09 | null (bawaan library, 4 di laptop dev) | null (tidak dipakai) | docs/E-05.md (cdaede3, 17 Okt 2026; amandemen 1 di 5697a05): kandidat `--threads 2,4`. docs/E-09.md (bfb2580): grid {2, 4}. | Rekaman suara N orang (N masih TBD) dan sesi E-09 | sebagian: alat dan pilot bisa dijalankan sendiri, tetapi angka resmi butuh relawan dan laptop setara laptop PMB |
+| audio.stt.no_speech_threshold **Status PROD-4: Di-sweep {0,4; 0,6; 0,8}; aturan berurutan (PROD-4)** | E-05 (AMANDEMEN-2026-11-03 A1) | null (nilai coba 0,6 lewat CLI) | null (tidak dipakai) | docs/E-05.md. Tidak ada aturan pilih atau grid; "Nilai VAD dan penyaring masih TBD". | Rekaman `diam` dan `bising` dari N orang | sebagian: rekaman diam dan bising bisa dibuat sendiri, tetapi aturan pilihnya belum ada |
+| audio.vad.threshold **Status PROD-4: Di-sweep {0,3; 0,5; 0,7}; aturan berurutan (PROD-4)** | E-05 (AMANDEMEN-2026-11-03 A1) | null (nilai coba 0,5) | null (tidak dipakai) | docs/E-05.md. Tidak ada aturan pilih atau grid. | Rekaman suara N orang | sebagian: aturan pilih belum ada, data resmi butuh relawan |
+| audio.vad.min_silence_ms **Status PROD-4: Nilai keputusan desain 500 (SDD 3.3); tidak di-sweep; belum ditulis ke prod.yaml** | Keputusan desain (AMANDEMEN-2026-11-03 keputusan 1) | null (nilai coba 500) | null (tidak dipakai) | docs/E-05.md amandemen 1: hanya dipakai mode `vad`. Prod memakai `push_to_talk`. | Rekaman suara (hanya untuk mode `vad`) | sebagian: tidak berpengaruh di mode prod sekarang |
+| audio.vad.min_speech_ms **Status PROD-4: Di-sweep {0; 250; 500}; aturan berurutan (PROD-4)** | E-05 (AMANDEMEN-2026-11-03 A1) | null (nilai coba 250) | null (tidak dipakai) | docs/E-05.md. Tidak ada aturan pilih atau grid. | Rekaman suara N orang | sebagian |
+| audio.max_utterance_s **Status PROD-4: Di-sweep {15; 20; 30} (PROD-4)** | E-05 (AMANDEMEN-2026-11-03 A2) | null (nilai coba 15, tanpa sumber) | null (tidak dipakai) | docs/E-05.md. Tidak ada aturan pilih atau grid. | Rekaman suara N orang | sebagian |
 
 ### C. Vision, E-07 dan E-08 (14 kunci)
 
 | Kunci | Eksperimen (SDD 12) | config/dev.yaml | Config uji Tahap 1 | Protokol pra-registrasi | Data yang dibutuhkan | Sendiri? |
 |---|---|---|---|---|---|---|
-| vision.conf | E-07 | 0.1 | 0.1 (tidak dipakai) | docs/E-07.md (126e390, 18 Okt 2026; amandemen 1 di 8341228): conf ∈ {0,1; 0,25; 0,5} pada yolo26n-pose | Frame berlabel YOLO dari relawan (N masih TBD) | sebagian: pelabelan bisa dikerjakan sendiri, tetapi frame resmi butuh beberapa relawan dengan persetujuan |
-| vision.presence_signal | E-07 | shoulder_width | shoulder_width (tidak dipakai) | docs/E-07.md amandemen 1 mewajibkan sinyal lebar bahu (yolo26n-pose). Nilainya ditetapkan oleh amandemen, bukan oleh grid. | Tidak ada data baru | ya, tetapi perlu keputusan bahwa amandemen dipakai sebagai sumber nilai |
-| vision.min_shoulder_ratio | E-07 | null (nilai coba 0,22) | null (tidak dipakai) | docs/E-07.md bagian 2: grid {0,18; 0,22; 0,26} | Klip video kunjungan N orang dengan anotasi waktu | sebagian: kalibrasi jarak bisa dicoba sendiri, tetapi klip resmi butuh relawan |
-| vision.min_box_height_ratio | E-07 | null | null (tidak dipakai) | docs/E-07.md amandemen 1: "grid `min_box_height_ratio` tidak diperlukan" (hanya untuk sinyal box_height) | Tidak ada eksperimen yang akan mengisinya | tidak relevan selama presence_signal = shoulder_width; tetap dihitung oleh `mica check` |
-| vision.dwell_s | E-07 | null (nilai coba 2) | null (tidak dipakai) | docs/E-07.md bagian 2: grid {1, 2, 3} | Klip video kunjungan N orang | sebagian |
-| vision.leave_s | E-07 | null (nilai coba 3) | null (tidak dipakai) | docs/E-07.md bagian 2: grid {2, 3, 5} | Klip video kunjungan N orang | sebagian |
-| session.regreet_cooldown_s | E-07 | null (tanpa jeda) | null (tidak dipakai) | docs/E-07.md bagian 2: grid {0, 30, 60} | Klip video kunjungan N orang (pergi lalu kembali) | sebagian |
-| vision.box_upper.top | E-08 | null (nilai coba 0,35) | null (tidak dipakai) | docs/E-08.md (126e390; amandemen 1 di 8341228). **Tidak disweep**: dipakai tetap pada nilai coba SDD 12. | Tidak ada eksperimen yang akan menetapkannya | ya untuk menyalin, tetapi perlu keputusan karena nilai coba tidak punya sumber dari eksperimen |
-| vision.box_upper.bottom | E-08 | null (nilai coba 0,65) | null (tidak dipakai) | sama dengan box_upper.top | sama | sama |
-| vision.box_upper.side | E-08 | null (nilai coba 0,25) | null (tidak dipakai) | sama dengan box_upper.top | sama | sama |
-| vision.keypoint_torso.min_kp_conf | E-08 | null (nilai coba 0,5) | null (tidak dipakai) | docs/E-08.md dan docs/E-07.md bagian 2: tetap 0,5, **tidak disweep** | Tidak ada eksperimen yang akan menetapkannya | sama dengan box_upper |
-| vision.keypoint_torso.shrink | E-08 | null (nilai coba 0,15) | null (tidak dipakai) | docs/E-08.md: tetap pada nilai coba, **tidak disweep** | sama | sama |
-| vision.keypoint_torso.torso_aspect | E-08 | null (nilai coba 1,2) | null (tidak dipakai) | docs/E-08.md: tetap pada nilai coba, **tidak disweep** | sama | sama |
-| vision.color.min_majority | E-08 | null (nilai coba 0,6) | null (tidak dipakai) | docs/E-08.md: {0,5; 0,6; 0,7}, hanya bila `lut_vote` menang | Frame relawan dengan baju beragam warna, diberi label oleh **2 penilai** (kappa) | tidak: butuh penilai kedua dan relawan |
+| vision.conf **Status PROD-4: Tidak diubah PROD-4** | E-07 | 0.1 | 0.1 (tidak dipakai) | docs/E-07.md (126e390, 18 Okt 2026; amandemen 1 di 8341228): conf ∈ {0,1; 0,25; 0,5} pada yolo26n-pose | Frame berlabel YOLO dari relawan (N masih TBD) | sebagian: pelabelan bisa dikerjakan sendiri, tetapi frame resmi butuh beberapa relawan dengan persetujuan |
+| vision.presence_signal **Status PROD-4: Nilai keputusan desain shoulder_width; tidak di-sweep; belum ditulis ke prod.yaml** | Keputusan desain (AMANDEMEN-2026-11-03 keputusan 3) | shoulder_width | shoulder_width (tidak dipakai) | docs/E-07.md amandemen 1 mewajibkan sinyal lebar bahu (yolo26n-pose). Nilainya ditetapkan oleh amandemen, bukan oleh grid. | Tidak ada data baru | ya, tetapi perlu keputusan bahwa amandemen dipakai sebagai sumber nilai |
+| vision.min_shoulder_ratio **Status PROD-4: Grid E-07 lama (81 kombinasi), dengan min_kp_conf pemenang E-08 (PROD-4)** | E-07 (AMANDEMEN-2026-11-03 B) | null (nilai coba 0,22) | null (tidak dipakai) | docs/E-07.md bagian 2: grid {0,18; 0,22; 0,26} | Klip video kunjungan N orang dengan anotasi waktu | sebagian: kalibrasi jarak bisa dicoba sendiri, tetapi klip resmi butuh relawan |
+| vision.min_box_height_ratio **Status PROD-4: Dikeluarkan dari grid; tetap null (tidak diwajibkan `mica check` bila presence_signal shoulder_width)** | Tidak ada (AMANDEMEN-2026-11-03 keputusan 3) | null | null (tidak dipakai) | docs/E-07.md amandemen 1: "grid `min_box_height_ratio` tidak diperlukan" (hanya untuk sinyal box_height) | Tidak ada eksperimen yang akan mengisinya | tidak relevan selama presence_signal = shoulder_width; tetap dihitung oleh `mica check` |
+| vision.dwell_s **Status PROD-4: Tidak diubah PROD-4** | E-07 | null (nilai coba 2) | null (tidak dipakai) | docs/E-07.md bagian 2: grid {1, 2, 3} | Klip video kunjungan N orang | sebagian |
+| vision.leave_s **Status PROD-4: Tidak diubah PROD-4** | E-07 | null (nilai coba 3) | null (tidak dipakai) | docs/E-07.md bagian 2: grid {2, 3, 5} | Klip video kunjungan N orang | sebagian |
+| session.regreet_cooldown_s **Status PROD-4: Tidak diubah PROD-4** | E-07 | null (tanpa jeda) | null (tidak dipakai) | docs/E-07.md bagian 2: grid {0, 30, 60} | Klip video kunjungan N orang (pergi lalu kembali) | sebagian |
+| vision.box_upper.top **Status PROD-4: Di-sweep {0,30; 0,35; 0,40} (PROD-4)** | E-08 (AMANDEMEN-2026-11-03 C, tahap 2b) | null (nilai coba 0,35) | null (tidak dipakai) | docs/E-08.md (126e390; amandemen 1 di 8341228). **Tidak disweep**: dipakai tetap pada nilai coba SDD 12. | Tidak ada eksperimen yang akan menetapkannya | ya untuk menyalin, tetapi perlu keputusan karena nilai coba tidak punya sumber dari eksperimen |
+| vision.box_upper.bottom **Status PROD-4: Di-sweep {0,60; 0,65; 0,70} (PROD-4)** | E-08 (AMANDEMEN-2026-11-03 C, tahap 2b) | null (nilai coba 0,65) | null (tidak dipakai) | sama dengan box_upper.top | sama | sama |
+| vision.box_upper.side **Status PROD-4: Di-sweep {0,20; 0,25; 0,30} (PROD-4)** | E-08 (AMANDEMEN-2026-11-03 C, tahap 2b) | null (nilai coba 0,25) | null (tidak dipakai) | sama dengan box_upper.top | sama | sama |
+| vision.keypoint_torso.min_kp_conf **Status PROD-4: Di-sweep {0,3; 0,5; 0,7}; E-08 dijalankan sebelum E-07 bagian 2 (PROD-4)** | E-08 (AMANDEMEN-2026-11-03 C, tahap 2a), lalu dipakai E-07 | null (nilai coba 0,5) | null (tidak dipakai) | docs/E-08.md dan docs/E-07.md bagian 2: tetap 0,5, **tidak disweep** | Tidak ada eksperimen yang akan menetapkannya | sama dengan box_upper |
+| vision.keypoint_torso.shrink **Status PROD-4: Di-sweep {0,10; 0,15; 0,20} (PROD-4)** | E-08 (AMANDEMEN-2026-11-03 C, tahap 2a) | null (nilai coba 0,15) | null (tidak dipakai) | docs/E-08.md: tetap pada nilai coba, **tidak disweep** | sama | sama |
+| vision.keypoint_torso.torso_aspect **Status PROD-4: Di-sweep {1,0; 1,2; 1,4} (PROD-4)** | E-08 (AMANDEMEN-2026-11-03 C, tahap 2a) | null (nilai coba 1,2) | null (tidak dipakai) | docs/E-08.md: tetap pada nilai coba, **tidak disweep** | sama | sama |
+| vision.color.min_majority **Status PROD-4: Tidak diubah PROD-4 (E-08 tahap 3)** | E-08 | null (nilai coba 0,6) | null (tidak dipakai) | docs/E-08.md: {0,5; 0,6; 0,7}, hanya bila `lut_vote` menang | Frame relawan dengan baju beragam warna, diberi label oleh **2 penilai** (kappa) | tidak: butuh penilai kedua dan relawan |
 
 ### D. Beban laptop, E-09 (4 kunci)
 
 | Kunci | Eksperimen (SDD 12) | config/dev.yaml | Config uji Tahap 1 | Protokol pra-registrasi | Data yang dibutuhkan | Sendiri? |
 |---|---|---|---|---|---|---|
-| vision.fps_busy | E-09 | null (laju tetap fps_idle 5) | null (tidak dipakai) | docs/E-09.md (bfb2580, 18 Okt 2026; amandemen 0ed2f0e, 5697a05, 5befe70): grid {1, 2, 5} | Sesi pemakaian asli (suara + kamera). Jumlah pertanyaan dan pengunjung masih TBD. | ya untuk kalibrasi (pengguna bisa memerankan pengunjung sendiri), tetapi hasilnya hanya indikatif bila bukan di laptop setara laptop PMB |
-| vision.threads | E-09 | 7 (CPU-THREADS.md, laptop dev) | 7 (tidak dipakai) | docs/E-09.md: grid {1, 2}. Untuk dev: docs/CPU-THREADS.md (0bdc936). | sama dengan fps_busy | ya, dengan catatan yang sama |
-| audio.tts.threads | E-09 (SDD 12) | 1 (CPU-THREADS.md, laptop dev) | 1 (tidak dipakai) | Grid E-09 **tidak memuat** audio.tts.threads. docs/CPU-THREADS.md (0bdc936) menulis nilai prod "dipilih ulang dengan aturan yang sama di E-09". | Bench seperti CPU-THREADS di laptop target | ya, tetapi grid untuk kunci ini di E-09 belum tertulis |
-| session.idle_reset_s | E-09 dan uji pengguna | null (tidak pernah timeout) | null (tidak dipakai) | **belum ada** (tidak ada di docs/E-09.md) | Peserta uji pengguna (SUS) | tidak: butuh peserta, dan protokolnya belum ada |
+| vision.fps_busy **Status PROD-4: Tidak diubah PROD-4 (grid E-09 menjadi 24 kombinasi)** | E-09 | null (laju tetap fps_idle 5) | null (tidak dipakai) | docs/E-09.md (bfb2580, 18 Okt 2026; amandemen 0ed2f0e, 5697a05, 5befe70): grid {1, 2, 5} | Sesi pemakaian asli (suara + kamera). Jumlah pertanyaan dan pengunjung masih TBD. | ya untuk kalibrasi (pengguna bisa memerankan pengunjung sendiri), tetapi hasilnya hanya indikatif bila bukan di laptop setara laptop PMB |
+| vision.threads **Status PROD-4: Tidak diubah PROD-4** | E-09 | 7 (CPU-THREADS.md, laptop dev) | 7 (tidak dipakai) | docs/E-09.md: grid {1, 2}. Untuk dev: docs/CPU-THREADS.md (0bdc936). | sama dengan fps_busy | ya, dengan catatan yang sama |
+| audio.tts.threads **Status PROD-4: Masuk grid kalibrasi E-09 {1, 2} (PROD-4)** | E-09 (AMANDEMEN-2026-11-03 D) | 1 (CPU-THREADS.md, laptop dev) | 1 (tidak dipakai) | Grid E-09 **tidak memuat** audio.tts.threads. docs/CPU-THREADS.md (0bdc936) menulis nilai prod "dipilih ulang dengan aturan yang sama di E-09". | Bench seperti CPU-THREADS di laptop target | ya, tetapi grid untuk kunci ini di E-09 belum tertulis |
+| session.idle_reset_s **Status PROD-4: Nilai keputusan desain; **angka belum ditetapkan**; jeda log Tahap 2 hanya validasi** | Keputusan desain (AMANDEMEN-2026-11-03 E) | null (tidak pernah timeout) | null (tidak dipakai) | **belum ada** (tidak ada di docs/E-09.md) | Peserta uji pengguna (SUS) | tidak: butuh peserta, dan protokolnya belum ada |
 
 Jumlah: A 11 + B 6 + C 14 + D 4 = **35**.
 
@@ -195,3 +195,17 @@ Artinya:
 - Kata "kiosk" di E-05, E-07, dan E-09 belum diganti menjadi "laptop PMB".
 - Untuk ukuran yang tidak bergantung waktu, dokumen tidak mewajibkan laptop PMB. Contohnya WER,
   akurasi deteksi, dan akurasi warna. E-07 hanya meminta kamera yang sama jenisnya.
+
+## Status per 3 Nov 2026 (setelah PROD-4)
+
+Amandemen pra-registrasi ditetapkan di `docs/AMANDEMEN-2026-11-03.md`, sebelum data resmi
+diambil. Config tidak diubah, sehingga `mica check` tetap melaporkan **24 kunci** belum diisi.
+
+| Kelompok | Di-sweep (aturan sudah ada) | Nilai keputusan desain (belum ditulis ke prod.yaml) | Lain-lain |
+| --- | --- | --- | --- |
+| B. Suara | vad.threshold, vad.min_speech_ms, stt.no_speech_threshold, max_utterance_s (E-05); stt.threads (E-09) | vad.min_silence_ms = 500 | - |
+| C. Vision | min_shoulder_ratio, dwell_s, leave_s, regreet_cooldown_s (E-07, 81 kombinasi); box_upper.*, keypoint_torso.* (E-08); conf (E-07); color.min_majority (E-08) | presence_signal = shoulder_width | min_box_height_ratio tetap null (tidak diwajibkan bila shoulder_width) |
+| D. Beban laptop | fps_busy, vision.threads, audio.tts.threads (E-09, 24 kombinasi) | session.idle_reset_s (angka belum ditetapkan) | - |
+
+Urutan: E-07 bagian 1, lalu E-08 sampai tahap 2a, lalu E-07 bagian 2, yang memakai `min_kp_conf`
+pemenang E-08. Alat sweep dibuat di PROD-5.
