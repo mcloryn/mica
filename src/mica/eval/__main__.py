@@ -29,7 +29,8 @@ python -m mica.eval vision-scenarios --config <yaml> --dataset data/eval/vision_
     --model <pemenang> [--conf <terpilih>] [--grid default] [--out results/E-07]
 python -m mica.eval color --config <yaml> --dataset data/eval/vision/<nama> [--labels colors.csv]
     [--labels2 colors_rater2.csv] [--out results/E-08] [--area-grid]   (docs/E-08.md;
-    --area-grid: docs/AMANDEMEN-2026-11-03.md bagian C)
+    --area-grid: docs/AMANDEMEN-2026-11-03.md bagian C; --split tuning|laporan dan
+    --from-run <run tuning> untuk laporan: docs/AMANDEMEN-2026-11-03b.md C)
 python -m mica.eval annotation --run <folder run generation> [--compare-saran]
     (ringkasan anotasi halusinasi; --compare-saran: jumlah identik dengan saran Claude)
 python -m mica.eval labels --run <folder run generation>
@@ -303,6 +304,10 @@ def build_parser() -> argparse.ArgumentParser:
     col.add_argument("--out", type=Path, default=Path("results/E-08"))
     col.add_argument("--models-dir", type=Path, default=Path("models"))
     col.add_argument("--note", help="catatan di run.json, mis. 'sintetis, bukan hasil E-08'")
+    col.add_argument("--split", choices=("tuning", "laporan"),
+                     help="hanya frame split ini (data PETA, amandemen kedua C)")  # fmt: skip
+    col.add_argument("--from-run", type=Path,
+                     help="run color split tuning (wajib untuk --split laporan)")  # fmt: skip
     col.add_argument("--area-grid", action="store_true",
                      help="grid area baju tahap 2a/2b/3 (docs/AMANDEMEN-2026-11-03.md C)")  # fmt: skip
 
@@ -618,9 +623,23 @@ def cmd_color(args: argparse.Namespace) -> int:
     path = model_path(args.model, args.models_dir)
     if not path.is_file():
         raise ModelMissing(path)
+    if args.area_grid and args.split == "laporan":
+        raise ev.VisionEvalError("--area-grid hanya boleh pada --split tuning (bukan laporan)")
+    if args.split == "laporan" and args.from_run is None:
+        raise ev.VisionEvalError("--split laporan butuh --from-run <run color split tuning>")
+    if args.from_run is not None and args.split != "laporan":
+        raise ev.VisionEvalError("--from-run hanya untuk --split laporan")
+    winner = ec.winner_from_run(args.from_run) if args.split == "laporan" else None
     frames = ev.load_frames(args.dataset)
     labels = [p if p.is_absolute() else args.dataset / p for p in (args.labels, args.labels2)]
     first, second = (ec.load_color_labels(p) for p in labels)
+    if args.split is not None:
+        keep = ec.split_ids(args.dataset, args.split)
+        frames = [f for f in frames if f.id in keep]
+        first = {k: v for k, v in first.items() if k[0] in keep}
+        second = {k: v for k, v in second.items() if k[0] in keep}
+        if not frames:
+            raise ev.VisionEvalError(f"tidak ada frame split {args.split}")
     colors_file = Path(args.models_dir) / DEFAULT_COLORS_FILE.name
     namers = {"lut_vote": ColorNamesLut.load(colors_file, 0.0),
               "lut_mean": ColorNamesLutMean.load(colors_file, 0.0)}  # fmt: skip
@@ -631,9 +650,10 @@ def cmd_color(args: argparse.Namespace) -> int:
     if warning:
         print(warning, file=sys.stderr)
     stamp = _run_stamp()
-    run_dir = Path(args.out) / f"color-{stamp}"
+    run_dir = Path(args.out) / f"color-{args.split + '-' if args.split else ''}{stamp}"
     info = {
         "note": args.note,
+        "split": args.split,
         "model": args.model,
         "conf": conf,
         "imgsz": settings.vision.imgsz,
@@ -654,6 +674,11 @@ def cmd_color(args: argparse.Namespace) -> int:
         "started_at": stamp,
     }
     predictor = ev.ultralytics_predictor(path, conf, settings.vision.imgsz)
+    if winner is not None:
+        ec.run_report(frames, first, second, predictor, winner, namers, run_dir, info)
+        print((run_dir / "report.md").read_text(encoding="utf-8"))
+        print(f"tersimpan: {run_dir.as_posix()}")
+        return 0
     ec.run_color(frames, first, second, predictor, regions, namers, run_dir, info,
                  area_region=make_region if args.area_grid else None)  # fmt: skip
     print((run_dir / "verdict.md").read_text(encoding="utf-8"))

@@ -392,3 +392,125 @@ def test_cli_color_without_area_grid_unchanged(tmp_path):
                  images=image_for(COLORS))  # fmt: skip
     assert not (tmp_path / "out" / "area_grid.csv").exists()
     assert "area_grid" not in json.loads((tmp_path / "out" / "run.json").read_text("utf-8"))
+
+
+# --- split tuning/laporan dan laporan Wilson (PROD-8, amandemen kedua C) -------------------
+
+
+def _split_dataset(root, colors, splits):
+    make_dataset(root, colors)
+    rows = [json.loads(x) for x in (root / "manifest.jsonl").read_text("utf-8").splitlines()]
+    for r in rows:
+        r["split"] = splits[r["id"]]
+    (root / "manifest.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows), "utf-8")
+    labels_csv = "".join(f"{fid},0,{c}\n" for fid, c in colors.items())
+    (root / "colors.csv").write_text("frame,track,color_label\n" + labels_csv, encoding="utf-8")
+    return root
+
+
+REPORT_COLORS = {"f1": "merah", "f2": "merah", "f3": "merah", "f4": "biru", "f5": "biru",
+                 "t1": "merah", "t2": "biru"}  # fmt: skip
+SPLITS = {k: ("tuning" if k.startswith("t") else "laporan") for k in REPORT_COLORS}
+WINNER = {"region": "keypoint_torso", "method": "lut_vote", "values": dict(ec.TRIAL_VALUES),
+          "min_majority": 0.5, "from_run": "run-tuning"}  # fmt: skip
+
+
+def test_split_ids_requires_split_field(tmp_path):
+    root = _split_dataset(tmp_path / "ds", REPORT_COLORS, SPLITS)
+    assert ec.split_ids(root, "tuning") == {"t1", "t2"}
+    plain = make_dataset(tmp_path / "plain", COLORS)
+    with pytest.raises(ev.VisionEvalError, match="field split"):
+        ec.split_ids(plain, "tuning")
+
+
+def test_report_wilson_undetected_counted_as_failure(tmp_path):
+    colors = {k: v for k, v in REPORT_COLORS.items() if SPLITS[k] == "laporan"}
+    frames = ev.load_frames(make_dataset(tmp_path / "ds", colors))
+    images = image_for(colors)
+
+    def predictor(img):  # f5 (biru) tidak terdeteksi
+        return [] if img[50, 50, 0] == 255 and predictor.seen_blue else _mark(img)
+
+    def _mark(img):
+        predictor.seen_blue = predictor.seen_blue or img[50, 50, 0] == 255
+        return [person()]
+
+    predictor.seen_blue = False
+    truth = labels(colors)
+    result = ec.run_report(frames, truth, truth, predictor, WINNER,
+                           {"lut_vote": ChannelNamer(), "lut_mean": ChannelNamer()},
+                           tmp_path / "out", {"note": "sintetis"}, images=images)  # fmt: skip
+    assert (result.n_all, result.n_detected, result.n_undetected, result.correct) == (5, 4, 1, 4)
+    by = {r["warna"]: r for r in result.per_color}
+    assert (by["merah"]["n"], by["merah"]["benar"]) == (3, 3)
+    assert (by["biru"]["n"], by["biru"]["benar"]) == (2, 1)
+    assert by["merah"]["wilson_bawah"] == pytest.approx(0.43849, abs=1e-4)  # Wilson 3/3
+    assert by["merah"]["wilson_atas"] == 1.0
+    assert by["biru"]["catatan"] == ec.NOT_ENOUGH  # n < 10
+    report = (tmp_path / "out" / "report.md").read_text("utf-8")
+    assert "Akurasi semua gambar (tidak terdeteksi = gagal): 4/5 = 0.8000" in report
+    assert "Akurasi gambar terdeteksi: 4/4 = 1.0000" in report
+    assert "Tidak terdeteksi YOLO: 1 dari 5" in report and "batas bawah" in report
+    assert (tmp_path / "out" / "report_per_color.csv").is_file()
+
+
+def test_winner_from_run_requires_tuning_with_area_grid(tmp_path):
+    run = tmp_path / "r"
+    run.mkdir()
+    (run / "run.json").write_text(json.dumps({"split": "laporan"}), "utf-8")
+    with pytest.raises(ev.VisionEvalError, match="bukan run split tuning"):
+        ec.winner_from_run(run)
+    (run / "run.json").write_text(json.dumps({"split": "tuning", "decision": {
+        "region": "box_upper", "method": "lut_mean"}}), "utf-8")  # fmt: skip
+    with pytest.raises(ev.VisionEvalError, match="tanpa --area-grid"):
+        ec.winner_from_run(run)
+
+
+def _cli_env(tmp_path, monkeypatch):
+    import mica.vision.color as vc
+
+    root = _split_dataset(tmp_path / "ds", REPORT_COLORS, SPLITS)
+    models = tmp_path / "models"
+    models.mkdir()
+    (models / "yolo26n-pose.pt").write_bytes(b"x")
+    (models / "color_names_w2c.npy").write_bytes(b"x")
+    monkeypatch.setattr(ev, "ultralytics_predictor", lambda *a: lambda img: [person()])
+    monkeypatch.setattr(ev, "read_image", lambda path: image_for(REPORT_COLORS)(
+        type("F", (), {"id": Path(path).stem})()))  # fmt: skip
+    monkeypatch.setattr(vc.ColorNamesLut, "load", classmethod(lambda cls, p, m: ChannelNamer()))
+    base = ["color", "--config", str(DEV_YAML), "--dataset", str(root), "--models-dir",
+            str(models), "--labels", "colors.csv", "--labels2", "colors.csv"]  # fmt: skip
+    return base
+
+
+def test_cli_tuning_then_laporan(tmp_path, monkeypatch, capsys):
+    base = _cli_env(tmp_path, monkeypatch)
+    assert cli.main([*base, "--split", "tuning", "--area-grid", "--out",
+                     str(tmp_path / "tun")]) == 0  # fmt: skip
+    tuning = next((tmp_path / "tun").iterdir())
+    run = json.loads((tuning / "run.json").read_text("utf-8"))
+    assert run["split"] == "tuning" and run["dataset"]["n_frame"] == 2
+    capsys.readouterr()
+    assert cli.main([*base, "--split", "laporan", "--from-run", str(tuning), "--out",
+                     str(tmp_path / "lap")]) == 0  # fmt: skip
+    out = capsys.readouterr().out
+    assert "Akurasi semua gambar (tidak terdeteksi = gagal): 5/5" in out
+    report = next((tmp_path / "lap").iterdir())
+    assert json.loads((report / "run.json").read_text("utf-8"))["n_all"] == 5
+
+
+@pytest.mark.parametrize(
+    ("extra", "message"),
+    [
+        (
+            ["--split", "laporan", "--area-grid", "--from-run", "x"],
+            "hanya boleh pada --split tuning",
+        ),
+        (["--split", "laporan"], "butuh --from-run"),
+        (["--split", "tuning", "--from-run", "x"], "hanya untuk --split laporan"),
+    ],
+)
+def test_cli_split_rules(tmp_path, monkeypatch, capsys, extra, message):
+    base = _cli_env(tmp_path, monkeypatch)
+    assert cli.main([*base, *extra, "--out", str(tmp_path / "o")]) == 2
+    assert message in capsys.readouterr().err
