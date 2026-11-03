@@ -111,3 +111,14 @@ bukan kamera C270 di meja PMB.
 - Protokol E-09 (termasuk grid amandemen 3 November bagian D) dijalankan pengembang sendiri
   dengan suaranya sendiri.
 - Bila dijalankan di laptop dev, statusnya **indikatif** sampai diulang di laptop PMB.
+
+## Catatan 3 November 2026 (sebelum unduh dibuka)
+
+1. Halaman Common Voice 24.0 tidak tersedia lagi. Sebagai gantinya dipakai **Common Voice
+   Scripted Speech 27.0 - Indonesian** (CC0-1.0, 1,43 GB, mozilladatacollective.com). Aturan
+   sampel bagian B tidak berubah.
+2. Bila penutur tervalidasi kurang dari 300, semua penutur diambil, tetap 1 klip per penutur.
+   Jumlah akhir dilaporkan.
+3. E-08 tidak memakai jumlah minimum gambar per warna. Akurasi dilaporkan per warna, lengkap
+   dengan n dan interval Wilson 95%, ditambah akurasi keseluruhan. Warna dengan n < 10 di separuh
+   LAPORAN ditandai "data tidak cukup untuk disimpulkan".
