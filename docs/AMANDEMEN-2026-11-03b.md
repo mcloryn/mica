@@ -122,3 +122,22 @@ bukan kamera C270 di meja PMB.
 3. E-08 tidak memakai jumlah minimum gambar per warna. Akurasi dilaporkan per warna, lengkap
    dengan n dan interval Wilson 95%, ditambah akurasi keseluruhan. Warna dengan n < 10 di separuh
    LAPORAN ditandai "data tidak cukup untuk disimpulkan".
+
+## Catatan kedua 3 November 2026 (sebelum data)
+
+1. MUSAN diambil dari salinan Hugging Face `FluidInference/musan` (repo dataset), dengan revisi
+   commit yang dikunci: `3edcfdf89b56dbe6a395ff29f9c29489e03d1321` (terakhir diubah 2 Agustus 2025;
+   dibaca lewat API metadata saat alat dibuat). Tarball OpenSLR 11 GB tidak dipakai.
+   - Prosedur: daftar nama file folder `noise/` dibaca lebih dulu (metadata), lalu 100 file `.wav`
+     diacak dengan seed 20261103, dan hanya file itu yang diunduh.
+   - File LICENSE setiap subfolder (`noise/free-sound/LICENSE`, `noise/sound-bible/LICENSE`)
+     disimpan bersama hasil.
+   - Menurut metadata itu, salinan Hugging Face memuat 774 file `.wav` di `noise/` (730
+     `free-sound`, 47 `sound-bible`, termasuk file bukan audio pada hitungan per folder). Jumlah
+     dari makalah MUSAN tidak dipakai sebagai acuan.
+2. E-08 melaporkan dua angka akurasi di separuh LAPORAN:
+   - semua gambar, dengan orang yang tidak terdeteksi dihitung gagal;
+   - hanya gambar yang orangnya terdeteksi.
+
+   Karena PETA berupa potongan CCTV beresolusi rendah, akurasinya ditafsirkan sebagai batas bawah
+   untuk kamera MICA.
