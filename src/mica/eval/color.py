@@ -25,7 +25,7 @@ from __future__ import annotations
 import csv
 import json
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -907,6 +907,9 @@ class ReportResult:
     min_majority: float | None
     named: int
     named_correct: int
+    # per gambar (catatan kelima amandemen kedua): frame, track, label, terdeteksi, tebakan,
+    # mayoritas, disebut (tebakan ada dan mayoritas >= min_majority)
+    items: list[dict[str, Any]] = field(default_factory=list)
 
     @property
     def n_undetected(self) -> int:
@@ -942,8 +945,30 @@ def evaluate_report(
     mm = winner.get("min_majority")
     named = [k for k in keys if k in pred and pred[k].top is not None
              and (mm is None or pred[k].majority >= mm)]  # fmt: skip
+    named_set = set(named)
+    items = [{"frame": k[0], "track": k[1], "label": true[k], "terdeteksi": int(k in pred),
+              "tebakan": tops[k] or "", "mayoritas": f"{pred[k].majority:.3f}" if k in pred else "",
+              "disebut": int(k in named_set)} for k in keys]  # fmt: skip
     return ReportResult(per_color, len(keys), len(people), sum(tops[k] == true[k] for k in keys),
-                        mm, len(named), sum(pred[k].top == true[k] for k in named))  # fmt: skip
+                        mm, len(named), sum(pred[k].top == true[k] for k in named),
+                        items)  # fmt: skip
+
+
+UNDETECTED = "(tidak terdeteksi)"
+
+
+def report_confusion(items: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """Baris = label benar; kolom = tebakan warna teratas, tanpa prediksi, tidak terdeteksi."""
+    rows = []
+    for color in COLOR_NAMES:
+        mine = [i for i in items if i["label"] == color]
+        row: dict[str, Any] = {"label_benar": color}
+        for c in COLOR_NAMES:
+            row[c] = sum(i["terdeteksi"] and i["tebakan"] == c for i in mine)
+        row[NO_PRED] = sum(i["terdeteksi"] and not i["tebakan"] for i in mine)
+        row[UNDETECTED] = sum(not i["terdeteksi"] for i in mine)
+        rows.append(row)
+    return rows
 
 
 def report_markdown(result: ReportResult, winner: Mapping[str, Any], note: str | None) -> str:
@@ -1018,6 +1043,13 @@ def run_report(
                [{**r, "akurasi": _f(r["akurasi"]), "wilson_bawah": _f(r["wilson_bawah"]),
                  "wilson_atas": _f(r["wilson_atas"])} for r in result.per_color],
                list(REPORT_FIELDS))  # fmt: skip
+    _write_csv(
+        run_dir / "per_item.csv",
+        result.items,
+        ["frame", "track", "label", "terdeteksi", "tebakan", "mayoritas", "disebut"],
+    )
+    _write_csv(run_dir / "confusion.csv", report_confusion(result.items),
+               ["label_benar", *COLOR_NAMES, NO_PRED, UNDETECTED])  # fmt: skip
     (run_dir / "report.md").write_text(report_markdown(result, winner, info.get("note")),
                                        encoding="utf-8")  # fmt: skip
     payload = {**info, "experiment": EXPERIMENT, "amendment": REPORT_AMENDMENT,

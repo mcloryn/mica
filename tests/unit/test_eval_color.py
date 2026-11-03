@@ -452,6 +452,17 @@ def test_report_wilson_undetected_counted_as_failure(tmp_path):
     assert "Akurasi gambar terdeteksi: 4/4 = 1.0000" in report
     assert "Tidak terdeteksi YOLO: 1 dari 5" in report and "batas bawah" in report
     assert (tmp_path / "out" / "report_per_color.csv").is_file()
+    # catatan kelima: tebakan per gambar dan confusion matrix laporan
+    items = {i["frame"]: i for i in result.items}
+    assert items["f5"]["terdeteksi"] == 0 and items["f5"]["tebakan"] == ""
+    assert items["f4"] == {"frame": "f4", "track": 0, "label": "biru", "terdeteksi": 1,
+                           "tebakan": "biru", "mayoritas": "1.000", "disebut": 1}  # fmt: skip
+    confusion = {r["label_benar"]: r for r in ec.report_confusion(result.items)}
+    assert confusion["biru"]["biru"] == 1 and confusion["biru"][ec.UNDETECTED] == 1
+    assert confusion["merah"]["merah"] == 3 and confusion["merah"][ec.UNDETECTED] == 0
+    text = (tmp_path / "out" / "confusion.csv").read_text("utf-8-sig")
+    assert text.splitlines()[0].endswith("(tanpa prediksi),(tidak terdeteksi)")
+    assert len((tmp_path / "out" / "per_item.csv").read_text("utf-8-sig").splitlines()) == 6
 
 
 def test_winner_from_run_requires_tuning_with_area_grid(tmp_path):
