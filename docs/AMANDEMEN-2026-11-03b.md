@@ -141,3 +141,8 @@ bukan kamera C270 di meja PMB.
 
    Karena PETA berupa potongan CCTV beresolusi rendah, akurasinya ditafsirkan sebagai batas bawah
    untuk kamera MICA.
+
+## Catatan ketiga 3 November 2026 (sebelum data)
+
+Pembagian TUNING/LAPORAN PETA dilakukan per orang (ID orang per subset), bukan per gambar, supaya
+orang yang sama tidak muncul di kedua bagian. Batas 60 per warna tetap dihitung per gambar.

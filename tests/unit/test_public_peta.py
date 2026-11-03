@@ -83,15 +83,36 @@ def test_images_without_label_are_counted(tmp_path):
     assert len(images) == 1 and stats["subsets"]["GRID"]["images_without_label"] == 1
 
 
-def test_sample_caps_per_color_and_splits_stratified():
-    images = [pp.PetaImage(f"s-{c}-{k}", "s", f"m{k}", c) for c in ("merah", "biru")
-              for k in range(70 if c == "merah" else 5)]  # fmt: skip
+def test_sample_caps_per_color_by_image_and_splits_by_person():
+    # merah: 70 gambar dari 14 orang (5 gambar/orang); biru: 5 gambar dari 5 orang
+    images = [pp.PetaImage(f"s-{c}-{k}", "s", f"m{k}", c, f"s/{c}{k // (5 if c == 'merah' else 1)}")
+              for c in ("merah", "biru") for k in range(70 if c == "merah" else 5)]  # fmt: skip
     chosen = pp.sample(images, 60, 20261103)
     assert chosen == pp.sample(images, 60, 20261103)
-    count = Counter((i.color, s) for i, s in chosen)
-    assert count == {("merah", "tuning"): 30, ("merah", "laporan"): 30,
-                     ("biru", "tuning"): 2, ("biru", "laporan"): 3}  # fmt: skip
+    count = Counter(i.color for i, _ in chosen)
+    assert count == {"merah": 60, "biru": 5}  # batas 60 dihitung per gambar
+    split_of: dict[str, set[str]] = {}
+    for img, split in chosen:
+        split_of.setdefault(img.person, set()).add(split)
+    assert all(len(s) == 1 for s in split_of.values())  # tidak ada orang di kedua split
+    blue = Counter(s for i, s in chosen if i.color == "biru")
+    assert blue == {"tuning": 2, "laporan": 3}  # 5 orang: 5 // 2 tuning
+    assert {s for i, s in chosen if i.color == "merah"} == {"tuning", "laporan"}
     assert len({i.id for i, _ in chosen}) == len(chosen)
+
+
+def test_prep_peta_no_person_in_both_splits(tmp_path, monkeypatch):
+    monkeypatch.setattr(ps, "REPO_ROOT", tmp_path / "repo")
+    subsets = {"PRID": [(str(p), ["upperBodyBlack"], 4) for p in range(1, 9)]}
+    archive = make_zip(tmp_path / "peta.zip", subsets)
+    sample_csv = tmp_path / "repo" / "sample.csv"
+    pp.prep_peta(archive, tmp_path / "o", 20261103, 60, sample_csv, progress=lambda s: None)
+    rows = list(csv.DictReader(io.StringIO(sample_csv.read_text("utf-8-sig"))))
+    by_person: dict[str, set[str]] = {}
+    for r in rows:
+        by_person.setdefault(r["orang"], set()).add(r["split"])
+    assert len(by_person) == 8 and all(len(s) == 1 for s in by_person.values())
+    assert Counter(next(iter(s)) for s in by_person.values()) == {"tuning": 4, "laporan": 4}
 
 
 def test_prep_peta_outputs_eval_color_dataset(tmp_path, monkeypatch):
@@ -100,13 +121,14 @@ def test_prep_peta_outputs_eval_color_dataset(tmp_path, monkeypatch):
     out = tmp_path / "publik" / "peta"
     sample_csv = tmp_path / "repo" / "sample.csv"
     info = pp.prep_peta(archive, out, 20261103, 60, sample_csv, progress=lambda s: None)
-    assert info["sample_per_color"]["merah"] == {"tuning": 1, "laporan": 2}
+    # merah: orang 1 (3 gambar) saja -> 1 // 2 = 0 orang tuning; semua gambar ke laporan
+    assert info["sample_per_color"]["merah"] == {"tuning": 0, "laporan": 3}
     frames = ev.load_frames(out)  # format E-07 (a) yang dibaca eval color
     assert len(frames) == 10
     labels = load_color_labels(out / "colors.csv")
     assert Counter(labels.values()) == {"merah": 3, "biru": 2, "hijau": 5}
     rows = list(csv.DictReader(io.StringIO(sample_csv.read_text("utf-8-sig"))))
-    assert {r["split"] for r in rows} == {"tuning", "laporan"} and len(rows) == 10
+    assert {r["split"] for r in rows} == {"laporan"} and len(rows) == 10  # tiap warna 1 orang
     assert all(r["file_asal"].startswith(ROOT) for r in rows)
     manifest = [json.loads(x) for x in (out / "manifest.jsonl").read_text("utf-8").splitlines()]
     assert all(m["split"] in pp.SPLITS for m in manifest)
@@ -132,4 +154,4 @@ def test_cli_prep_peta(tmp_path, monkeypatch, capsys):
     code = cli.main(["prep-peta", "--archive", str(archive), "--out", str(tmp_path / "o"),
                      "--sample-csv", str(tmp_path / "s.csv")])  # fmt: skip
     out = capsys.readouterr().out
-    assert code == 0 and "hijau: tuning 2, laporan 3" in out and "i-LID" in out
+    assert code == 0 and "hijau: tuning 0, laporan 5" in out and "i-LID" in out

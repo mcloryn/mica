@@ -11,8 +11,9 @@ Aturan sampel:
 - hanya gambar yang orangnya punya TEPAT satu atribut warna badan atas dari 11 warna;
 - per warna (urutan COLOR_NAMES MICA): gambar diurutkan menurut id, numpy default_rng(seed)
   .permutation, diambil paling banyak max_per_color;
-- split dengan rng yang sama, berstrata per warna: dari urutan acak itu, k // 2 pertama TUNING,
-  sisanya LAPORAN (bila ganjil, LAPORAN dapat satu lebih).
+- split dengan rng yang sama, berstrata per warna, PER ORANG (catatan ketiga amandemen kedua):
+  orang di gambar terpilih dipermutasi, n_orang // 2 pertama TUNING, sisanya LAPORAN, sehingga
+  orang yang sama tidak muncul di kedua split. Batas max_per_color tetap dihitung per gambar.
 
 Keluaran (di luar repo): images/, labels/ (YOLO satu orang sekotak gambar, karena PETA sudah
 berupa potongan orang), manifest.jsonl (format E-07 a + split), colors.csv (label PETA). Yang
@@ -64,6 +65,7 @@ class PetaImage:
     subset: str
     member: str  # nama anggota di zip
     color: str  # nama warna MICA
+    person: str = ""  # "<subset>/<id orang>" (Label.txt); dasar split per orang
 
 
 def _subset_of(label_member: str) -> str:
@@ -109,7 +111,7 @@ def read_peta(names: list[str], read: Callable[[str], bytes]) -> tuple[list[Peta
                 continue
             s["eligible"] += 1
             safe = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in stem)
-            out.append(PetaImage(f"{subset}-{safe}", subset, img, colors[0]))
+            out.append(PetaImage(f"{subset}-{safe}", subset, img, colors[0], f"{subset}/{pid}"))
         stats["subsets"][subset] = s
     ids = [i.id for i in out]
     if len(set(ids)) != len(ids):
@@ -118,14 +120,19 @@ def read_peta(names: list[str], read: Callable[[str], bytes]) -> tuple[list[Peta
 
 
 def sample(images: list[PetaImage], max_per_color: int, seed: int) -> list[tuple[PetaImage, str]]:
-    """Per warna: acak, ambil maksimal max_per_color, bagi TUNING/LAPORAN (berstrata)."""
+    """Per warna: acak, ambil maksimal max_per_color GAMBAR, lalu bagi TUNING/LAPORAN PER ORANG
+    (catatan ketiga amandemen kedua): orang di gambar terpilih diurutkan, dipermutasi dengan rng
+    yang sama, n_orang // 2 pertama TUNING, sisanya LAPORAN. Satu orang punya satu warna badan
+    atas (atribut per orang), jadi tidak ada orang yang muncul di dua split."""
     rng = np.random.default_rng(seed)
     out: list[tuple[PetaImage, str]] = []
     for color in COLOR_NAMES:
         pool = sorted((i for i in images if i.color == color), key=lambda i: i.id)
         picked = [pool[int(k)] for k in rng.permutation(len(pool))[:max_per_color]]
-        half = len(picked) // 2
-        out += [(img, "tuning" if n < half else "laporan") for n, img in enumerate(picked)]
+        persons = sorted({i.person for i in picked})
+        order = [persons[int(k)] for k in rng.permutation(len(persons))]
+        tuning = set(order[: len(order) // 2])
+        out += [(img, "tuning" if img.person in tuning else "laporan") for img in picked]
     return out
 
 
@@ -157,7 +164,8 @@ def prep_peta(
                              "cahaya": "tidak diketahui", "jarak": "tidak diketahui",
                              "split": split, "subset": img.subset, "sumber": PETA_SOURCE})  # fmt: skip
             colors.append({"frame": img.id, "track": 0, "color_label": img.color})
-            rows.append({"id": img.id, "subset": img.subset, "file_asal": img.member,
+            rows.append({"id": img.id, "subset": img.subset, "orang": img.person,
+                         "file_asal": img.member,
                          "color_label": img.color, "split": split})  # fmt: skip
     (out / "manifest.jsonl").write_text(
         "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in manifest), encoding="utf-8"
@@ -170,13 +178,15 @@ def prep_peta(
             "archive_sha256": sha256_file(archive), "seed": seed, "max_per_color": max_per_color,
             "eligible_per_color": eligible, "sample_per_color": per_color, **stats,
             "label_mapping": PETA_UPPER_COLORS,
-            "split_rule": "per warna: default_rng(seed).permutation, maksimal max_per_color; "
-                          "k // 2 pertama tuning, sisanya laporan"}  # fmt: skip
+            "split_rule": "per warna: default_rng(seed).permutation gambar, maksimal "
+                          "max_per_color gambar; orang dipermutasi, n_orang // 2 pertama tuning, "
+                          "sisanya laporan (split per orang)"}  # fmt: skip
     (out / "peta.json").write_text(json.dumps(info, ensure_ascii=False, indent=1) + "\n",
                                    encoding="utf-8")  # fmt: skip
     if sample_csv is not None:
         sample_csv.parent.mkdir(parents=True, exist_ok=True)
-        _write_csv(sample_csv, rows, ["id", "subset", "file_asal", "color_label", "split"])
+        _write_csv(sample_csv, rows,
+                   ["id", "subset", "orang", "file_asal", "color_label", "split"])  # fmt: skip
     progress(f"{len(chosen)} gambar terpilih dari {len(images)} yang memenuhi syarat")
     return info
 
