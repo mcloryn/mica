@@ -325,3 +325,13 @@ Tidak diperlukan:
 - replay `box_height`;
 - perubahan alat E-07, karena `vision-scenarios` sudah menerima `--min-kp-conf`
   (`src/mica/eval/__main__.py:223`).
+
+## Koreksi 3 November 2026 (sebelum data)
+
+Ditulis sebelum data E-05/E-07/E-08/E-09 resmi diambil.
+
+Bagian C ("Bila data kurang") menyebut `shrink` hanya memengaruhi sumber `keypoint`. Itu keliru.
+Di kode, `shrink` dipakai untuk kedua sumber area keypoint, yaitu `keypoint` dan `keypoint+box`
+(`src/mica/vision/region.py:117`, `KeypointTorsoRegion._torso`). Alat sweep
+(`src/mica/eval/color.py`, `AFFECTS`) mengikuti kode: `shrink` dianggap tidak di-sweep hanya bila
+kedua sumber itu sama-sama 0 item di semua kombinasi tahap 2a. Isi lain amandemen tidak berubah.
