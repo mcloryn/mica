@@ -1,0 +1,50 @@
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]Loading weights:   4%|▎         | 14/391 [00:00<00:03, 96.89it/s]Loading weights:   6%|▌         | 24/391 [00:00<00:05, 69.59it/s]Loading weights:   9%|▉         | 37/391 [00:00<00:04, 84.31it/s]Loading weights:  13%|█▎        | 51/391 [00:00<00:03, 100.29it/s]Loading weights:  16%|█▌        | 62/391 [00:00<00:03, 90.12it/s] Loading weights:  18%|█▊        | 72/391 [00:00<00:03, 92.38it/s]Loading weights:  21%|██        | 83/391 [00:00<00:03, 95.79it/s]Loading weights:  24%|██▍       | 93/391 [00:01<00:03, 87.92it/s]Loading weights:  27%|██▋       | 106/391 [00:01<00:03, 93.37it/s]Loading weights:  31%|███▏      | 123/391 [00:01<00:02, 111.97it/s]Loading weights:  35%|███▍      | 135/391 [00:01<00:02, 96.57it/s] Loading weights:  37%|███▋      | 146/391 [00:01<00:03, 75.75it/s]Loading weights:  40%|███▉      | 155/391 [00:01<00:03, 67.73it/s]Loading weights:  42%|████▏     | 163/391 [00:01<00:03, 69.16it/s]Loading weights:  44%|████▎     | 171/391 [00:02<00:03, 63.59it/s]Loading weights:  46%|████▋     | 181/391 [00:02<00:03, 68.25it/s]Loading weights: 100%|██████████| 391/391 [00:02<00:00, 172.95it/s]
+d001 1 True 0.723 answered
+d002 1 True 0.646 answered
+d004 1 True 0.478 refused_gate
+d005 11 False 0.56 answered
+d006 19 False 0.494 refused_gate
+d008 1 True 0.583 answered
+d009 1 True 0.612 answered
+d011 1 True 0.666 answered
+d012 1 True 0.638 answered
+d014 1 True 0.625 answered
+d015 1 True 0.613 answered
+d016 2 True 0.564 answered
+d017 1 True 0.55 answered
+d018 1 True 0.607 answered
+d020 4 True 0.574 answered
+d021 11 False 0.581 refused_llm
+d022 3 True 0.538 answered
+d029 11 False 0.607 refused_llm
+d032 17 False 0.731 answered
+d033 1 True 0.736 answered
+{
+  "generated": "2026-11-04T15:34:34+07:00",
+  "kb_id": "official-2026-10-24-v5",
+  "config_hash": "073e446b98798e5b4d731873339f259f4910aa02971fefa14066b69b7b871fd2",
+  "settings_complete": false,
+  "retriever": "hybrid",
+  "top_k": 5,
+  "rrf_k": 60,
+  "candidates_per_retriever": 20,
+  "followup_mode": "dual",
+  "gate_threshold": 0.5,
+  "prompt_variant": "v5",
+  "llm_chain": [
+    "groq:openai/gpt-oss-120b",
+    "groq:openai/gpt-oss-20b"
+  ],
+  "n": 20,
+  "recall@topk": 0.75,
+  "recall@5": 0.75,
+  "recall@10": 0.75,
+  "recall@20": 1.0,
+  "not_in_pool": 0,
+  "gate_fail": 2,
+  "causes": {
+    "a_gate": 2,
+    "b_not_in_topk": 4,
+    "other_answered": 14
+  }
+}

@@ -1,0 +1,34 @@
+qid,type,status,chunk_id_v5,catatan
+d001,answerable,ada,brosur/brosur-pmb-2025#5,"SI pagi 14.000.000/th, sore 15.000.000/th (brosur, tahun tidak tertulis)"
+d002,answerable,ada,brosur/brosur-pmb-2025#10,Akuntansi sore 13.500.000/th
+d003,answerable,tidak_ada_di_kb_v5,,"v5 tidak memuat tanggal gelombang S1 (pmb#5 hanya ""September s.d. awal September berikutnya"")"
+d004,answerable,sebagian,pmb/pedoman-pmb-2027#6|pmb/pedoman-pmb-2027#7|pmb/pedoman-pmb-2027#2,"v5: PMDK (Penelusuran Minat dan Bakat), Prestasi, Reguler, KIP Kuliah (+USM khusus S2); reference_answer (3 jalur) dari KB dev"
+d005,answerable,ada,pmb/pedoman-pmb-2027#15,prosedur a-h via daftar.mikroskil.ac.id; jumlah/urutan langkah berbeda dari reference_answer
+d006,answerable,ada,brosur/brosur-pmb-2025#14,"""Online Admission/Consultation: 081-160-25-151"" = 0811 602 5151"
+d007,answerable,tidak_ada_di_kb_v5,,jam buka Admisi tidak ada di v5 (keuangan#4 hanya jam layanan kemahasiswaan 09.00-18.00)
+d008,answerable,ada,brosur/brosur-pmb-2025#4|brosur/brosur-pmb-2025#6|akademik/peraturan-akademik-2025#79,TI: AI/scalable software; TekInfo: cyber security/big data; gelar S.Kom di akademik#79
+d009,answerable,sebagian,brosur/brosur-pmb-2025#7|brosur/brosur-pmb-2025#8|brosur/brosur-pmb-2025#9|brosur/brosur-pmb-2025#10|brosur/brosur-pmb-2025#11,"jawaban tersebar: satu chunk per prodi (MM, Manajemen, Akuntansi, Hukum Bisnis); tidak ada chunk tunggal"
+d010,answerable,tidak_ada_di_kb_v5,,akreditasi per prodi tidak ada di v5
+d011,answerable,sebagian,pmb/pedoman-pmb-2027#14|pmb/pedoman-pmb-2027#7,"v5: S1, IPK 2.75, akreditasi asal min Baik/B; USM di pmb#7; TOEFL MM sengaja tidak ada (brosur#0), reference_answer usang"
+d012,answerable,ada,pmb/pedoman-pmb-2027#14,TOEFL minimal 475 (Magister TI)
+d013,answerable,tidak_ada_di_kb_v5,,jadwal kelas eksekutif MM tidak ada (brosur#8 hanya biaya)
+d014,answerable,sebagian,kemahasiswaan/panduan-kemahasiswaan-2021#18|pmb/pedoman-pmb-2027#7|kemahasiswaan/panduan-kemahasiswaan-2021#16|kemahasiswaan/panduan-kemahasiswaan-2021#17|keuangan/panduan-pembayaran-2026-2027#19,"v5: Beasiswa Akademik (kem#18), KIP Kuliah (pmb#7), Yayasan/Dikti (kem#16-17), potongan (keu#19); Minat Bakat dan IP4 tidak ada"
+d015,answerable,sebagian,brosur/brosur-pmb-2025#1|pmb/pedoman-pmb-2027#1,"STMIK 1997, STIE 2008 (brosur#1); izin penggabungan 2021 (pmb#1); IMC 1992 tidak ada"
+d016,answerable,ada,pmb/pedoman-pmb-2027#1|pmb/pedoman-pmb-2027#2|pmb/pedoman-pmb-2027#3|pmb/pedoman-pmb-2027#4|pmb/pedoman-pmb-2027#23,"Rektor Hardy, S.Kom., M.Sc., Ph.D. (penanda tangan Pedoman PMB 2027)"
+d017,answerable,ada,brosur/brosur-pmb-2025#13,Mikroskil Futsal Club
+d018,answerable,ada,keuangan/panduan-pembayaran-2026-2027#3|keuangan/panduan-pembayaran-2026-2027#20,fin@mikroskil.ac.id; catatan: v5 juga memuat WA 081170703992 (reference_answer bilang tidak tercatat)
+d019,answerable,tidak_ada_di_kb_v5,,lokasi lab komputer tidak ada di v5
+d020,answerable,sebagian,brosur/brosur-pmb-2025#9,"Expertise International Business / Culinary Business; ""mulai semester IV"" tidak ada"
+d021,answerable,ada,brosur/brosur-pmb-2025#5,"career path SI (ERP Consultant, Business Analyst, System Analyst, ...)"
+d022,answerable,ada,brosur/brosur-pmb-2025#1,88% lulusan bekerja < 6 bulan (tracer study 2025); angka situs pendaftaran tidak ada di v5
+d023,answerable,tidak_ada_di_kb_v5,,tanggal kuliah perdana S2 tidak ada di v5
+d024,out_of_kb,tidak_ada_di_kb_v5,,label out_of_kb; asrama tidak ada di v5
+d025,out_of_kb,ada,keuangan/panduan-pembayaran-2026-2027#8|keuangan/panduan-pembayaran-2026-2027#9|keuangan/panduan-pembayaran-2026-2027#10|keuangan/panduan-pembayaran-2026-2027#11|pmb/pedoman-pmb-2027#19,"LABEL USANG: v5 memuat skema cicilan (pagi 12x, sore 4x); di luar diagnosis (tipe out_of_kb)"
+d026,out_of_kb,tidak_ada_di_kb_v5,,"label out_of_kb; v5 hanya menyebut DP3 ditetapkan Rektor (pmb#19), tanpa nominal"
+d027,out_of_kb,tidak_ada_di_kb_v5,,"label out_of_kb; pmb#7: nilai rapor ""sesuai ketentuan panitia PMB"", tanpa angka"
+d028,out_of_kb,tidak_ada_di_kb_v5,,label out_of_kb; jadwal USM tidak ada
+d029,false_premise,ada,pmb/pedoman-pmb-2027#14|akademik/peraturan-akademik-2025#79,tidak ada prodi kedokteran; daftar prodi di pmb#14
+d030,false_premise,tidak_ada_di_kb_v5,,"akreditasi TI tidak ada di v5, premis tidak bisa dikoreksi dari KB"
+d031,false_premise,tidak_ada_di_kb_v5,,jumlah/tanggal gelombang S1 tidak ada di v5
+d032,followup,ada,brosur/brosur-pmb-2025#5,lanjutan d001: SI sore 15.000.000/th
+d033,followup,ada,pmb/pedoman-pmb-2027#14,lanjutan d011: syarat Magister TI

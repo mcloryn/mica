@@ -1,0 +1,29 @@
+{
+  "generated": "2026-11-04T15:34:34+07:00",
+  "kb_id": "official-2026-10-24-v5",
+  "config_hash": "073e446b98798e5b4d731873339f259f4910aa02971fefa14066b69b7b871fd2",
+  "settings_complete": false,
+  "retriever": "hybrid",
+  "top_k": 5,
+  "rrf_k": 60,
+  "candidates_per_retriever": 20,
+  "followup_mode": "dual",
+  "gate_threshold": 0.5,
+  "prompt_variant": "v5",
+  "llm_chain": [
+    "groq:openai/gpt-oss-120b",
+    "groq:openai/gpt-oss-20b"
+  ],
+  "n": 20,
+  "recall@topk": 0.75,
+  "recall@5": 0.75,
+  "recall@10": 0.75,
+  "recall@20": 1.0,
+  "not_in_pool": 0,
+  "gate_fail": 2,
+  "causes": {
+    "a_gate": 2,
+    "b_not_in_topk": 4,
+    "other_answered": 14
+  }
+}
