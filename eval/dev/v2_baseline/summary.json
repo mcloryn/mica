@@ -1,0 +1,66 @@
+{
+  "kb_id": "official-2026-10-24-v5",
+  "config_hash": "073e446b98798e5b4d731873339f259f4910aa02971fefa14066b69b7b871fd2",
+  "top_k": 5,
+  "gate_threshold": 0.5,
+  "prompt_variant": "v5",
+  "llm_chain": [
+    "groq:openai/gpt-oss-120b",
+    "groq:openai/gpt-oss-20b"
+  ],
+  "followup_mode": "dual",
+  "rekap": {
+    "v2": {
+      "n": 108,
+      "dijawab": 48,
+      "ditolak": 60,
+      "benar": 28,
+      "tidak_lengkap": 9,
+      "halusinasi": 11,
+      "halu_A": 4,
+      "halu_B": 7,
+      "tidak_halu": 37,
+      "tidak_halu_pct": 0.7708333333333334,
+      "wilson95": [
+        0.6346046409154885,
+        0.8669230897101096
+      ],
+      "tolak_tepat": 34,
+      "tolak_keliru": 26,
+      "penyebab": {
+        "llm_not_found": 10,
+        "gold_tidak_top5": 12,
+        "gerbang_3": 3,
+        "gerbang_1": 1
+      },
+      "n_gold": 68,
+      "recall5": 52,
+      "recall20": 64
+    },
+    "lama": {
+      "n": 38,
+      "dijawab": 18,
+      "ditolak": 20,
+      "benar": 11,
+      "tidak_lengkap": 4,
+      "halusinasi": 3,
+      "halu_A": 0,
+      "halu_B": 3,
+      "tidak_halu": 15,
+      "tidak_halu_pct": 0.8333333333333334,
+      "wilson95": [
+        0.6077750036164076,
+        0.9416352959953425
+      ],
+      "tolak_tepat": 14,
+      "tolak_keliru": 6,
+      "penyebab": {
+        "gerbang_1": 2,
+        "gold_tidak_top5": 4
+      },
+      "n_gold": 22,
+      "recall5": 17,
+      "recall20": 22
+    }
+  }
+}

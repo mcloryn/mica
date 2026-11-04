@@ -1,0 +1,12 @@
+{
+  "kb_id": "official-2026-10-24-v5",
+  "config_hash": "073e446b98798e5b4d731873339f259f4910aa02971fefa14066b69b7b871fd2",
+  "top_k": 5,
+  "gate_threshold": 0.5,
+  "prompt_variant": "v5",
+  "llm_chain": [
+    "groq:openai/gpt-oss-120b",
+    "groq:openai/gpt-oss-20b"
+  ],
+  "followup_mode": "dual"
+}

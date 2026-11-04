@@ -1,0 +1,215 @@
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]Loading weights:   2%|▏         | 9/391 [00:00<00:04, 84.07it/s]Loading weights:   9%|▉         | 37/391 [00:00<00:01, 185.57it/s]Loading weights:  14%|█▍        | 56/391 [00:00<00:02, 166.61it/s]Loading weights:  20%|██        | 79/391 [00:00<00:01, 177.29it/s]Loading weights:  25%|██▍       | 97/391 [00:00<00:01, 153.18it/s]Loading weights:  29%|██▉       | 113/391 [00:00<00:02, 137.49it/s]Loading weights:  35%|███▌      | 137/391 [00:00<00:01, 149.29it/s]Loading weights:  39%|███▉      | 153/391 [00:01<00:01, 130.91it/s]Loading weights:  44%|████▍     | 173/391 [00:01<00:01, 135.52it/s]Loading weights:  49%|████▉     | 191/391 [00:01<00:01, 138.17it/s]Loading weights: 100%|██████████| 391/391 [00:01<00:00, 293.16it/s]
+v2:v2d-001 answered 1
+v2:v2d-002 refused_llm 1
+v2:v2d-003 refused_llm 7
+v2:v2d-004 refused_llm 1
+v2:v2d-005 refused_llm 1
+v2:v2d-006 refused_llm 10
+v2:v2d-007 refused_llm None
+v2:v2d-008 refused_llm None
+v2:v2d-009 answered 1
+v2:v2d-010 answered 4
+v2:v2d-011 refused_llm None
+v2:v2d-012 answered 1
+v2:v2d-013 answered 3
+v2:v2d-014 answered 4
+v2:v2d-015 answered 2
+v2:v2d-016 answered None
+v2:v2d-017 refused_llm 1
+v2:v2d-018 refused_llm None
+v2:v2d-019 refused_llm 6
+v2:v2d-020 refused_gate None
+v2:v2d-021 answered None
+v2:v2d-022 refused_llm None
+v2:v2d-023 refused_llm None
+v2:v2d-024 refused_llm 22
+v2:v2d-025 refused_llm None
+v2:v2d-026 refused_llm None
+v2:v2d-027 refused_llm None
+v2:v2d-028 answered 3
+v2:v2d-029 answered 1
+v2:v2d-030 answered 2
+v2:v2d-031 answered 6
+v2:v2d-032 answered 1
+v2:v2d-033 refused_llm None
+v2:v2d-034 refused_llm 1
+v2:v2d-035 answered 1
+v2:v2d-036 refused_llm None
+v2:v2d-037 answered 1
+v2:v2d-038 refused_gate None
+v2:v2d-039 answered 3
+v2:v2d-040 answered 1
+v2:v2d-041 answered 2
+v2:v2d-042 answered 1
+v2:v2d-043 false_premise 2
+v2:v2d-044 refused_check 1
+v2:v2d-045 answered 1
+v2:v2d-046 refused_check 2
+v2:v2d-047 answered 1
+v2:v2d-048 answered 1
+v2:v2d-049 answered 1
+v2:v2d-050 answered 3
+v2:v2d-051 answered 2
+v2:v2d-052 answered 1
+v2:v2d-053 refused_llm 16
+v2:v2d-054 answered 1
+v2:v2d-055 refused_llm None
+v2:v2d-056 answered 3
+v2:v2d-057 refused_llm 7
+v2:v2d-058 answered 3
+v2:v2d-059 answered 1
+v2:v2d-060 refused_llm 6
+v2:v2d-061 refused_llm 1
+v2:v2d-062 refused_llm 6
+v2:v2d-063 refused_llm None
+v2:v2d-064 refused_llm 19
+v2:v2d-065 refused_llm 1
+v2:v2d-066 answered 3
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=1080)
+v2:v2d-067 refused_check None
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=721)
+v2:v2d-068 false_premise None
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=1072)
+v2:v2d-069 answered 1
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=1153)
+v2:v2d-070 refused_llm None
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=1099)
+v2:v2d-071 refused_llm 1
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=835)
+v2:v2d-072 answered 5
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=1201)
+v2:v2d-073 refused_llm None
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=1036)
+v2:v2d-074 refused_llm None
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=897)
+v2:v2d-075 refused_llm None
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=980)
+v2:v2d-076 refused_llm None
+v2:v2d-077 refused_gate None
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=948)
+v2:v2d-078 refused_llm None
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=865)
+v2:v2d-079 answered None
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=988)
+v2:v2d-080 answered 1
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=947)
+v2:v2d-081 answered 1
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=898)
+v2:v2d-082 refused_llm None
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=833)
+v2:v2d-083 answered 1
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=1017)
+v2:v2d-084 refused_llm 11
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=807)
+v2:v2d-085 refused_llm 32
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=685)
+v2:v2d-086 refused_llm 1
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=667)
+v2:v2d-087 refused_check 2
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=662)
+v2:v2d-088 answered 5
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=566)
+v2:v2d-089 answered 15
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=614)
+v2:v2d-090 refused_llm None
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=463)
+v2:v2d-091 refused_llm 29
+v2:v2d-092 refused_gate 38
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=361)
+v2:v2d-093 answered 9
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=537)
+v2:v2d-094 answered 1
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=668)
+v2:v2d-095 answered 1
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=658)
+v2:v2d-096 answered 1
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=426)
+v2:v2d-097 answered 1
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=334)
+v2:v2d-098 refused_llm None
+v2:v2d-099 refused_gate None
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=590)
+v2:v2d-100 refused_llm None
+v2:v2d-101 refused_gate None
+v2:v2d-102 refused_gate None
+v2:v2d-103 refused_gate None
+v2:v2d-104 refused_gate None
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=329)
+v2:v2d-105 refused_llm 6
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=409)
+v2:v2d-106 false_premise 3
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=186)
+v2:v2d-107 false_premise None
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=93)
+v2:v2d-108 refused_llm 5
+lama:d001 answered 1
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=256)
+lama:d002 answered 1
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=610)
+lama:d003 refused_llm None
+lama:d004 refused_gate 1
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=677)
+lama:d005 refused_llm 11
+lama:d006 refused_gate 19
+lama:d007 refused_gate None
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=466)
+lama:d008 answered 1
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=274)
+lama:d009 answered 1
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=473)
+lama:d010 refused_llm None
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=642)
+lama:d011 answered 1
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=557)
+lama:d012 answered 1
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=175)
+lama:d013 refused_llm None
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=711)
+lama:d014 answered 1
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=388)
+lama:d015 answered 1
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=425)
+lama:d016 answered 2
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=668)
+lama:d017 answered 1
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=353)
+lama:d018 answered 1
+lama:d019 refused_gate None
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=360)
+lama:d020 answered 4
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=248)
+lama:d021 refused_llm 11
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=493)
+lama:d022 answered 3
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=176)
+lama:d023 refused_llm None
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=339)
+lama:d024 refused_llm None
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=373)
+lama:d025 answered 3
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=67)
+lama:d026 answered 8
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=524)
+lama:d027 refused_llm 1
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=150)
+lama:d028 refused_llm 1
+lama:d029 refused_llm 11
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=778)
+lama:d030 refused_llm None
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=857)
+lama:d031 refused_llm None
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=482)
+lama:d032 answered 17
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=777)
+lama:d033 answered 1
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=946)
+lama:d041 refused_llm None
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=1037)
+lama:d042 answered 1
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=686)
+lama:d043 refused_llm 8
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=575)
+lama:d044 refused_llm 11
+LLM_FALLBACK: groq:openai/gpt-oss-120b gagal (HTTP 429, status=429, retry_after=705)
+lama:d045 refused_llm None
+selesai 146
