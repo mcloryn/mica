@@ -1,0 +1,46 @@
+qid;jenis;chunk_gold;jawaban_acuan;catatan;koreksi_pasca;prev_qid;tipe_lama
+d001;ada;brosur/brosur-pmb-2025#5;SI pagi Rp14.000.000/tahun, sore Rp15.000.000/tahun (brosur 2025).;;;;answerable
+d002;ada;brosur/brosur-pmb-2025#10;Akuntansi sore Rp13.500.000/tahun.;;;;answerable
+d003;tidak_ada;;Tanggal gelombang S1 tidak ada di KB v5.;label diubah: answerable -> tidak_ada;;;answerable
+d004;ada;pmb/pedoman-pmb-2027#6|pmb/pedoman-pmb-2027#7|pmb/pedoman-pmb-2027#2;Jalur PMDK, Prestasi, Reguler, KIP Kuliah (+ Ujian Saring Masuk khusus S2).;jawaban acuan diubah ke v5;;;answerable
+d005;ada;pmb/pedoman-pmb-2027#15;Daftar daring di daftar.mikroskil.ac.id: buat akun Google + isi data, bayar biaya pendaftaran awal, terima kwitansi/email, pilih jalur + unggah dokumen, pengumuman maks 1 minggu setelah seleksi, bayar DP3 + uang kuliah, isi data lanjutan di mika.mikroskil.ac.id.;jawaban acuan diubah ke v5;;;answerable
+d006;ada;brosur/brosur-pmb-2025#14;Online Admission/Consultation 081-160-25-151.;;;;answerable
+d007;tidak_ada;;Jam buka Admisi tidak ada di KB v5.;label diubah: answerable -> tidak_ada;;;answerable
+d008;ada;brosur/brosur-pmb-2025#4|brosur/brosur-pmb-2025#6|akademik/peraturan-akademik-2025#79;"TI: AI-based/scalable software development; TekInfo: cyber security dan big data analytics; keduanya S.Kom.";;;;answerable
+d009;ada;brosur/brosur-pmb-2025#7|brosur/brosur-pmb-2025#8|brosur/brosur-pmb-2025#9|brosur/brosur-pmb-2025#10|brosur/brosur-pmb-2025#11;S1 Manajemen, S1 Akuntansi, S1 Hukum Bisnis, S2 Magister Manajemen.;;;;answerable
+d010;tidak_ada;;Akreditasi prodi tidak ada di KB v5.;label diubah: answerable -> tidak_ada;;;answerable
+d011;ada;pmb/pedoman-pmb-2027#14|pmb/pedoman-pmb-2027#7;"Lulusan S1, IPK min 2,75, akreditasi prodi asal min Baik/B/Terakreditasi; Ujian Saring Masuk (kecuali alumni lulus maks 1 tahun).";jawaban acuan diubah ke v5 (TOEFL MM tidak disyaratkan);;;answerable
+d012;ada;pmb/pedoman-pmb-2027#14;TOEFL minimal 475.;;;;answerable
+d013;tidak_ada;;Jadwal kelas eksekutif tidak ada di KB v5.;label diubah: answerable -> tidak_ada;;;answerable
+d014;ada;kemahasiswaan/panduan-kemahasiswaan-2021#16|kemahasiswaan/panduan-kemahasiswaan-2021#17|kemahasiswaan/panduan-kemahasiswaan-2021#18|pmb/pedoman-pmb-2027#7|keuangan/panduan-pembayaran-2026-2027#19;"Beasiswa Yayasan (Karier, Kurang Mampu, Akademik), Beasiswa Dirjen Dikti (PPA, BBM, Supersemar, Bidikmisi), KIP Kuliah; potongan prestasi/lunas/saudara kandung.";jawaban acuan diubah ke v5;;;answerable
+d015;sebagian;brosur/brosur-pmb-2025#1|pmb/pedoman-pmb-2027#1;"STMIK 1997, STIE 2008; Universitas Mikroskil dari penggabungan keduanya (izin 26 Juli 2021).";IMC 1992 tidak ada di v5;;;answerable
+d016;ada;pmb/pedoman-pmb-2027#1|pmb/pedoman-pmb-2027#2|pmb/pedoman-pmb-2027#3|pmb/pedoman-pmb-2027#4|pmb/pedoman-pmb-2027#23;Hardy, S.Kom., M.Sc., Ph.D.;;;;answerable
+d017;ada;brosur/brosur-pmb-2025#13;Ada, Mikroskil Futsal Club.;;;;answerable
+d018;ada;keuangan/panduan-pembayaran-2026-2027#3|keuangan/panduan-pembayaran-2026-2027#20;fin@mikroskil.ac.id (WA 081170703992).;jawaban acuan diubah ke v5 (WA ada);;;answerable
+d019;tidak_ada;;Lokasi lab komputer tidak ada di KB v5.;label diubah: answerable -> tidak_ada;;;answerable
+d020;sebagian;brosur/brosur-pmb-2025#9;Expertise International Business / Culinary Business.;semester IV tidak ada di v5;;;answerable
+d021;ada;brosur/brosur-pmb-2025#5;ERP Consultant, Business Analyst, Business Process Analyst, System Analyst, IS Technopreneur, UI/UX Designer, dll.;;;;answerable
+d022;ada;brosur/brosur-pmb-2025#1;88% lulusan bekerja < 6 bulan (tracer study 2025).;;;;answerable
+d023;tidak_ada;;Tanggal kuliah perdana S2 tidak ada di KB v5.;label diubah: answerable -> tidak_ada;;;answerable
+d024;tidak_ada;;Asrama tidak ada di KB.;;;;out_of_kb
+d025;ada;pmb/pedoman-pmb-2027#19|keuangan/panduan-pembayaran-2026-2027#8|keuangan/panduan-pembayaran-2026-2027#9|keuangan/panduan-pembayaran-2026-2027#10|keuangan/panduan-pembayaran-2026-2027#11;Bisa: kelas pagi 12x bulanan, kelas sore 4x @25%.;label diubah: out_of_kb -> ada;;;out_of_kb
+d026;tidak_ada;pmb/pedoman-pmb-2027#19;"Nominal uang pangkal/DP3 tidak ada; DP3 ditetapkan Rektor tiap tahun.";;;;out_of_kb
+d027;tidak_ada;pmb/pedoman-pmb-2027#7;Nilai rapor minimal tidak ada (sesuai ketentuan panitia PMB).;;;;out_of_kb
+d028;tidak_ada;pmb/pedoman-pmb-2027#7;Jadwal Ujian Saring Masuk S2 tidak ada.;;;;out_of_kb
+d029;premis_salah;pmb/pedoman-pmb-2027#14|akademik/peraturan-akademik-2025#79;"Tidak ada prodi kedokteran; prodi: S1 TI, SI, TekInfo, Manajemen, Akuntansi, Hukum Bisnis; S2 MTI, MM.";;;;false_premise
+d030;premis_salah;;Koreksi: tidak_ada. Akreditasi TI tidak ada di KB v5.;label diubah: koreksi dari KB tidak mungkin;;;false_premise
+d031;premis_salah;;Koreksi: tidak_ada. Jumlah/tanggal gelombang tidak ada di KB v5.;label diubah: koreksi dari KB tidak mungkin;;;false_premise
+d032;ada;brosur/brosur-pmb-2025#5;Kelas sore Sistem Informasi Rp15.000.000/tahun.;lanjutan d001;;d001;followup
+d033;ada;pmb/pedoman-pmb-2027#14;Lulusan sarjana komputer/teknik/ekonomi/MIPA atau lainnya (pengalaman TI min 3 tahun), IPK min 2,75, TOEFL min 475.;lanjutan d011;;d011;followup
+d034;luar_topik;;Di luar cakupan MICA.;;;;out_of_kb
+d035;luar_topik;;Di luar cakupan MICA.;;;;out_of_kb
+d036;luar_topik;;Di luar cakupan MICA.;;;;out_of_kb
+d037;luar_topik;;Di luar cakupan MICA.;;;;out_of_kb
+d038;luar_topik;;Di luar cakupan MICA.;;;;out_of_kb
+d039;luar_topik;;Di luar cakupan MICA.;;;;out_of_kb
+d040;luar_topik;;Di luar cakupan MICA (kampus lain).;;;;out_of_kb
+d041;tidak_ada;;Biaya wisuda tidak ada di KB.;;;;out_of_kb
+d042;ada;akademik/peraturan-akademik-2025#16|akademik/peraturan-akademik-2025#18|akademik/peraturan-akademik-2025#19|akademik/peraturan-akademik-2025#20;"Bisa lewat RPL skema transfer SKS: prodi asal terakreditasi setara/lebih tinggi, ekuivalensi min 75% CPMK, transkrip, aktif terakhir maks 2 tahun; maks 70% sks diakui.";label diubah: out_of_kb -> ada;;;out_of_kb
+d043;tidak_ada;pmb/pedoman-pmb-2027#5;"Kuota tidak ada; daya tampung ditetapkan SK Rektor.";;;;out_of_kb
+d044;ada;akademik/peraturan-akademik-2025#32;"Perkuliahan dapat bauran; full daring hanya kondisi khusus (pembelajaran di luar prodi/universitas atau keadaan kahar).";label diubah: out_of_kb -> ada;;;out_of_kb
+d045;tidak_ada;;Biaya jas almamater tidak ada di KB.;;;;out_of_kb
