@@ -1,0 +1,67 @@
+{
+  "default": {
+    "overrides": {},
+    "config_hash": "073e446b98798e5b4d731873339f259f4910aa02971fefa14066b69b7b871fd2",
+    "kb_id": "official-2026-10-24-v5",
+    "llm_chain": [
+      "groq:openai/gpt-oss-120b",
+      "groq:openai/gpt-oss-20b"
+    ]
+  },
+  "R": {
+    "overrides": {
+      "rag": {
+        "reranker": {
+          "enabled": true,
+          "revision": "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e"
+        }
+      }
+    },
+    "config_hash": "d4f838168ce7e7d234b683fdbd6c4c4b587fd405431a820b9e582d6ead914fe8",
+    "kb_id": "official-2026-10-24-v5",
+    "llm_chain": [
+      "groq:openai/gpt-oss-120b",
+      "groq:openai/gpt-oss-20b"
+    ]
+  },
+  "V6": {
+    "overrides": {
+      "rag": {
+        "reranker": {
+          "enabled": true,
+          "revision": "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e"
+        },
+        "prompt_variant": "v6"
+      }
+    },
+    "config_hash": "9a4cc2cb54925db8f1033c3783d3ae59a6d9394565efe882207c74bb6a3513f7",
+    "kb_id": "official-2026-10-24-v5",
+    "llm_chain": [
+      "groq:openai/gpt-oss-120b",
+      "groq:openai/gpt-oss-20b"
+    ]
+  },
+  "V6G": {
+    "overrides": {
+      "rag": {
+        "reranker": {
+          "enabled": true,
+          "revision": "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e"
+        },
+        "prompt_variant": "v6",
+        "gate": {
+          "sentence_verify": {
+            "enabled": true,
+            "temperature": 0.0
+          }
+        }
+      }
+    },
+    "config_hash": "29b877ba933a256c98112df6fc9420b8312f35626f20534e4bbe4387f177eb8e",
+    "kb_id": "official-2026-10-24-v5",
+    "llm_chain": [
+      "groq:openai/gpt-oss-120b",
+      "groq:openai/gpt-oss-20b"
+    ]
+  }
+}

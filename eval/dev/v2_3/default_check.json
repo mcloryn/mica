@@ -1,0 +1,46 @@
+{
+  "identik": 10,
+  "n": 10,
+  "per_soal": [
+    {
+      "qid": "v2d-001",
+      "identik": true
+    },
+    {
+      "qid": "v2d-002",
+      "identik": true
+    },
+    {
+      "qid": "v2d-003",
+      "identik": true
+    },
+    {
+      "qid": "v2d-004",
+      "identik": true
+    },
+    {
+      "qid": "v2d-005",
+      "identik": true
+    },
+    {
+      "qid": "v2d-006",
+      "identik": true
+    },
+    {
+      "qid": "v2d-007",
+      "identik": true
+    },
+    {
+      "qid": "v2d-008",
+      "identik": true
+    },
+    {
+      "qid": "v2d-009",
+      "identik": true
+    },
+    {
+      "qid": "v2d-010",
+      "identik": true
+    }
+  ]
+}

@@ -1,0 +1,111 @@
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]Loading weights:   4%|▍         | 16/391 [00:00<00:02, 145.71it/s]Loading weights:   8%|▊         | 31/391 [00:00<00:03, 117.72it/s]Loading weights:  15%|█▍        | 58/391 [00:00<00:01, 170.08it/s]Loading weights:  19%|█▉        | 76/391 [00:00<00:01, 166.64it/s]Loading weights:  24%|██▍       | 94/391 [00:00<00:02, 125.99it/s]Loading weights:  30%|███       | 118/391 [00:00<00:01, 154.13it/s]Loading weights:  35%|███▍      | 136/391 [00:01<00:02, 107.04it/s]Loading weights:  38%|███▊      | 150/391 [00:01<00:02, 101.08it/s]Loading weights: 100%|██████████| 391/391 [00:01<00:00, 311.02it/s]
+The Transformer `cache_dir` argument is deprecated. Please pass `cache_dir` via `model_kwargs`, `processor_kwargs`, and/or `config_kwargs` instead.
+Loading weights:   0%|          | 0/393 [00:00<?, ?it/s]Loading weights:   2%|▏         | 6/393 [00:00<00:27, 13.92it/s]Loading weights:   4%|▎         | 14/393 [00:00<00:14, 26.41it/s]Loading weights:   5%|▍         | 19/393 [00:00<00:14, 25.54it/s]Loading weights:  10%|▉         | 39/393 [00:00<00:05, 61.08it/s]Loading weights:  14%|█▍        | 55/393 [00:01<00:04, 83.24it/s]Loading weights:  19%|█▉        | 76/393 [00:01<00:02, 108.78it/s]Loading weights:  23%|██▎       | 90/393 [00:01<00:02, 106.39it/s]Loading weights:  27%|██▋       | 108/393 [00:01<00:02, 116.04it/s]Loading weights:  31%|███       | 121/393 [00:01<00:03, 81.96it/s] Loading weights:  34%|███▎      | 132/393 [00:01<00:03, 80.63it/s]Loading weights:  37%|███▋      | 145/393 [00:01<00:02, 86.40it/s]Loading weights:  39%|███▉      | 155/393 [00:02<00:03, 62.77it/s]Loading weights: 100%|██████████| 393/393 [00:02<00:00, 169.29it/s]
+R v2d-001 1 23.17s
+R v2d-002 1 14.37s
+R v2d-003 1 13.62s
+R v2d-004 1 14.29s
+R v2d-005 1 14.15s
+R v2d-006 2 13.75s
+R v2d-007 None 14.67s
+R v2d-008 None 13.98s
+R v2d-009 1 14.73s
+R v2d-010 1 14.65s
+R v2d-011 None 14.49s
+R v2d-012 1 14.44s
+R v2d-013 3 14.58s
+R v2d-014 2 15.53s
+R v2d-015 1 15.14s
+R v2d-016 None 14.65s
+R v2d-017 1 15.05s
+R v2d-018 None 14.64s
+R v2d-019 1 14.07s
+R v2d-020 None 14.10s
+R v2d-021 None 14.29s
+R v2d-022 None 13.75s
+R v2d-023 None 14.78s
+R v2d-024 10 14.28s
+R v2d-025 None 14.81s
+R v2d-026 None 14.25s
+R v2d-027 None 14.09s
+R v2d-028 1 14.07s
+R v2d-029 1 14.37s
+R v2d-030 1 15.18s
+R v2d-031 2 14.63s
+R v2d-032 1 14.43s
+R v2d-033 None 14.55s
+R v2d-034 1 13.97s
+R v2d-035 1 14.11s
+R v2d-036 None 14.12s
+R v2d-037 1 14.34s
+R v2d-038 None 14.57s
+R v2d-039 1 14.54s
+R v2d-040 1 14.16s
+R v2d-041 1 14.11s
+R v2d-042 1 14.70s
+R v2d-043 3 14.14s
+R v2d-044 1 14.65s
+R v2d-045 1 14.08s
+R v2d-046 1 14.04s
+R v2d-047 1 13.77s
+R v2d-048 3 14.24s
+R v2d-049 1 14.43s
+R v2d-050 1 14.53s
+R v2d-051 1 14.38s
+R v2d-052 1 14.69s
+R v2d-053 17 14.84s
+R v2d-054 1 14.34s
+R v2d-055 None 14.52s
+R v2d-056 6 14.72s
+R v2d-057 27 13.92s
+R v2d-058 1 14.49s
+R v2d-059 1 14.83s
+R v2d-060 33 14.51s
+R v2d-061 1 14.71s
+R v2d-062 2 15.87s
+R v2d-063 None 14.81s
+R v2d-064 2 14.51s
+R v2d-065 1 14.89s
+R v2d-066 2 14.53s
+R v2d-067 None 14.64s
+R v2d-068 None 14.76s
+R v2d-069 1 14.64s
+R v2d-070 None 15.21s
+R v2d-071 1 14.64s
+R v2d-072 2 14.58s
+R v2d-073 None 14.08s
+R v2d-074 None 14.81s
+R v2d-075 None 14.66s
+R v2d-076 None 15.02s
+R v2d-077 None 14.92s
+R v2d-078 None 14.91s
+R v2d-079 None 15.05s
+R v2d-080 2 15.59s
+R v2d-081 1 15.37s
+R v2d-082 None 14.88s
+R v2d-083 1 15.44s
+R v2d-084 8 14.62s
+R v2d-085 3 15.26s
+R v2d-086 1 14.21s
+R v2d-087 1 14.26s
+R v2d-088 3 14.43s
+R v2d-089 13 14.76s
+R v2d-090 None 14.49s
+R v2d-091 7 14.02s
+R v2d-092 6 14.98s
+R v2d-093 2 14.66s
+R v2d-094 1 14.14s
+R v2d-095 1 14.54s
+R v2d-096 4 14.77s
+R v2d-097 1 14.71s
+R v2d-098 None 14.43s
+R v2d-099 None 14.84s
+R v2d-100 None 14.66s
+R v2d-101 None 14.78s
+R v2d-102 None 14.76s
+R v2d-103 None 14.09s
+R v2d-104 None 14.10s
+R v2d-105 11 14.77s
+R v2d-106 3 14.81s
+R v2d-107 None 14.82s
+R v2d-108 1 14.82s

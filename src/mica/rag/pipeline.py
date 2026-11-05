@@ -37,6 +37,7 @@ from mica.rag.llm import LLMProvider
 from mica.rag.pii import scrub_pii
 from mica.rag.prompts import REFUSAL, UNAVAILABLE, build_prompt, prompt_version
 from mica.rag.retriever import Retriever
+from mica.rag.verifier import SentenceVerifier
 
 Status = Literal[
     "answered", "refused_gate", "refused_llm", "false_premise", "refused_check", "unavailable"
@@ -53,6 +54,7 @@ class _Trace:
     gate: GateDecision | None = None
     out: LlmAnswer | None = None
     fact_check: dict[str, Any] | None = None
+    sentence_verify: dict[str, Any] | None = None  # V2-3 P3: putusan per kalimat
     error_code: str | None = None
 
     def stage(self, name: str, since: float) -> float:
@@ -72,6 +74,7 @@ class AnswerPipeline:
         kb_id: str,
         log: InteractionLog | None = None,
         followup: FollowupQuery | None = None,
+        verifier: SentenceVerifier | None = None,
     ) -> None:
         if settings.llm.timeout_s is None:
             raise ConfigError(CFG_INVALID, "llm.timeout_s wajib diisi untuk AnswerPipeline")
@@ -83,6 +86,7 @@ class AnswerPipeline:
         self.checker = checker
         self.kb_id = kb_id
         self.log = log
+        self.verifier = verifier  # None = rag.gate.sentence_verify mati (perilaku v5)
         self.timeout_s = settings.llm.timeout_s
         self.config_hash = settings.config_hash()
 
@@ -168,6 +172,17 @@ class AnswerPipeline:
         # urutan sumber mengikuti urutan sitasi; duplikat dibuang
         sources = tuple(by_id[c] for c in dict.fromkeys(out.citations) if c in by_id)
 
+        if self.verifier is not None:  # V2-3 P3: gerbang 3 per kalimat, sebelum cek angka
+            verified = self.verifier.verify(out.answer, trace.hits)
+            trace.sentence_verify = verified.to_log()
+            if verified.rejected:
+                trace.stage("check", t)
+                trace.error_code = ErrorCode.REFUSED_CHECK
+                return self._finish(
+                    trace, "refused_check", REFUSAL, (), q, history, session_id, input_mode
+                )
+            out = trace.out = replace(out, answer=verified.kept_text)
+
         if rag.fact_check.enabled:  # juga untuk false_premise (SDD 7.3)
             premise = q if out.status == "false_premise" else None
             # prompt v4: angka di items juga dicek
@@ -248,9 +263,7 @@ class AnswerPipeline:
             final_status=status,
             answer=joined_answer(text, items),  # v4: log memuat items
             sources=tuple(c.chunk_id for c in sources),
-            fact_check=trace.fact_check
-            if trace.fact_check is not None
-            else {"enabled": self.settings.rag.fact_check.enabled, "ran": False},
+            fact_check=_fact_check_log(trace, self.settings.rag.fact_check.enabled),
             timings=dict(trace.timings),
             kb_id=self.kb_id,
             config_hash=self.config_hash,
@@ -263,6 +276,17 @@ class AnswerPipeline:
         if self.log is not None:
             self.log.log_turn(record)
         return final, record
+
+
+def _fact_check_log(trace: _Trace, enabled: bool) -> dict[str, Any]:
+    data = (
+        dict(trace.fact_check)
+        if trace.fact_check is not None
+        else {"enabled": enabled, "ran": False}
+    )
+    if trace.sentence_verify is not None:
+        data["sentence_verify"] = trace.sentence_verify
+    return data
 
 
 def make_pipeline(
@@ -278,6 +302,7 @@ def make_pipeline(
     from mica.rag.gate import make_gate
     from mica.rag.llm import make_llm
     from mica.rag.retriever import embedder_for_kb, make_retriever
+    from mica.rag.verifier import make_verifier
 
     startup.mark("kb_load_start")
     kb = load_kb(settings.kb.active_id, kb_root or DEFAULT_KB_ROOT)
@@ -303,4 +328,5 @@ def make_pipeline(
         make_checker(settings),
         kb_id=kb.kb_id,
         log=log if log is not None else InteractionLog(Path(settings.logging.dir)),
+        verifier=make_verifier(settings),
     )

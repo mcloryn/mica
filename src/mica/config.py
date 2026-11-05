@@ -70,8 +70,18 @@ class RerankerConfig(_Model):
     revision: str | None = Field(default=None, pattern=r"^[0-9a-f]{40}$")
 
 
+class SentenceVerifyConfig(_Model):
+    """Gerbang 3 per kalimat (V2-3 P3, docs/PRA-REGISTRASI-V2.md); Provisional, default mati."""
+
+    enabled: bool = False
+    # entri "groq:<id_model>" untuk verifikator; null = llm.chain[0]
+    provider: str | None = None
+    temperature: NonNegativeFloat | None = None  # null = tidak dikirim (bawaan penyedia)
+
+
 class GateConfig(_Model):
     threshold: float | None = None
+    sentence_verify: SentenceVerifyConfig = SentenceVerifyConfig()
 
 
 class FactCheckConfig(_Model):
@@ -89,7 +99,9 @@ class RagConfig(_Model):
     # Langkah 55 (docs/FOLLOWUP.md): dual = retrieval apa adanya + concat digabung RRF
     followup_mode: Literal["concat", "dual", "llm_rewrite"]
     history_turns: NonNegativeInt
-    prompt_variant: Literal["paraphrase", "plain", "v3", "v4", "v5"]  # PROMPT-V3/V4.md, KB-RESMI.md
+    prompt_variant: Literal[
+        "paraphrase", "plain", "v3", "v4", "v5", "v6"
+    ]  # PROMPT-V3/V4.md, KB-RESMI.md
     # prompt v5: kelompok dokumen (subfolder) yang diutamakan untuk pendaftaran mahasiswa baru,
     # berurutan; nilai rancangan (Langkah 63), bukan hasil kalibrasi
     source_priority: tuple[str, ...] = Field(default=(), strict=False)
@@ -113,7 +125,7 @@ class LlmConfig(_Model):
     reasoning_effort: Literal["low", "medium", "high"] | None = None
     # varian prompt per entri rantai ("groq:<id>" -> varian), menimpa rag.prompt_variant untuk
     # penyedia itu (docs/PROMPT-V4.md: 120b v4, cadangan 20b v2); {} = semua pakai rag.prompt_variant
-    prompt_variants: dict[str, Literal["paraphrase", "plain", "v3", "v4", "v5"]] = Field(
+    prompt_variants: dict[str, Literal["paraphrase", "plain", "v3", "v4", "v5", "v6"]] = Field(
         default_factory=dict
     )
 
@@ -363,7 +375,13 @@ class Settings(_Model):
         return self
 
     def _config_dict(self) -> dict[str, Any]:
-        return self.model_dump(mode="json", exclude={"api_keys"})
+        data = self.model_dump(mode="json", exclude={"api_keys"})
+        # V2-3: kunci baru yang masih bernilai bawaan tidak ikut hash, supaya config yang tidak
+        # memakainya (prod v5) tetap ber-hash sama seperti sebelum kunci itu ada
+        gate = data["rag"]["gate"]
+        if gate.get("sentence_verify") == SentenceVerifyConfig().model_dump(mode="json"):
+            del gate["sentence_verify"]
+        return data
 
     def config_hash(self) -> str:
         payload = json.dumps(
