@@ -374,9 +374,10 @@ def write_doc(sums, sums_s, rows, data, incomplete, subset, keys) -> None:
         "- Retrieval config bawaan identik dengan B0 di 10/10 soal (`eval/dev/v2_3/default_check.json`).",
         (
             "- Reranker V6r/V6Gr: kondisi R yang lama (bawaan CrossEncoder, kandidat 20). "
-            "`docs/V2-RERANK-LATENSI.md` tidak ada; bench `scripts/v2_rerank_bench.py` hanya "
-            "menyelesaikan kondisi 1 (= kondisi R: top-5 sama dengan R 68/68, p50 14,46 / p95 14,82 "
-            "detik per kueri, `eval/dev/v2_3/rerank_bench_stdout.txt`). Kondisi 2-4 tidak terukur."
+            "Bench `docs/V2-RERANK-LATENSI.md`: kondisi 1-3 memberi top-5 identik dengan R (68/68) "
+            "dan latensi setara (p50 15,5-16,0 / p95 16,2-16,8 detik); kandidat 10 (kondisi 4) "
+            "p50 7,6 / p95 8,1 detik tetapi top-5 sama R hanya 26/68. Semua jauh di atas p95 0,5 "
+            "detik SDD."
         ),
         "\n## 7. Revisi prompt\n",
         (

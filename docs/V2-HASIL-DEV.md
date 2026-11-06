@@ -19,7 +19,7 @@ S = soal set dev v2 yang di B0 DAN V6 dijawab groq:openai/gpt-oss-120b (bukan ca
 
 Recall@5 dihitung untuk soal ada/sebagian dengan chunk gold di S. Semua kandidat memakai retrieval R (P1). g3 = gerbang 3 (cek angka/kontak atau verifikator P3).
 
-**Run belum lengkap (tidak dinilai):** V6r 0/61, V6Gr 0/61.
+**Run belum lengkap (tidak dinilai):** V6r 31/61, V6Gr 0/61.
 
 ### Aturan pilih di S
 
@@ -123,9 +123,11 @@ Uji Tahap 1 (`tahap1-beku`) tidak terdampak: manifest run mencatat `fallback_cha
 - `R`: override `{"rag": {"reranker": {"enabled": true, "revision": "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e"}}}`, config_hash `d4f838168ce7`.
 - `V6`: override `{"rag": {"reranker": {"enabled": true, "revision": "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e"}, "prompt_variant": "v6"}}`, config_hash `9a4cc2cb5492`.
 - `V6G`: override `{"rag": {"reranker": {"enabled": true, "revision": "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e"}, "prompt_variant": "v6", "gate": {"sentence_verify": {"enabled": true, "temperature": 0.0}}}}`, config_hash `29b877ba933a`.
+- `V6r`: override `{"rag": {"reranker": {"enabled": true, "revision": "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e"}, "prompt_variant": "v6r"}}`, config_hash `201fa13cd455`, primary_only.
+- `V6Gr`: override `{"rag": {"reranker": {"enabled": true, "revision": "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e"}, "prompt_variant": "v6r", "gate": {"sentence_verify": {"enabled": true, "temperature": 0.0, "prompt": "r1"}}}}`, config_hash `7f2609ac51a4`.
 - V6G run 1 (`eval/dev/v2_3/V6G_run1_gagal429.jsonl`) **tidak sah**: verifikator kena HTTP 429 karena batas token harian Groq gpt-oss-120b (200.000 TPD) habis setelah V6; verifikator fail-closed sehingga jawaban ditolak. Dihentikan, diarsipkan, tidak dinilai. Run sah dilanjutkan setelah kuota pulih, dengan V6 yang sama.
 - Retrieval config bawaan identik dengan B0 di 10/10 soal (`eval/dev/v2_3/default_check.json`).
-- Reranker V6r/V6Gr: kondisi R yang lama (bawaan CrossEncoder, kandidat 20). `docs/V2-RERANK-LATENSI.md` tidak ada; bench `scripts/v2_rerank_bench.py` hanya menyelesaikan kondisi 1 (= kondisi R: top-5 sama dengan R 68/68, p50 14,46 / p95 14,82 detik per kueri, `eval/dev/v2_3/rerank_bench_stdout.txt`). Kondisi 2-4 tidak terukur.
+- Reranker V6r/V6Gr: kondisi R yang lama (bawaan CrossEncoder, kandidat 20). Bench `docs/V2-RERANK-LATENSI.md`: kondisi 1-3 memberi top-5 identik dengan R (68/68) dan latensi setara (p50 15,5-16,0 / p95 16,2-16,8 detik); kandidat 10 (kondisi 4) p50 7,6 / p95 8,1 detik tetapi top-5 sama R hanya 26/68. Semua jauh di atas p95 0,5 detik SDD.
 
 ## 7. Revisi prompt
 

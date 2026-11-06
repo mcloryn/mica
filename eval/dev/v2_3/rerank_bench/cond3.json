@@ -1,0 +1,26 @@
+{
+  "default_threads": 14,
+  "physical_cores": 14,
+  "logical_cores": 20,
+  "conditions": [
+    {
+      "id": 3,
+      "max_length": 512,
+      "threads": 14,
+      "pool": 20,
+      "effective_max_length": 512,
+      "batch_size": 32,
+      "torch_threads_effective": 14,
+      "p50_s": 15.911813449987676,
+      "p95_s": 16.521106200001668,
+      "mean_s": 15.895643610000842,
+      "mean_tokens_per_pair": 270.755,
+      "max_tokens_per_pair": 413,
+      "pairs_over_512": 0,
+      "pairs": 400,
+      "recall5": 58,
+      "n_gold": 68,
+      "top5_same_as_R": 68
+    }
+  ]
+}

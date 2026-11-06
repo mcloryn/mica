@@ -42,6 +42,9 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--cores", type=int, required=True, help="jumlah core fisik")
     ap.add_argument("--n-latency", type=int, default=20)
+    # satu kondisi per proses supaya model reranker (~2,3 GB) tidak menumpuk di memori;
+    # hasilnya ditulis ke rerank_bench/cond<N>.json
+    ap.add_argument("--cond", type=int, choices=[1, 2, 3, 4], default=None)
     args = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
 
@@ -83,6 +86,8 @@ def main() -> int:
     ]
     results = {"default_threads": default_threads, "physical_cores": args.cores,
                "logical_cores": os.cpu_count(), "conditions": []}  # fmt: skip
+    if args.cond is not None:
+        conds = [c for c in conds if c["id"] == args.cond]
     for c in conds:
         torch.set_num_threads(c["threads"])
         kw = {"max_length": c["max_length"]} if c["max_length"] else {}
@@ -125,7 +130,8 @@ def main() -> int:
         }  # fmt: skip
         results["conditions"].append(row)
         print(json.dumps(row), flush=True)
-    (OUT / "results.json").write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8")
+    name = "results.json" if args.cond is None else f"cond{args.cond}.json"
+    (OUT / name).write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8")
     return 0
 
 
