@@ -77,6 +77,8 @@ class SentenceVerifyConfig(_Model):
     # entri "groq:<id_model>" untuk verifikator; null = llm.chain[0]
     provider: str | None = None
     temperature: NonNegativeFloat | None = None  # null = tidak dikirim (bawaan penyedia)
+    # teks prompt verifikator: v1 (V2-3) atau r1 (V2-4, revisi 1; docs/PROMPT-V6.md)
+    prompt: Literal["v1", "r1"] = "v1"
 
 
 class GateConfig(_Model):
@@ -100,7 +102,7 @@ class RagConfig(_Model):
     followup_mode: Literal["concat", "dual", "llm_rewrite"]
     history_turns: NonNegativeInt
     prompt_variant: Literal[
-        "paraphrase", "plain", "v3", "v4", "v5", "v6"
+        "paraphrase", "plain", "v3", "v4", "v5", "v6", "v6r"
     ]  # PROMPT-V3/V4.md, KB-RESMI.md
     # prompt v5: kelompok dokumen (subfolder) yang diutamakan untuk pendaftaran mahasiswa baru,
     # berurutan; nilai rancangan (Langkah 63), bukan hasil kalibrasi
@@ -125,8 +127,8 @@ class LlmConfig(_Model):
     reasoning_effort: Literal["low", "medium", "high"] | None = None
     # varian prompt per entri rantai ("groq:<id>" -> varian), menimpa rag.prompt_variant untuk
     # penyedia itu (docs/PROMPT-V4.md: 120b v4, cadangan 20b v2); {} = semua pakai rag.prompt_variant
-    prompt_variants: dict[str, Literal["paraphrase", "plain", "v3", "v4", "v5", "v6"]] = Field(
-        default_factory=dict
+    prompt_variants: dict[str, Literal["paraphrase", "plain", "v3", "v4", "v5", "v6", "v6r"]] = (
+        Field(default_factory=dict)
     )
 
     @model_validator(mode="after")

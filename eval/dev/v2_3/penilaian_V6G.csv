@@ -44,7 +44,7 @@ v2d-042;sebagian;answered;benar;;;;"hanya baris sitasi yang dibuang; isi sama de
 v2d-043;ada;refused_check;tolak_keliru;;gerbang_3;;unsupported=None
 v2d-044;ada;answered;benar;;;;
 v2d-045;ada;answered;benar;;;;
-v2d-046;ada;answered;benar;;;;"V6 refused_check (ID sitasi terbaca angka); baris sitasi dibuang verifikator; semua klaim ada di KB (P13/P14/P20); USM tidak disebut"
+v2d-046;ada;answered;tidak_lengkap;;;;"koreksi V2-4: Ujian Saring Masuk S2 ada di KB v5 (pedoman-pmb-2027#7 butir e, di top-5) tetapi tidak disebut; klaim lain benar (P13/P14/P20)"
 v2d-047;ada;refused_check;tolak_keliru;;gerbang_3;;unsupported=None
 v2d-048;ada;answered;benar;;;;
 v2d-049;ada;answered;benar;;;;
@@ -57,7 +57,7 @@ v2d-055;tidak_ada;refused_llm;tolak_tepat;;;;
 v2d-056;ada;refused_check;tolak_keliru;;gerbang_3;;unsupported=['0811', '7070', '3992']
 v2d-057;sebagian;refused_llm;tolak_keliru;;gold_tidak_top5;;
 v2d-058;ada;answered;benar;;;;
-v2d-059;ada;answered;tolak_keliru;;llm_not_found;;"kalimat tracer study dibuang; sisa hanya 'dokumen tidak menyebutkan data khusus Akuntansi' = penolakan (seperti v2d-068); penyebab sebenarnya verifikator (P3)"
+v2d-059;ada;answered;tolak_keliru;;gerbang_3;;"kalimat tracer study dibuang; sisa hanya 'dokumen tidak menyebutkan data khusus Akuntansi' = penolakan (seperti v2d-068); penyebab sebenarnya verifikator (P3)"
 v2d-060;ada;refused_llm;tolak_keliru;;gold_tidak_top5;;
 v2d-061;sebagian;refused_llm;tolak_keliru;;llm_not_found;;
 v2d-062;ada;answered;tidak_lengkap;;;;Magister Teknologi Informasi tidak disebut

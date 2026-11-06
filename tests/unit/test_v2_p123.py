@@ -285,3 +285,70 @@ def test_pipeline_rejects_when_all_claims_unsupported(tmp_path):
 
 def test_verify_result_defaults():
     assert VerifyResult().rejected  # tanpa kalimat klaim -> ditolak
+
+
+# --- V2-4 revisi 1: prompt v6r dan verifikator r1 ---------------------------------------------
+
+
+def test_v6r_changes_only_three_rules_and_keeps_bans():
+    from mica.rag.prompt_v6 import (
+        CLAIM_CITED_V6,
+        CLAIM_CITED_V6R,
+        NO_GENERAL_V6,
+        ONLY_ASKED_V6R,
+        PARTIAL_V6,
+        PARTIAL_V6R,
+    )
+
+    v6 = system_prompt("v6", source_priority=("pmb",))
+    v6r = system_prompt("v6r", source_priority=("pmb",))
+    body = lambda text: [line.split(". ", 1)[1] for line in text.splitlines() if ". " in line[:4]]
+    a, b = body(v6), body(v6r)
+    assert len(a) == len(b)
+    changed = {i for i, (x, y) in enumerate(zip(a, b, strict=True)) if x != y}
+    assert changed == {4, 5, 9}  # aturan 5, 6, 10
+    assert b[5] == PARTIAL_V6R and a[5] == PARTIAL_V6 and b[4] == ONLY_ASKED_V6R
+    assert b[9].startswith(CLAIM_CITED_V6) and b[9] == CLAIM_CITED_V6R  # sitasi tidak dilonggarkan
+    assert NO_GENERAL_V6 in b  # larangan "biasanya/umumnya" tetap
+    assert v6r.endswith(v6.rsplit("\n\n", 1)[1])  # skema keluaran sama
+    assert prompt_version("v6r") == "v6r" and prompt_version("v6") == "v6"
+
+
+def test_v6r_uses_v5_chunk_header_and_config(tmp_path):
+    hit = ScoredChunk(SI, 0.1, {}, {})
+    r6 = build_prompt(ScrubbedText("x"), [], [hit], "v6", source_priority=("pmb",))
+    r6r = build_prompt(ScrubbedText("x"), [], [hit], "v6r", source_priority=("pmb",))
+    assert r6.user == r6r.user and r6.system != r6r.system
+    s = _with(DEV_YAML, tmp_path, lambda r: r["rag"].update({"prompt_variant": "v6r"}))
+    assert s.rag.prompt_variant == "v6r"
+
+
+def test_verifier_prompt_r1_selected_by_config(tmp_path):
+    from mica.rag.verifier import VERIFY_SYSTEM, VERIFY_SYSTEM_R1
+
+    bodies = []
+
+    def handler(request):
+        bodies.append(json.loads(request.content))
+        content = json.dumps({"verdicts": [{"id": 1, "supported": True, "reason": "ok"}]})
+        return httpx.Response(200, json={"choices": [{"message": {"content": content}}]})
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    for prompt, text in (("v1", VERIFY_SYSTEM), ("r1", VERIFY_SYSTEM_R1)):
+        s = _with(DEV_YAML, tmp_path, lambda r, p=prompt: r["rag"]["gate"].update(
+            {"sentence_verify": {"enabled": True, "prompt": p}}))  # fmt: skip
+        s = s.model_copy(
+            update={"api_keys": s.api_keys.model_copy(update={"groq": SecretStr("k")})}
+        )
+        v = make_verifier(s, client=client)
+        v.verify("Biaya Rp14.000.000.", [ScoredChunk(SI, 0.1, {}, {})])
+        assert bodies[-1]["messages"][0]["content"] == text
+    assert "parafrase" in VERIFY_SYSTEM_R1 and "bertentangan" in VERIFY_SYSTEM_R1
+    assert VERIFY_SYSTEM_R1 != VERIFY_SYSTEM
+
+
+def test_verifier_prompt_default_v1_not_in_config_hash(tmp_path):
+    a = _with(DEV_YAML, tmp_path, lambda r: None)
+    b = _with(DEV_YAML, tmp_path, lambda r: r["rag"]["gate"].update(
+        {"sentence_verify": {"prompt": "v1"}}))  # fmt: skip
+    assert a.rag.gate.sentence_verify.prompt == "v1" and a.config_hash() == b.config_hash()

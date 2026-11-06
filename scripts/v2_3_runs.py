@@ -8,6 +8,12 @@ begitu selesai, sehingga run bisa dilanjutkan bila putus.
   python scripts/v2_3_runs.py R         # P1, retrieval saja
   python scripts/v2_3_runs.py V6        # P1 + P2, pipeline penuh
   python scripts/v2_3_runs.py V6G       # P3 diputar ulang atas keluaran LLM V6 yang sama
+  python scripts/v2_3_runs.py V6r       # V2-4: prompt v6r (revisi 1)
+  python scripts/v2_3_runs.py V6Gr      # V2-4: verifikator r1 atas keluaran LLM V6r yang sama
+
+--primary-only: LLM penjawab hanya llm.chain[0] (tanpa cadangan). Bila tetap gagal (mis. HTTP 429
+batas token harian) setelah semua percobaan, run berhenti tanpa menulis baris soal itu, sehingga
+bisa dilanjutkan setelah kuota pulih.
 """
 
 from __future__ import annotations
@@ -25,6 +31,7 @@ from mica.config import read_raw, settings_from_raw
 from mica.core.logging import InteractionLog
 from mica.core.types import LlmAnswer, ScoredChunk
 from mica.rag.followup import FollowupResult
+from mica.rag.llm import ProviderChain, ProviderFailed
 from mica.rag.pii import scrub_pii
 from mica.rag.pipeline import make_pipeline
 
@@ -49,7 +56,20 @@ OVERRIDES: dict[str, dict[str, Any]] = {
             "gate": {"sentence_verify": {"enabled": True, "temperature": 0.0}},
         }
     },
+    # V2-4: revisi 1 (docs/PROMPT-V6.md); reranker = kondisi R yang lama
+    "V6r": {
+        "rag": {"reranker": {"enabled": True, "revision": RERANKER_REV}, "prompt_variant": "v6r"}
+    },
+    "V6Gr": {
+        "rag": {
+            "reranker": {"enabled": True, "revision": RERANKER_REV},
+            "prompt_variant": "v6r",
+            "gate": {"sentence_verify": {"enabled": True, "temperature": 0.0, "prompt": "r1"}},
+        }
+    },
 }
+# run verifikator -> run sumber keluaran LLM yang diputar ulang
+REPLAY_SOURCE = {"V6G": "V6", "V6Gr": "V6r"}
 
 
 def merge(base: dict, extra: dict) -> dict:
@@ -162,12 +182,32 @@ class CaptureFollowup:
         return res
 
 
-def run_v6(sleep: float, retries: int) -> None:
-    settings = settings_for("V6")
-    pipeline = make_pipeline(settings, log=InteractionLog(OUT / "logs-V6"))
+class RecordFailure:
+    """Membungkus satu penyedia: mencatat ProviderFailed terakhir (alasan, status, retry_after)."""
+
+    def __init__(self, inner: Any) -> None:
+        self.inner = inner
+        self.name = inner.name
+        self.last_failure: ProviderFailed | None = None
+
+    def generate(self, request: Any, timeout_s: float) -> LlmAnswer:
+        try:
+            return self.inner.generate(request, timeout_s)
+        except ProviderFailed as exc:
+            self.last_failure = exc
+            raise
+
+
+def run_v6(sleep: float, retries: int, run: str = "V6", primary_only: bool = False) -> None:
+    settings = settings_for(run)
+    pipeline = make_pipeline(settings, log=InteractionLog(OUT / f"logs-{run}"))
+    primary = None
+    if primary_only:  # tanpa cadangan 20b: kegagalan 120b -> unavailable -> berhenti
+        primary = RecordFailure(pipeline.llm.providers[0])  # type: ignore[attr-defined]
+        pipeline.llm = ProviderChain([primary])  # type: ignore[assignment,list-item]
     llm = pipeline.llm = CaptureLlm(pipeline.llm)  # type: ignore[assignment]
     fol = pipeline.followup = CaptureFollowup(pipeline.followup)  # type: ignore[assignment]
-    path = OUT / "V6.jsonl"
+    path = OUT / f"{run}.jsonl"
     done = done_rows(path)
     with path.open("a", encoding="utf-8") as f:
         for it in items():
@@ -176,9 +216,18 @@ def run_v6(sleep: float, retries: int) -> None:
             for attempt in range(retries + 1):
                 time.sleep(sleep)
                 llm.last = None  # tanpa ini, soal yang berhenti di gerbang 1 mewarisi keluaran lama
-                final, rec = pipeline.run(it["question"], [], session_id=f"v6-{it['qid']}")
+                if primary is not None:
+                    primary.last_failure = None
+                sid = f"{run.lower()}-{it['qid']}"
+                final, rec = pipeline.run(it["question"], [], session_id=sid)
                 if final.status != "unavailable":
                     break
+            else:
+                if primary is not None:  # jangan tulis hasil gagal; run dilanjutkan nanti
+                    fail = primary.last_failure
+                    why = "?" if fail is None else f"{fail.reason} (retry_after={fail.retry_after})"
+                    print(f"{run} berhenti di {it['qid']}: {why}", flush=True)
+                    return
             raw = llm.last
             row = row_from(it, final, rec, fol.last, attempt + 1)
             row["llm_raw"] = None if raw is None else {
@@ -187,7 +236,7 @@ def run_v6(sleep: float, retries: int) -> None:
             }  # fmt: skip
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
             f.flush()
-            print("V6", it["qid"], final.status, row["gold_rank"], flush=True)
+            print(run, it["qid"], final.status, row["gold_rank"], flush=True)
 
 
 def row_from(it, final, rec, hits, attempts) -> dict[str, Any]:
@@ -225,15 +274,18 @@ class ReplayLlm:
         return self.answer
 
 
-def run_v6g(sleep: float, retries: int) -> None:
-    """Pipeline V6G asli (verifikator Groq + cek angka) atas retrieval + keluaran LLM V6."""
-    settings = settings_for("V6G")
-    pipeline = make_pipeline(settings, log=InteractionLog(OUT / "logs-V6G"))
+def run_v6g(sleep: float, retries: int, run: str = "V6G") -> None:
+    """Pipeline verifikator asli (Groq + cek angka) atas retrieval + keluaran LLM run sumber."""
+    settings = settings_for(run)
+    pipeline = make_pipeline(settings, log=InteractionLog(OUT / f"logs-{run}"))
     kb = {c.chunk_id: c for c in pipeline.retriever.inner.base.chunks}  # type: ignore[attr-defined]
     rep_f, rep_l = ReplayFollowup(), ReplayLlm()
     pipeline.followup, pipeline.llm = rep_f, rep_l  # type: ignore[assignment]
-    v6 = done_rows(OUT / "V6.jsonl")
-    path = OUT / "V6G.jsonl"
+    v6 = done_rows(OUT / f"{REPLAY_SOURCE[run]}.jsonl")
+    if len(v6) != len(items()):
+        print(f"{run}: {REPLAY_SOURCE[run]} belum lengkap ({len(v6)})", flush=True)
+        return
+    path = OUT / f"{run}.jsonl"
     done = done_rows(path)
     with path.open("a", encoding="utf-8") as f:
         for it in items():
@@ -257,43 +309,46 @@ def run_v6g(sleep: float, retries: int) -> None:
                 for attempt in range(retries + 1):
                     if calls_verifier:
                         time.sleep(sleep * (attempt + 1))
-                    final, rec = pipeline.run(it["question"], [], session_id=f"v6g-{it['qid']}")
+                    sid = f"{run.lower()}-{it['qid']}"
+                    final, rec = pipeline.run(it["question"], [], session_id=sid)
                     err = (rec.fact_check.get("sentence_verify") or {}).get("error") or ""
                     # 429/timeout = batas Groq (8.000 token/menit), bukan putusan verifikator
                     if not err.startswith(("HTTP 429", "timeout")):
                         break
                 else:  # kuota Groq habis: berhenti tanpa menulis baris (run bisa dilanjutkan)
-                    print("V6G berhenti: verifikator tetap", err, "di", it["qid"], flush=True)
+                    print(run, "berhenti: verifikator tetap", err, "di", it["qid"], flush=True)
                     return
                 row = row_from(it, final, rec, rep_f.hits, attempt + 1)
                 row["llm_raw"] = raw
                 row["replayed"] = True
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
             f.flush()
-            print("V6G", it["qid"], row["final_status"], flush=True)
+            print(run, it["qid"], row["final_status"], flush=True)
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("run", choices=["default", "R", "V6", "V6G"])
+    ap.add_argument("run", choices=["default", "R", "V6", "V6G", "V6r", "V6Gr"])
     ap.add_argument("--sleep", type=float, default=20.0)
     ap.add_argument("--retries", type=int, default=3)
+    ap.add_argument("--primary-only", action="store_true")
     args = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     meta_path = OUT / "meta.json"
     meta = json.loads(meta_path.read_text("utf-8")) if meta_path.exists() else {}
     s = settings_for(args.run)
     meta[args.run] = {"overrides": OVERRIDES[args.run], "config_hash": s.config_hash(),
-                      "kb_id": s.kb.active_id, "llm_chain": list(s.llm.chain)}  # fmt: skip
+                      "kb_id": s.kb.active_id, "llm_chain": list(s.llm.chain),
+                      "primary_only": args.primary_only}  # fmt: skip
     meta_path.write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
     if args.run == "default":
         return check_default()
     if args.run == "R":
         retrieval_rows("R")
-    elif args.run == "V6":
-        run_v6(args.sleep, args.retries)
+    elif args.run in ("V6", "V6r"):
+        run_v6(args.sleep, args.retries, args.run, args.primary_only)
     else:
-        run_v6g(args.sleep, args.retries)
+        run_v6g(args.sleep, args.retries, args.run)
     return 0
 
 

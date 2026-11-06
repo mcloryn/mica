@@ -3,6 +3,7 @@
 yang identik dengan V6 memakai label V6 lewat scripts/v2_3_report.py. Penolakan V6G
 (v2d-041, v2d-047, v2d-088: refused_check) dinilai otomatis.
 Format: qid -> (nilai, klaim_halusinasi, golongan, catatan)
+PENYEBAB: penyebab tolak keliru yang menimpa penyebab otomatis (scripts/v2_3_report.py).
 """
 
 NILAI = {
@@ -26,12 +27,12 @@ NILAI = {
     ),
     "v2d-042": ("benar", "", "", "hanya baris sitasi yang dibuang; isi sama dengan V6"),
     "v2d-046": (
-        "benar",
+        "tidak_lengkap",
         "",
         "",
         (
-            "V6 refused_check (ID sitasi terbaca angka); baris sitasi dibuang verifikator; "
-            "semua klaim ada di KB (P13/P14/P20); USM tidak disebut"
+            "koreksi V2-4: Ujian Saring Masuk S2 ada di KB v5 (pedoman-pmb-2027#7 butir e, di top-5) "
+            "tetapi tidak disebut; klaim lain benar (P13/P14/P20)"
         ),
     ),
     "v2d-054": ("benar", "", "", "beda hanya spasi U+202F; isi sama dengan V6"),
@@ -51,3 +52,7 @@ NILAI = {
         "kalimat Keluarga Mahasiswa Keagamaan dibuang; sisa (kerukunan beragama) tidak menjawab",
     ),
 }
+
+# koreksi V2-4: v2d-059 berstatus answered tetapi isinya tinggal penolakan karena verifikator (P3)
+# membuang kalimat jawabannya; penyebab otomatis llm_not_found diganti gerbang_3 (verifikator)
+PENYEBAB = {"v2d-059": "gerbang_3"}

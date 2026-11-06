@@ -8,7 +8,7 @@ aturan sumber, penolakan, premis palsu, dan sitasi sama dengan v2. Teks v2 tidak
 `v5` (Langkah 63) = `paraphrase` + kepala potongan berisi judul, kelompok, dan tanggal berlaku,
 plus aturan konflik sumber dengan urutan kelompok dari rag.source_priority.
 `v6` (V2-3, mica.rag.prompt_v6) = `v5` + larangan klaim umum, jawaban sebagian, dan kalimat klaim
-wajib didukung potongan yang dikutip.
+wajib didukung potongan yang dikutip. `v6r` (V2-4) = revisi 1 dari v6 (docs/PROMPT-V6.md).
 
 Pesan user: pertanyaan yang sudah disamarkan, riwayat history_turns terakhir, lalu potongan
 dokumen berlabel. Setiap bagian diapit penanda; penanda yang muncul di dalam data dibuang supaya
@@ -22,9 +22,9 @@ from collections.abc import Sequence
 from typing import Literal
 
 from mica.core.types import Chunk, LlmRequest, ScoredChunk, ScrubbedText, Turn
-from mica.rag.prompt_v6 import PROMPT_VERSION_V6, rules_v6
+from mica.rag.prompt_v6 import PROMPT_VERSION_V6, PROMPT_VERSION_V6R, rules_v6
 
-PromptVariant = Literal["paraphrase", "plain", "v3", "v4", "v5", "v6"]
+PromptVariant = Literal["paraphrase", "plain", "v3", "v4", "v5", "v6", "v6r"]
 
 # naikkan setiap kali teks prompt sistem atau format pesan user berubah; dicatat di log dan run.json
 PROMPT_VERSION = "v2"  # v1: tanpa aturan "jawab hanya hal yang ditanyakan" (E-02 dev pertama)
@@ -40,6 +40,7 @@ def prompt_version(variant: PromptVariant) -> str:
         "v4": PROMPT_VERSION_V4,
         "v5": PROMPT_VERSION_V5,
         "v6": PROMPT_VERSION_V6,
+        "v6r": PROMPT_VERSION_V6R,
     }
     return versions.get(variant, PROMPT_VERSION)
 
@@ -203,8 +204,8 @@ def system_prompt(
         return _system_v4(topics)
     if variant == "v5":
         return _system_v5(source_priority)
-    if variant == "v6":
-        return _system_v6(source_priority)
+    if variant in ("v6", "v6r"):
+        return _system_v6(source_priority, revised=variant == "v6r")
     exact = _EXACT_PARAPHRASE if variant == "paraphrase" else _EXACT_PLAIN
     rules = (
         _ROLE,
@@ -290,7 +291,7 @@ def _system_v5(source_priority: Sequence[str]) -> str:
     return _numbered(rules) + _OUTPUT
 
 
-def _system_v6(source_priority: Sequence[str]) -> str:
+def _system_v6(source_priority: Sequence[str], revised: bool = False) -> str:
     # V2-3 P2 (mica.rag.prompt_v6, docs/PROMPT-V6.md): v5 + aturan (a)(b)(c) pra-registrasi
     rules = rules_v6(
         role=_ROLE,
@@ -304,6 +305,7 @@ def _system_v6(source_priority: Sequence[str]) -> str:
         spoken=_SPOKEN,
         citations=_CITATIONS,
         data_not_instructions=_DATA_NOT_INSTRUCTIONS,
+        revised=revised,
     )
     return _numbered(rules) + _OUTPUT
 
@@ -365,7 +367,7 @@ def build_prompt(
             if turn.answer:
                 lines.append(f"MICA: {_data(turn.answer)}")
         parts.append("<<<RIWAYAT>>>\n" + "\n".join(lines) + "\n<<<AKHIR RIWAYAT>>>")
-    label = chunk_header_v5 if variant in ("v5", "v6") else chunk_label
+    label = chunk_header_v5 if variant in ("v5", "v6", "v6r") else chunk_label
     chunks = "\n\n".join(f"{label(h.chunk)}\n{_data(h.chunk.text)}" for h in hits)
     parts.append(f"<<<POTONGAN>>>\n{chunks}\n<<<AKHIR POTONGAN>>>")
     return LlmRequest(

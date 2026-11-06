@@ -1,4 +1,4 @@
-# V2-3: Hasil penyetelan di set dev v2 (B0 / R / V6 / V6G)
+# V2-3/V2-4: Hasil penyetelan di set dev v2 (B0 / R / V6 / V6G)
 
 Mengikuti `docs/PRA-REGISTRASI-V2.md` (commit `v2-3a`). Penilaian oleh Claude di set dev, **bukan penilaian resmi**; aturan sama dengan V2-2 (`docs/V2-BASELINE-DEV.md`). `config/prod.yaml` tidak diubah; semua perubahan default mati.
 
@@ -9,25 +9,48 @@ Mengikuti `docs/PRA-REGISTRASI-V2.md` (commit `v2-3a`). Penilaian oleh Claude di
 | Dijawab | 48 | 44 | 41 |
 | Tidak halu [Wilson 95%] | 37/48 = 77.1% [63.5; 86.7] | 37/44 = 84.1% [70.6; 92.1] | 37/41 = 90.2% [77.5; 96.1] |
 | Halusinasi | 11 (A 4 / B 7) | 7 (A 2 / B 5) | 4 (A 2 / B 2) |
-| Tolak keliru (g1 / top5 / not_found / g3) | 26 (1 / 12 / 10 / 3) | 28 (1 / 7 / 14 / 6) | 31 (1 / 7 / 15 / 8) |
+| Tolak keliru (g1 / top5 / not_found / g3) | 26 (1 / 12 / 10 / 3) | 28 (1 / 7 / 14 / 6) | 31 (1 / 7 / 14 / 9) |
 | Tolak tepat | 34 | 36 | 36 |
 | Recall@5 | 52/68 = 0.76 | 58/68 = 0.85 | 58/68 = 0.85 |
 | Recall@20 | 64/68 = 0.94 | 66/68 = 0.97 | 66/68 = 0.97 |
 
-Recall dihitung untuk soal jenis ada/sebagian dengan chunk gold (n=68). V6 dan V6G memakai retrieval R (P1); recall@20 V6/V6G = R.
+Recall dihitung untuk soal jenis ada/sebagian dengan chunk gold (n=68). Semua kandidat memakai retrieval R (P1). g3 = gerbang 3 (cek angka/kontak atau verifikator P3).
+
+**Run belum lengkap (tidak dinilai):** V6r 0/108, V6Gr 0/108.
 
 **R (P1, retrieval saja):** recall@5 B0 52/68 -> R 58/68 (top-5 V6 = top-5 R), @20 64/68 -> 66/68. Latensi retrieval + reranker di CPU laptop: p50 14.6 detik, p95 15.3 detik per kueri (SDD ADR-01/E-01 mensyaratkan p95 <= 0,5 detik untuk reranker).
 
 ## 2. Aturan pilih (pra-reg bagian 4)
 
-- **V6**: tidak lolos (halu 7 < 11: ya; tidak halu 84.1% >= 77.1%: ya; tolak keliru 28 <= 26: tidak).
-- **V6G**: tidak lolos (halu 4 < 11: ya; tidak halu 90.2% >= 77.1%: ya; tolak keliru 31 <= 26: tidak).
+| kandidat | halu < 11 | tidak halu >= 77,1% | tolak keliru <= 26 | lolos |
+|---|---|---|---|---|
+| V6 | halu 7 < 11 (ya) | tidak halu 84.1% >= 77.1% (ya) | tolak keliru 28 <= 26 (tidak) | tidak |
+| V6G | halu 4 < 11 (ya) | tidak halu 90.2% >= 77.1% (ya) | tolak keliru 31 <= 26 (tidak) | tidak |
 
 **Tidak ada kandidat yang lolos.** Sesuai pra-reg: v2 = B0 + perubahan yang lolos sendiri-sendiri, atau tidak ada perubahan.
 
 Catatan pra-reg: n kecil (sekitar 50 jawaban), selisih di set dev hanya indikatif; klaim perbaikan yang sah hanya dari Tahap 2. Konfigurasi terpilih **belum** diaktifkan di `config/prod.yaml`.
 
-## 3. Soal yang berubah label
+## 3. Koreksi penilaian
+
+Dibuat setelah laporan V2-3 (commit `v2-3b`), sebelum run V6r/V6Gr.
+
+| qid | run | koreksi | alasan |
+|---|---|---|---|
+| v2d-046 | V6G | benar -> tidak_lengkap | KB v5 memuat Ujian Saring Masuk S2 (pedoman-pmb-2027#7 butir e, ada di top-5); jawaban tidak menyebutnya. Bukan halusinasi, jadi persen tidak halu tetap. |
+| v2d-059 | V6G | penyebab llm_not_found -> gerbang_3 (verifikator) | status answered, tetapi verifikator membuang kalimat jawabannya sehingga sisanya hanya penolakan; label tetap tolak_keliru. |
+
+## 4. Penyedia LLM penjawab
+
+Rantai `llm.chain` = gpt-oss-120b lalu gpt-oss-20b (config prod). Bila 120b gagal (misalnya HTTP 429 batas token harian), jawaban datang dari 20b.
+
+| run | gpt-oss-120b | gpt-oss-20b | tanpa LLM (gerbang 1) |
+|---|---|---|---|
+| B0 | 64 | 35 | 9 |
+| V6 | 64 | 35 | 9 |
+| V6G | 64 | 35 | 9 |
+
+## 5. Soal yang berubah label
 
 | qid | jenis | B0 | V6 | V6G |
 |---|---|---|---|---|
@@ -46,13 +69,13 @@ Catatan pra-reg: n kecil (sekitar 50 jawaban), selisih di set dev hanya indikati
 | v2d-041 | ada | benar | benar | tolak_keliru (gerbang_3) |
 | v2d-043 | ada | halusinasi/B | tolak_keliru (gerbang_3) | tolak_keliru (gerbang_3) |
 | v2d-044 | ada | tolak_keliru (gerbang_3) | benar | benar |
-| v2d-046 | ada | tolak_keliru (gerbang_3) | tolak_keliru (gerbang_3) | benar |
+| v2d-046 | ada | tolak_keliru (gerbang_3) | tolak_keliru (gerbang_3) | tidak_lengkap |
 | v2d-047 | ada | halusinasi/B | halusinasi/B | tolak_keliru (gerbang_3) |
 | v2d-048 | ada | halusinasi/B | benar | benar |
 | v2d-051 | ada | tidak_lengkap | benar | benar |
 | v2d-052 | ada | benar | halusinasi/B | halusinasi/B |
 | v2d-056 | ada | benar | tolak_keliru (gerbang_3) | tolak_keliru (gerbang_3) |
-| v2d-059 | ada | tidak_lengkap | tidak_lengkap | tolak_keliru (llm_not_found) |
+| v2d-059 | ada | tidak_lengkap | tidak_lengkap | tolak_keliru (gerbang_3) |
 | v2d-062 | ada | tolak_keliru (gold_tidak_top5) | tidak_lengkap | tidak_lengkap |
 | v2d-064 | sebagian | tolak_keliru (gold_tidak_top5) | benar | benar |
 | v2d-066 | ada | tidak_lengkap | benar | benar |
@@ -65,7 +88,7 @@ Catatan pra-reg: n kecil (sekitar 50 jawaban), selisih di set dev hanya indikati
 | v2d-106 | premis_salah | benar | tolak_keliru (llm_not_found) | tolak_keliru (llm_not_found) |
 | v2d-107 | premis_salah | halusinasi/B | tolak_tepat | tolak_tepat |
 
-## 4. Run yang dilakukan
+## 6. Run yang dilakukan
 
 - `default`: override `{}`, config_hash `073e446b9879`.
 - `R`: override `{"rag": {"reranker": {"enabled": true, "revision": "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e"}}}`, config_hash `d4f838168ce7`.
@@ -73,15 +96,16 @@ Catatan pra-reg: n kecil (sekitar 50 jawaban), selisih di set dev hanya indikati
 - `V6G`: override `{"rag": {"reranker": {"enabled": true, "revision": "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e"}, "prompt_variant": "v6", "gate": {"sentence_verify": {"enabled": true, "temperature": 0.0}}}}`, config_hash `29b877ba933a`.
 - V6G run 1 (`eval/dev/v2_3/V6G_run1_gagal429.jsonl`) **tidak sah**: verifikator kena HTTP 429 karena batas token harian Groq gpt-oss-120b (200.000 TPD) habis setelah V6; verifikator fail-closed sehingga jawaban ditolak. Dihentikan, diarsipkan, tidak dinilai. Run sah dilanjutkan setelah kuota pulih, dengan V6 yang sama.
 - Retrieval config bawaan identik dengan B0 di 10/10 soal (`eval/dev/v2_3/default_check.json`).
+- Reranker V6r/V6Gr: kondisi R yang lama (bawaan CrossEncoder, kandidat 20). `docs/V2-RERANK-LATENSI.md` tidak ada; bench `scripts/v2_rerank_bench.py` hanya menyelesaikan kondisi 1 (= kondisi R: top-5 sama dengan R 68/68, p50 14,46 / p95 14,82 detik per kueri, `eval/dev/v2_3/rerank_bench_stdout.txt`). Kondisi 2-4 tidak terukur.
 
-## 5. Revisi prompt
+## 7. Revisi prompt
 
-- Prompt v6: tidak direvisi (0 dari maksimal 1).
-- Prompt verifikator: tidak direvisi (0 dari maksimal 1).
+- Prompt v6: 1 dari maksimal 1 -> `v6r` (sasaran G1 dan G4, `docs/PROMPT-V6.md` "Revisi 1").
+- Prompt verifikator: 1 dari maksimal 1 -> `r1` (definisi faithfulness RAGAs).
 
-## 6. Per soal
+## 8. Per soal
 
-| qid | jenis | V6 status | V6 nilai | V6G status | V6G nilai | catatan V6G |
+| qid | jenis | V6 status | V6 nilai | V6G status | V6G nilai | catatan |
 |---|---|---|---|---|---|---|
 | v2d-001 | ada | answered | benar | answered | benar | - |
 | v2d-002 | sebagian | refused_llm | tolak_keliru (llm_not_found) | refused_llm | tolak_keliru (llm_not_found) | - |
@@ -128,7 +152,7 @@ Catatan pra-reg: n kecil (sekitar 50 jawaban), selisih di set dev hanya indikati
 | v2d-043 | ada | refused_check | tolak_keliru (gerbang_3) | refused_check | tolak_keliru (gerbang_3) | unsupported=None |
 | v2d-044 | ada | answered | benar | answered | benar | - |
 | v2d-045 | ada | answered | benar | answered | benar | - |
-| v2d-046 | ada | refused_check | tolak_keliru (gerbang_3) | answered | benar | V6 refused_check (ID sitasi terbaca angka); baris sitasi dibuang verifikator; semua klaim ada di KB (P13/P14/P20); USM tidak disebut |
+| v2d-046 | ada | refused_check | tolak_keliru (gerbang_3) | answered | tidak_lengkap | koreksi V2-4: Ujian Saring Masuk S2 ada di KB v5 (pedoman-pmb-2027#7 butir e, di top-5) tetapi tidak disebut; klaim lain benar (P13/P14/P20) |
 | v2d-047 | ada | answered | halusinasi/B | refused_check | tolak_keliru (gerbang_3) | unsupported=None |
 | v2d-048 | ada | answered | benar | answered | benar | - |
 | v2d-049 | ada | answered | benar | answered | benar | - |
@@ -141,7 +165,7 @@ Catatan pra-reg: n kecil (sekitar 50 jawaban), selisih di set dev hanya indikati
 | v2d-056 | ada | refused_check | tolak_keliru (gerbang_3) | refused_check | tolak_keliru (gerbang_3) | unsupported=['0811', '7070', '3992'] |
 | v2d-057 | sebagian | refused_llm | tolak_keliru (gold_tidak_top5) | refused_llm | tolak_keliru (gold_tidak_top5) | - |
 | v2d-058 | ada | answered | benar | answered | benar | - |
-| v2d-059 | ada | answered | tidak_lengkap | answered | tolak_keliru (llm_not_found) | kalimat tracer study dibuang; sisa hanya 'dokumen tidak menyebutkan data khusus Akuntansi' = penolakan (seperti v2d-068); penyebab sebenarnya verifikator (P3) |
+| v2d-059 | ada | answered | tidak_lengkap | answered | tolak_keliru (gerbang_3) | kalimat tracer study dibuang; sisa hanya 'dokumen tidak menyebutkan data khusus Akuntansi' = penolakan (seperti v2d-068); penyebab sebenarnya verifikator (P3) |
 | v2d-060 | ada | refused_llm | tolak_keliru (gold_tidak_top5) | refused_llm | tolak_keliru (gold_tidak_top5) | - |
 | v2d-061 | sebagian | refused_llm | tolak_keliru (llm_not_found) | refused_llm | tolak_keliru (llm_not_found) | - |
 | v2d-062 | ada | answered | tidak_lengkap | answered | tidak_lengkap | Magister Teknologi Informasi tidak disebut |
@@ -192,8 +216,8 @@ Catatan pra-reg: n kecil (sekitar 50 jawaban), selisih di set dev hanya indikati
 | v2d-107 | premis_salah | refused_llm | tolak_tepat | refused_llm | tolak_tepat | - |
 | v2d-108 | premis_salah | refused_llm | tolak_keliru (llm_not_found) | refused_llm | tolak_keliru (llm_not_found) | - |
 
-## 7. Berkas
+## 9. Berkas
 
-- `eval/dev/v2_3/R.jsonl`, `V6.jsonl` (termasuk keluaran LLM mentah), `V6G.jsonl` (putusan verifikator per kalimat di `fact_check.sentence_verify`), `logs-*`, `meta.json`.
-- Penilaian: `eval/dev/v2_3/nilai_V6.py`, `nilai_V6G.py`, `penilaian_*.csv`.
+- `eval/dev/v2_3/R.jsonl`, `V6.jsonl`, `V6r.jsonl` (termasuk keluaran LLM mentah), `V6G.jsonl`, `V6Gr.jsonl` (putusan verifikator per kalimat di `fact_check.sentence_verify`), `logs-*`, `meta.json`.
+- Penilaian: `eval/dev/v2_3/nilai_<run>.py`, `penilaian_*.csv`.
 - Skrip: `scripts/v2_3_runs.py`, `scripts/v2_3_report.py`. Prompt: `docs/PROMPT-V6.md`.
