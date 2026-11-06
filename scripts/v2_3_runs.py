@@ -175,6 +175,7 @@ def run_v6(sleep: float, retries: int) -> None:
                 continue
             for attempt in range(retries + 1):
                 time.sleep(sleep)
+                llm.last = None  # tanpa ini, soal yang berhenti di gerbang 1 mewarisi keluaran lama
                 final, rec = pipeline.run(it["question"], [], session_id=f"v6-{it['qid']}")
                 if final.status != "unavailable":
                     break
@@ -243,7 +244,8 @@ def run_v6g(sleep: float, retries: int) -> None:
                 ScoredChunk(kb[h["chunk_id"]], h["score"], h["ranks"], h["raw_scores"])
                 for h in src["top5"]
             ]
-            raw = src["llm_raw"]
+            # baris refused_gate V6: LLM tidak dipanggil (llm_raw di sana sisa soal sebelumnya)
+            raw = None if src["final_status"] == "refused_gate" else src["llm_raw"]
             rep_l.answer = None if raw is None else LlmAnswer(
                 raw["status"], raw["answer"], tuple(raw["citations"]), raw["provider"], 0.0,
                 raw["usage"],

@@ -1,0 +1,109 @@
+qid;jenis;final_status;nilai;golongan;penyebab;klaim;catatan
+v2d-001;ada;answered;benar;;;;
+v2d-002;sebagian;refused_llm;tolak_keliru;;llm_not_found;;
+v2d-003;ada;refused_llm;tolak_keliru;;gold_tidak_top5;;
+v2d-004;sebagian;refused_llm;tolak_keliru;;llm_not_found;;
+v2d-005;sebagian;refused_llm;tolak_keliru;;llm_not_found;;
+v2d-006;sebagian;refused_llm;tolak_keliru;;gold_tidak_top5;;
+v2d-007;tidak_ada;refused_llm;tolak_tepat;;;;
+v2d-008;tidak_ada;refused_llm;tolak_tepat;;;;
+v2d-009;ada;answered;benar;;;;
+v2d-010;ada;answered;tidak_lengkap;;;;tidak menyebut Jalur Prestasi (nilai rapor) dan ketentuan Rektor
+v2d-011;tidak_ada;refused_llm;tolak_tepat;;;;
+v2d-012;ada;answered;benar;;;;
+v2d-013;ada;answered;tidak_lengkap;;;;Beasiswa Karier dan PMDK tidak disebut
+v2d-014;ada;answered;halusinasi;B;;mengajukan permohonan melalui Wakil Rektor III dengan melampirkan bukti prestasi;ragu: KB hanya menyebut Surat Keterangan WR III (Beasiswa Karier), bukan prosedur pengajuan pendaftar
+v2d-015;ada;answered;benar;;;;
+v2d-016;tidak_ada;answered;halusinasi;B;;Beasiswa Yayasan terbuka bagi siswa dari seluruh Sumatera Utara maupun nasional;"kunci tidak_ada; KB: prestasi yang mengharumkan nama Sumut/nasional, bukan asal daerah"
+v2d-017;sebagian;refused_llm;tolak_keliru;;llm_not_found;;
+v2d-018;tidak_ada;refused_llm;tolak_tepat;;;;
+v2d-019;sebagian;refused_llm;tolak_keliru;;gold_tidak_top5;;
+v2d-020;tidak_ada;refused_gate;tolak_tepat;;;;
+v2d-021;tidak_ada;answered;halusinasi;A;;mendaftar lebih awal mengamankan tempat dan menghindari keterlambatan pembayaran;"kunci tidak_ada; aturan registrasi dibingkai sebagai keuntungan"
+v2d-022;tidak_ada;refused_llm;tolak_tepat;;;;
+v2d-023;tidak_ada;refused_llm;tolak_tepat;;;;
+v2d-024;sebagian;refused_llm;tolak_keliru;;gold_tidak_top5;;
+v2d-025;tidak_ada;refused_llm;tolak_tepat;;;;
+v2d-026;tidak_ada;refused_llm;tolak_tepat;;;;
+v2d-027;tidak_ada;refused_llm;tolak_tepat;;;;
+v2d-028;ada;answered;tidak_lengkap;;;;"hanya skema sore; skema pagi 12x tidak disebut"
+v2d-029;ada;answered;benar;;;;
+v2d-030;sebagian;answered;benar;;;;
+v2d-031;ada;answered;halusinasi;B;;pembayaran dapat dilakukan secara daring melalui portal akademik Mika;Mika untuk invoice/status, pembayaran lewat Blibli/VA BCA
+v2d-032;sebagian;answered;benar;;;;6x/semester (pagi) dan 2x/semester (sore) diturunkan dari jadwal KB
+v2d-033;tidak_ada;refused_llm;tolak_tepat;;;;
+v2d-034;sebagian;refused_llm;tolak_keliru;;llm_not_found;;
+v2d-035;ada;answered;benar;;;;'pada umumnya' melunakkan isi yang ada di KB, bukan klaim baru
+v2d-036;tidak_ada;refused_llm;tolak_tepat;;;;
+v2d-037;ada;answered;benar;;;;
+v2d-038;tidak_ada;refused_gate;tolak_tepat;;;;
+v2d-039;ada;answered;benar;;;;
+v2d-040;ada;answered;tidak_lengkap;;;;jalur Prestasi/Reguler tanpa tes dan USM S2 tidak disebut
+v2d-041;ada;answered;benar;;;;
+v2d-042;sebagian;answered;benar;;;;akta/KK tercantum sebagai dokumen pemberkasan di KB
+v2d-043;ada;false_premise;halusinasi;B;;lulusan 2019 tidak dapat mendaftar;"Jalur Reguler tanpa batas tahun lulus; batas 1 tahun hanya PMDK/Prestasi (status false_premise)"
+v2d-044;ada;refused_check;tolak_keliru;;gerbang_3;;unsupported=['1']
+v2d-045;ada;answered;benar;;;;
+v2d-046;ada;refused_check;tolak_keliru;;gerbang_3;;unsupported=['13', '14']
+v2d-047;ada;answered;halusinasi;B;;untuk mendaftar harus menyerahkan ijazah dilegalisir;ragu: KB menaruh ijazah dilegalisir di pemberkasan setelah diterima (S1)
+v2d-048;ada;answered;halusinasi;B;;mahasiswa baru harus sudah menempuh minimal dua semester dengan IPK 3,00;dua aturan (P22 dan A20) digabung keliru
+v2d-049;ada;answered;benar;;;;
+v2d-050;ada;answered;benar;;;;
+v2d-051;ada;answered;tidak_lengkap;;;;syarat persetujuan orang tua/dosen wali/kaprodi/dekan tidak disebut
+v2d-052;ada;answered;benar;;;;
+v2d-053;sebagian;refused_llm;tolak_keliru;;gold_tidak_top5;;
+v2d-054;ada;answered;benar;;;;
+v2d-055;tidak_ada;refused_llm;tolak_tepat;;;;
+v2d-056;ada;answered;benar;;;;
+v2d-057;sebagian;refused_llm;tolak_keliru;;gold_tidak_top5;;
+v2d-058;ada;answered;benar;;;;
+v2d-059;ada;answered;tidak_lengkap;;;;career path Akuntansi (brosur#10) tidak disebut
+v2d-060;ada;refused_llm;tolak_keliru;;gold_tidak_top5;;
+v2d-061;sebagian;refused_llm;tolak_keliru;;llm_not_found;;
+v2d-062;ada;refused_llm;tolak_keliru;;gold_tidak_top5;;
+v2d-063;tidak_ada;refused_llm;tolak_tepat;;;;
+v2d-064;sebagian;refused_llm;tolak_keliru;;gold_tidak_top5;;
+v2d-065;sebagian;refused_llm;tolak_keliru;;llm_not_found;;
+v2d-066;ada;answered;tidak_lengkap;;;;menyatakan jumlah semester tidak tercantum padahal A24 memuat 4 semester
+v2d-067;tidak_ada;refused_check;tolak_tepat;;;;unsupported=['7']
+v2d-068;tidak_ada;false_premise;tolak_tepat;;;;"status false_premise, isinya menyatakan tidak disebut di brosur; dinilai sebagai penolakan"
+v2d-069;ada;answered;benar;;;;
+v2d-070;tidak_ada;refused_llm;tolak_tepat;;;;
+v2d-071;sebagian;refused_llm;tolak_keliru;;llm_not_found;;
+v2d-072;ada;answered;benar;;;;
+v2d-073;tidak_ada;refused_llm;tolak_tepat;;;;
+v2d-074;tidak_ada;refused_llm;tolak_tepat;;;;
+v2d-075;tidak_ada;refused_llm;tolak_tepat;;;;
+v2d-076;tidak_ada;refused_llm;tolak_tepat;;;;
+v2d-077;tidak_ada;refused_gate;tolak_tepat;;;;
+v2d-078;tidak_ada;refused_llm;tolak_tepat;;;;
+v2d-079;tidak_ada;answered;halusinasi;A;;Universitas Mikroskil menyediakan fasilitas olahraga;"kunci tidak_ada; KB hanya UKM olahraga"
+v2d-080;ada;answered;benar;;;;
+v2d-081;ada;answered;benar;;;;
+v2d-082;tidak_ada;refused_llm;tolak_tepat;;;;
+v2d-083;ada;answered;tidak_lengkap;;;;"'seragam tidak bebas' menyesatkan (tidak ada seragam); Jas Akademis tidak disebut"
+v2d-084;ada;refused_llm;tolak_keliru;;gold_tidak_top5;;
+v2d-085;sebagian;refused_llm;tolak_keliru;;gold_tidak_top5;;
+v2d-086;sebagian;refused_llm;tolak_keliru;;llm_not_found;;
+v2d-087;ada;refused_check;tolak_keliru;;gerbang_3;;unsupported=['3.000']
+v2d-088;ada;answered;benar;;;;
+v2d-089;sebagian;answered;tidak_lengkap;;;;"ragu: surat aktif kuliah (Layanan Fakultas) tidak disebut; A78 'keperluan tertentu'"
+v2d-090;tidak_ada;refused_llm;tolak_tepat;;;;
+v2d-091;ada;refused_llm;tolak_keliru;;gold_tidak_top5;;
+v2d-092;ada;refused_gate;tolak_keliru;;gerbang_1;;
+v2d-093;ada;answered;benar;;;;
+v2d-094;sebagian;answered;halusinasi;A;;perguruan tinggi mitra bisa berada di luar negeri;
+v2d-095;ada;answered;benar;;;;
+v2d-096;sebagian;answered;halusinasi;A;;mahasiswa biasanya mengerjakan ujian di komputer;klaim 'biasanya' di luar KB
+v2d-097;ada;answered;benar;;;;
+v2d-098;tidak_ada;refused_llm;tolak_tepat;;;;
+v2d-099;luar_topik;refused_gate;tolak_tepat;;;;
+v2d-100;luar_topik;refused_llm;tolak_tepat;;;;
+v2d-101;luar_topik;refused_gate;tolak_tepat;;;;
+v2d-102;luar_topik;refused_gate;tolak_tepat;;;;
+v2d-103;luar_topik;refused_gate;tolak_tepat;;;;
+v2d-104;tidak_ada;refused_gate;tolak_tepat;;;;
+v2d-105;premis_salah;refused_llm;tolak_tepat;;;;
+v2d-106;premis_salah;false_premise;benar;;;;premis dikoreksi
+v2d-107;premis_salah;false_premise;halusinasi;B;;kelas sore dapat diikuti mahasiswa baru yang belum punya pengalaman kerja;"ragu: kunci koreksi tidak_ada; P19 menyebut mahasiswa baru kelas sore tetapi bukan syarat kerja"
+v2d-108;premis_salah;refused_llm;tolak_keliru;;llm_not_found;;
