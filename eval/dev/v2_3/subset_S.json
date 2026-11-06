@@ -1,0 +1,830 @@
+{
+ "definisi": "S = soal set dev v2 yang di B0 DAN V6 dijawab groq:openai/gpt-oss-120b (bukan cadangan 20b; soal gerbang 1 tanpa LLM tidak termasuk)",
+ "sumber": [
+  "eval/dev/v2_baseline/runs.jsonl (llm_provider)",
+  "eval/dev/v2_3/V6.jsonl (llm_raw.provider)",
+  "eval/dev/v2_3/V6G.jsonl (fact_check.sentence_verify.provider)"
+ ],
+ "n": 61,
+ "qids": [
+  "v2d-001",
+  "v2d-003",
+  "v2d-004",
+  "v2d-005",
+  "v2d-006",
+  "v2d-007",
+  "v2d-008",
+  "v2d-009",
+  "v2d-010",
+  "v2d-011",
+  "v2d-012",
+  "v2d-014",
+  "v2d-016",
+  "v2d-017",
+  "v2d-018",
+  "v2d-019",
+  "v2d-021",
+  "v2d-022",
+  "v2d-023",
+  "v2d-024",
+  "v2d-025",
+  "v2d-026",
+  "v2d-027",
+  "v2d-028",
+  "v2d-029",
+  "v2d-030",
+  "v2d-031",
+  "v2d-032",
+  "v2d-033",
+  "v2d-034",
+  "v2d-035",
+  "v2d-036",
+  "v2d-037",
+  "v2d-039",
+  "v2d-040",
+  "v2d-041",
+  "v2d-042",
+  "v2d-043",
+  "v2d-044",
+  "v2d-045",
+  "v2d-046",
+  "v2d-047",
+  "v2d-048",
+  "v2d-049",
+  "v2d-050",
+  "v2d-051",
+  "v2d-052",
+  "v2d-053",
+  "v2d-054",
+  "v2d-055",
+  "v2d-056",
+  "v2d-057",
+  "v2d-058",
+  "v2d-059",
+  "v2d-060",
+  "v2d-061",
+  "v2d-062",
+  "v2d-063",
+  "v2d-064",
+  "v2d-065",
+  "v2d-066"
+ ],
+ "per_soal": [
+  {
+   "qid": "v2d-001",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-002",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-003",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-004",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-005",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-006",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-007",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-008",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-009",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-010",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-011",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-012",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-013",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-014",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-015",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-016",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-017",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-018",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-019",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-020",
+   "B0": null,
+   "V6": null,
+   "V6G_penjawab": null,
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-021",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-022",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-023",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-024",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-025",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-026",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-027",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-028",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-029",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-030",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-031",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-032",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-033",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-034",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-035",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-036",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-037",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-038",
+   "B0": null,
+   "V6": null,
+   "V6G_penjawab": null,
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-039",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-040",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-041",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-042",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-043",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-044",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-045",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-046",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-047",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-048",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-049",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-050",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-051",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-052",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-053",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-054",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-055",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-056",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-057",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-058",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-059",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-060",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-061",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-062",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-063",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-064",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-065",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-066",
+   "B0": "groq:openai/gpt-oss-120b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-067",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-068",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-069",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-070",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-071",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-072",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-073",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-074",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-075",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-076",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-077",
+   "B0": null,
+   "V6": null,
+   "V6G_penjawab": null,
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-078",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-079",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-080",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-081",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-082",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-083",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-084",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-085",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-086",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-087",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-088",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-089",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-090",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-091",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-092",
+   "B0": null,
+   "V6": null,
+   "V6G_penjawab": null,
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-093",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-094",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-095",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-096",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-097",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": "groq:openai/gpt-oss-120b"
+  },
+  {
+   "qid": "v2d-098",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-099",
+   "B0": null,
+   "V6": null,
+   "V6G_penjawab": null,
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-100",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-101",
+   "B0": null,
+   "V6": null,
+   "V6G_penjawab": null,
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-102",
+   "B0": null,
+   "V6": null,
+   "V6G_penjawab": null,
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-103",
+   "B0": null,
+   "V6": null,
+   "V6G_penjawab": null,
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-104",
+   "B0": null,
+   "V6": null,
+   "V6G_penjawab": null,
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-105",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-106",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-107",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-120b",
+   "V6G_penjawab": "groq:openai/gpt-oss-120b",
+   "V6G_verifikator": null
+  },
+  {
+   "qid": "v2d-108",
+   "B0": "groq:openai/gpt-oss-20b",
+   "V6": "groq:openai/gpt-oss-20b",
+   "V6G_penjawab": "groq:openai/gpt-oss-20b",
+   "V6G_verifikator": null
+  }
+ ]
+}

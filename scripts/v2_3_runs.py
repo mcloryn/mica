@@ -70,6 +70,9 @@ OVERRIDES: dict[str, dict[str, Any]] = {
 }
 # run verifikator -> run sumber keluaran LLM yang diputar ulang
 REPLAY_SOURCE = {"V6G": "V6", "V6Gr": "V6r"}
+# V2-4: V6r/V6Gr hanya pada subset S (soal yang di B0 dan V6 dijawab gpt-oss-120b)
+SUBSET_RUNS = {"V6r", "V6Gr"}
+S_FILE = OUT / "subset_S.json"
 
 
 def merge(base: dict, extra: dict) -> dict:
@@ -87,6 +90,13 @@ def settings_for(run: str):
 def read_csv(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8") as f:
         return list(csv.DictReader(f, delimiter=";"))
+
+
+def items_for(run: str) -> list[dict[str, Any]]:
+    if run not in SUBSET_RUNS:
+        return items()
+    s_ids = set(json.loads(S_FILE.read_text("utf-8"))["qids"])
+    return [it for it in items() if it["qid"] in s_ids]
 
 
 def items() -> list[dict[str, Any]]:
@@ -210,7 +220,7 @@ def run_v6(sleep: float, retries: int, run: str = "V6", primary_only: bool = Fal
     path = OUT / f"{run}.jsonl"
     done = done_rows(path)
     with path.open("a", encoding="utf-8") as f:
-        for it in items():
+        for it in items_for(run):
             if it["qid"] in done:
                 continue
             for attempt in range(retries + 1):
@@ -282,13 +292,13 @@ def run_v6g(sleep: float, retries: int, run: str = "V6G") -> None:
     rep_f, rep_l = ReplayFollowup(), ReplayLlm()
     pipeline.followup, pipeline.llm = rep_f, rep_l  # type: ignore[assignment]
     v6 = done_rows(OUT / f"{REPLAY_SOURCE[run]}.jsonl")
-    if len(v6) != len(items()):
+    if len(v6) != len(items_for(REPLAY_SOURCE[run])):
         print(f"{run}: {REPLAY_SOURCE[run]} belum lengkap ({len(v6)})", flush=True)
         return
     path = OUT / f"{run}.jsonl"
     done = done_rows(path)
     with path.open("a", encoding="utf-8") as f:
-        for it in items():
+        for it in items_for(run):
             if it["qid"] in done:
                 continue
             src = v6[it["qid"]]

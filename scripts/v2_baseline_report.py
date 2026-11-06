@@ -173,8 +173,20 @@ def main() -> None:
             f"`{meta['followup_mode']}`."
         ),
         (
-            "- Jeda 20 detik per panggilan; tidak ada HTTP 429 (semua soal selesai pada percobaan "
-            "pertama). Semua jawaban dari gpt-oss-120b."
+            # koreksi V2-4 (7 Nov 2026): versi awal menulis "tidak ada HTTP 429 ... Semua jawaban
+            # dari gpt-oss-120b"; salah, lihat docs/V2-HASIL-DEV.md bagian deviasi
+            "- Jeda 20 detik per panggilan. **Koreksi (7 Nov 2026):** versi awal laporan ini "
+            'menulis "tidak ada HTTP 429 ... semua jawaban dari gpt-oss-120b"; itu salah. '
+            "gpt-oss-120b membalas HTTP 429 (batas token harian) mulai sekitar v2d-067 "
+            "(`run_stdout.txt`), dan rantai pindah ke cadangan tanpa run berhenti. Penjawab: "
+            + ", ".join(
+                f"{s} {p or 'tanpa LLM (gerbang 1)'} {k}"
+                for (s, p), k in sorted(
+                    Counter((r["set"], r["llm_provider"]) for r in runs).items(),
+                    key=lambda x: (x[0][0], str(x[0][1])),
+                )
+            )
+            + ". Analisis utama V2-3/V2-4 karena itu memakai subset S (`docs/V2-HASIL-DEV.md`)."
         ),
         (
             "- Set v2: 108 soal (`data/eval/dev-v2-soal.csv`, kunci `data/eval/dev_v2_kunci.csv`). "

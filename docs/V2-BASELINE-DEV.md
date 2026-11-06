@@ -5,7 +5,7 @@ Penilaian oleh Claude di set dev (akan diungkap di Bab 3), **bukan penilaian res
 ## 1. Konfigurasi
 
 - KB `official-2026-10-24-v5`, config_hash `073e446b9879` (`config/prod.yaml`), top_k 5, gerbang dense@1 >= 0.5, prompt `v5`, rantai groq:openai/gpt-oss-120b, groq:openai/gpt-oss-20b, followup_mode `dual`.
-- Jeda 20 detik per panggilan; tidak ada HTTP 429 (semua soal selesai pada percobaan pertama). Semua jawaban dari gpt-oss-120b.
+- Jeda 20 detik per panggilan. **Koreksi (7 Nov 2026):** versi awal laporan ini menulis "tidak ada HTTP 429 ... semua jawaban dari gpt-oss-120b"; itu salah. gpt-oss-120b membalas HTTP 429 (batas token harian) mulai sekitar v2d-067 (`run_stdout.txt`), dan rantai pindah ke cadangan tanpa run berhenti. Penjawab: lama tanpa LLM (gerbang 1) 4, lama groq:openai/gpt-oss-120b 2, lama groq:openai/gpt-oss-20b 32, v2 tanpa LLM (gerbang 1) 9, v2 groq:openai/gpt-oss-120b 64, v2 groq:openai/gpt-oss-20b 35. Analisis utama V2-3/V2-4 karena itu memakai subset S (`docs/V2-HASIL-DEV.md`).
 - Set v2: 108 soal (`data/eval/dev-v2-soal.csv`, kunci `data/eval/dev_v2_kunci.csv`). Set lama: 38 soal `data/eval/questions.jsonl` yang bukan luar_topik (kunci `data/eval/dev_lama_kunci_v5.csv`); followup d032/d033 memakai riwayat d001/d011.
 
 ## 2. Aturan penilaian
