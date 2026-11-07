@@ -68,10 +68,13 @@ OVERRIDES: dict[str, dict[str, Any]] = {
         }
     },
 }
+# V2-5 (docs/AMANDEMEN-V2.md d): prompt terpilih, tanpa reranker (= retrieval B0), tanpa verifikator
+FINAL_PROMPT = "v6"  # diisi hasil pemilihan amandemen c (V6 vs V6r di S)
+OVERRIDES["FINAL"] = {"rag": {"prompt_variant": FINAL_PROMPT}}
 # run verifikator -> run sumber keluaran LLM yang diputar ulang
 REPLAY_SOURCE = {"V6G": "V6", "V6Gr": "V6r"}
 # V2-4: V6r/V6Gr hanya pada subset S (soal yang di B0 dan V6 dijawab gpt-oss-120b)
-SUBSET_RUNS = {"V6r", "V6Gr"}
+SUBSET_RUNS = {"V6r", "V6Gr", "FINAL"}
 S_FILE = OUT / "subset_S.json"
 
 
@@ -208,6 +211,29 @@ class RecordFailure:
             raise
 
 
+def quota_ok(settings: Any) -> bool:
+    """Satu panggilan kecil ke llm.chain[0] SEBELUM model dimuat (hemat RAM bila kuota habis)."""
+    import httpx
+
+    from mica.rag.llm import GROQ_URL
+
+    key = settings.api_keys.groq
+    model = settings.llm.chain[0].partition(":")[2]
+    body = {"model": model, "messages": [{"role": "user", "content": "ping"}],
+            "max_completion_tokens": 8, "include_reasoning": False}  # fmt: skip
+    try:
+        r = httpx.post(GROQ_URL, json=body, timeout=20,
+                       headers={"Authorization": f"Bearer {key.get_secret_value()}"})  # fmt: skip
+    except httpx.HTTPError as exc:
+        print("cek kuota: galat koneksi", type(exc).__name__, flush=True)
+        return False
+    if r.status_code != 200:
+        print(f"cek kuota: HTTP {r.status_code} retry_after={r.headers.get('retry-after')}",
+              flush=True)  # fmt: skip
+        return False
+    return True
+
+
 def run_v6(sleep: float, retries: int, run: str = "V6", primary_only: bool = False) -> None:
     settings = settings_for(run)
     pipeline = make_pipeline(settings, log=InteractionLog(OUT / f"logs-{run}"))
@@ -338,15 +364,20 @@ def run_v6g(sleep: float, retries: int, run: str = "V6G") -> None:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("run", choices=["default", "R", "V6", "V6G", "V6r", "V6Gr"])
+    ap.add_argument("run", choices=["default", "R", "V6", "V6G", "V6r", "V6Gr", "FINAL"])
     ap.add_argument("--sleep", type=float, default=20.0)
     ap.add_argument("--retries", type=int, default=3)
     ap.add_argument("--primary-only", action="store_true")
+    ap.add_argument(
+        "--check-quota", action="store_true", help="cek kuota dulu; keluar 2 bila habis"
+    )
     args = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     meta_path = OUT / "meta.json"
     meta = json.loads(meta_path.read_text("utf-8")) if meta_path.exists() else {}
     s = settings_for(args.run)
+    if args.check_quota and not quota_ok(s):
+        return 2
     meta[args.run] = {"overrides": OVERRIDES[args.run], "config_hash": s.config_hash(),
                       "kb_id": s.kb.active_id, "llm_chain": list(s.llm.chain),
                       "primary_only": args.primary_only}  # fmt: skip
@@ -355,7 +386,7 @@ def main() -> int:
         return check_default()
     if args.run == "R":
         retrieval_rows("R")
-    elif args.run in ("V6", "V6r"):
+    elif args.run in ("V6", "V6r", "FINAL"):
         run_v6(args.sleep, args.retries, args.run, args.primary_only)
     else:
         run_v6g(args.sleep, args.retries, args.run)
